@@ -39,6 +39,10 @@ valid: *.xml
 %.fo: %.xml
 	xsltproc -o $@ --stringparam paper.type A4 --catalogs --xinclude $(fo_stylesheet) $<
 
+# PDF and PostScript rendering depends on xmlroff, which is not (yet)
+# included in Debian stable nor a released Ubuntu version. For now,
+# build from source, get the lenny/sid package, or wait for Ubuntu
+# Hardy. :-)
 %.pdf: %.fo
 	xmlroff -o $@ --format=pdf $<
 
