@@ -6,7 +6,209 @@
       <firstname>Florian</firstname>
       <surname>Haas</surname>
      </author>
+    <author>
+      <firstname>Lars</firstname>
+      <surname>Ellenberg</surname>
+    </author>
     <date>January 18, 2008</date>
   </bookinfo>
+  <chapter>
+    <title>Getting and installing DRBD</title>
+    <section>
+      <title>Downloading the DRBD sources</title>
+      <para>The source tarballs for both current and historic DRBD
+	releases are available for download from <ulink
+	  url="http://oss.linbit.com/drbd/"/>.<footnote>
+	  <para>LINBIT is the company that acts as the DRBD project's
+	    primary sponsor, and which also provides commercial DRBD
+	    support and consultancy services. More information about
+	    LINBIT is available at <ulink
+	      url="http://www.linbit.com/"/>.</para>
+	</footnote> Source tarballs, by convention, are named
+	<filename>drbd-x.y.z.tar.gz</filename>, where
+	<varname>x</varname>, <varname>y</varname> and
+      <varname>z</varname> refer to the major, minor and bugfix
+      release numbers.</para>
+      <para>DRBD is quite lean, the compressed source archive is less
+      than half a megabyte in size. To download an uncompress into
+      your current working directory, issue
+	the following commands:</para>
+      <example>
+	<title>Downloading and uncompressing the DRBD source
+	tarball</title>
+	<programlisting>wget http://oss.linbit.com/drbd/drbd-8.2.4.tar.gz
+tar -xzf drbd-8.2.4.tar.gz</programlisting>
+      </example>
+    </section>
+    <section>
+      <title>Building DRBD from source</title>
+      <section id="s-build-prereq">
+	<title>Checking build prerequisites</title>
+	<para>Before being able to build DRBD from source, your build
+	  host must fulfill the following prerequisites:</para>
+	<itemizedlist>
+	  <listitem>
+	    <para><code>gcc</code>, the glibc development libraries,
+	      <code>make</code>, and the <code>flex</code> scanner must
+	      be installed.</para>
+	    <note>
+	      <para>You should make sure that the gcc you use to compile the module
+		is the same which was used to build the kernel you are running.
+	      </para>
+	    </note>
+	  </listitem>
+	  <listitem>
+	    <para>If you are running a stock kernel supplied by your
+	      distribution, you should install a matching precompiled
+	      kernel headers package. These are typically named
+	      <code>kernel-dev</code>, <code>kernel-headers</code>,
+	      <code>linux-headers</code> or similar. In this case, you
+	      can skip <xref linkend="s-build-prepare-tree"/> and
+	      continue with <xref
+		linkend="s-build-compile-kernel-module"/>.</para>
+	  </listitem>
+	  <listitem>
+	    <para>If you are not running a distribution stock kernel
+	      (i.e. your system runs on a kernel built from source
+	      with a custom configuration), your kernel source files
+	      must be installed. Distribution packages for kernel
+	      sources are typically named
+	      <code>kernel-source</code><footnote>
+		<para>Note that on RPM-based systems, these packages
+		  will be named similar to
+		  <filename>kernel-source-VERSION.rpm</filename>,
+		  which is easily confused with
+		  <filename>kernel-VERSION.src.rpm</filename>. The
+		  former is the correct package to install for
+		  building DRBD.</para></footnote> or similar. In this
+	      case, you must continue with <xref
+		linkend="s-build-prepare-tree"/>.</para>
+	  </listitem>
+	</itemizedlist>
+      </section>
+      <section id="s-build-prepare-tree">
+	<title>Preparing the kernel source tree</title>
+	<para>To prepare your source tree for building DRBD, you must
+	first enter the directory where your unpacked kernel sources
+	  are located. Typically this is
+	<filename>/usr/src/linux-VERSION</filename>, or simply a
+	  symbolic link named <filename>/usr/src/linux</filename>:
+	  <programlisting>cd /usr/src/linux</programlisting></para>
+	<para>The next step is recommended, though not strictly
+	necessary. It essentially reverts your kernel source tree to
+	its original state, removing any leftovers from an earlier
+	build or configure run:
+	<programlisting>make mrproper</programlisting></para>
+	<para>Now it is time to <emphasis>clone</emphasis> your
+	currently running kernel configuration into the kernel source
+	tree. There are a few possible options for doing this:
+	  <itemizedlist>
+	    <listitem>
+	      <para>Many reasonably recent kernel builds export the
+		currently-running configuration, in compressed form, via the
+		<filename>/proc</filename> filesystem, enabling you to copy
+		from there:
+		<programlisting>zcat /proc/config.gz > .config</programlisting>
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>SUSE kernel Makefiles include a
+	      <code>cloneconfig</code> target, so on those systems,
+	      you can issue:
+		<programlisting>make cloneconfig</programlisting></para>
+	    </listitem>
+	    <listitem>
+	      <para>Some installs put a copy of the kernel config into
+		<filename>/boot</filename>, which allows you to do
+		this:</para>
+	      <programlisting>cp /boot/config-$(uname -r) .config</programlisting>
+	    </listitem>
+	    <listitem>
+	      <para>Finally, you may simply use a backup copy of a
+		<filename>.config</filename> file which you know to
+		have been used for building the currently-running
+		kernel.</para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </section>
+      <section id="s-build-compile-kernel-module">
+	<title>Compiling DRBD as a kernel module</title>
+	<note>
+	  <para>This section only applies to building DRBD as a
+	    loadable module. If you want to build DRBD right
+	    <emphasis>into</emphasis> your kernel image, you will have
+	    to patch your kernel. See <xref
+	    linkend="s-build-patch-kernel"/>. Using DRBD as a loadable
+	    module is the preferred option.</para>
+	</note>
+	<para>After changing into your unpacked DRBD sources
+	directory, you should now change into the kernel module
+	  subdirectory, simply named <filename>drbd</filename>, and
+	build the module there:
+	  <programlisting>cd drbd
+make clean all</programlisting></para>
+	<para>This will build the DRBD kernel module to match your
+	currently-running kernel, whose kernel source is expected to
+	be accessible via the 
+	  <filename>/lib/modules/`uname&nbsp;-r`/build</filename> symlink.</para>
+	<para>If you are building DRBD against a kernel
+	<emphasis>other</emphasis> than your currently running one,
+	  set the <varname>KDIR</varname> variable explicitly:
+	  <programlisting>cd drbd
+make clean
+make KDIR=/path/to/kernel/source</programlisting></para>
+	<para>If you are building against a stock kernel (one that was
+	shipped pre-compiled with your distribution), you may also set
+	  the <varname>KDIR</varname> variable to point to a
+	<emphasis>matching</emphasis> kernel headers (as opposed to
+	kernel sources) directory, for
+	example:
+	  <programlisting>cd drbd
+make clean
+make KDIR=/usr/src/linux-include/athlon</programlisting></para>
+	<para>You also have the option of setting the compiler
+	  explicitly via the <varname>CC</varname> variable. This is
+	known to be necessary on some Fedora versions, for example:
+	  <programlisting>cd drbd
+make clean
+make CC=gcc32</programlisting></para>
+	<para>If the module build completes successfully, you will see
+	  a kernel module file named <filename>drbd.ko</filename> in
+	  the <filename>drbd directory</filename>.</para>
+      </section>
+      <section id="s-build-patch-kernel">
+	<title>Patching DRBD into the kernel</title>
+	<note>
+	  <para>This section only applies to building DRBD into a
+	    kernel image, as opposed to compiling it as a loadable
+	    module. Only use this if you have a valid reason to, for
+	    example if you are building a kernel without loadable
+	    modules support. Normally, using DRBD as a loadable
+	    module is the preferred option.</para>
+	</note>
+      </section>
+    </section>
+  </chapter>
+  <chapter>
+    <title>Getting more information</title>
+    <section>
+      <title>Public mailing list</title>
+      <para>The public mailing list for general usage questions
+	regarding DRBD is
+      <email>drbd-user@lists.linbit.com</email>. This is a
+	subscribers-only mailing list, you may subscribe at <ulink
+	  url="http://lists.linbit.com/drbd-user"/>. A complete
+	archive of the is available at <ulink
+	  url="http://lists.linbit.com/pipermail/drbd-user"/>.
+      </para>
+    </section>
+    <section>
+      <title>Commercial DRBD support</title>
+      <para>Commercial DRBD support, consultancy, and training
+	services are available from the project's sponsor company,
+      <ulink url="http://www.linbit.com/">LINBIT</ulink>.</para>
+    </section>
+  </chapter>
 </book>
 
