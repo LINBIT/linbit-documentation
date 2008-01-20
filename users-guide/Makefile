@@ -1,4 +1,4 @@
-all: html pdf
+all: html
 
 html: users-guide.html
 

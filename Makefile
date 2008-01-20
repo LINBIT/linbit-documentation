@@ -21,7 +21,7 @@ html_stylesheet ?= $(stylesheet_prefix)/xhtml/docbook.xsl
 chunked_html_stylesheet ?= $(stylesheet_prefix)/xhtml/chunk.xsl
 fo_stylesheet ?= $(stylesheet_prefix)/fo/docbook.xsl
 
-all: html chunked-html pdf
+all: html chunked-html
 
 html: howto-collection.html
 

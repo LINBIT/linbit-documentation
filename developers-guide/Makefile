@@ -1,4 +1,4 @@
-all: html pdf
+all: html
 
 html: developers-guide.html
 
