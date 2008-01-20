@@ -71,8 +71,9 @@ tar -xzf drbd-8.2.4.tar.gz</programlisting>
 	    <para>If you are not running a distribution stock kernel
 	      (i.e. your system runs on a kernel built from source
 	      with a custom configuration), your kernel source files
-	      must be installed. Distribution packages for kernel
-	      sources are typically named
+	      must be installed. Your distribution may provide for
+	      this via its package installation mechanism;
+	      distribution packages for kernel sources are typically named
 	      <code>kernel-source</code><footnote>
 		<para>Note that on RPM-based systems, these packages
 		  will be named similar to
@@ -80,8 +81,16 @@ tar -xzf drbd-8.2.4.tar.gz</programlisting>
 		  which is easily confused with
 		  <filename>kernel-VERSION.src.rpm</filename>. The
 		  former is the correct package to install for
-		  building DRBD.</para></footnote> or similar. In this
-	      case, you must continue with <xref
+		  building DRBD.</para></footnote> or
+	      similar. </para>
+	    <para>"Vanilla" kernel tarballs from the kernel.org
+	      archive are simply named linux-KERNELVERSION-tar.bz2 and
+	      should be unpacked in
+	      <filename>/usr/src/linux-KERNELVERSION</filename>, with
+	      the symlink <filename>/usr/src/linux</filename> pointing
+	      to that directory. </para>
+	    <para>In this case of building DRBD against
+	      kernel sources (not headers), you must continue with <xref
 		linkend="s-build-prepare-tree"/>.</para>
 	  </listitem>
 	</itemizedlist>
@@ -152,30 +161,34 @@ make clean all</programlisting></para>
 	currently-running kernel, whose kernel source is expected to
 	be accessible via the 
 	  <filename>/lib/modules/`uname&nbsp;-r`/build</filename> symlink.</para>
-	<para>If you are building DRBD against a kernel
-	<emphasis>other</emphasis> than your currently running one,
-	  set the <varname>KDIR</varname> variable explicitly:
-	  <programlisting>cd drbd
-make clean
-make KDIR=/path/to/kernel/source</programlisting></para>
-	<para>If you are building against a stock kernel (one that was
+	<para>If that symlink does not exist, and you are building
+	against a running stock kernel (one that was
 	shipped pre-compiled with your distribution), you may also set
-	  the <varname>KDIR</varname> variable to point to a
+	  the <varname>KDIR</varname> variable to point to the
 	<emphasis>matching</emphasis> kernel headers (as opposed to
 	kernel sources) directory, for
 	example:
 	  <programlisting>cd drbd
 make clean
 make KDIR=/usr/src/linux-include/athlon</programlisting></para>
+	<para>If you are building DRBD against a kernel
+	<emphasis>other</emphasis> than your currently running one,
+	  set the <varname>KDIR</varname> variable to point to its
+	kernel sources directory:
+	  <programlisting>cd drbd
+make clean
+make KDIR=/path/to/kernel/source</programlisting></para>
 	<para>You also have the option of setting the compiler
 	  explicitly via the <varname>CC</varname> variable. This is
 	known to be necessary on some Fedora versions, for example:
 	  <programlisting>cd drbd
 make clean
 make CC=gcc32</programlisting></para>
-	<para>If the module build completes successfully, you will see
+	<para>If the module build completes successfully, you should see
 	  a kernel module file named <filename>drbd.ko</filename> in
-	  the <filename>drbd directory</filename>.</para>
+	  the <filename>drbd</filename> directory. You may interrogate
+	  the newly-built module with <command>/sbin/modinfo
+	drbd.ko</command> if you are so inclined.</para>
       </section>
       <section id="s-build-patch-kernel">
 	<title>Patching DRBD into the kernel</title>
@@ -187,6 +200,44 @@ make CC=gcc32</programlisting></para>
 	    modules support. Normally, using DRBD as a loadable
 	    module is the preferred option.</para>
 	</note>
+	<para>This approach involves having the DRBD build system
+	  generate a kernel patch, which you then apply to a kernel
+	  source tree. To create the patch, issue these commands:
+	  <programlisting>cd drbd
+make clean
+make KDIR=/usr/src/linux kernel-patch</programlisting>
+	  This command will create a file named
+	  <filename>patch-linux-KERNELVERSION-drbd-DRBDVERSION</filename>.</para>
+	<para>You may review this patch and then apply it to your
+	  kernel source tree, by issuing the following commands:
+	  <programlisting>cd /usr/src/linux 
+patch -p1 &lt; /usr/src/drbd-DRBDVERSION/patch-linux-KERNELVERSION-drbd-DRBDVERSION<footnote> 
+	      <para>This example, as all others in this section,
+		assume that you unpacked you DRBD source tarball in
+		<filename>/usr/src/drbd-x.y.z</filename>, where
+		<varname>x.y.z</varname> is your DRBD version you are
+		building, and that sources for the kernel you are
+		building against are in
+		<filename>/usr/src/linux</filename>.</para>
+	    </footnote></programlisting> After this, you can run
+	  <code>make&nbsp;config</code>,
+	  <code>make&nbsp;menuconfig</code>, or
+	  <code>make&nbsp;xconfig</code>, whichever your preferred way
+	  of configuring your kernel is, and enable DRBD for your
+	  build. For the menu- or GUI-based configuration facilities,
+	  you will find DRBD listed in the "Block devices"
+	  section.</para>
+	<para>After this, you can build your kernel as usual
+	  (<code>make bzImage</code> et al.), and the resulting kernel
+	  build will include DRBD.</para>
+	<para>With this approach, you will need to build the DRBD
+	  userspace management tools separately. This is done by
+	  changing into the top-level directory of your unpacked DRBD
+	  sources, and issuing the <command>make tools</command>
+	  command:
+	  <programlisting>cd /usr/src/drbd-x.y.z
+make tools</programlisting>
+	</para>
       </section>
     </section>
   </chapter>
