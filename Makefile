@@ -33,16 +33,13 @@ chunked-html: howto-collection.xml
 
 pdf: howto-collection.pdf
 
-gpl-2.0.xml:
-	wget -c -O $@ http://www.gnu.org/licenses/gpl-2.0.dbk
-
 valid: *.xml
 	xmllint --noout --valid --xinclude *.xml
 
-%.html: %.xml gpl-2.0.xml
+%.html: %.xml
 	xsltproc -o $@ --xinclude $(html_stylesheet) $<
 
-%.fo: %.xml gpl2.0.xml
+%.fo: %.xml
 	xsltproc -o $@ --stringparam paper.type A4 --xinclude $(fo_stylesheet) $<
 
 # PDF and PostScript rendering depends on xmlroff, which is not (yet)
