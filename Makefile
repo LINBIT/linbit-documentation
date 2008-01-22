@@ -13,6 +13,9 @@
 # lower-level Makefile. Refer the Makefile in the "users-guide"
 # subdirectory as an example.
 
+# Path to the DRBD source tree
+DRBD ?= ../drbd-8
+
 # Paths to Norm Walsh's DocBook XSL stylesheets. 
 # FIXME: These paths are likely to work only on Debian or Ubuntu
 # systems.
@@ -30,17 +33,17 @@ chunked-html: howto-collection.xml
 
 pdf: howto-collection.pdf
 
+gpl-2.0.xml:
+	wget -c -O $@ http://www.gnu.org/licenses/gpl-2.0.dbk
+
 valid: *.xml
 	xmllint --noout --valid --xinclude *.xml
 
-%.html: %.xml
+%.html: %.xml gpl-2.0.xml
 	xsltproc -o $@ --xinclude $(html_stylesheet) $<
 
-%.fo: %.xml
+%.fo: %.xml gpl2.0.xml
 	xsltproc -o $@ --stringparam paper.type A4 --xinclude $(fo_stylesheet) $<
-
-%.dep: %.xml
-	xsltproc -o $@ --stringparam top $< depend.xsl $<
 
 # PDF and PostScript rendering depends on xmlroff, which is not (yet)
 # included in Debian stable nor a released Ubuntu version. For now,
@@ -58,5 +61,6 @@ clean:
 	rm -f *.html
 	rm -f *.pdf
 	rm -f *.ps
+	rm -f gpl-2.0.xml
 
 .PHONY: all html chunked-html pdf clean
