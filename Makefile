@@ -26,18 +26,21 @@ all: html chunked-html
 html: howto-collection.html
 
 chunked-html: howto-collection.xml
-	xsltproc -o html-multiple-pages/ --catalogs --xinclude $(chunked_html_stylesheet) $<
+	xsltproc -o html-multiple-pages/ --xinclude $(chunked_html_stylesheet) $<
 
 pdf: howto-collection.pdf
 
 valid: *.xml
-	xmllint --noout --valid --catalogs --xinclude *.xml
+	xmllint --noout --valid --xinclude *.xml
 
 %.html: %.xml
-	xsltproc -o $@ --catalogs --xinclude $(html_stylesheet) $<
+	xsltproc -o $@ --xinclude $(html_stylesheet) $<
 
 %.fo: %.xml
-	xsltproc -o $@ --stringparam paper.type A4 --catalogs --xinclude $(fo_stylesheet) $<
+	xsltproc -o $@ --stringparam paper.type A4 --xinclude $(fo_stylesheet) $<
+
+%.dep: %.xml
+	xsltproc -o $@ --stringparam top $< depend.xsl $<
 
 # PDF and PostScript rendering depends on xmlroff, which is not (yet)
 # included in Debian stable nor a released Ubuntu version. For now,
