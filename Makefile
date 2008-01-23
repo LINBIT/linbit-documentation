@@ -16,6 +16,9 @@
 # Path to the DRBD source tree
 DRBD ?= ../drbd-8
 
+# Sub-directories to descend into if doing recursive make
+SUBDIRS ?= users-guide developers-guide
+
 # Paths to Norm Walsh's DocBook XSL stylesheets.  
 # Fetching these from the web on every run is probably dead slow, so
 # make sure you have a local copy of these stylesheets installed, and
@@ -28,12 +31,15 @@ fo_stylesheet ?= $(stylesheet_prefix)/fo/docbook.xsl
 
 all: html chunked-html
 
-html: howto-collection.html
+html: howto-collection.html images
+	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) .
 
-chunked-html: howto-collection.xml
+chunked-html: howto-collection.xml images
+	mkdir -p html-multiple-pages/
+	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) html-multiple-pages/
 	xsltproc -o html-multiple-pages/ --xinclude $(chunked_html_stylesheet) $<
 
-pdf: howto-collection.pdf
+pdf: howto-collection.pdf images
 
 valid: *.xml
 	xmllint --noout --valid --xinclude *.xml
@@ -45,10 +51,13 @@ valid: *.xml
 	xsltproc -o $@ --stringparam paper.type A4 --xinclude $(fo_stylesheet) $<
 
 %.svg: %.mml
-	mathmlsvg --font-size=12 $<
+	mathmlsvg --font-size=24 $<
 
 %.png: %.svg
-	rsvg -x3 -y3 $< $@
+	rsvg $< $@
+
+images:
+	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i images; done
 
 # PDF and PostScript rendering depends on xmlroff, which is not (yet)
 # included in Debian stable nor a released Ubuntu version. For now,

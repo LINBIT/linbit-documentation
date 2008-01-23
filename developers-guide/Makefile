@@ -1,11 +1,13 @@
 all: html
 
-html: developers-guide.html
+html: images developers-guide.html
 
-pdf: developers-guide.pdf
+pdf: images developers-guide.pdf
+
+images:
 
 %: force
 	@$(MAKE) -f ../Makefile $@
 force: ;
 
-.PHONY: all html pdf
+.PHONY: all html pdf images
