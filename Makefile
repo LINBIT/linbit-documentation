@@ -16,10 +16,12 @@
 # Path to the DRBD source tree
 DRBD ?= ../drbd-8
 
-# Paths to Norm Walsh's DocBook XSL stylesheets. 
-# FIXME: These paths are likely to work only on Debian or Ubuntu
-# systems.
-stylesheet_prefix ?= /usr/share/xml/docbook/stylesheet/nwalsh
+# Paths to Norm Walsh's DocBook XSL stylesheets.  
+# Fetching these from the web on every run is probably dead slow, so
+# make sure you have a local copy of these stylesheets installed, and
+# XML catalogs set up correctly. On Debian/Ubuntu systems, this is a
+# simple matter of "apt-get install docbook-xsl".
+stylesheet_prefix ?= http://docbook.sourceforge.net/release/xsl/current
 html_stylesheet ?= $(stylesheet_prefix)/xhtml/docbook.xsl
 chunked_html_stylesheet ?= $(stylesheet_prefix)/xhtml/chunk.xsl
 fo_stylesheet ?= $(stylesheet_prefix)/fo/docbook.xsl
