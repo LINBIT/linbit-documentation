@@ -4,10 +4,12 @@ html: images users-guide.html
 
 pdf: images users-guide.pdf
 
-images: metadata-size-exact.png metadata-size-approx.png
+raster-images: metadata-size-exact.png metadata-size-approx.png
+
+vector-images: metadata-size-exact.svg metadata-size-approx.svg
 
 %: force
 	@$(MAKE) -f ../Makefile $@
 force: ;
 
-.PHONY: all images html fo pdf
+.PHONY: all raster-images vector-images html fo pdf

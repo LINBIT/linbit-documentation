@@ -4,10 +4,12 @@ html: images developers-guide.html
 
 pdf: images developers-guide.pdf
 
-images:
+raster-images:
+
+vector-images:
 
 %: force
 	@$(MAKE) -f ../Makefile $@
 force: ;
 
-.PHONY: all html pdf images
+.PHONY: all html pdf raster-images vector-images images

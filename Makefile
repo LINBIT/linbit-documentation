@@ -31,14 +31,15 @@ fo_stylesheet ?= $(stylesheet_prefix)/fo/docbook.xsl
 
 all: html chunked-html
 
-html: howto-collection.html copy-images
+html: copy-images howto-collection.html
 
 chunked-html: howto-collection.xml images
 	mkdir -p html-multiple-pages/
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) html-multiple-pages/
+	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) html-multiple-pages/
 	xsltproc -o html-multiple-pages/ --xinclude $(chunked_html_stylesheet) $<
 
-pdf: howto-collection.pdf copy-images
+pdf: copy-images howto-collection.pdf
 
 valid: *.xml
 	xmllint --noout --valid --xinclude *.xml
@@ -47,7 +48,13 @@ valid: *.xml
 	xsltproc -o $@ --xinclude $(html_stylesheet) $<
 
 %.fo: %.xml
-	xsltproc -o $@ --stringparam paper.type A4 --xinclude $(fo_stylesheet) $<
+	xsltproc -o $@ --stringparam paper.type A4 \
+	--stringparam title.font.family serif \
+	--stringparam insert.link.page.number yes \
+	--stringparam insert.xref.page.number yes \
+	--param fop1.extensions 1 \
+	--param use.extensions 1 \
+	--xinclude $(fo_stylesheet) $<
 
 %.svg: %.mml
 	mathmlsvg --font-size=24 $<
@@ -55,21 +62,27 @@ valid: *.xml
 %.png: %.svg
 	rsvg $< $@
 
-copy-images: images
+copy-images: copy-raster-images copy-vector-images
+
+copy-raster-images: raster-images
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) .
 
-images:
-	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i images; done
+copy-vector-images: vector-images
+	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) .
 
-# PDF and PostScript rendering depends on xmlroff, which is not (yet)
-# included in Debian stable nor a released Ubuntu version. For now,
-# build from source, get the lenny/sid package, or wait for Ubuntu
-# Hardy. :-)
+images: vector-images raster-images
+
+raster-images:
+	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i raster-images; done
+
+vector-images:
+	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i vector-images; done
+
 %.pdf: %.fo
-	xmlroff -o $@ --format=pdf $<
+	fop $< -pdf $@
 
 %.ps: %.fo
-	xmlroff -o $@ --format=postscript $<
+	fop $< -ps $@
 
 clean:
 	rm -rf html-multiple-pages/
@@ -79,4 +92,4 @@ clean:
 	rm -f *.ps
 	rm -f *.png
 
-.PHONY: all html chunked-html pdf clean
+.PHONY: all html chunked-html pdf clean raster-images vector-images images
