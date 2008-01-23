@@ -50,7 +50,7 @@
 	<itemizedlist>
 	  <listitem>
 	    <para>Both hosts have a free (currently unused) partition
-	      named <filename>/dev/sdb1</filename>.</para>
+	      named <filename>/dev/hda7</filename>.</para>
 	  </listitem>
 	  <listitem>
 	    <para>We are using <link
@@ -99,7 +99,7 @@
 	  <listitem>
 	    <para>Our two DRBD hosts each have a currently unused
 	      network interface, <code>eth1</code>, with IP addresses
-	      <code>192.168.42.1</code> and <code>192.168.42.2</code>
+	      <code>10.1.1.31</code> and <code>10.1.1.32</code>
 	      assigned to it, respectively.</para>
 	  </listitem>
 	  <listitem>
@@ -131,11 +131,142 @@
 	<filename>/usr/share/doc/packages/drbd</filename>.
       </para>
       <note>
-	<para>This section describes only those aspects of the
-	  configuration file which most users encounter in everyday
-	  operation. The configuration file's syntax contents are
-	  documented in great detail in <xref
+	<para>This section describes only those few aspects of the
+	  configuration file which are absolutely necessary to
+	  understand in order to get DRBD up and running. The
+	  configuration file's syntax and contents are documented in
+	  great detail in <xref
 	    linkend="re-drbdconf"/>.</para>
       </note>
+      <section id="s-drbdconf-example">
+	<title>Example configuration</title>
+	<para>For the purposes of this introductory howto, we assume a
+	  minimal setup in line with the examples given in the
+	  previous sections:</para>
+	<programlisting>
+global { 
+  usage-count yes; 
+}
+common {
+  protocol C;
+}
+resource r0 {
+  on thost1 {
+    device    /dev/drbd1;
+    disk      /dev/hda7;
+    address   10.1.1.31:7789;
+    meta-disk internal;
+  }
+  on thost2 {
+    device    /dev/drbd1;
+    disk      /dev/hda7;
+    address   10.1.1.32:7789;
+    meta-disk internal;
+  }
+}
+</programlisting>
+	<para>This example configures DRBD in the following fashion:
+	  <itemizedlist>
+	    <listitem>
+	      <para>You "opt in" to be included in DRBD's usage
+		statistics (see <link
+		linkend="fp-usage-count">below</link>).</para>
+	    </listitem>
+	    <listitem>
+	      <para>Resources are configured to use fully synchronous
+		replication (<link
+		linkend="s-replication-protocols">Protocol C</link>)
+		unless explicitly specified otherwise.</para>
+	    </listitem>
+	    <listitem>
+	      <para>Our cluster consists of two nodes,
+		<code>thost1</code> and <code>thost2</code>.</para>
+	    </listitem>
+	    <listitem>
+	      <para>We have a resource arbitrarily named
+		<code>r0</code> which uses
+		<filename>/dev/hda7</filename> as the lower-level
+		device, and TCP port 7789 for its network
+		connections. This resource uses <xref
+		linkend="s-internal-meta-data"/>.</para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </section>
+      <section id="s-drbdconf-global">
+	<title>The <code>global</code> section</title>
+	<para>This section is allowed only once, preferrably at the
+	  very top of the configuration file. Of the few options
+	  available in this section, only one is of relevance to most
+	  users:</para>
+	<formalpara id="fp-usage-count">
+	  <title><option>usage-count</option></title>
+	  <para>The DRBD project keeps statistics about the usage of
+	    various DRBD versions.<footnote>
+	      <para>These statistics are, of course, publicly
+		available: see <ulink url="http://usage.drbd.org"/>.</para>
+	    </footnote>
+	    This is done by contacting an HTTP server every time a new
+	    DRBD version is installed on a system. This can be disabled
+	    by setting <option>usage-count no;</option>. The default
+	    is <option>usage-count ask;</option> which will prompt you
+	    every time you upgrade DRBD.
+	  </para>
+	</formalpara>
+      </section>
+      <section id="s-drbdconf-common">
+	<title>The <code>common</code> section</title>
+	<para>This section provides a shorthand method to define
+	  configuration settings inherited by every resource. You may
+	  define any option you can also define on a per-resource
+	  basis.</para>
+	<para>Including a <code>common</code> section is not strictly
+	  required, but strongly recommended if you are using more
+	  than one resource. Otherwise, the configuration quickly
+	  becomes convoluted by repeatedly-used options.</para>
+	<para>In the example above, we included
+	  <code>protocol&nbsp;C;</code> in the <code>common</code>
+	  section, so every resource configured (including
+	  <code>r0</code>) inherits this option unless it has another
+	  <code>protocol</code> option configured explicitly. For
+	  other synchronization protocols available, see <xref
+	    linkend="s-replication-protocols"/>.</para>
+      </section>
+      <section id="s-drbdconf-resource">
+	<title>The <code>resource</code> sections</title>
+	<para>Any DRBD resource you define must be named by specifying
+	  <option>resource <replaceable>name</replaceable></option> in
+	  the configuration file. You may use any arbitrary
+	  identifier, however the name must not contain characters
+	  other than those found in the US-ASCII character set, and
+	  must also not include whitespace. </para>
+	<para>Every resource configuration must also have two
+	  <option>on <replaceable>host</replaceable></option>
+	  sub-sections (one for every cluster node). </para>
+	<para>All other configuration settings are either inherited
+	  from the <code>common</code> section (if it exists), or
+	  derived from DRBD's default settings.</para>
+	<para>In fact, you can use a shorthand notation for the
+	  <option>on <replaceable>host</replaceable></option>
+	  sub-sections, too: every option whose values are equal on
+	  both hosts may be specified directly in the
+	  <option>resource</option> section. Thus, we can further
+	  condense this section, in comparison with the example
+	  cited above:</para>
+	<programlisting>
+resource r0 {
+  device    /dev/drbd1;
+  disk      /dev/hda7;
+  meta-disk internal;
+  on thost1 {
+    address   10.1.1.31:7789;
+  }
+  on thost2 {
+    address   10.1.1.32:7789;
+  }
+}
+	</programlisting>
+	<para>This notation is available in DRBD versions 8.2.1 and above.</para>
+      </section>
     </section>
   </chapter>
