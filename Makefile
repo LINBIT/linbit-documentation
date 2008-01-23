@@ -31,15 +31,14 @@ fo_stylesheet ?= $(stylesheet_prefix)/fo/docbook.xsl
 
 all: html chunked-html
 
-html: howto-collection.html images
-	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) .
+html: howto-collection.html copy-images
 
 chunked-html: howto-collection.xml images
 	mkdir -p html-multiple-pages/
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) html-multiple-pages/
 	xsltproc -o html-multiple-pages/ --xinclude $(chunked_html_stylesheet) $<
 
-pdf: howto-collection.pdf images
+pdf: howto-collection.pdf copy-images
 
 valid: *.xml
 	xmllint --noout --valid --xinclude *.xml
@@ -55,6 +54,9 @@ valid: *.xml
 
 %.png: %.svg
 	rsvg $< $@
+
+copy-images: images
+	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) .
 
 images:
 	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i images; done
