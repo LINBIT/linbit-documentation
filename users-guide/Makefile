@@ -1,8 +1,8 @@
 all: html
 
-html: users-guide.html
+html: images users-guide.html
 
-pdf: users-guide.pdf
+pdf: images users-guide.pdf
 
 images: metadata-size-exact.png metadata-size-approx.png
 

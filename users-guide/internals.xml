@@ -145,10 +145,12 @@
       <title>Estimating meta data size</title>
       <para>You may calculate the exact space requirements for DRBD's
 	meta data using the following formula:</para>
-      <equation>
+      <equation id="eq-metadata-size-exact">
+	<title>Calculating DRBD meta data size (exactly)</title>
+	<graphic fileref="metadata-size-exact.png"/>
       </equation>
-      <para><varname>C</varname> is the data device size in
-	sectors.<footnote>
+      <para><replaceable>C<subscript>s</subscript></replaceable> is
+	the data device size in sectors.<footnote>
 	  <para>You may retrieve the device size by issuing
 	    <command>blockdev --getsz
 	      <replaceable>device</replaceable></command>.</para>
@@ -157,7 +159,8 @@
 	    more reliable, since it also works for block devices
 	    larger than 2 TB.
 	  </para>
-	  </footnote>The result, <varname>M</varname>, is also
+	</footnote>The result,
+	<replaceable>M<subscript>s</subscript></replaceable>, is also
 	expressed in sectors. To convert to MB, divide by
 	2048.<footnote>
 	  <para>The hard sector size on Linux (most architectures) is
@@ -168,7 +171,9 @@
       <para>In practice, you may use a reasonably good approximation,
 	given below. Note that in this formula, the unit is megabytes,
 	not sectors:</para>
-      <equation>
+      <equation id="eq-metadata-size-approx">
+	<title>Estimating DRBD meta data size (approximately)</title>
+	<graphic fileref="metadata-size-approx.png"/>
       </equation>
     </section>
   </section>
@@ -192,18 +197,31 @@
 	operations on the Primary node are considered completed as
 	soon as the local disk write has occurred, and the replication
 	packet has reached the peer node. No writes are lost in case
-	of forced failover. The only case that leads to data loss with
-	Protocol B is in the event of simultaneous power failure on
-	both nodes and simultaneous, irrevocable destruction of the
-	Primary's data store.</para> 
+	of forced failover. However, in the event of simultaneous
+	power failure on both nodes and concurrent, irrevocable
+	destruction of the Primary's data store, the most recent
+	writes completed on the Primary may be lost.</para> 
     </formalpara>
     <formalpara>
       <title>Protocol C</title>
       <para>Synchronous replication protocol. Local write operations
 	on the Primary node are considered completed only after both
-	the local and the remote disk write have been
-	confirmed.</para> 
+	the local and the remote disk write have been confirmed. As a
+	result, loss of a single node is guaranteed not to lead to any
+	data loss.</para> 
     </formalpara>
+    <note>
+      <para>Data loss is, of course, inevitable with every replication
+	protocol if both nodes are irrevocably destroyed at the same
+	time.</para>
+    </note>
+    <para>Note that the choice of replication protocol influences two
+      factors of your deployment: <emphasis>protection</emphasis> and
+      <emphasis>latency</emphasis>. <emphasis>Throughput</emphasis>,
+      by contrast, is largely independent of the replication protocol
+      selected.</para>
+    <para>By far, the most commonly used replication protocol in DRBD
+      setups is protocol C.</para>
   </section>
   <section id="s-on-disk-bitmap">
     <title>The on-disk Sync Bitmap</title>
