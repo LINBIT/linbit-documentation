@@ -49,8 +49,8 @@
 	very simple setup:
 	<itemizedlist>
 	  <listitem>
-	    <para>Both hosts have free partition named
-	    <filename>/dev/sdb1</filename>.</para>
+	    <para>Both hosts have a free (currently unused) partition
+	      named <filename>/dev/sdb1</filename>.</para>
 	  </listitem>
 	  <listitem>
 	    <para>We are using <link
@@ -62,6 +62,57 @@
     </section>
     <section id="s-prepare-network">
       <title>Preparing your network configuration</title>
+      <para>It is recommended, though not strictly required, that you
+	run your DRBD replication over a dedicated connection. At the
+	time of this writing, the most reasonable choice for this is a
+	direct, back-to-back, Gigabit Ethernet connection.<footnote>
+	  <para>DRBD's replication and synchronization protocol is IP
+	    based, so DRBD can run over any data link layer device
+	    that IP can communicate over. Thus running DRBD over
+	    InfiniBand, for example, is entirely possible. Ethernet,
+	    however, is the most commonly encountered Layer 2
+	    option.</para>
+	</footnote> If and when you run DRBD over switches, use of
+	redundant components and the Linux <code>bonding</code> driver
+	(in <code>active-backup</code> mode) is recommended.</para>
+      <para>In terms of local firewall considerations, it is important
+	to understand that DRBD (by convention) uses TCP ports from
+	7788 upwards, with every TCP resource listening on a separate,
+	configurable, but unchanging TCP port. DRBD uses
+	<emphasis>two</emphasis> separate TCP connections (one in
+	either direction) for every resource configured. For proper
+	DRBD functionality, it is required that these connections are
+	allowed by your firewall configuration.<footnote>
+	  <para>Security considerations other than firewalling may
+	    also apply if a Mandatory Access Control (MAC) scheme such
+	    as SELinux or AppArmor is enabled. You may have to adjust
+	    your local security policy so it does not keep DRBD from
+	    functioning properly.</para>
+	</footnote>
+      </para>
+      <para>You must, of course, also ensure that the TCP ports you
+      will be using for DRBD are not already being used by another
+      application.</para>
+      <para>For the purposes of this introductory howto, we assume a
+	very simple setup:
+	<itemizedlist>
+	  <listitem>
+	    <para>Our two DRBD hosts each have a currently unused
+	      network interface, <code>eth1</code>, with IP addresses
+	      <code>192.168.42.1</code> and <code>192.168.42.2</code>
+	      assigned to it, respectively.</para>
+	  </listitem>
+	  <listitem>
+	    <para>No other services are using TCP ports 7788 through
+	    7799 on either host.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The local firewall configuration allows both inbound
+	    and outbound TCP connections between the hosts over these
+	    ports.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
     </section>
     <section id="s-config-file">
       <title>The DRBD configuration file</title>
@@ -70,6 +121,14 @@
 	should always make sure this configuration file is
 	<emphasis>exactly identical</emphasis> on both participating
 	cluster nodes.
+      </para>
+      <para>The DRBD source tarball contains an example configuration
+	file in the <filename>scripts</filename>
+	subdirectory. Binary installation packages will either install
+	this example configuration directly in
+	<filename>/etc</filename>, or in a package-specific
+	documentation directory such as
+	<filename>/usr/share/doc/packages/drbd</filename>.
       </para>
       <note>
 	<para>This section describes only those aspects of the

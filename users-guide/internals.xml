@@ -1,68 +1,68 @@
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
-  <chapter id="ch-internals">
-    <title>DRBD Internals</title>
-    <section id="s-metadata">
-      <title>DRBD meta data</title>
-      <para>DRBD stores various pieces of information about the data
-      it keeps in a dedicated area. This metadata includes:
+<chapter id="ch-internals">
+  <title>DRBD Internals</title>
+  <section id="s-metadata">
+    <title>DRBD meta data</title>
+    <para>DRBD stores various pieces of information about the data it
+      keeps in a dedicated area. This metadata includes:
 	<itemizedlist>
-	  <listitem>
-	    <para>the size of the DRBD device,</para>
-	  </listitem>
-	  <listitem>
-	    <para>the Generation Identifier (<acronym>GI</acronym>),</para>
-	  </listitem>
-	  <listitem>
-	    <para>the on-disk sync bitmap,<footnote>
-		<para>Described in detail in <xref
-		linkend="s-on-disk-bitmap"/>.</para>
+	<listitem>
+	  <para>the size of the DRBD device,</para>
+	</listitem>
+	<listitem>
+	  <para>the Generation Identifier
+	    (<acronym>GI</acronym>),</para>
+	</listitem>
+	<listitem>
+	  <para>the on-disk sync bitmap,<footnote>
+	      <para>Described in detail in <xref
+		  linkend="s-on-disk-bitmap"/>.</para>
 	      </footnote>
-	    </para>
-	  </listitem>
-	  <listitem>
-	    <para>the Activity Log (<acronym>AL</acronym>).<footnote>
-		<para>Described in detail in <xref
-		linkend="s-activity-log"/>.</para>
-	      </footnote></para>
-	  </listitem>
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>the Activity Log (<acronym>AL</acronym>).<footnote>
+	      <para>Described in detail in <xref
+		  linkend="s-activity-log"/>.</para>
+	    </footnote></para>
+	</listitem>
 	</itemizedlist>
+    </para>
+    <para>This metadata may be stored <emphasis>internally</emphasis>
+      and <emphasis>externally</emphasis>. Which method is used is
+      configurable on a per-resource basis.</para>
+    <section id="s-internal-meta-data">
+      <title>Internal meta data</title>
+      <para>Configuring a resource to use internal meta data means
+	that DRBD stores its meta data on the same physical
+	lower-level device as the actual production data. It does so
+	by setting aside an area at the <emphasis>end</emphasis> of
+	the device for the specific purpose of storing metadata.
       </para>
-      <para>This metadata may be stored
-	<emphasis>internally</emphasis> and
-	<emphasis>externally</emphasis>. Which method is used is
-	configurable on a per-resource basis.</para>
-      <section id="s-internal-meta-data">
-	<title>Internal meta data</title>
-	<para>Configuring a resource to use internal meta data means
-	  that DRBD stores its meta data on the same physical
-	  lower-level device as the actual production data. It does so
-	  by setting aside an area at the <emphasis>end</emphasis> of
-	  the device for the specific purpose of storing metadata.
+      <formalpara>
+	<title>Advantage</title>
+	<para>Since the meta data are inextricably linked with the
+	  actual data, no special action is required from the
+	  administrator in case of a hard disk failure. The meta data
+	  are lost together with the actual data and are also restored
+	  together.</para>
+      </formalpara>
+      <formalpara>
+	<title>Disadvantage</title>
+	<para>In case of the lower-level device being a single
+	  physical hard disk (as opposed to a RAID set), internal meta
+	  data may negatively affect write throughput. The performance
+	  of write requests by the application may trigger an update
+	  of the meta data in DRBD. If the meta data are stored on the
+	  same magnetic disk of a hard disk, the write operation may
+	  result in two additional movements of the write/read head of
+	  the hard disk.
 	</para>
-	<formalpara>
-	  <title>Advantage</title>
-	  <para>Since the meta data are inextricably linked with the
-	    actual data, no special action is required from the
-	    administrator in case of a hard disk failure. The meta
-	    data are lost together with the actual data and are also
-	    restored together.</para>
-	</formalpara>
-	<formalpara>
-	  <title>Disadvantage</title>
-	    <para>In case of the lower-level device being a single
-	    physical hard disk (as opposed to a RAID set), internal
-	    meta data may negatively affect write throughput. The
-	    performance of write requests by the application may
-	    trigger an update of the meta data in DRBD. If the meta
-	    data are stored on the same magnetic disk of a hard disk,
-	    the write operation may result in two additional movements
-	    of the write/read head of the hard disk.
-	    </para>
-	</formalpara>
-	<caution>
-	  <para>If you are planning to use internal meta data in
+      </formalpara>
+      <caution>
+	<para>If you are planning to use internal meta data in
 	  conjuntion with an existing lower-level device that already
-	    has data which you wish to preserve, you
+	  has data which you wish to preserve, you
 	  <emphasis>must</emphasis> account for the space required by
 	  DRBD's meta data. Otherwise, upon DRBD resource creation,
 	  the newly created metadata would overwrite data at the end
@@ -70,111 +70,145 @@
 	  files in the process. To avoid that, you must do one of the
 	  following things:
 	    <itemizedlist>
-	      <listitem>
-		<para>Enlarge your lower-level device. This is
-		possible with any logical volume management facility
-		(such as LVM or EVMS) as long as you have free space
-		available in the corresponding volume group or
-		container. It may also be supported by hardware
-		storage solutions.</para>
-	      </listitem>
-	      <listitem>
-		<para>Shrink your existing file system on your
+	    <listitem>
+	      <para>Enlarge your lower-level device. This is possible
+		with any logical volume management facility (such as
+		LVM or EVMS) as long as you have free space available
+		in the corresponding volume group or container. It may
+		also be supported by hardware storage
+		solutions.</para>
+	    </listitem>
+	    <listitem>
+	      <para>Shrink your existing file system on your
 		lower-level device. This may or may not be supported
-		  By your file system.<footnote>
-		    <para>The ext3 file system, for example, supports offline file
-		      system shrinking. So does ReiserFS. XFS does not.</para>
+		By your file system.<footnote>
+		  <para>The ext3 file system, for example, supports
+		    offline file system shrinking. So does ReiserFS.
+		    XFS does not.</para>
 		  </footnote>
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>If neither of the two are possible, use <link
-		linkend="s-external-meta-data">external meta
-		data</link> instead.</para>
-	      </listitem>
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>If neither of the two are possible, use <link
+		  linkend="s-external-meta-data">external meta
+		  data</link> instead.</para>
+	    </listitem>
 	    </itemizedlist>
-	  </para>
-	  <para>To estimate the amount by which you must enlarge your
-	    lower-level device our shrink your file system, see <xref
+	</para>
+	<para>To estimate the amount by which you must enlarge your
+	  lower-level device our shrink your file system, see <xref
 	    linkend="s-meta-data-size"/>.</para>
-	</caution>
-      </section>
-      <section id="s-external-meta-data">
-	<title>External meta data</title>
-	<para>External meta data are simply stored on a separate,
+      </caution>
+    </section>
+    <section id="s-external-meta-data">
+      <title>External meta data</title>
+      <para>External meta data are simply stored on a separate,
 	dedicated block device distinct from that which holds your
 	production data.</para>
-	<formalpara>
-	  <title>Advantage</title>
-	  <para>For some write operations, using external meta data produces a
-	  somewhat improved latency behavior.</para>
-	</formalpara>
-	<formalpara>
-	  <title>Disadvantage</title>
-	  <para>Meta data are not inextricably linked with the actual
+      <formalpara>
+	<title>Advantage</title>
+	<para>For some write operations, using external meta data
+	  produces a somewhat improved latency behavior.</para>
+      </formalpara>
+      <formalpara>
+	<title>Disadvantage</title>
+	<para>Meta data are not inextricably linked with the actual
 	  production data. This means that manual intervention is
-	  required in the case of a hardware failure destroying just the
-	  production data (but not DRBD meta data), to effect a full
-	  data sync from the surviving node onto the subsequently
+	  required in the case of a hardware failure destroying just
+	  the production data (but not DRBD meta data), to effect a
+	  full data sync from the surviving node onto the subsequently
 	  replaced disk.</para>
-	</formalpara>
-	<para>Use of external meta data is also the only viable option
-	  if <emphasis>all</emphasis> of the following apply:
+      </formalpara>
+      <para>Use of external meta data is also the only viable option
+	if <emphasis>all</emphasis> of the following apply:
 	  <itemizedlist>
-	    <listitem>
-	      <para>You are using DRBD to duplicate an existing device
-		that already contains data you wish to preserve,
-		<emphasis>and</emphasis></para>
-	    </listitem>
-	    <listitem>
-	      <para>that existing device does not support enlargement,
-		<emphasis>and</emphasis></para>
-	    </listitem>
-	    <listitem>
-	      <para>the existing file system on the device does not
+	  <listitem>
+	    <para>You are using DRBD to duplicate an existing device
+	      that already contains data you wish to preserve,
+	      <emphasis>and</emphasis></para>
+	  </listitem>
+	  <listitem>
+	    <para>that existing device does not support enlargement,
+	      <emphasis>and</emphasis></para>
+	  </listitem>
+	  <listitem>
+	    <para>the existing file system on the device does not
 	      support shrinking.</para>
-	    </listitem>
+	  </listitem>
 	  </itemizedlist>
-	</para>
-	<para>To estimate the required size of the block device
-	  dedicated to hold your device meta data, see <xref
-	    linkend="s-meta-data-size"/>.</para>
-      </section>
-      <section id="s-meta-data-size">
-	<title>Estimating meta data size</title>
-	<para>You may calculate the exact space requirements for
-	DRBD's meta data using the following formula:</para>
-	<equation>
-	</equation>
-	<para><varname>C</varname> is the data device size in
+      </para>
+      <para>To estimate the required size of the block device
+	dedicated to hold your device meta data, see <xref
+	  linkend="s-meta-data-size"/>.</para>
+    </section>
+    <section id="s-meta-data-size">
+      <title>Estimating meta data size</title>
+      <para>You may calculate the exact space requirements for DRBD's
+	meta data using the following formula:</para>
+      <equation>
+      </equation>
+      <para><varname>C</varname> is the data device size in
 	sectors.<footnote>
-	    <para>You may retrieve the device size by issuing
-	      <command>blockdev --getsz
-		<replaceable>device</replaceable></command>.</para>
-	    <para>However, <command>echo $(( $(blockdev --getsize64
-		<replaceable>device</replaceable>) / 512))</command>
-	      is more reliable, since it also works for block devices
-	      larger than 2 TB.
-	    </para>
+	  <para>You may retrieve the device size by issuing
+	    <command>blockdev --getsz
+	      <replaceable>device</replaceable></command>.</para>
+	  <para>However, <command>echo $(( $(blockdev --getsize64
+	      <replaceable>device</replaceable>) / 512))</command> is
+	    more reliable, since it also works for block devices
+	    larger than 2 TB.
+	  </para>
 	  </footnote>The result, <varname>M</varname>, is also
-	  expressed in sectors. To convert to MB, divide by
-	  2048.<footnote>
-	    <para>The hard sector size on Linux (most architectures)
-	      is 512 bytes or .5 KB. The only known deviation from
-	      this applies to the s390 architecture.</para>
+	expressed in sectors. To convert to MB, divide by
+	2048.<footnote>
+	  <para>The hard sector size on Linux (most architectures) is
+	    512 bytes or .5 KB. The only known deviation from this
+	    applies to the s390 architecture.</para>
 	  </footnote>
- 	</para>
-	<para>In practice, you may use a reasonably good
-	approximation, given below. Note that in this formula, the
-	unit is megabytes, not sectors:</para>
-	<equation>
-	</equation>
-      </section>
+      </para>
+      <para>In practice, you may use a reasonably good approximation,
+	given below. Note that in this formula, the unit is megabytes,
+	not sectors:</para>
+      <equation>
+      </equation>
     </section>
-    <section id="s-on-disk-bitmap">
-      <title>The on-disk Sync Bitmap</title>
-    </section>
-    <section id="s-activity-log">
-      <title>The Activity Log</title>
-    </section>
-  </chapter>
+  </section>
+  <section id="s-replication-protocols">
+    <title>Replication protocols</title>
+    <para>DRBD supports three distinct replication protocols.</para>
+    <formalpara>
+      <title>Protocol A</title>
+      <para>Asynchronous replication protocol. Local write operations
+	on the Primary node are considered completed as soon as the
+	local disk write has occurred, and the replication packet has
+	been placed in the local TCP send buffer. In the event of
+	forced failover, data loss may occur. The data on the standby
+	node are consistent after the failover, however, the most
+	recent updates performed prior to the crash could be
+	lost.</para>
+    </formalpara>
+    <formalpara>
+      <title>Protocol B</title>
+      <para>Memory synchronous replication protocol. Local write
+	operations on the Primary node are considered completed as
+	soon as the local disk write has occurred, and the replication
+	packet has reached the peer node. No writes are lost in case
+	of forced failover. The only case that leads to data loss with
+	Protocol B is in the event of simultaneous power failure on
+	both nodes and simultaneous, irrevocable destruction of the
+	Primary's data store.</para> 
+    </formalpara>
+    <formalpara>
+      <title>Protocol C</title>
+      <para>Synchronous replication protocol. Local write operations
+	on the Primary node are considered completed only after both
+	the local and the remote disk write have been
+	confirmed.</para> 
+    </formalpara>
+  </section>
+  <section id="s-on-disk-bitmap">
+    <title>The on-disk Sync Bitmap</title>
+  </section>
+  <section id="s-activity-log">
+    <title>The Activity Log</title>
+  </section>
+</chapter>
