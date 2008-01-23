@@ -1,0 +1,142 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<chapter id="ch-admin">
+  <title>Common administrative tasks</title>
+  <abstract>
+    <para>This chapter outlines typical administrative tasks
+    encountered during day-to-day operations. It does not cover
+      troubleshooting tasks, these are covered in detail in <xref
+    linkend="ch-troubleshooting"/>.</para>
+  </abstract>
+  <section id="s-resizing">
+    <title>Resizing resources</title>
+    <section id="s-growing-online">
+      <title>Growing on-line</title>
+      <para>If the backing block devices can be grown while in
+	operation (online), it is also possible to increase the size
+	of a DRBD device based on these devices during operation, on
+	condition that a Logical Volume Manager is used under
+	DRBD.</para>
+      <para>Having grown the backing block devices on both nodes,
+	ensure that only one node is in primary state. Then enter on
+	one node:</para>
+      <programlisting>drbdadm resize <replaceable>resource</replaceable></programlisting>
+      <para>This triggers a resynchronisation of the new section. The
+	synchronisation is done from the primary node to the secondary
+	node.</para>
+    </section>
+    <section id="s-growing-offline">
+      <title>Growing off-line</title>
+      <para>When the backing block devices on both nodes are grown
+	while DRBD is inactive, the new size is recognized
+	automatically. No administrative intervention is necessary.</para>
+      <para>The resulting DRBD device will have the new size after the
+	next activation of DRBD on both nodes and a successful
+	establishment of a network connection.</para>
+    </section>
+    <section id="s-shrinking-online">
+      <title>Shrinking on-line</title>
+      <para>During shrinking it has to be ensured that the layers
+	higher than DRBD, i.e. usually the file system used by DRBD,
+	are shrunk first.<footnote>
+	  <para>Whether or not the <emphasis>filesystem</emphasis> can
+	    be shrunk on-line depends on the filesystem being used.
+	    Most filesystems do not support on-line shrinking. XFS
+	    does not support shrinking at all.</para>
+	</footnote> Since DRBD cannot ask the file system how much
+	space it actually uses, you have to be careful in order not to
+	cause data loss. 
+      </para>
+      <para>When internal meta data are used, make sure to consider
+	the space required by the meta data. The size communicated to
+	<command>drbdadm resize</command> is the net size for the file
+	system. In the case of internal meta data, the gross size
+	required by DRBD is higher (see also <xref
+	  linkend="s-meta-data-size"/>).</para>
+      <para>To shrink DRBD on-line, issue the following command
+	<emphasis>after</emphasis> you have shrunk the file system
+	residing on top of it:</para>
+      <programlisting>drbdadm -- --size=<replaceable>new-size</replaceable> resize <replaceable>resource</replaceable></programlisting>
+      <para>You may use the usual multiplier suffixes for
+	<replaceable>new-size</replaceable> (K, M, G etc.). After you
+	have shrunk DRBD, you may also shrink the containing block
+	device (if it supports shrinking).</para>
+    </section>
+    <section id="s-shrinking-offline">
+      <title>Shrinking off-line</title>
+      <para>If you were to shrink a backing block device while DRBD is
+	inactive, DRBD would refuse to attach to this block device
+	during the next attach attempt, since it is now too small (in
+	case external meta data are used), or it would be unable to
+	find its meta data (in case internal meta data are used). To
+	work around these issues, use this procedure (if you cannot
+	use <link linkend="s-shrinking-online">on-line
+	  shrinking</link>):</para>
+      <warning>
+	<para>This is a complicated procedure. Use at your own risk.</para>
+      </warning>
+      <orderedlist>
+	<listitem>
+	  <para>Shrink the file system from one node, while DRBD is
+	    still configured.</para>
+	</listitem>
+	<listitem>
+	  <para>Unconfigure your DRBD resource:</para>
+	  <programlisting>drbdadm down <replaceable>resource</replaceable></programlisting>
+	</listitem>
+	<listitem>
+	  <para>Save the meta data in a text file prior to shrinking:
+	    <programlisting>drbdadm dump-md <replaceable>resource</replaceable> &gt; <filename>/tmp/metadata</filename></programlisting></para>
+	  <para>You must do this on both nodes, using a separate dump
+	    file for every node. <emphasis>Do not</emphasis> dump the
+	    meta data on one node, and simply copy the dump file to
+	    the peer.</para>
+	</listitem>
+	<listitem>
+	  <para>Shrink the backing block device on both nodes.</para>
+	</listitem>
+	<listitem>
+	  <para>Adjust the size information
+	    (<code>la-size-sect</code>) in the file
+	    <filename>/tmp/metadata</filename> accordingly, on both
+	    nodes. Remember that <code>la-size-sect</code> is must be
+	    specified in sectors.</para>
+	</listitem>
+	<listitem>
+	  <para><emphasis>Only if you are using internal
+	      metadata</emphasis> (which at this time have probably
+	    been lost due to the shrinking process), re-initialize the
+	    metadata area:</para>
+	  <programlisting>drbdadm create-md <replaceable>resource</replaceable></programlisting>
+	</listitem>
+	<listitem>
+	  <para>Re-import the corrected meta data, on both nodes:<footnote>
+	      <para>This example uses <code>bash</code> parameter
+	      substitution. It may or may not work in other
+		shells. Check your <envar>SHELL</envar> environment
+	      variable if you are unsure which shell you are currently
+	      using.</para>
+	    </footnote>
+	  </para>
+	  <literallayout><userinput>drbdmeta_cmd=$(drbdadm -d dump-md test-disk)</userinput>
+<userinput>${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata</userinput><footnote>
+	      <para>This little <code>bash</code> hack will create
+		your correct <command>drbdmeta</command> command on
+		the fly. Use <command>set -x</command> prior to
+		running it if you are interested to see the command
+		being generated.</para>
+	    </footnote>
+<computeroutput>
+Valid meta-data in place, overwrite?
+[need to type 'yes' to confirm]</computeroutput> <userinput>yes</userinput>
+<computeroutput>
+Successfully restored meta data
+</computeroutput></literallayout>
+	</listitem>
+	<listitem>
+	  <para>Re-enable your DRBD resource:</para>
+	  <programlisting>drbdadm up <replaceable>resource</replaceable></programlisting>
+	</listitem>
+      </orderedlist>
+    </section>
+  </section>
+</chapter>
