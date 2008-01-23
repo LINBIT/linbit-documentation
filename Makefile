@@ -42,6 +42,12 @@ valid: *.xml
 %.fo: %.xml
 	xsltproc -o $@ --stringparam paper.type A4 --xinclude $(fo_stylesheet) $<
 
+%.svg: %.mml
+	mathmlsvg --font-size=12 $<
+
+%.png: %.svg
+	rsvg -x3 -y3 $< $@
+
 # PDF and PostScript rendering depends on xmlroff, which is not (yet)
 # included in Debian stable nor a released Ubuntu version. For now,
 # build from source, get the lenny/sid package, or wait for Ubuntu
@@ -58,6 +64,6 @@ clean:
 	rm -f *.html
 	rm -f *.pdf
 	rm -f *.ps
-	rm -f gpl-2.0.xml
+	rm -f *.png
 
 .PHONY: all html chunked-html pdf clean
