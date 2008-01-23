@@ -17,7 +17,7 @@
 DRBD ?= ../drbd-8
 
 # Sub-directories to descend into if doing recursive make
-SUBDIRS ?= users-guide developers-guide
+SUBDIRS ?= users-guide
 
 # Paths to Norm Walsh's DocBook XSL stylesheets.  
 # Fetching these from the web on every run is probably dead slow, so
@@ -37,7 +37,9 @@ chunked-html: howto-collection.xml images
 	mkdir -p html-multiple-pages/
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) html-multiple-pages/
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) html-multiple-pages/
-	xsltproc -o html-multiple-pages/ --xinclude $(chunked_html_stylesheet) $<
+	xsltproc -o html-multiple-pages/ \
+	--stringparam graphic.default.extension png \
+	--xinclude $(chunked_html_stylesheet) $<
 
 pdf: copy-images howto-collection.pdf
 
@@ -45,13 +47,17 @@ valid: *.xml
 	xmllint --noout --valid --xinclude *.xml
 
 %.html: %.xml
-	xsltproc -o $@ --xinclude $(html_stylesheet) $<
+	xsltproc -o $@ \
+	--stringparam graphic.default.extension png \
+	--xinclude $(html_stylesheet) $<
 
 %.fo: %.xml
-	xsltproc -o $@ --stringparam paper.type A4 \
+	xsltproc -o $@ \
+	--stringparam paper.type A4 \
 	--stringparam title.font.family serif \
 	--stringparam insert.link.page.number yes \
 	--stringparam insert.xref.page.number yes \
+	--stringparam graphic.default.extension svg \
 	--param fop1.extensions 1 \
 	--param use.extensions 1 \
 	--xinclude $(fo_stylesheet) $<
