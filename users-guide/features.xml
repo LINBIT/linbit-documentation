@@ -7,6 +7,52 @@
     of these will be important to most users, some will only be
     relevant in very specific deployment scenarios.</para>
   </abstract>
+  <section id="s-replication-protocols">
+    <title>Replication protocols</title>
+    <para>DRBD supports three distinct replication protocols.</para>
+    <formalpara>
+      <title>Protocol A</title>
+      <para>Asynchronous replication protocol. Local write operations
+	on the Primary node are considered completed as soon as the
+	local disk write has occurred, and the replication packet has
+	been placed in the local TCP send buffer. In the event of
+	forced failover, data loss may occur. The data on the standby
+	node are consistent after the failover, however, the most
+	recent updates performed prior to the crash could be
+	lost.</para>
+    </formalpara>
+    <formalpara>
+      <title>Protocol B</title>
+      <para>Memory synchronous replication protocol. Local write
+	operations on the Primary node are considered completed as
+	soon as the local disk write has occurred, and the replication
+	packet has reached the peer node. No writes are lost in case
+	of forced failover. However, in the event of simultaneous
+	power failure on both nodes and concurrent, irrevocable
+	destruction of the Primary's data store, the most recent
+	writes completed on the Primary may be lost.</para> 
+    </formalpara>
+    <formalpara>
+      <title>Protocol C</title>
+      <para>Synchronous replication protocol. Local write operations
+	on the Primary node are considered completed only after both
+	the local and the remote disk write have been confirmed. As a
+	result, loss of a single node is guaranteed not to lead to any
+	data loss.</para> 
+    </formalpara>
+    <note>
+      <para>Data loss is, of course, inevitable with every replication
+	protocol if both nodes are irrevocably destroyed at the same
+	time.</para>
+    </note>
+    <para>Note that the choice of replication protocol influences two
+      factors of your deployment: <emphasis>protection</emphasis> and
+      <emphasis>latency</emphasis>. <emphasis>Throughput</emphasis>,
+      by contrast, is largely independent of the replication protocol
+      selected.</para>
+    <para>By far, the most commonly used replication protocol in DRBD
+      setups is protocol C.</para>
+  </section>
   <section id="s-online-verify">
     <title>On-line device verification</title>
     <subtitle>Available in DRBD 8.2.4 and later</subtitle>
