@@ -2,14 +2,80 @@
 <chapter id="ch-features">
   <title>DRBD Features</title>
   <abstract>
-    <para>This chapter contains discussions of various useful DRBD
-    features, and information on how to use and work with them. Some
-    of these will be important to most users, some will only be
-    relevant in very specific deployment scenarios.</para>
+    <para>This chapter outlines DRBD's mode of operation and discusses
+      various useful DRBD features, and information on how to use and
+      work with them. Some of these will be important to most users,
+      some will only be relevant in very specific deployment
+      scenarios.</para>
   </abstract>
+  <section id="s-primary">
+    <title>Single vs. dual primary mode</title>
+    <para>In DRBD, every <link linkend="s-resources">resource</link>
+      DRBD) has a <emphasis>role</emphasis>, which may be
+      <emphasis>Primary</emphasis> or
+    <emphasis>Secondary</emphasis>.<footnote>
+	<para>The choice of terms here is not arbitrary. These roles
+	  were deliberately not named "Active" and "Passive" by DRBD's
+	  creators. Primary vs. Secondary refers to a concept related
+	  to availability of <emphasis>storage</emphasis>, whereas
+	  active vs. passive refers to the availability of an
+	  <emphasis>application</emphasis>. It is usually the case in
+	  a high-availability environment that the primary node is
+	  also the active one, but this is by no means
+	  necessary.</para>
+      </footnote>
+      <itemizedlist>
+	<listitem>
+	  <para>A DRBD device in the primary role can be used
+	  unrestrictedly for read and write operations. It may be used
+	  for creating and mounting file systems, raw or direct I/O to
+	  the block device, etc.</para>
+	</listitem>
+	<listitem>
+	  <para>A DRBD device in the secondary role disallows access
+	    completely. It can not be used for read nor write
+	    access.<footnote>
+	      <para>The reason for disallowing even read-only access
+	    to the device is the necessity to maintain cache
+	    coherency, which would be impossible if a secondary
+	    resource were made accessible.</para>
+	    </footnote>
+	  </para>
+	</listitem>
+      </itemizedlist>
+    </para>
+    <section id="s-single-primary">
+      <title>Single-primary mode</title>
+      <para>In single-primary mode, any resource (a
+	<emphasis>resource</emphasis> is a virtual block device
+	managed by DRBD) is, at any given time, in the primary role on
+	only one cluster member. Since concurrent access to the data
+	is thus disallowed, this mode can be used with any
+	conventional file system (ext3, ext4, XFS etc.).</para>
+      <para>Deploying DRBD in single-primary mode is the canonical
+	approach for high availability (fail-over capable)
+	clusters.</para>
+    </section>
+    <section id="s-dual-primary">
+      <title>Dual-primary mode</title>
+      <subtitle>Available in DRBD versions 8.0 and later</subtitle>
+      <para>In dual-primary mode, any resource is, at any
+	given time, in the primary role on both cluster members.
+	Since concurrent access to the data is thus unrestricted,
+	this mode requires the use of a shared cluster file system
+	that utilizes a distributed lock manager. Examples include GFS
+	and OCFS2.</para>
+      <para>Deploying DRBD in dual-primary mode is the preferred
+	approach for load-balancing clusters which require concurrent
+	data access from two nodes. This mode is disabled by default,
+	and must be enabled explicitly in DRBD's configuration
+	file.</para>
+    </section>
+  </section>
   <section id="s-replication-protocols">
-    <title>Replication protocols</title>
-    <para>DRBD supports three distinct replication protocols.</para>
+    <title>Replication modes</title>
+    <para>DRBD supports three distinct replication modes, allowing
+      three degrees of replication synchronicity.</para>
     <formalpara>
       <title>Protocol A</title>
       <para>Asynchronous replication protocol. Local write operations
@@ -100,6 +166,10 @@
   </section>
   <section id="s-auto-split-brain-recovery">
     <title>Automatic split brain recovery</title>
+    <subtitle>Available in DRBD 8.0 and later</subtitle>
+  </section>
+  <section id="s-outdate">
+    <title>Outdated data</title>
     <subtitle>Available in DRBD 8.0 and later</subtitle>
   </section>
 </chapter>
