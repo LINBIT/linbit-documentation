@@ -3,6 +3,112 @@
   <title>Troubleshooting and error recovery</title>
   <abstract>
     <para>This chapter describes tasks to be performed in the event of
-    hardware or system failures.</para>
+      hardware or system failures.</para>
   </abstract>
+  <section id="s-hard-drive-failure">
+    <title>Hard drive failure</title>
+    <para>How to deal with hard drive failure depends on the way DRBD
+      is configured to handle disk I/O errors (see <xref
+    linkend="s-handling-disk-errors"/>), and on the type of meta data
+      configured (see <xref linkend="s-metadata"/>).</para>
+    <note>
+      <para>For the most part, the steps described here apply only if
+	you run DRBD directly on top of physical hard drives. They
+	generally do not apply in case you are running DRBD layered on
+	top of
+	<itemizedlist>
+	  <listitem>
+	    <para>a software RAID set (in this case, use
+	      <command>mdadm</command> to manage drive replacement),
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>a hardware RAID appliance (follow the vendor's
+	      instructions on how to deal with failed drives),</para>
+	  </listitem>
+	  <listitem>
+	    <para>some non-standard device-mapper virtual block
+	      devices (see the device mapper documentation),</para>
+	  </listitem>
+	  <listitem>
+	    <para>EVMS volumes (see the EVMS documentation).</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </note>
+    <section id="s-detach-hard-drive-manual">
+      <title>Manually detaching DRBD from your hard drive</title>
+      <para>If DRBD is <link linkend="fp-io-error-pass-on">configured
+	  to pass on I/O errors</link> (not recommended), you must
+	first detach the DRBD resource, that is, disassociate it from
+	its backing storage:
+      <literallayout><userinput>drbdadm detach <replaceable>resource</replaceable></userinput></literallayout>
+	By running the <command>drbdadm dstate</command> command, you
+	will now be able to verify that the resource is now in
+	<emphasis>diskless mode</emphasis>:
+	<literallayout><userinput>drbdadm dstate <replaceable>resource</replaceable></userinput>
+<computeroutput>Diskless/UpToDate</computeroutput></literallayout>
+	If the disk failure has occured on your primary node, you may
+      combine this step with a switch-over operation.</para>
+    </section>
+    <section id="s-detach-hard-drive-auto">
+      <title>Automatic detach on I/O error</title>
+      <para>If DRBD is <link linkend="fp-io-error-detach">configured
+	  to automatically detach upon I/O error</link> (the default,
+	and also the recommended option), DRBD should have
+	automatically detached the resource from its backing storage
+	already, without manual intervention. You may still use the
+	<command>drbdadm dstate</command> command to verify that the
+	resource is in fact running in diskless mode.</para>
+    </section>
+    <section id="s-replace-disk-internal-metadata">
+      <title>Replacing a failed disk when using internal meta
+      data</title>
+      <para>If using <link linkend="s-internal-meta-data">internal
+	  meta data</link>, it is sufficient to bind the DRBD device
+	to the new hard disk. If the new hard disk has to be addressed
+	by another Linux device name than the defective disk, this has
+	to be modified accordingly in the DRBD configuration
+	file.</para>
+      <para>This process involves creating a new meta data set, then
+      re-attaching the resource:
+	<literallayout><userinput>drbdadm create-md <replaceable>resource</replaceable></userinput>
+<computeroutput>v08 Magic number not found
+Writing meta data...
+initialising activity log
+NOT initialized bitmap
+New drbd meta data block sucessfully created.
+success
+</computeroutput>
+<userinput>drbdadm attach <replaceable>resource</replaceable></userinput></literallayout></para>
+      <para>Full resynchronisation of the new hard disk starts
+	instantaneously and automatically. You will be able to monitor
+	the resynchronization's progress via
+	<filename>/proc/drbd</filename>, as with any background
+	synchronization.</para>
+    </section>
+    <section id="s-replace-disk-internal-metadata">
+      <title>Replacing a failed disk when using external meta
+      data</title>
+      <para>When using <link linkend="s-external-meta-data">external
+	  meta data</link>, the procedure is basically the same.
+	However, DRBD is not able to recognize independently that the
+	hard drive was swapped, thus an additional step is
+	required.
+	<literallayout><userinput>drbdadm create-md <replaceable>resource</replaceable></userinput>
+<computeroutput>v08 Magic number not found
+Writing meta data...
+initialising activity log
+NOT initialized bitmap
+New drbd meta data block sucessfully created.
+success
+</computeroutput>
+<userinput>drbdadm attach <replaceable>resource</replaceable></userinput>
+<userinput>drbdadm invalidate <replaceable>resource</replaceable></userinput>
+</literallayout></para>
+      <para>Here, the <command>drbdadm invalidate</command> command
+	triggers resynchronization. Again, resync progress may be
+	observed via <filename>/proc/drbd</filename>.</para>
+    </section>
+  </section>
 </chapter>

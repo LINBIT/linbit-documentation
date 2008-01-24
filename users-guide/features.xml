@@ -53,6 +53,41 @@
     <para>By far, the most commonly used replication protocol in DRBD
       setups is protocol C.</para>
   </section>
+  <section id="s-handling-disk-errors">
+    <title>Methods of handling disk errors</title>
+        <para>If a hard drive that is used as a backing block device for
+      DRBD on one of the nodes fails, DRBD may either pass on the I/O
+      error to the upper layer (usually the file system) or it can
+      hide I/O errors from upper layers from IO errors. This is set by
+      the <option>on-io-error</option> option.</para>
+    <formalpara id="fp-io-error-pass-on">
+      <title>Passing on I/O errors</title>
+      <para>If <option>on-io-error</option> is set to
+	<code>pass-on</code>, DRBD transparently passes on I/O errors
+	from the backing device to upper I/O layers. Thus, it is left
+	to upper layers to deal with such errors.<footnote>
+	  <para>This may result in a file system being remounted
+	    read-only, for example.</para></footnote> This option does
+	not ensure service continuity, and is hence not recommended
+	for most users.</para>
+    </formalpara>
+    <formalpara id="fp-io-error-detach">
+      <title>Hiding I/O errors</title>
+      <para>
+	If <option>on-io-error</option> is set to <code>detach</code>
+	(the default), DRBD will automatically detach from the backing
+	device upon occurrence of the first lower-level I/O error. The
+	I/O error is hidden from upper layers while DRBD transparently
+	fetches the affected block from the peer node, over the
+	network. From then onwards, DRBD is said to operate in
+	<emphasis>diskless mode</emphasis>, and carries out all
+	subsequent I/O operations, read and write, on the peer node.
+	Performance in this mode in inevitably expected to suffer, but
+	the service continues without interruption, and can be moved
+	to the peer node in a deliberate fashion at a convenient
+	time.</para>
+    </formalpara>
+  </section>
   <section id="s-online-verify">
     <title>On-line device verification</title>
     <subtitle>Available in DRBD 8.2.4 and later</subtitle>
