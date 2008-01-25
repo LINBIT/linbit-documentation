@@ -19,6 +19,10 @@ DRBD ?= ../drbd-8
 # Sub-directories to descend into if doing recursive make
 SUBDIRS ?= users-guide
 
+XML_FILES := $(wildcard *.xml)
+MML_FILES := $(wildcard *.mml)
+SVG_FILES := $(wildcard *.svg)
+
 # Paths to Norm Walsh's DocBook XSL stylesheets.  
 # Fetching these from the web on every run is probably dead slow, so
 # make sure you have a local copy of these stylesheets installed, and
@@ -58,8 +62,11 @@ valid: *.xml
 	--stringparam insert.link.page.number yes \
 	--stringparam insert.xref.page.number yes \
 	--stringparam graphic.default.extension svg \
-	--param fop1.extensions 1 \
+	--param section.autolabel 1 \
+	--param section.autolabel.max.depth 2 \
+	--param section.label.includes.component.label 1 \
 	--param use.extensions 1 \
+	--param fop1.extensions 1 \
 	--xinclude $(fo_stylesheet) $<
 
 %.svg: %.mml
@@ -90,12 +97,25 @@ vector-images:
 %.ps: %.fo
 	fop $< -ps $@
 
-clean:
-	rm -rf html-multiple-pages/
-	rm -f *.fo
-	rm -f *.html
-	rm -f *.pdf
-	rm -f *.ps
-	rm -f *.png
+clean-html:
+	rm -f $(XML_FILES:.xml=.html) 
 
-.PHONY: all html chunked-html pdf clean raster-images vector-images images
+clean-fo:
+	rm -f $(XML_FILES:.xml=.fo) 
+
+clean-ps:
+	rm -f $(XML_FILES:.xml=.ps)
+
+clean-pdf:
+	rm -f $(XML_FILES:.xml=.pdf)
+
+clean-svg:
+	rm -f $(MML_FILES:.mml=.svg) 
+
+clean-png:
+	rm -f $(SVG_FILES:.svg=.png) 
+
+clean: clean-png clean-svg clean-html clean-fo clean-ps clean-pdf
+	rm -rf html-multiple-pages/
+
+.PHONY: all html chunked-html pdf clean-png clean-svg clean-html clean-fo clean-ps clean-pdf clean raster-images vector-images images
