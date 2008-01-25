@@ -416,11 +416,95 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
       </para>
     </section>
   </section>
-  <section id="s-switch-node-roles">
-    <title>Switching resource roles</title>
-    <para>Manually switching a <link linkend="s-resource-roles">resource's
-    role</link> from primary to secondary or vice versa is done using
-    the following commands:
+  <section id="s-enable-disable">
+    <title>Enabling and disabling resources</title>
+    <section id="s-enable-resource">
+      <title>Enabling resources</title>
+      <para>Normally, all resources configured in
+	<filename>/etc/drbd.conf</filename> are automatically enabled
+	upon system startup by the <filename>/etc/init.d/drbd</filename>
+	init script. If you choose to disable this startup script (as
+	may be required by some applications), you may enable specific
+	resources by issuing the commands
+      <literallayout><userinput>drbdadm attach <replaceable>resource</replaceable></userinput>
+<userinput>drbdadm connect <replaceable>resource</replaceable></userinput></literallayout>
+      or the shorthand version of the above,
+      <literallayout><userinput>drbdadm up <replaceable>resource</replaceable></userinput></literallayout>
+	</para>
+      <para>As always, you may use the keyword <code>all</code>
+	instead of a specific resource name if you want to enable all
+	resources configured in <filename>/etc/drbd.conf</filename> at
+	once.
+      </para>
+    </section>
+    <section id="s-disable-resource">
+      <title>Disabling resources</title>
+      <para>You may temporarily disable specific
+	resources by issuing the commands
+      <literallayout><userinput>drbdadm disconnect <replaceable>resource</replaceable></userinput>
+<userinput>drbdadm detach <replaceable>resource</replaceable></userinput></literallayout>
+      or the shorthand version of the above,
+      <literallayout><userinput>drbdadm down <replaceable>resource</replaceable></userinput></literallayout>
+	<note>
+	  <para>There is, in fact, a slight syntactical difference
+	    between these two methods. While <command>drbdadm
+	      down</command> implies a preceding <link
+	      linkend="s-switch-resource-roles">resource
+	      demotion</link>, <command>drbdadm
+	      disconnect/detach</command> does not. So while you can
+	    run <command>drbdadm down</command> on a resource that is
+	    currently in the primary role, <command>drbdadm
+	      disconnect/detach</command> in the same situation will
+	    be refused by DRBD's internal state engine.</para>
+	</note>
+      </para>
+      <para>Here, too, you may use the keyword <code>all</code> in
+	place of a resource name if you wish to temporarily disable
+	all resources listed in <filename>/etc/drbd.conf</filename> at
+	once.
+      </para>
+    </section>
+  </section>
+  <section id="s-reconfigure">
+    <title>Reconfiguring resources</title>
+    <para>DRBD allows you to reconfigure resources while they are
+      operational. To that end,
+      <itemizedlist>
+	<listitem>
+	  <para>make any necessary changes to the resource
+	    configuration in
+	    <filename>/etc/drbd.conf</filename>,</para>
+	</listitem>
+	<listitem>
+	  <para>synchronize your <filename>/etc/drbd.conf</filename>
+	    file between both nodes,</para>
+	</listitem>
+	<listitem>
+	  <para>issue the <command>drbdadm adjust
+	      <replaceable>resource</replaceable></command> command on
+	    both nodes.</para>
+	</listitem>
+      </itemizedlist>
+    </para>
+    <para><command>drbdadm adjust</command> then hands off to
+      <command>drbdsetup</command> to make the necessary adjustments
+      to the configuration. As always, you are able to review the
+      pending <command>drbdsetup</command> invocations by running
+      <command>drbdadm</command> with the <option>-d</option>
+      (dry-run) option.</para>
+    <note>
+      <para>When making changes to the <code>common</code> section in
+	<filename>/etc/drbd.conf</filename>, you can adjust the
+	configuration for all resources in one run, by issuing
+	<command>drbdadm adjust all</command>.</para>
+    </note>
+  </section>
+  <section id="s-switch-resource-roles">
+    <title>Promoting and demoting resources</title>
+    <para>Manually switching a <link
+	linkend="s-resource-roles">resource's role</link> from
+      secondary to primary (promotion) or vice versa (demotion) is
+      done using the following commands:
       <literallayout><userinput>drbdadm primary <replaceable>resource</replaceable></userinput>
 <userinput>drbdadm secondary <replaceable>resource</replaceable></userinput></literallayout>
     </para>
@@ -469,40 +553,6 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
       and afterwards, <command>drbdadm primary
       <replaceable>resource</replaceable></command> (again, on both
       nodes).</para>
-  </section>
-  <section id="s-reconfigure">
-    <title>Reconfiguring resources</title>
-    <para>DRBD allows you to reconfigure resources while they are
-      operational. To that end,
-      <itemizedlist>
-	<listitem>
-	  <para>make any necessary changes to the resource
-	    configuration in
-	    <filename>/etc/drbd.conf</filename>,</para>
-	</listitem>
-	<listitem>
-	  <para>synchronize your <filename>/etc/drbd.conf</filename>
-	    file between both nodes,</para>
-	</listitem>
-	<listitem>
-	  <para>issue the <command>drbdadm adjust
-	      <replaceable>resource</replaceable></command> command on
-	    both nodes.</para>
-	</listitem>
-      </itemizedlist>
-    </para>
-    <para><command>drbdadm adjust</command> then hands off to
-      <command>drbdsetup</command> to make the necessary adjustments
-      to the configuration. As always, you are able to review the
-      pending <command>drbdsetup</command> invocations by running
-      <command>drbdadm</command> with the <option>-d</option>
-      (dry-run) option.</para>
-    <note>
-      <para>When making changes to the <code>common</code> section in
-	<filename>/etc/drbd.conf</filename>, you can adjust the
-	configuration for all resources in one run, by issuing
-	<command>drbdadm adjust all</command>.</para>
-    </note>
   </section>
   <section id="s-resizing">
     <title>Resizing resources</title>

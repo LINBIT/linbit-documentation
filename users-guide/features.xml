@@ -13,7 +13,7 @@
   </abstract>
   <section id="s-primary">
     <title>Single vs. dual primary mode</title>
-    <section id="s-single-primary">
+    <section id="s-single-primary-mode">
       <title>Single-primary mode</title>
       <para>In single-primary mode, any <link
 	  linkend="s-resources">resource</link>is, at any given time,
@@ -25,7 +25,7 @@
 	approach for high availability (fail-over capable)
 	clusters.</para>
     </section>
-    <section id="s-dual-primary">
+    <section id="s-dual-primary-mode">
       <title>Dual-primary mode</title>
       <subtitle>Available in DRBD versions 8.0 and later</subtitle>
       <para>In dual-primary mode, any resource is, at any
@@ -96,7 +96,49 @@
   <section id="s-integrity-check">
     <title>Replication traffic integrity checking</title>
     <subtitle>Available in DRBD 8.2.0 and later</subtitle>
-    <para></para>
+    <para>DRBD optionally performs end-to-end message integrity
+      checking using cryptographic message digest algorithms such as
+      MD5, SHA-1 or CRC-32C.<footnote>
+	<para>These message digest algorithms are not
+	  <emphasis>provided</emphasis> by DRBD. The Linux kernel
+	  crypto API provides these; DRBD merely uses them. Thus, DRBD
+	  is capable of utilizing any message digest algorithm
+	  available in a particular system's kernel
+	  configuration.</para>
+      </footnote>
+    </para>
+    <para>With this feature enabled, DRBD generates a message digest
+      of every data block it replicates to the peer, which the peer
+      then uses to verify the integrity of the replication packet. If
+      the replicated block can not be verified against the digest, the
+      peer requests retransmission. Thus, DRBD replication is
+      protected against several error sources, all of which, if
+      unchecked, would potentially lead to data corruption during the
+      replication process:
+      <itemizedlist>
+	<listitem>
+	  <para>Bitwise errors ("bit flips") occurring on data in
+	    transit between main memory and the network interface on
+	    the sending node (which goes undetected by TCP
+	    checksumming if it is offloaded to the network card, as is
+	    common in recent implementations);</para>
+	</listitem>
+	<listitem>
+	  <para>bit flips occuring on data in transit from the network
+	    interface to main memory on the receiving node (the same
+	    considerations apply for TCP checksum offloading);</para>
+	</listitem>
+	<listitem>
+	  <para>any form of corruption due to a race conditions or
+	    bugs in network interface firmware or drivers;</para>
+	</listitem>
+	<listitem>
+	  <para>bit flips or random corruption injected by some
+	    reassembling network component between nodes (if not using
+	    direct, back-to-back connections).</para>
+	</listitem>
+      </itemizedlist>
+    </para>
   </section>
   <section id="s-auto-split-brain-recovery">
     <title>Automatic split brain recovery</title>
