@@ -416,6 +416,60 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
       </para>
     </section>
   </section>
+  <section id="s-switch-node-roles">
+    <title>Switching resource roles</title>
+    <para>Manually switching a <link linkend="s-resource-roles">resource's
+    role</link> from primary to secondary or vice versa is done using
+    the following commands:
+      <literallayout><userinput>drbdadm primary <replaceable>resource</replaceable></userinput>
+<userinput>drbdadm secondary <replaceable>resource</replaceable></userinput></literallayout>
+    </para>
+      <para>
+      In <link linkend="s-single-primary-mode">single-primary
+	mode</link> (DRBD's default), any resource can be in the
+      primary role on only one node at any given time while the <link
+	linkend="s-connection-states">connection state</link> is
+      <code>Connected</code>. Thus, issuing <command>drbdadm primary
+	<replaceable>resource</replaceable></command> on one node
+      while <replaceable>resource</replaceable> is still in the
+      primary role on the peer will result in an error.</para>
+    <para>A resource configured to allow <link
+	linkend="s-dual-primary-mode">dual-primary mode</link> can be
+	switched to the primary role on both nodes.</para>
+  </section>
+  <section id="s-enable-dual-primary">
+    <title>Enabling dual-primary mode</title>
+    <para>To enable dual-primary mode, add
+	the <option>allow-two-primaries</option> option to the
+	<code>net</code> section of your resource
+	configuration:
+	<programlisting>resource <replaceable>resource</replaceable>
+  net { 
+    allow-two-primaries; 
+  }
+  ...
+}</programlisting></para>
+    <para>
+      When a resource is configured to support dual-primary mode, it
+      may also be desirable to automatically switch the resource into
+      the primary role upon system (or DRBD) startup. To do this, add
+      the <option>become-primary-on</option> option to the
+      <code>startup</code> section of your resource configuration:
+      <programlisting>resource <replaceable>resource</replaceable>
+  startup { 
+    become-primary-on both;
+  }
+  ...
+}</programlisting></para>
+    <para>After you have made these changes to
+      <filename>/etc/drbd.conf</filename>, do not forget to
+      synchronize the configuration between nodes. Then, you can use
+      <command>drbdadm adjust
+      <replaceable>resource</replaceable></command> (on both nodes),
+      and afterwards, <command>drbdadm primary
+      <replaceable>resource</replaceable></command> (again, on both
+      nodes).</para>
+  </section>
   <section id="s-reconfigure">
     <title>Reconfiguring resources</title>
     <para>DRBD allows you to reconfigure resources while they are
