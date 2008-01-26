@@ -91,7 +91,35 @@
   <section id="s-online-verify">
     <title>On-line device verification</title>
     <subtitle>Available in DRBD 8.2.4 and later</subtitle>
-    <para></para>
+    <para>On-line device verification enables users to do a
+      block-by-block data integrity check between nodes in a very
+      efficient manner.</para>
+    <para>It works by one node (the <emphasis>verification
+	source</emphasis>) sequentially calculating a cryptographic
+      digest<footnote>
+	<para>For this purpose, DRBD can utilize any message digest
+	  algorithm available via the kernel crypto API. MD5, SHA-1,
+	  or CRC-32C are among the algorithms typically used for this
+	  purpose.</para>
+      </footnote>
+      of every block stored on the lower-level storage device
+      of a particular resource. DRBD then transmits that digest to the
+      peer node (the <emphasis>verification target</emphasis>), where
+      it is checked against a digest of the local copy of the affected
+      block. If the digests do not match, the block is marked
+      out-of-sync and may later be resynchronized. Because DRBD
+      transmits just the digests, not the full blocks, on-line
+      verification uses network bandwidth very efficiently.</para>
+    <para>The process is termed <emphasis>on-line</emphasis>
+      verification because it does not require that the DRBD resource
+      being verified is unused at the time of verification. Thus,
+      though it does carry a slight performance penalty while it is
+      running, on-line verification does not cause service
+      interruption or system down time &mdash; neither during the
+      verification run nor during subsequent resynchronization.</para>
+    <para>It is a common use case to have on-line verification managed
+      by the local <code>cron</code> daemon, running it, for example,
+      one a week or once a month.</para>
   </section>
   <section id="s-integrity-check">
     <title>Replication traffic integrity checking</title>
