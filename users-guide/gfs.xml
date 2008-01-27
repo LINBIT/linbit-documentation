@@ -1,0 +1,174 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<chapter id="ch-gfs">
+  <title>Using GFS with DRBD</title>
+  <section id="s-gfs-primer">
+    <title>GFS primer</title>
+    <para>The Red Hat Global File System (GFS) is Red Hat's
+      implementation of a concurrent-access shared storage file
+      system. As any such filesystem, GFS allows multiple nodes to
+      access the same storage device, in read/write fashion,
+      simultaneously without risking data corruption. It does so by
+      using a Distributed Lock Manager (DLM) which manages concurrent
+      access from cluster members.</para>
+    <para>GFS was designed, from the outset, for use with conventional
+      shared storage devices. Regardless, it is perfectly possible to
+      use DRBD, in dual-primary mode, as a replicated storage device
+      for GFS. Applications may benefit from reduced read/write
+      latency due to the fact that DRBD normally reads from and writes
+      to local storage, as opposed to the SAN devices GFS is normally
+      configured to run from. Also, of course, DRBD adds an additional
+      physical copy to every GFS filesystem, thus adding redundancy to
+      the concept.</para>
+    <para>GFS makes use of a cluster-aware variant of LVM, termed
+      Cluster Logical Volume Manager or CLVM. As such, some
+      parallelism exists between using DRBD as the data storage for
+      GFS, and using <link linkend="s-lvm-drbd-as-pv">DRBD as a
+	Physical Volume for conventional LVM</link>.</para>
+    <para>GFS file systems are usually tightly integrated with Red
+      Hat's own cluster management framework, the Red Hat Cluster
+      Suite (RHCS). This chapter explains the use of DRBD in
+      conjunction with GFS in the RHCS context.</para>
+    <para>GFS, CLVM, and the Red Hat Cluster Suite are available in
+      Red Hat Enterprise Linux (RHEL) and distributions derived from
+      it, such as CentOS. Packages built from the same sources are
+      also available in Debian GNU/Linux. This chapter assumes running
+      GFS on a Red Hat Enterprise Linux system.</para>
+  </section>
+  <section id="s-gfs-create-resource">
+    <title>Creating a DRBD resource suitable for GFS</title>
+    <para>Since GFS is a shared cluster file system expecting
+      concurrent read/write storage access from all cluster nodes, any
+      DRBD resource to be used for storing a GFS filesystem must be
+      configured in <link linkend="s-dual-primary-mode">dual-primary
+	mode</link>. Also, it is recommended to use some of DRBD's
+      <link linkend="s-auto-split-brain-recovery">features for
+    automatic recovery from split brain</link>. And, it is necessary
+    for the resource to switch to the primary role immediately after
+    startup. To do all this, include the following lines in the
+    resource configuration:
+      <programlisting>resource <replaceable>resource</replaceable> {
+  startup {
+    become-primary-on both;
+    ...
+  }
+  net {
+    allow-two-primaries;
+    after-sb-0pri discard-zero-changes;
+    after-sb-1pri discard-secondary;
+    after-sb-2pri disconnect;
+    ...
+  }
+  ...
+}</programlisting>
+      </para>
+    <para>
+      Once you have added these options to <link
+	linkend="ch-configure">your freshly-configured
+	resource</link>, you may <link
+	linkend="s-first-time-up">initialize your resource as you
+	normally would</link>. Since the
+      <option>allow-two-primaries</option> option is set for this
+      resource, you will be able to <link
+	linkend="s-switch-resource-roles">promote the resource</link>
+      to the primary role on both nodes.</para>
+  </section>
+  <section id="s-gfs-configure-lvm">
+    <title>Configuring LVM to recognize the DRBD resource</title>
+    <para>GFS uses CLVM, the cluster-aware version of LVM, to manage
+      block devices to be used by GFS. In order for CLVM to be able to
+      recognize DRBD-based volumes, you must configure LVM to scan
+      your DRBD devices for Physical Volumes, as in a conventional LVM
+      setup (see <xref linkend="s-lvm-drbd-as-pv"/>).</para>
+  </section>
+  <section id="s-gfs-enable">
+    <title>Configuring your cluster to support GFS</title>
+    <section id="s-gfs-enable-rhel4">
+      <title>Red Hat Enterprise Linux 4</title>
+      <para>RHEL 4 clusters keep their configuration in a single
+	configuration file,
+	<filename>/etc/cluster/cluster.conf</filename>. You may manage
+	your cluster configuration either by editing this
+	configuration file, or by using the
+	<command>system-config-cluster</command> GTK2 GUI application.
+	Preparing your cluster configuration is fairly
+	straightforward; all a GFS cluster requires are the two
+	participating nodes (referred to as <emphasis>Cluster
+	  Members</emphasis> in Red Hat's documentation) and a fencing
+	device.<footnote>
+	  <para>
+	    For more information about configuring Red Hat clusters,
+	    see <ulink
+	      url="http://www.redhat.com/docs/manuals/csgfs/">Red
+	      Hat's documentation on the Red Hat Cluster Suite and
+	      GFS.</ulink></para>
+	</footnote></para>
+      <para>After you have created your new DRBD resource and
+	completed your initial cluster configuration, you must enable
+	and start the following system services on both nodes of your
+	GFS cluster:
+      <itemizedlist>
+	  <listitem>
+	    <para><code>ccsd</code>,</para>
+	  </listitem>
+	  <listitem>
+	    <para><code>fenced</code>,</para>
+	  </listitem>
+	  <listitem>
+	    <para><code>cman</code>,</para>
+	  </listitem>
+	  <listitem>
+	    <para><code>clvmd</code>.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </section>
+    <section id="s-gfs-enable-rhel5">
+      <title>Red Hat Enterprise Linux 5</title>
+      <para></para>
+    </section>
+  </section>
+  <section id="s-gfs-create">
+    <title>Creating a GFS filesystem</title>
+    <para>In order to create a GFS filesystem on your dual-primary
+      DRBD resource, you must first initialize it as a <link
+	linkend="s-lvm-primer">Logical Volume for LVM</link>.</para>
+    <para>Contrary to conventional, non-cluster-aware LVM
+      configurations, the following steps must be completed on only
+      one node due to the cluster-aware nature of CLVM:
+      <literallayout><userinput>pvcreate $(drbdadm sh-dev <replaceable>resource</replaceable>)</userinput>
+<computeroutput>  Physical volume "/dev/drbd<replaceable>num</replaceable>" successfully created</computeroutput>
+<userinput>vgcreate <replaceable>vg-name</replaceable> $(drbdadm sh-dev <replaceable>resource</replaceable>)</userinput>
+<computeroutput>  Volume group "<replaceable>vg-name</replaceable>" successfully created</computeroutput>
+<userinput>lvcreate --size <replaceable>size</replaceable> --name <replaceable>lv-name</replaceable> <replaceable>vg-name</replaceable></userinput>
+<computeroutput>  Logical volume "<replaceable>lv-name</replaceable>" created</computeroutput></literallayout>
+    </para>
+    <para>CLVM will immediately notify the peer node of these changes;
+      issuing <command>lvs</command> (or <command>lvdisplay</command>)
+      on the peer node will list the newly created logical
+      volume.</para>
+    <para>Now, you may proceed by creating the actual filesystem:
+      <literallayout><userinput>mkfs -t gfs -p lock_dlm -j 2 /dev/<replaceable>vg-name</replaceable>/<replaceable>lv-name</replaceable></userinput></literallayout>
+      The <option>-j</option> option in this command refers to the
+      number of journals to keep for GFS. This must be identical to
+      the number of nodes in the cluster; since DRBD does not support
+      more than two nodes, the value to set here is always 2.</para>
+  </section>
+  <section id="s-gfs-use">
+    <title>Using your GFS filesystem</title>
+    <para>After you have created your filesystem, you may add it to
+      <filename>/etc/fstab</filename>:
+      <programlisting>/dev/<replaceable>vg-name</replaceable>/<replaceable>lv-name</replaceable> <replaceable>mountpoint</replaceable> gfs defaults 0 0</programlisting>
+      Do not forget to make this change on both cluster nodes.
+    </para>
+    <para>After this, you may mount your new filesystem by starting the
+    <code>gfs</code> service (on both nodes):
+      <literallayout><userinput>service gfs start</userinput></literallayout>
+    </para>
+    <para>From then onwards, as long as you have the DRBD configured
+      to start on system startup, before the RHCS services and the
+      <code>gfs</code> service, you will be able to use this GFS file
+      system as you would use one that is configured on traditional
+      shared storage.
+    </para>
+  </section>
+</chapter>
