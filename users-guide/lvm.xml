@@ -98,13 +98,13 @@
 	<emphasis>all</emphasis> your PVs are to be stored on DRBD
 	devices, the following is an appropriate
 	<option>filter</option> option: 
-	<programlisting>filter = [ "a|drbd.*", "r|.*" ]</programlisting> 
+	<programlisting>filter = [ "a|drbd.*|", "r|.*|" ]</programlisting> 
 	This filter expression <option>a</option>ccepts PV
 	signatures found on any DRBD devices, while
 	<option>r</option>ejecting (ignoring) all others.<footnote>
 	  <para>By default, LVM scans all block devices found in
 	    <filename>/dev</filename> for PV signatures. This is
-	    equivalent to <code>filter = [ "a|.*" ]</code>.</para>
+	    equivalent to <code>filter = [ "a|.*|" ]</code>.</para>
 	</footnote>
       </para>
       <para>After modifying the <filename>lvm.conf</filename> file,
@@ -173,7 +173,7 @@
 	<listitem>
 	  <para>Set an appropriate <option>filter</option> option in your
 	    <filename>/etc/lvm/lvm.conf</filename>:
-	    <programlisting>filter = ["a|sd.*", "a|drbd.*", "r|.*"]</programlisting>
+	    <programlisting>filter = ["a|sd.*|", "a|drbd.*|", "r|.*|"]</programlisting>
 	    This filter expression <option>a</option>ccepts PV
 	    signatures found on any SCSI and DRBD devices, while
 	<option>r</option>ejecting (ignoring) all others.</para>
@@ -185,20 +185,28 @@
 	<listitem>
 	  <para>Now, you may initialize your two SCSI partitions as PVs:
 	    <literallayout><userinput>pvcreate /dev/sda1</userinput>
-<userinput>pvcreate /dev/sdb1</userinput></literallayout>
+<computeroutput>  Physical volume "/dev/sda1" successfully created</computeroutput>
+<userinput>pvcreate /dev/sdb1</userinput>
+<computeroutput>  Physical volume "/dev/sdb1" successfully created</computeroutput></literallayout>
       </para>
 	</listitem>
 	<listitem>
 	  <para>The next step is creating your low-level VG named
 	    <code>local</code>, consisting of the two PVs you just initialized:
-	    <literallayout><userinput>vgcreate local /dev/sda1 /dev/sda2</userinput></literallayout>
+	    <literallayout><userinput>vgcreate local /dev/sda1 /dev/sda2</userinput>
+<computeroutput>  Volume group "local" successfully created</computeroutput></literallayout>
       </para>
 	</listitem>
 	<listitem>
 	  <para>Now you may create your Logical Volume to be used as
 	    DRBD's backing device:
-	    <literallayout><userinput>lvcreate --name r0 --size 10G local</userinput></literallayout></para>
+	    <literallayout><userinput>lvcreate --name r0 --size 10G local</userinput>
+<computeroutput>  Logical volume "local" created</computeroutput></literallayout>
+	</para>
 	</listitem>
+      <listitem>
+	<para>Repeat all steps, up to this point, on the peer node.</para>
+      </listitem>
 	<listitem>
 	  <para>Then, edit your
 	    <filename>/etc/drbd.conf</filename> to create a new resource
@@ -214,40 +222,66 @@
     address <replaceable>address</replaceable>:<replaceable>port</replaceable>;
   }
 }</programlisting>
-	  </para>
-	</listitem>
+	  After you have created your new resource configuration, be
+	  sure to copy your <filename>drbd.conf</filename> contents to
+	   the peer node.</para>
+      </listitem>
 	<listitem>
 	  <para>After this, initialize your resource as described in
-	    <xref linkend="s-first-time-up"/> (on both nodes). Then promote your
-	    resource to primary as described in <xref
-	    linkend="s-switch-resource-roles"/> (on one node).</para>
+	    <xref linkend="s-first-time-up"/> (on both nodes).</para>
+      </listitem>
+      <listitem>
+	<para>Then, promote your resource (on one node):
+	  <literallayout><userinput>drbdadm primary r0</userinput></literallayout>
+	</para>
 	</listitem>
 	<listitem>
 	  <para>Now, on the node where you just promoted your
 	    resource, initialize your DRBD device as a new Physical
 	    Volume:
-	    <literallayout><userinput>pvcreate /dev/drbd0</userinput></literallayout>
+	    <literallayout><userinput>pvcreate /dev/drbd0</userinput>
+<computeroutput>  Physical volume "/dev/drbd0" successfully created</computeroutput></literallayout>
 	  </para>
 	</listitem>
 	<listitem>
-	  <para>Create your VG named <code>replicated</code> on the
-	  same node:
-	    <literallayout><userinput>vgcreate replicated /dev/drbd0</userinput></literallayout>
+	  <para>Create your VG named <code>replicated</code>, using
+	  the PV you just initialized, on the same node:
+	    <literallayout><userinput>vgcreate replicated /dev/drbd0</userinput>
+<computeroutput>  Volume group "replicated" successfully created</computeroutput></literallayout>
 	  </para>
 	</listitem>
 	<listitem>
 	  <para>Finally, create your new Logical Volumes within this
 	  newly-created VG:
 	    <literallayout><userinput>lvcreate --name foo --size 4G replicated</userinput>
-<userinput>lvcreate --name bar --size 6G replicated</userinput></literallayout>
+<computeroutput>  Logical volume "foo" created</computeroutput>
+<userinput>lvcreate --name bar --size 6G replicated</userinput>
+<computeroutput>  Logical volume "bar" created</computeroutput></literallayout>
 	  </para>
 	</listitem>
       </orderedlist>
-      <para>The Logical Volumes <code>foo</code> and <code>bar</code>
+    <para>The Logical Volumes <code>foo</code> and <code>bar</code>
 	will now be available as
 	<filename>/dev/replicated/foo</filename> and
-	<filename>/dev/replicated/bar</filename> on the node on which
-	the resource <code>r0</code> is in the primary role at that
-	time.</para>
-    </section>
+	<filename>/dev/replicated/bar</filename> on the local node.
+    </para>
+    <para>To make them available on the peer node, first issue the following
+    sequence of commands on the local node:
+      <literallayout><userinput>vgchange -a n replicated</userinput>
+<computeroutput>  0 logical volume(s) in volume group "replicated" now active</computeroutput>
+<userinput>drbdadm secondary r0</userinput></literallayout>
+    </para>
+    <para>Then, issue these commands on the peer node:
+      <literallayout><userinput>drbdadm primary r0</userinput>
+<userinput>vgchange -a y replicated</userinput>
+<computeroutput>  2 logical volume(s) in volume group "replicated" now active</computeroutput></literallayout>
+    After this, the block devices
+    <filename>/dev/replicated/foo</filename> and
+    <filename>/dev/replicated/bar</filename> will be available on the
+    peer node.</para>
+    <para>Of course, the process of transferring volume groups between
+      peers and making the corresponding logical volumes available can
+      be automated. The Heartbeat <code>LVM</code> resource agent is
+      designed for exactly that purpose.</para>
+  </section>
 </chapter>
