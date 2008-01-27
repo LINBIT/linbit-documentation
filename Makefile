@@ -47,9 +47,6 @@ chunked-html: howto-collection.xml images
 
 pdf: copy-images howto-collection.pdf
 
-valid: *.xml
-	xmllint --noout --valid --xinclude *.xml
-
 %.html: %.xml
 	xsltproc -o $@ \
 	--stringparam graphic.default.extension png \
