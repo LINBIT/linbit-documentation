@@ -1,0 +1,176 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<chapter id="ch-heartbeat">
+  <title>Integrating DRBD with Heartbeat clusters</title>
+  <formalpara>
+    <title>Introduction</title>
+    <para>This chapter describes using DRBD as replicated storage for
+      Linux-HA ("Heartbeat") High Availability clusters. It covers
+      both traditionally-configured, Heartbeat release 1-compatible
+      clusters, and the more advanced CRM-enabled Heartbeat 2
+      clusters.</para>
+  </formalpara>
+  <section id="s-heartbeat-primer">
+    <title>Heartbeat primer</title>
+    <section id="s-heartbeat-cluster-manager">
+      <title>The Heartbeat cluster manager</title>
+      <para>Heartbeat's purpose as a cluster manager is to ensure that
+	the cluster maintains its services to the clients, even if
+	single machines of the cluster fail. Applications that may be
+	managed by Heartbeat as cluster services include, for example,
+	<itemizedlist>
+	  <listitem>
+	    <para>the Apache web server,</para>
+	  </listitem>
+	  <listitem>
+	    <para>the PostgreSQL database server,</para>
+	  </listitem>
+	  <listitem>
+	    <para>the ietd iSCSI target daemon, and many
+	      others.</para>
+	  </listitem>
+	</itemizedlist> In essence, any server application may be
+	managed by Heartbeat as a cluster service.</para>
+      <para>Services managed by Heartbeat are typically removed from
+	the system startup configuration; rather than being started at
+	boot time, they are be started and stopped by the cluster
+	manager as required by the cluster configuration. If a machine
+	(a physical cluster node) fails while running a particular set
+	of services, Heartbeat will start the failed services on
+	another machine in the cluster. These operations performed by
+	Heartbeat are commonly referred to as (automatic)
+	<emphasis>fail-over</emphasis>.</para>
+      <para>A migration of cluster services from one cluster node to
+	another, by manual intervention, is commonly termed "manual
+	fail-over". This being a slightly self-contradictory term, we
+	use the alternative term <emphasis>switch-over</emphasis> for
+	the purposes of this guide.</para>
+      <para>Heartbeat is also capable of automatically migrating
+	resources back to a previously failed node, as soon as the
+	latter recovers. This process is called
+	<emphasis>fail-back</emphasis>.</para>
+    </section>
+    <section id="s-heartbeat-resources">
+      <title>Heartbeat resources</title>
+      <para>Usually, there will be certain requirements in order to be able to start a
+      cluster service managed by Heartbeat on a node. Consider the
+      example of a complex, database-driven web application:
+	<itemizedlist>
+	  <listitem>
+	    <para>Both the web server and the database server assume
+	      that their designated <emphasis>IP addresses</emphasis>
+	      are available (i.e. configured) on the node.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The database will require a <emphasis>file
+	    system</emphasis> to retrieve data files from.</para>
+	  </listitem>
+	  <listitem>
+	    <para>That file system will require its underlying
+	      <emphasis>block device</emphasis> to read from and write
+	      to (this is where DRBD comes in, as we will see later).</para>
+	  </listitem>
+	  <listitem>
+	    <para>The web server will also depend on the database
+	    being started, assuming it cannot server dynamic content
+	    without an available database.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>The services Heartbeat controls, and any additional
+	requirements those services depend on, are referred to as
+	<emphasis>resources</emphasis> in Heartbeat terminology. Where
+	resources form a co-dependent collection, that collection is
+	called a <emphasis>resource group</emphasis>.</para>
+    </section>
+    <section id="s-resource-agents">
+      <title>Heartbeat resource agents</title>
+      <para>Heartbeat manages resources by way of invoking
+	standardized shell scripts known as <emphasis>resource
+	  agents</emphasis> (RA's). In Heartbeat R1-style clusters,
+	the following resource agent types are available:
+	<itemizedlist>
+	  <listitem>
+	    <formalpara>
+	      <title>Heartbeat resource agents</title>
+	      <para>These agents are found in the
+		<filename>/etc/ha.d/resource.d</filename> directory.
+		They may take zero or more positional, unnamed
+		parameters, and one operation argument
+		(<code>start</code>, <code>stop</code>, or
+		<code>status</code>). Heartbeat translates resource
+		parameters it finds for a matching resource in
+		<filename>/etc/ha.d/haresources</filename> into
+		positional parameters for the RA, which then uses
+		these to configure the resource.</para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>LSB resource agents</title>
+	      <para>These are conventional, Linux Standard
+		Base-compliant init scripts found in
+		<filename>/etc/init.d</filename>, which Heartbeat
+		simply invokes with the <code>start</code>,
+		<code>stop</code>, or <code>status</code> argument.
+		They take no positional parameters. Thus, the
+		corresponding resources' configuration cannot be
+		managed by Heartbeat; these services are expected to
+		be configured by conventional configuration
+		files.</para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>OCF resource agents</title>
+	      <para>These are resource agents that conform to the
+		guidelines of the Open Cluster Framework. They are
+		usually found in either
+		<filename>/usr/lib/ocf/heartbeat/resource.d</filename>
+		or
+		<filename>/usr/lib64/ocf/heartbeat/resource.d</filename>, 
+		depending on system architecture and distribution.
+		They take no positional parameters, but may be
+		extensively configured via environment variables that
+		the cluster management process derives from the
+		cluster configuration, and passes in to the resource
+		agent upon invocation. OCF resource agents are only
+		available in CRM-enabled Heartbeat clusters.</para>
+	    </formalpara>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </section>
+    <section id="s-heartbeat-communication-channels">
+      <title>Heartbeat communication channels</title>
+      <para>Heartbeat uses a UDP-based communication protocol to
+	periodically check for node availability (the "heartbeat"
+	proper). For this purpose, Heartbeat can use several
+	communication methods, including:
+	<itemizedlist>
+	  <listitem>
+	    <para>IP multicast,</para>
+	  </listitem>
+	  <listitem>
+	    <para>IP broadcast,</para>
+	  </listitem>
+	  <listitem>
+	    <para>IP unicast,</para>
+	  </listitem>
+	  <listitem>
+	    <para>serial line.</para>
+	  </listitem>
+	</itemizedlist>Of these, IP multicast and IP broadcast are the
+	most relevant in practice. The absolute minimum requirement
+	for stable cluster operation is two independent communication
+	channels.</para>
+    </section>
+  </section>
+  <section>
+    <title>Configuring DRBD in Heartbeat R1-style clusters</title>
+    <para>Running Heartbeat clusters in release 1 compatible
+      configuration is now considered obsolete by the Linux-HA
+      development team. However, due to simplicity and ease of
+      configuration, it is still widely used in the field, which is
+      why it is documented here in this section.</para>
+  </section>
+</chapter>
