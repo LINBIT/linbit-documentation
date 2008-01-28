@@ -1,0 +1,208 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<chapter id="ch-xen">
+  <title>Using Xen with DRBD</title>
+  <section id="s-xen-primer">
+    <title>Xen primer</title>
+    <para>Xen is a virtualization framework originally developed at
+      the University of Cambridge (UK), and now being maintained by
+      XenSource, Inc. It is included in reasonably recent releases of
+      most Linux distributions, such as Debian GNU/Linux (since
+      version 4.0), SUSE Linux Enterprise Server (since release 10),
+      Red Hat Enterprise Linux (since release 5), and many
+      others.</para>
+    <para>Xen uses paravirtualization &mdash; a virtualization method
+      involving a high degree of cooperation between the
+      virtualization host and guest virtual machines<footnote>
+	<para>In Xen terminology, guest virtual machines are also
+	  referred to as <emphasis>unprivileged domains</emphasis>, or
+	  <emphasis>domU's</emphasis> for short.</para></footnote>
+      &mdash; with selected guest operating systems for improved
+      performance in comparison to conventional virtualization
+      solutions (which are typically based on hardware emulation). Xen
+      also supports full hardware emulation on CPUs that support the
+      appropriate virtualization extensions<footnote>
+	<para>At the time of writing, CPU extensions supported by Xen
+	  for HVM are Intel's Virtualization Technology (VT, formerly
+	  codenamed "Vanderpool"), and AMD's Secure Virtual Machine
+	  (SVM, formerly known as "Pacifica").</para>
+      </footnote>, in Xen parlance, this is known as HVM
+      ("hardware-assisted virtual machine").</para>
+    <para>Xen supports <emphasis>live migration</emphasis>, which
+      refers to the capability of transferring a running guest
+      operating system from one physical host to another, without
+      interruption.</para>
+    <para>When a DRBD resource is used as a replicated Virtual Block
+      Device (VBD) for Xen, it serves to make the entire contents of a
+      domU's virtual disk available on two servers, which can then be
+      configured for automatic fail-over. That way, DRBD does not only
+      provide redundancy for Linux servers (as in non-virtualized DRBD
+      deployment scenarios), but also for any other operating system
+      that can be virtualized under Xen &mdash; which, in essence,
+      includes any operating system available on 32- or 64-bit Intel
+      compatible architectures.</para>
+  </section>
+  <section id="s-xen-create-resource">
+    <title>Creating a DRBD resource suitable to act as a Xen
+    VBD</title>
+    <para>Configuring a DRBD resource that is to be used as a Virtual
+      Block Device for Xen is fairly straightforward &mdash; in
+      essence, the typical configuration matches that of a DRBD
+      resource being used for any other purpose. However, if you want
+      to enable live migration for your guest instance, you need to
+      enable <link linkend="s-dual-primary-mode">dual-primary
+	mode</link> for this resource:
+      <programlisting>resource <replaceable>resource</replaceable> {
+  net {
+    allow-two-primaries;
+    ...
+  }
+  ...
+}</programlisting>
+    </para>
+    <para>Enabling dual-primary mode is necessary because Xen, before
+      initiating live migration, checks for write access on all VBDs a
+      resource is configured to use on both the source and the
+      destination host for the migration.</para>
+  </section>
+  <section id="s-xen-configure-domu">
+    <title>Using DRBD VBDs</title>
+    <para>In order to use a DRBD resource as the virtual block device,
+      you must add a line like the following to your Xen domU
+      configuration:
+      <programlisting>disk = [ 'drbd:<replaceable>resource</replaceable>,xvda,w' ]</programlisting>
+      This example configuration makes the DRBD resource named
+      <replaceable>resource</replaceable> available to the domU as
+      <filename>/dev/xvda</filename> in read/write mode
+    (<option>w</option>).
+    </para>
+    <para>Of course, you may use multiple DRBD resources with a single
+      domU. In that case, simply add more entries like the one
+      provided in the example to the <option>disk</option> option,
+      separated by commas.</para>
+  </section>
+  <section id="s-manage-domu">
+    <title>Starting, stopping, and migrating DRBD-backed
+    domU's</title>
+    <formalpara>
+      <title>Starting the domU</title>
+      <para>Once you have configured your DRBD-backed domU, you may
+	start it as you would any other domU:
+    <literallayout><userinput>xm create <replaceable>domU</replaceable></userinput>
+<computeroutput>Using config file "<filename>/etc/xen/<replaceable>domU</replaceable></filename>".</computeroutput>
+<computeroutput>Started domain <replaceable>domU</replaceable></computeroutput></literallayout>
+	In the process, the DRBD resource you configured as the VBD
+	will be promoted to the primary role, and made accessible to Xen
+	as expected.</para>
+    </formalpara>
+    <formalpara>
+      <title>Stopping the domU</title>
+      <para>This is equally straightforward:
+    <literallayout><userinput>xm shutdown -w <replaceable>domU</replaceable></userinput>
+<computeroutput>Domain <replaceable>domU</replaceable> terminated.</computeroutput></literallayout>
+	Again, as you would expect, the DRBD resource
+	is returned to the secondary role after the domU is successfully
+	shut down.</para>
+    </formalpara>
+    <formalpara>
+      <title>Migrating the domU</title>
+      <para>This, too, is done using the usual Xen tools:
+    <literallayout><userinput>xm migrate --live <replaceable>domU</replaceable> <replaceable>destination-host</replaceable></userinput></literallayout>
+      In this case, several administrative steps are automatically
+      taken in rapid succession:
+	<orderedlist>
+	  <listitem>
+	    <para>The resource is promoted to the primary role on
+	      <replaceable>destination-host</replaceable>.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Live migration of <replaceable>domU</replaceable> is
+	      initiated on the local host.</para>
+	  </listitem>
+	  <listitem>
+	    <para>When migration to the destination host has
+	    completed, the resource is demoted to the secondary role
+	    locally.</para>
+	  </listitem>
+	</orderedlist>
+	The fact that both resources must briefly run in the primary
+	role on both hosts is the reason for having to configure the
+	resource in dual-primary mode in the first place.</para>
+    </formalpara>
+  </section>
+  <section id="s-xen-internal">
+    <title>Internals of DRBD/Xen integration</title>
+    <para>Xen supports two Virtual Block Device types natively:
+      <itemizedlist>
+	<listitem>
+	  <formalpara>
+	    <title><code>phy</code></title>
+	    <para>This device type is used to hand "physical" block
+	      devices, available in the host environment, off to a
+	      guest domU in an essentially transparent
+	    fashion.<footnote>
+		<para>You could, of course, use the <code>phy</code>
+		  device type for DRBD resources as well, as DRBD
+		  devices are, of course, block devices. That,
+		  however, requires that you manage DRBD state
+		  transitions outside Xen, which is a less flexible
+		  approach than that provided by the <code>drbd</code>
+		  resource type.</para>
+	      </footnote>
+	    </para>
+	  </formalpara>
+	</listitem>
+	<listitem>
+	  <formalpara>
+	    <title><code>file</code></title>
+	    <para>This device type is used to make file-based block
+	      device images available to the guest domU. It works by
+	      creating a loop block device from the original image
+	      file, and then handing that block device off to the domU
+	      in much the same fashion as the <code>phy</code> device
+	      type does.</para>
+	  </formalpara>
+	</listitem>
+      </itemizedlist>
+    </para>
+    <para>If a Virtual Block Device configured in the
+      <option>disk</option> option of a domU configuration uses any
+      prefix other than <code>phy:</code>, <code>file:</code>,
+      or no prefix at all (in which case Xen defaults to using the
+      <code>phy</code> device type), Xen expects to find a helper
+      script named
+      <filename>block-<replaceable>prefix</replaceable></filename> in
+      the Xen scripts directory, commonly
+      <filename>/etc/xen/scripts</filename>. </para>
+    <para>The DRBD distribution provides such a script for the
+      <code>drbd</code> device type, named
+      <filename>/etc/xen/scripts/block-drbd</filename>. This script
+      handles the necessary DRBD resource state transitions as
+      described earlier in this chapter.</para>
+  </section>
+  <section id="s-xen-heartbeat">
+    <title>Integrating Xen with Heartbeat</title>
+    <formalpara>
+      <title>CRM configuration mode</title>
+      <para>If you are using the Heartbeat cluster manager (in CRM
+	configuration mode), you may configure a Xen domU as a
+	Heartbeat resource, and automate resource failover. To do so,
+	use the <code>Xen</code> OCF resource agent. If you are using
+	the <code>drbd</code> Xen device type described in this
+	chapter, you will <emphasis>not</emphasis> need to configure
+	any separate <code>drbd</code> resource for use by the Xen
+	cluster resource. Instead, the <filename>block-drbd</filename>
+	helper script will do all the necessary resource transitions
+	for you.</para>
+    </formalpara>
+    <formalpara>
+      <title>R1-compatible configuration mode</title>
+      <para>If you are using Heartbeat in R1-compatible mode, you
+	cannot use OCF resource agents. You may, however, configure
+	Heartbeat to use the <code>xendomains</code> LSB service as a
+	cluster resource. Again, if you are using the
+	<code>drbd</code> Xen VBD type, you will not need to create
+	separate <code>drbddisk</code> resources for your Xen
+	domains.</para>
+    </formalpara>
+  </section>
+</chapter>
