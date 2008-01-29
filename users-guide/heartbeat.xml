@@ -19,13 +19,14 @@
 	managed by Heartbeat as cluster services include, for example,
 	<itemizedlist>
 	  <listitem>
-	    <para>the Apache web server,</para>
+	    <para>a web server such as Apache,</para>
 	  </listitem>
 	  <listitem>
-	    <para>the PostgreSQL database server,</para>
+	    <para>a database server such as MySQL, Oracle, or
+	    PostgreSQL,</para>
 	  </listitem>
 	  <listitem>
-	    <para>the ietd iSCSI target daemon, and many
+	    <para>a file server such as NFS or Samba, and many
 	      others.</para>
 	  </listitem>
 	</itemizedlist> In essence, any server application may be
@@ -90,7 +91,7 @@
 	the following resource agent types are available:
 	<itemizedlist>
 	  <listitem>
-	    <formalpara>
+	    <formalpara id="fp-heartbeat-ra">
 	      <title>Heartbeat resource agents</title>
 	      <para>These agents are found in the
 		<filename>/etc/ha.d/resource.d</filename> directory.
@@ -105,7 +106,7 @@
 	    </formalpara>
 	  </listitem>
 	  <listitem>
-	    <formalpara>
+	    <formalpara id="fp-lsb-ra">
 	      <title>LSB resource agents</title>
 	      <para>These are conventional, Linux Standard
 		Base-compliant init scripts found in
@@ -120,7 +121,7 @@
 	    </formalpara>
 	  </listitem>
 	  <listitem>
-	    <formalpara>
+	    <formalpara id="fp-ocf-ra">
 	      <title>OCF resource agents</title>
 	      <para>These are resource agents that conform to the
 		guidelines of the Open Cluster Framework. They are
@@ -165,12 +166,209 @@
 	channels.</para>
     </section>
   </section>
-  <section>
-    <title>Configuring DRBD in Heartbeat R1-style clusters</title>
+  <section id="s-heartbeat-config">
+    <title>Heartbeat configuration</title>
+    <para>For any Heartbeat cluster, the following configuration files
+      must be available:
+      <itemizedlist>
+	<listitem>
+	  <para><filename>/etc/ha.d/ha.cf</filename> &mdash; global
+	    cluster configuration.</para>
+	</listitem>
+	<listitem>
+	  <para><filename>/etc/ha.d/authkeys</filename> &mdash; keys
+	    for mutual node authentication.</para>
+	</listitem>
+      </itemizedlist>
+    </para>
+    <para>Depending on whether Heartbeat is running in R1-compatible
+      or in CRM mode, additional configuration files are required.
+      These are covered in <xref
+	  linkend="s-heartbeat-r1"/> and <xref
+	  linkend="s-heartbeat-crm"/>.</para>
+    <section id="s-heartbeat-hacf">
+      <title>The <filename>ha.cf</filename> file</title>
+      <para>The following example is a small and simple
+	<filename>ha.cf</filename> file:
+<programlisting>autojoin none 
+mcast bond0 239.0.0.43 694 1 0 
+bcast eth2 
+warntime 15
+deadtime 30 
+initdead 120 
+keepalive 2 
+node joe 
+node jane
+crm no</programlisting></para>
+      <para>Setting <option>autojoin</option> to <code>none</code>
+	disables cluster node auto-discovery and requires that cluster
+	nodes be listed explicitly, using the <option>node</option>
+	options. This speeds up cluster start-up in clusters with a
+	fixed number of nodes (which is always the case in R1-style
+	Heartbeat clusters).</para>
+      <para>This example assumes that <code>bond0</code> is the
+	cluster's interface to the shared network, and that
+	<code>eth2</code> is the interface dedicated for DRBD
+	replication between both nodes. Thus, <code>bond0</code> can
+	be used for Multicast heartbeat, whereas on <code>eth2</code>
+	broadcast is acceptable as <code>eth2</code> is not a shared
+	network.</para>
+      <para>The next options configure node failure detection. They
+	set the time after which Heartbeat issues a warning that a no
+	longer available peer node <emphasis>may</emphasis> be dead
+	(<option>warntime</option>), the time after which Heartbeat
+	considers a node <emphasis>confirmed</emphasis> dead
+	(<option>deadtime</option>), and the maximum time it waits for
+	other nodes to check in at cluster startup
+	(<option>initdead</option>). <option>keepalive</option> sets
+	the interval at which Heartbeat keep-alive packets are sent.
+	All these options are given in seconds.</para>
+      <para>The <option>node</option> option identifies cluster
+	members. The option values listed here must match the exact
+	host names of cluster nodes as given by <command>uname
+	  -n</command>.</para>
+      <para><code>crm no</code> indicates that this cluster is a <link
+	  linkend="s-heartbeat-r1">R1-compatible cluster</link> with
+	CRM disabled. We this option set to <code>yes</code>,
+	Heartbeat would be running in <link
+	  linkend="s-heartbeat-crm">CRM mode</link>.</para>
+    </section>
+    <section id="s-heartbeat-authkeys">
+      <title>The <filename>authkeys</filename> file</title>
+      <para><filename>/etc/ha.d/authkeys</filename> contains
+	pre-shared secrets used for mutual cluster node
+	authentication. It should only be readable by
+	<code>root</code>and follows this format: 
+<programlisting>auth <replaceable>num</replaceable>
+<replaceable>num</replaceable> <replaceable>algorithm</replaceable> <replaceable>secret</replaceable></programlisting>
+      </para>
+      <para><replaceable>num</replaceable> is a simple key index,
+	starting with 1. Usually, you will only have one key in your
+	<filename>authkeys</filename> file.</para>
+      <para><replaceable>algorithm</replaceable> is the signature
+	algorithm being used. You may use either <code>md5</code> or
+	<code>sha1</code>; the use of <code>crc</code> (a simple
+	cyclic redundancy check, not secure) is not
+	recommended.</para>
+      <para><replaceable>secret</replaceable> is the actual
+	authentication key.</para>
+      <para>You may create an <filename>authkeys</filename> file,
+	using a generated secret, with the following shell
+	hack:</para>
+      <programlisting>echo -e "auth 1\n1 sha1 $(date | openssl md5)" &gt;/etc/ha.d/authkeys</programlisting>
+    </section>
+  </section>
+  <section id="s-heartbeat-r1">
+    <title>Using DRBD in Heartbeat R1-style clusters</title>
     <para>Running Heartbeat clusters in release 1 compatible
       configuration is now considered obsolete by the Linux-HA
-      development team. However, due to simplicity and ease of
-      configuration, it is still widely used in the field, which is
-      why it is documented here in this section.</para>
+      development team. However, it is still widely used in the field,
+      which is why it is documented here in this section.</para>
+    <formalpara>
+      <title>Advantages</title>
+      <para>Configuring Heartbeat in R1 compatible mode has some
+	advantages over using CRM configuration, notably
+	<itemizedlist>
+	  <listitem>
+	    <para>Simplicity of configuration,</para>
+	  </listitem>
+	  <listitem>
+	    <para>Ease of functionality extension with custom resource
+	      agents.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </formalpara>
+    <formalpara>
+      <title>Disadvantages</title>
+      <para>Disadvantages of R1 compatible configuration, as opposed
+	to CRM configurations, include:
+	<itemizedlist>
+	  <listitem>
+	    <para>Cluster configuration must be manually kept in sync
+	      between cluster nodes, it is not propagated
+	      automatically.</para>
+	  </listitem>
+	  <listitem>
+	    <para>While node monitoring is available, resource-level
+	      monitoring is not. Individual resources must be
+	      monitored by an external monitoring system.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Resource group support is limited to two resource
+	      groups. CRM clusters, by contrast, support any number,
+	      and also come with a complex resource-level constraint
+	      framework.</para>
+	  </listitem>
+	</itemizedlist> Another disadvantage, namely the fact that R1
+	style configuration limits cluster size to 2 nodes (whereas
+	CRM cluster support up to 255) is largely irrelevant for
+	setups involving DRBD, DRBD itself being limited to two
+	nodes.</para>
+    </formalpara>
+    <section id="s-heartbeat-r1-config">
+      <title>Heartbeat R1-style configuration</title>
+      <para>In R1-style clusters, Heartbeat keeps its complete
+	configuration in three simple configuration files:
+	<itemizedlist>
+	  <listitem>
+	    <para><filename>/etc/ha.d/ha.cf</filename>, as described
+	      in <xref linkend="s-heartbeat-hacf"/>.</para>
+	  </listitem>
+	  <listitem>
+	    <para><filename>/etc/ha.d/authkeys</filename>, as described
+	      in <xref linkend="s-heartbeat-authkeys"/>.</para>
+	  </listitem>
+	  <listitem>
+	    <para><filename>/etc/ha.d/haresources</filename> &mdash;
+	      the resource configuration file, described below.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <section id="s-heartbeat-haresources">
+	<title>The <filename>haresources</filename> file</title>
+	<para>The following is an example of a Heartbeat R1-compatible
+	resource configuration involving a MySQL database backed by
+	DRBD:
+	  <programlisting>joe drbddisk::mysql Filesystem::/dev/drbd0::/var/lib/mysql::ext3 \
+    192.168.42.1 mysql</programlisting></para>
+	<para>This resource configuration contains one resource group
+	  whose <emphasis>home node</emphasis> (the node where
+	  resources are expected to run under normal circumstances) is
+	  named <code>joe</code>.</para>
+	<para>The resource group includes a DRBD resource named
+	  <code>mysql</code>, which will be promoted to the primary
+	  role by the cluster manager (specifically, the
+	  <code>drbddisk</code> <link
+	    linkend="fp-heartbeat-ra">resource agent</link>) on
+	  whichever node is currently the active node. Of course, a
+	  corresponding resource must exist and be configured in
+	  <filename>/etc/drbd.conf</filename> for this to work.</para>
+	<para>That DRBD resource translates to the block device named
+	  <filename>/dev/drbd0</filename>, which contains an ext3
+	  filesystem that is to be mounted at
+	  <filename>/var/lib/mysql</filename> (the default location
+	  for MySQL data files).</para>
+	<para>The resource group also contains a service IP address,
+	  192.168.42.1. Heartbeat will make sure that this IP address
+	  is configured and available on whichever node is currently
+	  active.</para>
+	<para>Finally, Heartbeat will use the <link
+	    linkend="fp-lsb-ra">LSB resource agent</link> named
+	  <code>mysql</code> in order to start the MySQL daemon, which
+	  will then find its data files at
+	  <filename>/var/lib/mysql</filename> and be able to listen on
+	  the service IP address, 192.168.42.1.</para>
+	<para>It is important to understand that the resources listed
+	  in the <filename>haresources</filename> file are always
+	  evaluated from left to right when resources are being
+	  started, and from right to left when they are being
+	  stopped.</para>
+      </section>
+    </section>
+  </section>
+  <section id="s-heartbeat-crm">
+    <title>Using DRBD in Heartbeat CRM-enabled clusters</title>
+    <para></para>
   </section>
 </chapter>
