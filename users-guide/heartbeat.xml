@@ -1,14 +1,15 @@
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
 <chapter id="ch-heartbeat">
   <title>Integrating DRBD with Heartbeat clusters</title>
-  <formalpara>
-    <title>Introduction</title>
-    <para>This chapter describes using DRBD as replicated storage for
-      Linux-HA ("Heartbeat") High Availability clusters. It covers
-      both traditionally-configured, Heartbeat release 1-compatible
-      clusters, and the more advanced CRM-enabled Heartbeat 2
-      clusters.</para>
-  </formalpara>
+  <para>Using DRBD in conjunction with the Linux-HA cluster manager
+    ("Heartbeat") is arguably DRBD's most frequently found use case.
+    Heartbeat is also one of the applications that make DRBD extremely
+    powerful in a wide variety of usage scenarios. Hence, this is one
+    of the more detailed chapters in this guide.</para>
+  <para>This chapter describes using DRBD as replicated storage for
+    Linux-HA High Availability clusters. It covers both
+    traditionally-configured, Heartbeat release 1-compatible clusters,
+    and the more advanced CRM-enabled Heartbeat 2 clusters.</para>
   <section id="s-heartbeat-primer">
     <title>Heartbeat primer</title>
     <section id="s-heartbeat-cluster-manager">
@@ -333,9 +334,16 @@ crm no</programlisting></para>
 	  <programlisting>joe drbddisk::mysql Filesystem::/dev/drbd0::/var/lib/mysql::ext3 \
     192.168.42.1 mysql</programlisting></para>
 	<para>This resource configuration contains one resource group
-	  whose <emphasis>home node</emphasis> (the node where
+	  whose <emphasis>home node</emphasis> (the node where its
 	  resources are expected to run under normal circumstances) is
-	  named <code>joe</code>.</para>
+	  named <code>joe</code>.<footnote>
+	    <para>Consequentially, this resource group would be
+	      considered the <emphasis>local</emphasis> resource group
+	      on host <code>joe</code>, whereas it would be the
+	      <emphasis>foreign</emphasis> resource group on its peer
+	      host.</para>
+	  </footnote>
+	</para>
 	<para>The resource group includes a DRBD resource named
 	  <code>mysql</code>, which will be promoted to the primary
 	  role by the cluster manager (specifically, the
@@ -364,6 +372,85 @@ crm no</programlisting></para>
 	  evaluated from left to right when resources are being
 	  started, and from right to left when they are being
 	  stopped.</para>
+      </section>
+    </section>
+    <section id="s-heartbeat-r1-manage">
+      <title>Managing Heartbeat R1-style clusters</title>
+      <section id="s-heartbeat-r1-assume-resources">
+	<title>Assuming control of cluster resources</title>
+	<para>A Heartbeat R1-style cluster node may assume control of
+	  cluster resources in the following way:</para>
+	<formalpara>
+	  <title>Manual resource takeover</title>
+	  <para>This is the approach normally taken if one simply
+	    wishes to test resource migration, or assume control
+	    of resources for any reason other than the peer having
+	    to leave the cluster. This operation is performed
+	    using the following command:
+	    <literallayout><userinput>/usr/lib/heartbeat/hb_takeover</userinput></literallayout> 
+	    On some distributions and architectures, you may be
+	    required to enter:
+	    <literallayout><userinput>/usr/lib64/heartbeat/hb_takeover</userinput></literallayout>
+	  </para>
+	</formalpara>
+      </section>
+      <section id="s-heartbeat-r1-relinquish-resources">
+	<title>Relinquishing cluster resources</title>
+	<para>A Heartbeat R1-style cluster node may be forced to give
+	  up its resources in several ways.</para>
+	<itemizedlist>
+	  <listitem>
+	    <formalpara>
+	      <title>Switching a cluster node to standby
+		mode</title>
+	      <para>This is the approach normally taken if one simply
+		wishes to test resource migration, or perform some
+		other activity that does not require the node to leave
+		the cluster. This operation is performed using the
+		following command:
+		<literallayout><userinput>/usr/lib/heartbeat/hb_standby</userinput></literallayout> 
+		On some distributions and architectures, you may be
+		required to enter:
+		<literallayout><userinput>/usr/lib64/heartbeat/hb_standby</userinput></literallayout>
+	      </para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>Shutting down the local cluster manager
+		instance</title>
+	      <para>This approach is suited for local maintenance
+		operations such as software updates which require that
+		the node be temporarily removed from the cluster, but
+		which do not necessitate a system reboot. It involves
+		shutting down all processes associated with the local
+		cluster manager instance:
+		<literallayout><userinput>/etc/init.d/heartbeat&nbsp;stop</userinput></literallayout> 
+		Prior to stopping its services, Heartbeat will
+		gracefully migrate any currently running resources to
+		the peer node. This is the approach to be followed,
+		for example, if you are upgrading DRBD to a new
+		release, without also upgrading your kernel.</para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>Shutting down the local node</title>
+	      <para>For hardware maintenance or other interventions
+		that require a system shutdown or reboot, use a simple
+		graceful shutdown command, such as
+		<literallayout><userinput>reboot</userinput></literallayout> 
+		or
+		<literallayout><userinput>poweroff</userinput></literallayout> 
+		Since Heartbeat services will be shut down gracefully
+		in the process of a normal system shutdown, the
+		previous paragraph applies to this situation, too.
+		This is also the approach you would use in case of a
+		kernel upgrade (which also requires the installation
+		of a matching DRBD version).</para>
+	    </formalpara>
+	  </listitem>
+	</itemizedlist>
       </section>
     </section>
   </section>
