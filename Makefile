@@ -31,7 +31,8 @@ SVG_FILES := $(wildcard *.svg)
 stylesheet_prefix ?= http://docbook.sourceforge.net/release/xsl/current
 html_stylesheet ?= $(stylesheet_prefix)/xhtml/docbook.xsl
 chunked_html_stylesheet ?= $(stylesheet_prefix)/xhtml/chunk.xsl
-fo_stylesheet ?= $(stylesheet_prefix)/fo/docbook.xsl
+fo_stylesheet ?= stylesheets/fo.xsl
+titlepage_stylesheet ?= $(stylesheet_prefix)/template/titlepage.xsl
 
 all: html chunked-html
 
@@ -64,7 +65,7 @@ pdf: copy-images howto-collection.pdf
 	--stringparam graphic.default.extension png \
 	--xinclude $(html_stylesheet) $<
 
-%.fo: %.xml
+%.fo: %.xml stylesheets/fo-titlepage.xsl
 	xsltproc -o $@ \
 	--stringparam paper.type A4 \
 	--stringparam title.font.family serif \
@@ -80,6 +81,10 @@ pdf: copy-images howto-collection.pdf
 	--stringparam admon.graphics.path images/ \
 	--stringparam admon.graphics.extension .svg \
 	--xinclude $(fo_stylesheet) $<
+
+%-titlepage.xsl: %-titlepage.xml
+	xsltproc -o $@ \
+	--xinclude $(titlepage_stylesheet) $<
 
 %.svg: %.mml
 	mathmlsvg --font-size=24 $<
@@ -138,7 +143,10 @@ clean-png:
 	rm -f $(SVG_FILES:.svg=-large.png) 
 	rm -f $(SVG_FILES:.svg=-small.png) 
 
-clean: clean-png clean-svg clean-html clean-fo clean-ps clean-pdf
+clean-xsl:
+	$(MAKE) -C stylesheets clean
+
+clean: clean-xsl clean-png clean-svg clean-html clean-fo clean-ps clean-pdf
 	rm -rf html-multiple-pages/
 
 .PHONY: all html chunked-html pdf clean-png clean-svg clean-html clean-fo clean-ps clean-pdf clean raster-images vector-images images
