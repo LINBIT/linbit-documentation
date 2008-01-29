@@ -1,0 +1,11 @@
+all: raster-images
+
+raster-images: note.png warning.png tip.png caution.png bottom-left.png bottom-right.png top-left.png top-right.png bottom-left-small.png bottom-right-small.png top-left-small.png top-right-small.png 
+
+vector-images:
+
+%: force
+	@$(MAKE) -f ../Makefile $@
+force: ;
+
+.PHONY: all raster-images vector-images

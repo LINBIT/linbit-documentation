@@ -39,9 +39,16 @@ html: copy-images howto-collection.html
 
 chunked-html: howto-collection.xml images
 	mkdir -p html-multiple-pages/
+	cp -r images html-multiple-pages/
+	cp $(wildcard *.css) html-multiple-pages/
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) html-multiple-pages/
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) html-multiple-pages/
 	xsltproc -o html-multiple-pages/ \
+	--param admon.graphics 1 \
+	--stringparam admon.graphics.path images/ \
+	--stringparam admon.graphics.extension .png \
+	--stringparam ulink.target offsite-link \
+	--stringparam html.stylesheet drbd-howto-collection.css \
 	--stringparam graphic.default.extension png \
 	--xinclude $(chunked_html_stylesheet) $<
 
@@ -49,6 +56,11 @@ pdf: copy-images howto-collection.pdf
 
 %.html: %.xml
 	xsltproc -o $@ \
+	--param admon.graphics 1 \
+	--stringparam admon.graphics.path images/ \
+	--stringparam admon.graphics.extension .png \
+	--stringparam ulink.target offsite-link \
+	--stringparam html.stylesheet drbd-howto-collection.css \
 	--stringparam graphic.default.extension png \
 	--xinclude $(html_stylesheet) $<
 
@@ -64,6 +76,9 @@ pdf: copy-images howto-collection.pdf
 	--param section.label.includes.component.label 1 \
 	--param use.extensions 1 \
 	--param fop1.extensions 1 \
+	--param admon.graphics 1 \
+	--stringparam admon.graphics.path images/ \
+	--stringparam admon.graphics.extension .svg \
 	--xinclude $(fo_stylesheet) $<
 
 %.svg: %.mml
@@ -72,6 +87,12 @@ pdf: copy-images howto-collection.pdf
 %.png: %.svg
 	rsvg $< $@
 
+%-small.png: %.svg
+	rsvg -x 0.5 -y 0.5 $< $@
+
+%-large.png: %.svg
+	rsvg -x 2 -y 2 $< $@
+
 copy-images: copy-raster-images copy-vector-images
 
 copy-raster-images: raster-images
@@ -79,6 +100,9 @@ copy-raster-images: raster-images
 
 copy-vector-images: vector-images
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) .
+
+copy-css: 
+	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.css)) .
 
 images: vector-images raster-images
 
@@ -111,6 +135,8 @@ clean-svg:
 
 clean-png:
 	rm -f $(SVG_FILES:.svg=.png) 
+	rm -f $(SVG_FILES:.svg=-large.png) 
+	rm -f $(SVG_FILES:.svg=-small.png) 
 
 clean: clean-png clean-svg clean-html clean-fo clean-ps clean-pdf
 	rm -rf html-multiple-pages/
