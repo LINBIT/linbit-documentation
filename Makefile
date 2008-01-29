@@ -17,7 +17,7 @@
 DRBD ?= ../drbd-8
 
 # Sub-directories to descend into if doing recursive make
-SUBDIRS ?= users-guide
+SUBDIRS ?= users-guide images
 
 XML_FILES := $(wildcard *.xml)
 MML_FILES := $(wildcard *.mml)
