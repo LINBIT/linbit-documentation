@@ -167,8 +167,91 @@
   </section>
   <section id="s-auto-split-brain-recovery">
     <title>Automatic split brain recovery</title>
-    <subtitle>Available in DRBD 8.0 and later</subtitle>
-    <para></para>
+    <subtitle>Available in DRBD 8.0 and later<footnote>
+	<para>In fact, automatic split brain recovery was available in
+	  DRBD 0.7, albeit using only the <quote>discard modifications
+	    on the younger primary</quote> strategy, which was not
+	  configurable. Automatic split brain recovery is disabled by
+	  default from DRBD 8 onwards.</para>
+      </footnote>
+</subtitle>
+    <para><emphasis>Split brain</emphasis> is a situation where, due
+      to temporary failure of all network links between cluster nodes,
+      and possibly due to intervention by a cluster management
+      software or human error, both nodes switched to the primary role
+      while disconnected. This is a potentially harmful state, as it
+      implies that modifications to the data might have been made on
+      either node, without have been replicated to the peer. Thus, it
+      is likely in this situation that two diverging sets of data have
+      been created, which cannot be trivially merged.</para>
+    <para>While the recommended course of action in this scenario is
+      to manually resolve the split brain and then eliminating its
+      root cause, it may be desirable, in some cases, to automate the
+      process. DRBD has several resolution algorithms available for
+      doing so:
+      <itemizedlist>
+	<listitem>
+	  <formalpara>
+	    <title>Discarding modifications made on the
+	      <quote>younger</quote> primary</title>
+	    <para>In this mode, when the network connection is
+	      re-established and split brain is discovered, DRBD will
+	      discard modifications made, in the meantime, on the node
+	      which switched to the primary role
+	      <emphasis>last</emphasis>.
+	    </para>
+	  </formalpara>
+	</listitem>
+	<listitem>
+	  <formalpara>
+	    <title>Discarding modifications made on the
+	      <quote>older</quote> primary</title>
+	    <para>In this mode, DRBD will discard modifications made,
+	      in the meantime, on the node which switched to the
+	      primary role <emphasis>first</emphasis>.
+	    </para>
+	  </formalpara>
+	</listitem>
+	<listitem>
+	  <formalpara>
+	    <title>Discarding modifications on the primary with fewer changes</title>
+	    <para>In this mode, DRBD will check which of the two nodes
+	      has recorded fewer modifications, and will then discard
+	      <emphasis>all</emphasis> modifications made on that
+	      host.
+	    </para>
+	  </formalpara>
+	</listitem>
+	<listitem>
+	  <formalpara>
+	    <title>Graceful recovery from split brain if one host has
+	      had no intermediate changes</title>
+	    <para>In this mode, if one of the hosts has made no
+	      modifications at all<footnote>
+		<para>Note that this is a fairly unlikely scenario.
+		  Even if both hosts only mounted the file system on
+		  the DRBD block device (even read-only), the device
+		  contents would be modified, ruling out the
+		  possibility of automatic recovery.</para>
+	      </footnote> during split brain, DRBD will simply recover
+	      gracefully and declare the split brain resolved.</para>
+	  </formalpara>
+	</listitem>
+      </itemizedlist>
+    </para>
+    <caution>
+      <para>Whether or not automatic split brain recovery is
+	acceptable depends largely on the individual application.
+	Consider the example of DRBD hosting a database. The
+	<quote>discard modifications from host with fewer
+	  changes</quote> approach may be fine for a web application
+	click-through database. By contrast, it may be totally
+	unacceptable to automatically discard <emphasis>any</emphasis>
+	modifications made to a financial database, requiring manual
+	recovery in any split brain event. Consider your application's
+	requirements carefully before enabling automatic split brain
+	recovery.</para>
+      </caution>
   </section>
   <section id="s-handling-disk-errors">
     <title>Methods of handling disk errors</title>
