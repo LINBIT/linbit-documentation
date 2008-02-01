@@ -456,6 +456,149 @@ crm no</programlisting></para>
   </section>
   <section id="s-heartbeat-crm">
     <title>Using DRBD in Heartbeat CRM-enabled clusters</title>
-    <xi:include href="todo.xml"/>
+    <para>Running Heartbeat clusters in CRM configuration mode is the
+      recommended approach as of Heartbeat release 2 (per the Linux-HA
+      development team).</para>
+    <formalpara>
+      <title>Advantages</title>
+      <para>Disadvantages of using CRM configuration mode, as opposed
+	to R1 compatible configuration, include:
+	<itemizedlist>
+	  <listitem>
+	    <para>Cluster configuration is distributed cluster-wide
+	      and automatically, by the Cluster Resource Manager. It
+	      need not be propagated manually.</para>
+	  </listitem>
+	  <listitem>
+	    <para>CRM mode supports both node-level and resource-level
+	      monitoring, and configurable responses to both node and
+	      resource failure. It is still advisable to also monitor
+	      cluster resources using an external monitoring
+	      system.</para>
+	  </listitem>
+	  <listitem>
+	    <para>CRM clusters support any number of resource groups,
+	      as opposed to Heartbeat R1-style clusters which only
+	      support two.</para>
+	  </listitem>
+	  <listitem>
+	    <para>CRM clusters support a powerful (if complex)
+	      constraints framework. This enables you to ensure
+	      correct resource startup and shutdown order, resource
+	      co-location (forcing resources to always run on the same
+	      physical node), and to set preferred nodes for
+	      particular resources.</para>
+	  </listitem>
+	</itemizedlist> Another advantage, namely the fact that CRM
+	clusters support up to 255 nodes in a single cluster, is
+	somewhat irrelevant for setups involving DRBD (DRBD itself
+	being limited to two nodes).</para>
+    </formalpara>
+    <formalpara>
+      <title>Disadvantages</title>
+      <para>Configuring Heartbeat in CRM mode also has some
+	disadvantages in comparison to using R1-compatible
+	configuration, notably
+	<itemizedlist>
+	  <listitem>
+	    <para>Complexity of configuration and
+	      administration,</para>
+	  </listitem>
+	  <listitem>
+	    <para>Complexity of functionality extension with custom
+	      resource agents.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </formalpara>
+    <section id="s-heartbeat-crm-config">
+      <title>Heartbeat CRM configuration</title>
+      <para>In CRM clusters, Heartbeat keeps part of configuration in the
+	following configuration files:
+	<itemizedlist>
+	  <listitem>
+	    <para><filename>/etc/ha.d/ha.cf</filename>, as described
+	      in <xref linkend="s-heartbeat-hacf"/>. You must include
+	      the following line in this configuration file to enable
+	      CRM mode:
+	      <programlisting>crm yes</programlisting></para>
+	  </listitem>
+	  <listitem>
+	    <para><filename>/etc/ha.d/authkeys</filename>. The
+	      contents of this file are the same as for R1 style
+	      clusters. See <xref
+		linkend="s-heartbeat-authkeys"/> for details.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>The remainder of the cluster configuration is maintained
+	in the <emphasis>Cluster Information Base</emphasis>
+	(<acronym>CIB</acronym>), covered in detail in <link
+	  linkend="s-heartbeat-cib">the following section</link>.
+	Contrary to the two relevant configuration files, the CIB need
+	not be manually distributed among cluster nodes; the Heartbeat
+	services take care of that automatically.</para> 
+      <section id="s-heartbeat-cib">
+	<title>The Cluster Information Base</title>
+	<para>The Cluster Information Base (<acronym>CIB</acronym>) is
+	  kept in one XML file,
+	  <filename>/var/lib/heartbeat/crm/cib.xml</filename>. It is,
+	  however, not recommended to edit the contents of this file
+	  directly, except in the case of creating a new cluster
+	  configuration from scratch. Instead, Heartbeat comes with
+	  both command-line applications and a GUI modify the CIB.
+	</para>
+	<para>The CIB actually contains both the cluster
+	  <emphasis>configuration</emphasis> (which is persistent and
+	  is kept in the <filename>cib.xml</filename> file), and
+	  information about the current cluster
+	  <emphasis>status</emphasis> (which is volatile). Status
+	  information, too, may be queried either using Heartbeat
+	  command-line tools, and the Heartbeat GUI.</para>
+	<para>After creating a new Heartbeat CRM cluster &mdash; that is,
+	  creating the <filename>ha.cf</filename> and
+	  <filename>authkeys</filename> files, distributing them among
+	  cluster nodes, starting Heartbeat services, and waiting for
+	  nodes to establish intra-cluster communications &mdash; a
+	  new, empty CIB is created automatically. Its contents will
+	  be similar to this:</para>
+	<programlisting><![CDATA[
+ <cib>
+   <configuration>
+     <crm_config>
+       <cluster_property_set id="cib-bootstrap-options">
+         <attributes/>
+       </cluster_property_set>
+     </crm_config>
+     <nodes>
+       <node uname="alice" type="normal" 
+             id="f11899c3-ed6e-4e63-abae-b9af90c62283"/>
+       <node uname="bob" type="normal" 
+             id="663bae4d-44a0-407f-ac14-389150407159"/>
+     </nodes>
+     <resources/>
+     <constraints/>
+   </configuration>
+ </cib>
+]]></programlisting>
+	<para>The exact format and contents of this file are
+	  documented at length <ulink
+	    url="http://wiki.linux-ha.org/ClusterInformationBase/UserGuide">in 
+	    the Linux-HA wiki</ulink>, but for practical purposes it
+	  is important to understand that this cluster has two nodes
+	  named <code>alice</code> and <code>bob</code>, and that
+	  neither any resources nor any resource constraints have been
+	  configured at this point.</para>
+      </section>
+      <section>
+	<title>Adding a DRBD-backed service to the cluster
+	configuration</title>
+	<xi:include href="todo.xml"/>
+      </section>
+    </section>
+    <section id="s-heartbeat-crm-manage">
+      <title>Managing Heartbeat CRM clusters</title>
+      <xi:include href="todo.xml"/>
+    </section>
   </section>
 </chapter>
