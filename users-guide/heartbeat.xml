@@ -399,7 +399,7 @@ crm no</programlisting></para>
 	<title>Assuming control of cluster resources</title>
 	<para>A Heartbeat R1-style cluster node may assume control of
 	  cluster resources in the following way:</para>
-	<formalpara>
+	<formalpara id="fp-heartbeat-r1-manual-resource-takeover">
 	  <title>Manual resource takeover</title>
 	  <para>This is the approach normally taken if one simply
 	    wishes to test resource migration, or assume control
@@ -435,7 +435,7 @@ crm no</programlisting></para>
 	    </formalpara>
 	  </listitem>
 	  <listitem>
-	    <formalpara>
+	    <formalpara id="fp-heartbeat-r1-shutdown-local-cluster-manager">
 	      <title>Shutting down the local cluster manager
 		instance</title>
 	      <para>This approach is suited for local maintenance
@@ -453,7 +453,7 @@ crm no</programlisting></para>
 	    </formalpara>
 	  </listitem>
 	  <listitem>
-	    <formalpara>
+	    <formalpara id="fp-heartbeat-r1-shutdown-local-node">
 	      <title>Shutting down the local node</title>
 	      <para>For hardware maintenance or other interventions
 		that require a system shutdown or reboot, use a simple
@@ -617,7 +617,131 @@ crm no</programlisting></para>
     </section>
     <section id="s-heartbeat-crm-manage">
       <title>Managing Heartbeat CRM clusters</title>
-      <xi:include href="todo.xml"/>
+      <section id="s-heartbeat-crm-assume-resources">
+	<title>Assuming control of cluster resources</title>
+	<para>A Heartbeat CRM cluster node may assume control of
+	 cluster resources in the following ways:</para>
+	<itemizedlist>
+	  <listitem>
+	    <formalpara>
+	      <title>Manual takeover of a single cluster
+		resource</title>
+	      <para>This is the approach normally taken if one simply
+		wishes to test resource migration, or move a resource
+		to the local node as a means of manual load balancing.
+		This operation is performed using the following
+		command:
+		<literallayout><userinput>crm_resource&nbsp;-r&nbsp;<replaceable>resource</replaceable>&nbsp;-M&nbsp;-H&nbsp;`uname&nbsp;-n`</userinput></literallayout> 
+		<note id="n-heartbeat-crm-migrate">
+		  <para>The <option>-M</option> (or
+		    <option>--migrate</option>) option for the
+		    <command>crm_resource</command> command, when used
+		    without the <option>-H</option> option, implies a
+		    resource migration <emphasis>away</emphasis> from
+		    the local host. You must initiate a migration
+		    <emphasis>to</emphasis> the local host by
+		    specifying the <option>-H</option> option, giving
+		    the local host name as the option argument.</para>
+		  <para>It is also important to understand that the
+		    migration is <emphasis>permanent</emphasis>, that
+		    is, unless told otherwise, Heartbeat will not move
+		    the resource back to a node it was previouly
+		    migrated away from &mdash; even if that node
+		    happens to be the only surviving node in a
+		    near-cluster-wide system failure. This is
+		    undesirable under most circumstances. So, it is
+		    prudent to immediately <quote>un-migrate</quote>
+		    resources after successful migration, using the
+		    the following command:
+		    <literallayout><userinput>crm_resource&nbsp;-r&nbsp;<replaceable>resource</replaceable>&nbsp;-U</userinput></literallayout> 
+		  </para>
+		  <para>Finally, it is important to know that during
+		    resource migration, Heartbeat may simultaneously
+		    migrate resources other than the one explicitly
+		    specified (as required by existing resource groups
+		    or colocation and order constraints).
+		  </para>
+		</note>
+	      </para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>Manual takeover of all cluster resources</title>
+	      <para>This procedure involves switching the peer node to
+		standby mode (where
+		<replaceable>hostname</replaceable> is the peer node's
+		host name):
+		<literallayout><userinput>crm_standby&nbsp;-U&nbsp;<replaceable>hostname</replaceable>&nbsp;-v&nbsp;on</userinput></literallayout>
+	      </para>
+	    </formalpara>
+	  </listitem>
+	</itemizedlist>
+      </section>
+      <section id="s-heartbeat-crm-relinquish-resources">
+	<title>Relinquishing cluster resources</title>
+	<para>A Heartbeat CRM cluster node may be forced to give up
+	  one or all of its resources in several ways.</para>
+	<itemizedlist>
+	  <listitem>
+	    <formalpara>
+	      <title>Giving up a single cluster resource</title>
+	      <para>A node gives up control of a single resource when
+		issued the following command (note that <link
+		  linkend="n-heartbeat-crm-migrate">the considerations
+		  outlined in the previous section</link> apply here,
+		too):
+		<literallayout><userinput>crm_resource&nbsp;-r&nbsp;<replaceable>resource</replaceable>&nbsp;-M&nbsp;</userinput></literallayout> 
+		If you want to migrate to a specific host, use this
+		variant:
+		<literallayout><userinput>crm_resource&nbsp;-r&nbsp;<replaceable>resource</replaceable>&nbsp;-M&nbsp;-H&nbsp;<replaceable>hostname</replaceable></userinput></literallayout> 
+		However, the latter syntax is usually of little
+		relevance to CRM clusters using DRBD, DRBD being
+		limited to two nodes (so the two variants are,
+		essentially, identical in meaning).
+	      </para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>Switching a cluster node to standby
+		mode</title>
+	      <para>This is the approach normally taken if one simply
+		wishes to test resource migration, or perform some
+		other activity that does not require the node to leave
+		the cluster. This operation is performed using the
+		following command:
+		<literallayout><userinput>crm_standby&nbsp;-U&nbsp;`uname&nbsp;-n`&nbsp;-v&nbsp;on</userinput></literallayout>
+	      </para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>Shutting down the local cluster manager
+		instance</title>
+	      <para>This approach is suited for local maintenance
+		operations such as software updates which require that
+		the node be temporarily removed from the cluster, but
+		which do not necessitate a system reboot. The
+		procedure is <link
+		  linkend="fp-heartbeat-r1-shutdown-local-cluster-manager">the 
+		  same as for Heartbeat R1 style
+		  clusters</link>.</para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>Shutting down the local node</title>
+	      <para>For hardware maintenance or other interventions
+		that require a system shutdown or reboot, use a simple
+		graceful shutdown command, just as previously outlined
+		<link
+		  linkend="fp-heartbeat-r1-shutdown-local-node">for
+		  Heartbeat R1 style clusters</link>.</para>
+	    </formalpara>
+	  </listitem>
+	</itemizedlist>
+      </section>
     </section>
   </section>
 </chapter>
