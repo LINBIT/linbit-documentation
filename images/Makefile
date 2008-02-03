@@ -4,8 +4,10 @@ raster-images: note.png warning.png tip.png caution.png important.png bottom-lef
 
 vector-images:
 
+clean: clean-png
+
 %: force
 	@$(MAKE) -f ../Makefile $@
 force: ;
 
-.PHONY: all raster-images vector-images
+.PHONY: all raster-images vector-images clean

@@ -143,10 +143,8 @@ clean-png:
 	rm -f $(SVG_FILES:.svg=-large.png) 
 	rm -f $(SVG_FILES:.svg=-small.png) 
 
-clean-xsl:
-	$(MAKE) -C stylesheets clean
-
-clean: clean-xsl clean-png clean-svg clean-html clean-fo clean-ps clean-pdf
+clean: 
+	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i clean; done
 	rm -rf html-multiple-pages/
 
 .PHONY: all html chunked-html pdf clean-png clean-svg clean-html clean-fo clean-ps clean-pdf clean raster-images vector-images images
