@@ -297,6 +297,39 @@
   </section>
   <section id="s-outdate">
     <title>Dealing with outdated data</title>
-    <xi:include href="todo.xml"/>
+    <para>DRBD distinguishes between <emphasis>inconsistent</emphasis>
+      and <emphasis>outdated</emphasis> data. Inconsistent data is
+      data that cannot be expected to be accessible and useful in any
+      manner. The prime example for this is data on a node that is
+      currently the target of an on-going synchronization. Data on
+      such a node is part obsolete, part up to date, and impossible
+      to identify as either. Thus, for example, if the device holds a
+      filesystem (as is commonly the case), that filesystem would be
+      unexpected to mount or even pass an automatic filesystem
+      check.</para>
+    <para>Outdated data, by contrast, is data on a secondary node that
+      is consistent, but no longer in sync with the primary node. This
+      would occur in any interruption of the replication link, whether
+      temporary or permanent. Data on an outdated, disconnected
+      secondary node is expected to be clean, but it reflects a state
+      of the primary node some time past.</para>
+    <para>DRBD has interfaces that allows an external application to
+      outdate a secondary node as soon as a network interruption
+      occurs. DRBD will then refuse to switch the node to the primary
+      role, preventing applications from using the outdated data. A
+      complete implementation of this functionality exists for the
+      <link linkend="ch-heartbeat">Heartbeat cluster management
+	framework</link> (were it uses a communication channel
+      separate from the DRBD replication link). However, the
+      interfaces are generic and may be easily used by any other
+      cluster management application.</para>
+    <para>Whenever an outdated resource has its replication link
+      re-established, it automatically changes to a synchronization
+      target, efficiently brings its local disk up to date with
+      respect to the current primary node, and returns to being a
+      fully synchronized peer immediately thereafter.</para>
+    <para>See <xref linkend="s-heartbeat-dopd"/> for an example
+      DRBD/Heartbeat configuration enabling protection against
+      inadvertent use of outdated data.</para>
   </section>
 </chapter>

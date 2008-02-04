@@ -744,4 +744,100 @@ crm no</programlisting></para>
       </section>
     </section>
   </section>
+  <section id="s-heartbeat-dopd">
+    <title>Using Heartbeat with <code>dopd</code></title>
+    <para>The steps outlined in this section enable DRBD to deny
+      services access to <link linkend="s-outdate">outdated
+	data</link>. The Heartbeat component that implements this
+      functionality is the <emphasis>DRBD outdate-peer
+	daemon</emphasis>, or <code>dopd</code> for short. It works,
+      and uses identical configuration, on both <link
+	linkend="s-heartbeat-r1">R1-compatible</link> and <link
+	linkend="s-heartbeat-crm">CRM</link> clusters.
+      <important>
+	<para>It is absolutely vital to configure at least two
+	  independent <link
+	    linkend="s-heartbeat-communication-channels">Heartbeat
+	    communication channels</link> for <code>dopd</code> to
+	  work correctly.</para>
+      </important></para>
+    <section id="s-dopd-heartbeat-config">
+      <title>Heartbeat configuration</title>
+      <para>To enable dopd, you must add these lines to your
+	<filename>/etc/ha.d/ha.cf</filename> file:
+	<programlisting>respawn&nbsp;hacluster&nbsp;/usr/lib/heartbeat/dopd 
+apiauth&nbsp;dopd&nbsp;gid=haclient&nbsp;uid=hacluster</programlisting> 
+	You may have to adjust <code>dopd</code>'s path according to
+	your preferred distribution. On some distributions and
+	architectures, the correct path is
+	<filename>/usr/lib64/heartbeat/dopd</filename>.</para>
+      <para>After having made this change and copied
+	<filename>ha.cf</filename> to the peer node, you must run
+	<command>/etc/init.d/heartbeat&nbsp;reload</command> to have
+	Heartbeat re-read its configuration file. Afterwards, you
+	should be able to verify that you now have a running
+	<code>dopd</code> process.<footnote>
+	  <para>You can check for this process either by running
+	    <command>ps&nbsp;ax&nbsp;|&nbsp;grep&nbsp;dopd</command>
+	    or by issuing
+	    <command>killall&nbsp;-0&nbsp;dopd</command>.</para>
+	</footnote>
+      </para>
+    </section>
+    <section id="s-dopd-drbd-config">
+      <title>DRBD Configuration</title>
+      <para>Then, add these items to your DRBD resource configuration:
+	<programlisting>resource <replaceable>resource</replaceable> {
+    handlers {
+        outdate-peer "/usr/lib/heartbeat/drbd-peer-outdater";
+        ...
+    }
+    disk {
+        fencing resource-only;
+        ...
+    }
+    ...
+}</programlisting>As with <code>dopd</code>, your
+	distribution may place the
+	<filename>drbd-peer-outdater</filename> binary in
+	<filename>/usr/lib64/heartbeat</filename> depending on your
+	system architecture.</para>
+      <para>Finally, copy your <filename>drbd.conf</filename> to the
+	peer node and issue
+	<command>drbdadm&nbsp;adjust&nbsp;<replaceable>resource</replaceable></command> 
+	to reconfigure your resource and reflect your changes.</para>
+    </section>
+    <section>
+      <title>Testing <code>dopd</code> functionality</title>
+      <para>To test whether your <code>dopd</code> setup is working
+	correctly, interrupt the replication link of a configured and
+	connected resource while Heartbeat services are running
+	normally. You may do this by either physically unplugging the
+	network link, or by running
+	<command>ifconfig&nbsp;<replaceable>interface</replaceable>&nbsp;down</command> 
+	on the interface used for DRBD replication.
+	<caution>
+	  <para>This step is invasive; it affects
+	    <emphasis>all</emphasis> enabled DRBD resources, not just
+	    the one you are testing.</para>
+	</caution> After this, you will be able to observe the
+	resource <link linkend="s-connection-states">connection
+	  state</link> change from <code>Connected</code> to
+	<code>WFConnection</code>. Allow a few seconds to pass, and
+	you should see the <link linkend="s-disk-states">disk
+	  state</link> become <code>Outdated/DUnknown</code>. That is
+	what <code>dopd</code> is responsible for.</para>
+      <para>Any attempt to switch the outdated resource to the primary
+	role will fail after this.</para>
+      <para>When re-instituting network connectivity (either by
+	plugging the physical link or by issuing
+	<command>ifconfig&nbsp;<replaceable>interface</replaceable>&nbsp;up</command>), 
+	the connection state will change to <code>Connected</code>,
+	and then promptly to <code>SyncTarget</code> (assuming changes
+	occurred on the primary node during the network interruption).
+	Then you will be able to observe a brief resynchronization
+	period, and finally, the previously outdated resource will be
+	marked as <code>UpToDate</code> again.</para>
+    </section>
+  </section>
 </chapter>
