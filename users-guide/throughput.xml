@@ -3,7 +3,47 @@
   <title>Optimizing DRBD throughput</title>
   <section id="s-throughput-hardware">
     <title>Hardware considerations</title>
-    <xi:include href="todo.xml"/>
+    <itemizedlist>
+      <listitem>
+	<formalpara>
+	  <title>I/O subsystem throughput</title>
+	  <para>I/O subsystem throughput is determined, largely, by
+	    the number of disks that can be written to in parallel. A
+	    single, reasonably recent, SCSI or SAS disk will typically
+	    allow streaming writes of rougly 40MB/s to the single
+	    disk. When deployed in a striping configuration, the I/O
+	    subsystem will parallelize writes across disks,
+	    effectively multiplying a single disk's throughput by the
+	    number of stripes in the configuration. Thus the same,
+	    40MB/s disks will allow effective throughput of 120MB/s in
+	    a RAID-0 or RAID-1+0 configuration with three stripes, or
+	    200MB/s with five stripes.</para>
+	</formalpara>
+	<note>
+	  <para>Disk <emphasis>mirroring</emphasis> (RAID-1) in
+	    hardware typically has little, if any effect on
+	    throughput. Disk <emphasis>striping with parity</emphasis>
+	    (RAID-5) does have an effect on throughput, usually an
+	    adverse one when compared to striping.</para>
+	</note>
+      </listitem>
+      <listitem>
+	<formalpara>
+	  <title>Network throughput</title>
+	  <para>Network throughput is usually determined by the amount
+	    of traffic present on the network, and on the throughput
+	    of any routing/switching infrastructure present. These
+	    concerns are, however, largely irrelevant in DRBD
+	    replication links which are normally dedicated,
+	    back-to-back network connections.</para>
+	</formalpara>
+	<para>Thus, network throughput may be improved either by
+	  switching to a higher-throughput protocol (such as 10
+	  Gigabit Ethernet), or by using link aggregation over several
+	  network links, as one may do using the Linux
+	  <code>bonding</code> network driver.</para>
+      </listitem>
+    </itemizedlist>
   </section>
   <section id="s-throughput-tuning">
     <title>DRBD tuning recommendations</title>

@@ -9,8 +9,73 @@
     <title>Measuring latency</title>
     <xi:include href="todo.xml"/>
   </section>
-  <section>
-    <title>Expected DRBD overhead</title>
-    <xi:include href="todo.xml"/>
+  <section id="s-estimate-drbd-overhead">
+    <title>Estimating expected DRBD overhead</title>
+    <section id="s-throughput-overheade-expectations">
+      <title>Throughput overhead expectations</title>
+      <para>When estimating the throughput overhead associated with
+	DRBD, it is important to consider the following natural
+	limitations:
+	<itemizedlist>
+	  <listitem>
+	    <para>DRBD throughput is limited by that of the raw I/O
+	      subsystem.</para>
+	  </listitem>
+	  <listitem>
+	    <para>DRBD throughput is limited by the available network
+	      bandwidth.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>The <emphasis>minimum</emphasis> between the two
+	establishes the theoretical throughput
+	<emphasis>maximum</emphasis> available to DRBD. DRBD then
+	reduces that throughput maximum by its additional throughput
+	overhead, which can be expected to be less than 3
+	percent.</para>
+      <para>Consider the example of two cluster nodes containing I/O
+	subsystems capable of 200 MB/s throughput, with a Gigabit
+	Ethernet link available between them. Gigabit Ethernet can be
+	expected to produce 110 MB/s throughput for TCP connections,
+	thus the network connection would be the
+	<quote>bottleneck</quote> in this configuration and one would
+	expect about 107 MB/s maximum DRBD throughput.</para>
+      <para>By contrast, if the I/O subsystem is capable of only 100
+	MB/s for sustained writes, then it constitutes the bottleneck,
+	and you would be able to expect only 97 MB/s maximum DRBD
+	throughput.</para>
+    </section>
+    <section id="s-latency-overhead-expectations">
+      <title>Latency overhead expectations</title>
+      <para>As for throughput, when estimating the latency overhead
+	associated with DRBD, there are some important natural
+	limitations to consider:
+	<itemizedlist>
+	  <listitem>
+	    <para>DRBD latency is bound by that of the raw I/O
+	      subsystem.</para>
+	  </listitem>
+	  <listitem>
+	    <para>DRBD latency is bound by the available network
+	      latency.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>The <emphasis>sum</emphasis> of the two establishes the
+	theoretical latency <emphasis>minimum</emphasis> incurred to
+	DRBD. DRBD then adds to that latency a slight additional
+	latency overhead, which can be expected to be less than 1
+	percent.</para>
+      <para>Consider the example of a local disk subsystem with a
+	write latency of 3ms and a network link with one of 0.2ms.
+	Then the expected DRBD latency would be 3.2 ms or a roughly
+	7-percent latency increase over just writing to a local
+	disk.</para>
+      <note>
+	<para>Latency may be influenced by a number of other factors,
+	  including CPU cache misses, context switches, and
+	  others.</para>
+      </note>
+    </section>
   </section>
 </chapter>
