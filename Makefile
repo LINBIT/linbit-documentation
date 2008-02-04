@@ -45,6 +45,7 @@ chunked-html: howto-collection.xml images
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) html-multiple-pages/
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) html-multiple-pages/
 	xsltproc -o html-multiple-pages/ \
+	--param generate.index 0 \
 	--param admon.graphics 1 \
 	--stringparam admon.graphics.path images/ \
 	--stringparam admon.graphics.extension .png \
@@ -57,6 +58,7 @@ pdf: copy-images howto-collection.pdf
 
 %.html: %.xml
 	xsltproc -o $@ \
+	--param generate.index 0 \
 	--param admon.graphics 1 \
 	--stringparam admon.graphics.path images/ \
 	--stringparam admon.graphics.extension .png \
