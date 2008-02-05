@@ -56,7 +56,7 @@ chunked-html: howto-collection.xml images
 
 pdf: copy-images howto-collection.pdf
 
-%.html: %.xml
+%.html: 
 	xsltproc -o $@ \
 	--param generate.index 0 \
 	--param admon.graphics 1 \
@@ -65,9 +65,10 @@ pdf: copy-images howto-collection.pdf
 	--stringparam ulink.target offsite-link \
 	--stringparam html.stylesheet drbd-howto-collection.css \
 	--stringparam graphic.default.extension png \
-	--xinclude $(html_stylesheet) $<
+	--stringparam rootid $* \
+	--xinclude $(html_stylesheet) howto-collection.xml
 
-%.fo: %.xml stylesheets/fo-titlepage.xsl
+%.fo: stylesheets/fo-titlepage.xsl
 	xsltproc -o $@ \
 	--stringparam paper.type A4 \
 	--stringparam title.font.family serif \
@@ -82,7 +83,8 @@ pdf: copy-images howto-collection.pdf
 	--param admon.graphics 1 \
 	--stringparam admon.graphics.path images/ \
 	--stringparam admon.graphics.extension .svg \
-	--xinclude $(fo_stylesheet) $<
+	--stringparam rootid $* \
+	--xinclude $(fo_stylesheet) howto-collection.xml
 
 %-titlepage.xsl: %-titlepage.xml
 	xsltproc -o $@ \
