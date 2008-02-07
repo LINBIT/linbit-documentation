@@ -111,4 +111,87 @@ success
 	observed via <filename>/proc/drbd</filename>.</para>
     </section>
   </section>
+  <section id="s-node-failure">
+    <title>Dealing with node failure</title>
+    <para>When DRBD detects that its peer node is down (either by true
+      hardware failure or manual intervention), DRBD changes its
+      connection state from <code>Connected</code> to
+      <code>WFConnection</code> and waits for the peer node to
+      re-appear. The DRBD resource is then said to operate in
+      <emphasis>disconnected mode</emphasis>. In disconnected mode,
+      the resource and its associated block device are fully usable,
+      and may be promoted and demoted as necessary, but no block
+      modifications are being replicated to the peer node. Instead,
+      DRBD stores internal information on which blocks are being
+      modified while disconnected.</para>
+    <section id="s-temp-node-failure-secondary">
+      <title>Dealing with temporary secondary node failure</title>
+      <para>If a node that currently has a resource in the secondary
+	role fails temporarily (due to, for example, a memory problem
+	that is subsequently rectified by replacing RAM), no further
+	intervention is necessary &mdash; besides the obvious
+	necessity to repair the failed node and bring it back on line.
+	When that happens, the two nodes will simply re-establish
+	connectivity upon system start-up. After this, DRBD replicates
+	all modifications made on the primary node in the meantime, to
+	the secondary node.</para>
+      <important>
+	<para>At this point, due to the nature of DRBD's
+	  re-synchronization algorithm, the resource is briefly
+	  inconsistent on the secondary node. During that short time
+	  window, the secondary node can not switch to the Primary
+	  role if the peer is unavailable. Thus, the period in which
+	  your cluster is not redundant consists of the actual
+	  secondary node down time, plus the subsequent
+	  re-synchronization.</para>
+      </important>
+    </section>
+    <section id="s-temp-node-failure-primary">
+      <title>Dealing with temporary primary node failure</title>
+      <para>From DRBD's standpoint, failure of the primary node is
+	almost identical to a failure of the secondary node. The
+	surviving node detects the peer node's failure, and switches
+	to disconnected mode. DRBD does <emphasis>not</emphasis>
+	promote the surviving node to the primary role; it is the
+	cluster management application's responsibility to do
+	so.</para>
+      <para>When the failed node is repaired and returns to the
+	cluster, it does so in the secondary role, thus, as outlined
+	in the previous session, no further manual intervention is
+	necessary. Again, DRBD does not change the resource role back,
+	it is up to the cluster manager to do so (if so configured).
+      </para>
+      <para>DRBD ensures block device consistency in case of a primary
+	node failure by way of a special mechanism. For a detailed
+	discussion, refer to <xref
+	  linkend="s-activity-log"/>.</para>
+    </section>
+    <section id="s-perm-node-failure">
+      <title>Dealing with permanent node failure</title>
+      <para>If a node suffers an unrecoverable problem or permanent
+	destruction, you must follow the following steps:
+	<itemizedlist>
+	  <listitem>
+	    <para>Replace the failed hardware with one with identical
+	    performance and disk capacity.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Install the base system and applications.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Install DRBD and copy
+	      <filename>/etc/drbd.conf</filename> from the surviving
+	      node.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Follow the steps outlined in <xref
+		linkend="ch-configure"/>, but stop short of
+		<xref linkend="s-initial-full-sync"/>. </para>
+	  </listitem>
+	</itemizedlist>
+      <para>Manually starting a full device synchronization is not
+	necessary at this point, it will commence automatically upon
+	connection to the surviving primary node.</para>
+    </section>
+  </section>
 </chapter>
