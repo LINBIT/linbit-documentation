@@ -599,84 +599,6 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
 <userinput>drbdadm connect <replaceable>resource</replaceable></userinput></literallayout>
       </para>
     </section>
-    <section id="s-configure-syncer-rate">
-      <title>Configuring the rate of re-synchronization</title>
-      <para>Normally, one tries to ensure that background
-	re-synchronization (which makes the data on the
-	synchronization target temporarily inconsistent) completes as
-	quickly as possible. However, it is also necessary to keep
-	background re-synchronization from hogging all bandwidth
-	otherwise available for foreground replication, which would be
-	detrimental to application performance. Thus, you must
-	configure the re-sychronization bandwidth to match your
-	hardware &mdash; which you may do in a permanent fashion or
-	on-the-fly.</para>
-      <section id="s-configure-syncer-rate-permanent">
-	<title>Permanent syncer rate configuration</title>
-	<para>The maximum bandwidth a resource uses for background
-	  re-synchronization is permanently configured using the
-	  <option>rate</option> option for a resource. This must be
-	  included in the resource configuration's
-	  <option>syncer</option> section in
-	<filename>/etc/drbd.conf</filename>:
-	<programlisting>resource <replaceable>resource</replaceable>
-  syncer { 
-    rate 40M;
-    ...
-  }
-  ...
-}</programlisting></para>
-	<para>Note that the rate setting is given in
-	  <emphasis>bytes</emphasis>, not <emphasis>bits</emphasis>
-	per second. </para>
-	<tip>
-	  <para>A good rule of thumb for this value is to use about
-	    30% of the available replication bandwidth. Thus, if you
-	    had an I/O subsystem capable of sustaining write
-	    throughput of 180MB/s, and a Gigabit Ethernet network
-	    capable of sustaining 110 MB/s network throughput (the
-	    network being the bottleneck), you would use:
-	  <equation id="eq-syncer-rate-example1">
-	      <title>Syncer rate example, 110MB/s effective available
-		bandwidth</title>
-	      <graphic fileref="syncer-rate-example1"/>
-	  </equation> By contrast, if you had an I/O subsystem with a
-	    maximum throughput of 80MB/s and a Gigabit Ethernet
-	    connection (the I/O subsystem being the bottleneck), you
-	    would use:
-	  <equation id="eq-syncer-rate-example2">
-	      <title>Syncer rate example, 80MB/s effective available
-		bandwidth</title>
-	      <graphic fileref="syncer-rate-example2"/>
-	  </equation>
-	  </para>
-	</tip>
-      </section>
-      <section id="s-configure-syncer-rate-temporary">
-	<title>Temporary syncer rate configuration</title>
-	<para>It is sometimes desirable to temporarily adjust the
-	  syncer rate. For example, you might want to speed up
-	  background re-synchronization after having performed
-	  scheduled maintenance on one of your cluster nodes. Or, you
-	  might want to throttle background re-synchronization if it
-	  happens to occur at a time when your application is
-	  extremely busy with write operations, and you want to make
-	  sure that a large portion of the existing bandwidth is
-	  available to replication.</para>
-	<para>For example, in order to make most bandwidth of a
-	  Gigabit Ethernet link available to re-synchronization, issue
-	  the following command:
-	  <literallayout><userinput>drbdsetup&nbsp;<filename>/dev/drbd<replaceable>num</replaceable></filename>&nbsp;syncer&nbsp;-r&nbsp;110M</userinput></literallayout> 
-	  As always, replace <replaceable>num</replaceable> with the
-	  device minor number of your DRBD device. You need to issue
-	  this command on only one of your nodes.</para>
-	<para>To revert this temporary setting and re-enable the
-	  syncer rate set in <filename>/etc/drbd.conf</filename>,
-	  issue this command:
-	  <literallayout><userinput>drbdadm&nbsp;adjust&nbsp;<replaceable>resource</replaceable></userinput></literallayout>
-	</para>
-      </section>
-    </section>
     <section id="s-online-verify-automate">
       <title>Automating on-line verification</title>
       <para>Most users will want to automate on-line device
@@ -693,6 +615,83 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
 	  <code>common</code> section in
 	<filename>/etc/drbd.conf</filename>), you may also use:
       <programlisting>42 0 * * 0    root    /sbin/drbdadm verify all</programlisting>
+      </para>
+    </section>
+  </section>
+  <section id="s-configure-syncer-rate">
+    <title>Configuring the rate of re-synchronization</title>
+    <para>Normally, one tries to ensure that background
+      re-synchronization (which makes the data on the synchronization
+      target temporarily inconsistent) completes as quickly as
+      possible. However, it is also necessary to keep background
+      re-synchronization from hogging all bandwidth otherwise
+      available for foreground replication, which would be detrimental
+      to application performance. Thus, you must configure the
+      re-sychronization bandwidth to match your hardware &mdash; which
+      you may do in a permanent fashion or on-the-fly.</para>
+    <section id="s-configure-syncer-rate-permanent">
+      <title>Permanent syncer rate configuration</title>
+      <para>The maximum bandwidth a resource uses for background
+	re-synchronization is permanently configured using the
+	<option>rate</option> option for a resource. This must be
+	included in the resource configuration's
+	<option>syncer</option> section in
+	<filename>/etc/drbd.conf</filename>:
+	<programlisting>resource <replaceable>resource</replaceable>
+  syncer { 
+    rate 40M;
+    ...
+  }
+  ...
+}</programlisting></para>
+      <para>Note that the rate setting is given in
+	<emphasis>bytes</emphasis>, not <emphasis>bits</emphasis> per
+	second. </para>
+      <tip>
+	<para>A good rule of thumb for this value is to use about 30%
+	  of the available replication bandwidth. Thus, if you had an
+	  I/O subsystem capable of sustaining write throughput of
+	  180MB/s, and a Gigabit Ethernet network capable of
+	  sustaining 110 MB/s network throughput (the network being
+	  the bottleneck), you would use:
+	  <equation id="eq-syncer-rate-example1">
+	    <title>Syncer rate example, 110MB/s effective available
+	      bandwidth</title>
+	    <graphic fileref="syncer-rate-example1"/>
+	  </equation> By contrast, if you had an I/O subsystem with a
+	  maximum throughput of 80MB/s and a Gigabit Ethernet
+	  connection (the I/O subsystem being the bottleneck), you
+	  would use:
+	  <equation id="eq-syncer-rate-example2">
+	    <title>Syncer rate example, 80MB/s effective available
+	      bandwidth</title>
+	    <graphic fileref="syncer-rate-example2"/>
+	  </equation>
+	</para>
+      </tip>
+    </section>
+    <section id="s-configure-syncer-rate-temporary">
+      <title>Temporary syncer rate configuration</title>
+      <para>It is sometimes desirable to temporarily adjust the syncer
+	rate. For example, you might want to speed up background
+	re-synchronization after having performed scheduled
+	maintenance on one of your cluster nodes. Or, you might want
+	to throttle background re-synchronization if it happens to
+	occur at a time when your application is extremely busy with
+	write operations, and you want to make sure that a large
+	portion of the existing bandwidth is available to
+	replication.</para>
+      <para>For example, in order to make most bandwidth of a Gigabit
+	Ethernet link available to re-synchronization, issue the
+	following command:
+	<literallayout><userinput>drbdsetup&nbsp;<filename>/dev/drbd<replaceable>num</replaceable></filename>&nbsp;syncer&nbsp;-r&nbsp;110M</userinput></literallayout> 
+	As always, replace <replaceable>num</replaceable> with the
+	device minor number of your DRBD device. You need to issue
+	this command on only one of your nodes.</para>
+      <para>To revert this temporary setting and re-enable the syncer
+	rate set in <filename>/etc/drbd.conf</filename>, issue this
+	command:
+	<literallayout><userinput>drbdadm&nbsp;adjust&nbsp;<replaceable>resource</replaceable></userinput></literallayout>
       </para>
     </section>
   </section>
