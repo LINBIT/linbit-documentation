@@ -695,6 +695,108 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
       </para>
     </section>
   </section>
+  <section id="s-configure-io-error-behavior">
+    <title>Configuring I/O error handling strategies</title>
+    <para>DRBD's <link linkend="s-handling-disk-error">strategy for
+	handling lower-level I/O errors</link> is determined by the
+      <option>on-io-error</option> option, included in the resource
+      <code>disk</code> configuration in
+      <filename>/etc/drbd.conf</filename>:
+      <programlisting>resource&nbsp;<replaceable>resource</replaceable>&nbsp;{
+&nbsp;&nbsp;disk&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;on-io-error <replaceable>strategy</replaceable>
+&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;}
+&nbsp;&nbsp;...
+}</programlisting>
+      You may, of course, set this in the <code>common</code> section
+    too, if you want to define a global I/O error handling policy for
+    all resources.</para>
+    <para><replaceable>strategy</replaceable> may be one of the
+    following options:
+      <itemizedlist>
+	<listitem>
+	  <formalpara>
+	    <title><option>detach</option></title>
+	    <para>This is the recommended option, and also the
+	      default. On the occurrence of a lower-level I/O error,
+	      the node drops its backing device, and continues in
+	      diskless mode.</para>
+	  </formalpara>
+	</listitem>
+	<listitem>
+	  <formalpara>
+	    <title><option>pass_on</option></title>
+	    <para>Causes DRBD to report the I/O error to the upper
+	      layers. On the primary node, it is reported it to the
+	      mounted file system. On the secondary node, it is
+	      ignored (because the secondary has no upper layer to
+	      report to).</para>
+	  </formalpara>
+	</listitem>
+	<listitem>
+	  <formalpara>
+	    <title><option>call-local-io-error</option></title>
+	    <para>Invokes the command defined as the local I/O error
+	      handler. This requires that a corresponding
+	      <option>local-io-error</option> command invocation is
+	      defined in the resource's <code>handlers</code> section.
+	      It is entirely left to the administrator's discretion to
+	      implement I/O error handling using the command (or
+	      script) invoked by <option>local-io-error</option>.
+	      <note>
+		<para>Early DRBD versions (prior to 8.0) included
+		  another option, <option>panic</option>, which would
+		  forcibly remove the node from the cluster by way of
+		  a kernel panic, whenever a local I/O error occurred.
+		  While that option is no longer available, the same
+		  behavior may be mimicked via the
+		  <option>local-io-error</option>/
+		  <option>call-local-io-error</option> interface. You
+		  should do so only if you fully understand the
+		  implications of such behavior.</para>
+	      </note>
+	    </para>
+	  </formalpara>
+	</listitem>
+      </itemizedlist>
+    </para>
+    <para>You may reconfigure a running resource's I/O error handling
+      strategy by following the following process: 
+      <itemizedlist>
+	<listitem>
+	  <para>Edit the resource configuration in
+	    <filename>/etc/drbd.conf</filename>.</para>
+	</listitem>
+	<listitem>
+	  <para>Copy the configuration to the peer node.</para>
+	</listitem>
+	<listitem>
+	  <para>Issue
+	    <command>drbdadm&nbsp;adjust&nbsp;<replaceable>resource</replaceable></command> 
+	    on the node where the resource is currently in the
+	    secondary role.</para>
+	</listitem>
+	<listitem>
+	  <para>Switch resource roles (if your system is managed by a
+	    cluster management application, this would involve a
+	    manual switch-over of cluster resources).</para>
+	</listitem>
+	<listitem>
+	  <para>Again, issue
+	    <command>drbdadm&nbsp;adjust&nbsp;<replaceable>resource</replaceable></command> 
+	    on the node where the resource is currently in the
+	    secondary role (this is <emphasis>not</emphasis> the same
+	    node as the one where you issued the command
+	    earlier).</para>
+	</listitem>
+	<listitem>
+	  <para>Switch resource roles (or cluster node roles) back, if
+	    desired.</para>
+	</listitem>
+      </itemizedlist>
+    </para>
+  </section>
   <section id="s-resizing">
       <title>Resizing resources</title>
       <section id="s-growing-online">
