@@ -90,6 +90,49 @@
       resource configuration which demonstrates replication protocol
       configuration.</para>
   </section>
+  <section id="s-resync">
+    <title>Efficient re-synchronization</title>
+    <para>(Re-)synchronization is distinct from device replication in
+      the sense that while replication occurs on any write event to a
+      resource in the primary role, synchronization is decoupled from
+      incoming writes. Rather, it affects the device as a
+      whole.</para>
+    <para>
+      Re-synchronization is necessary if the replication link has been
+      interrupted for any reason, be it due to failure of the primary
+      node, failure of the secondary node, or interruption of the
+      replication link. Re-synchronization is efficient in the sense
+      that DRBD does not re-synchronize modified blocks in the order
+      they were originally written, but in linear order, which has the
+      following consequences:
+      <itemizedlist>
+	<listitem>
+	  <para>Re-synchronization is fast, since sectors in which
+	    several successive write operations occurred are only
+	    synchronized once.</para>
+	</listitem>
+	<listitem>
+	  <para>Re-synchronization is also associated with few disk
+	    seeks, as blocks are synchronized according to the natural
+	    on-disk block layout.</para>
+	</listitem>
+	<listitem>
+	  <para>During re-synchronization, the data set on the standby
+	    node is partly obsolete and partly already updated. This
+	    state of data is called
+	    <emphasis>inconsistent</emphasis>.</para></listitem>
+      </itemizedlist>
+    </para>
+    <para>Since a node with inconsistent data generally cannot be put
+      into operation, it is desirable to keep the time period during
+      which a node is inconsistent as short as possible. However, a
+      compromise between re-synchronization time and I/O performance
+      has to be found, since the service continues to run on the
+      active node during re-synchronization.</para>
+    <para>See <xref linkend="s-configure-syncer-rate"/> for
+      configuration suggestions with respect to
+      re-synchronization.</para>
+  </section>
   <section id="s-online-verify">
     <title>On-line device verification</title>
     <subtitle>Available in DRBD 8.2.4 and later</subtitle>
