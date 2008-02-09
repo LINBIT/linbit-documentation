@@ -284,7 +284,7 @@ crm no</programlisting></para>
       configuration is now considered obsolete by the Linux-HA
       development team. However, it is still widely used in the field,
       which is why it is documented here in this section.</para>
-    <formalpara>
+    <formalpara id="fp-heartbeat-r1-advantages">
       <title>Advantages</title>
       <para>Configuring Heartbeat in R1 compatible mode has some
 	advantages over using CRM configuration, notably
@@ -299,7 +299,7 @@ crm no</programlisting></para>
 	</itemizedlist>
       </para>
     </formalpara>
-    <formalpara>
+    <formalpara id="fp-heartbeat-r1-disadvantages">
       <title>Disadvantages</title>
       <para>Disadvantages of R1 compatible configuration, as opposed
 	to CRM configurations, include:
@@ -478,7 +478,7 @@ crm no</programlisting></para>
     <para>Running Heartbeat clusters in CRM configuration mode is the
       recommended approach as of Heartbeat release 2 (per the Linux-HA
       development team).</para>
-    <formalpara>
+    <formalpara id="fp-heartbeat-crm-advantages">
       <title>Advantages</title>
       <para>Disadvantages of using CRM configuration mode, as opposed
 	to R1 compatible configuration, include:
@@ -513,7 +513,7 @@ crm no</programlisting></para>
 	somewhat irrelevant for setups involving DRBD (DRBD itself
 	being limited to two nodes).</para>
     </formalpara>
-    <formalpara>
+    <formalpara id="fp-heartbeat-crm-disadvantages">
       <title>Disadvantages</title>
       <para>Configuring Heartbeat in CRM mode also has some
 	disadvantages in comparison to using R1-compatible
@@ -612,7 +612,75 @@ crm no</programlisting></para>
       <section>
 	<title>Adding a DRBD-backed service to the cluster
 	configuration</title>
-	<xi:include href="todo.xml"/>
+	<para>This section explains how to enable a DRBD-backed
+	  service in a Heartbeat CRM cluster. The examples used in
+	  this section mimic, in functionality, those described in
+	  <xref
+	linkend="s-heartbeat-resources"/>, dealing with R1-style
+	  Heartbeat clusters.</para>
+	<para>The complexity of the configuration steps described in
+	  this section may seem overwhelming to some, particularly
+	  those having previously dealt only with R1-style Heartbeat
+	  configurations. While the configuration of Heartbeat CRM
+	  clusters is indeed complex (and sometimes not very
+	  user-friendly), <link
+	    linkend="fp-heartbeat-crm-advantages">the CRM's
+	    advantages</link> may outweigh <link
+	    linkend="fp-heartbeat-r1-advantages">those of R1-style
+	    clusters</link>. Which approach to follow is entirely up
+	  to the administrator's discretion.</para>
+	<para>In order to enable the same DRBD-backed configuration
+	for a MySQL database in a Heartbeat CRM cluster, you would use
+	a configuration like this:
+	  <programlisting><![CDATA[
+<group ordered="true" collocated="true" id="rg_mysql">
+  <primitive class="heartbeat" type="drbddisk" 
+             provider="heartbeat" id="drbddisk_mysql">
+    <instance_attributes>
+      <attributes>
+        <nvpair name="target_role" value="started"/>
+        <nvpair name="1" value="mysql"/>
+      </attributes>
+    </instance_attributes>
+  </primitive>
+  <primitive class="ocf" type="Filesystem" 
+             provider="heartbeat" id="fs_mysql">
+    <instance_attributes>
+      <nvpair name="device" value="/dev/drbd0"/>
+      <nvpair name="directory" value="/var/lib/mysql"/>
+      <nvpair name="type" value="ext3"/>
+    </instance_attributes>
+  </primitive>
+  <primitive class="ocf" type="IPaddr" 
+             provider="heartbeat" id="ip_mysql">
+    <instance_attributes>
+      <nvpair name="ip" value="192.168.42.1"/>
+    </instance_attributes>
+  </primitive>
+  <primitive class="lsb" type="mysql" 
+             provider="heartbeat" id="mysql"/>
+</group>
+]]></programlisting></para>
+	<para>Assuming you created this configuration in a temporary
+	  file named <filename>/tmp/hb_mysql.xml</filename>, you would
+	  add this resource group to the cluster configuration using
+	  the following command (on any cluster node):
+	  <literallayout><userinput>cibadmin&nbsp;-o&nbsp;resources&nbsp;-C&nbsp;-x&nbsp;<filename>/tmp/hb_mysql.xml</filename></userinput></literallayout> 
+	  After this, Heartbeat will automatically propagate the
+	  newly-configured resource group to all cluster nodes.
+	<note>
+	    <para>There are numerous other ways to enable the above
+	      example configuration; the approach shown is by no means
+	      authoritative.</para>
+	    <para> For example, you might use the <code>drbd</code>
+	      OCF resource agent instead of the R1-compatible
+	      <code>drbddisk</code> resource agent mentioned here.
+	      Likewise, you may want to create four otherwise
+	      unrelated resources and then establish colocation and
+	      order constraints to make sure they are started in the
+	      correct fashion. You may also create place constraints
+	      to select a preferred node for a resource.</para>
+	</note></para>
       </section>
     </section>
     <section id="s-heartbeat-crm-manage">
