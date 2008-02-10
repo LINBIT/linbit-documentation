@@ -190,13 +190,304 @@
       </equation>
     </section>
   </section>
-  <section id="s-gi">
-    <title>Generation Identifiers</title>
-    <xi:include href="todo.xml"/>
-  </section>
   <section id="s-on-disk-bitmap">
     <title>The on-disk Sync Bitmap</title>
-    <xi:include href="todo.xml"/>
+    <para><xi:include href="todo.xml"/></para>
+  </section>
+  <section id="s-gi">
+    <title>Generation Identifiers</title>
+    <para>DRBD uses <emphasis>generation identifiers</emphasis>
+      (<acronym>GI's</acronym>) to identify <quote>generations</quote>
+      of replicated data. This is DRBD's internal mechanism used for
+      <itemizedlist>
+	<listitem>
+	  <para>determining whether the two nodes are in fact members
+	    of the same cluster (as opposed to two nodes that were
+	    connected accidentally),</para>
+	</listitem>
+	<listitem>
+	  <para>determining the direction of background
+	    re-synchronization (if necessary),</para>
+	</listitem>
+	<listitem>
+	  <para>determining whether full re-synchronization is
+	    necessary or whether partial re-synchronization is
+	    sufficient,</para>
+	</listitem>
+	<listitem>
+	  <para>identifying split brain.</para>
+	</listitem>
+      </itemizedlist>
+    </para>
+    <section id="s-data-generations">
+      <title>Data generations</title>
+      <para>DRBD marks the start of a new <emphasis>data
+	  generation</emphasis> at each of the following occurrences:
+      <itemizedlist>
+	  <listitem>
+	    <para>The initial device full sync,</para>
+	  </listitem>
+	  <listitem>
+	    <para>a disconnected resource switching to the primary
+	      role,</para>
+	  </listitem>
+	  <listitem>
+	    <para>a resource in the primary role disconnecting.</para>
+	  </listitem>
+      </itemizedlist> Thus, we can summarize that whenever a resource
+	is in the <code>Connected</code> connection state, and both
+	nodes' disk state is <code>UpToDate</code>, the current data
+	generation on both nodes is the same. The inverse is also
+	true.</para>
+      <para>
+	Every new data generation is identified by a 16-byte,
+	universally unique identifier (<acronym>UUID</acronym>).
+      </para>
+    </section>
+    <section id="s-gi-tuple">
+      <title>The generation identifier tuple</title>
+      <para>DRBD keeps four pieces of information about current and
+	historical data generations in the local resource meta data:
+      <itemizedlist>
+	  <listitem>
+	    <formalpara>
+	      <title>Current UUID</title>
+	      <para>This is the generation identifier for the current
+		data generation, as seen from the local node's
+		perspective. When a resource is <code>Connected</code>
+		and fully synchronized, the current UUID is identical
+		between nodes.</para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title><quote>Bitmap</quote> UUID</title>
+	      <para>This is the UUID of the generation against which
+		the on-disk sync bitmap is tracking changes. As the
+		on-disk sync bitmap itself, this identifier is only
+		relevant while in disconnected mode. If the resource
+		is <code>Connected</code>, this UUID is always empty
+		(zero).</para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>Two <quote>Historical</quote> UUIDs</title>
+	      <para>These are the identifiers of the two data
+		generations preceding the current one.</para>
+	    </formalpara>
+	  </listitem>
+      </itemizedlist>
+      </para>
+      <para>Collectively, these four items are referred to as the
+	<emphasis>generation identifier tuple</emphasis>, or <quote>GI
+	  tuple</quote> for short.</para>
+    </section>
+    <section>
+      <title>How generation identifiers change</title>
+      <para>When a node loses connection to its peer (either by
+	network failure or manual intervention), DRBD modifies its
+	local generation identifiers in the following manner:
+	<orderedlist>
+	  <listitem>
+	    <para>A new UUID is created for the new data generation.
+	      This becomes the new current UUID for the primary
+	      node.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The previous UUID now refers to the generation the
+	      bitmap is tracking changes against, so it becomes the
+	      new bitmap UUID for the primary node.</para>
+	  </listitem>
+	  <listitem>
+	    <para>On the secondary node, the GI tuple remains
+	      unchanged.</para>
+	  </listitem>
+	</orderedlist> Consider the following example to illustrate
+	the process (only primary node shown):
+	<figure>
+	  <title>GI tuple changes at start of a new data
+	    generation</title>
+	  <graphic fileref="gi-changes-newgen"/>
+	</figure>
+      </para>
+      <para>Upon the initiation of re-synchronization, DRBD performs
+	these modifications on the local generation identifiers:
+      <orderedlist>
+	  <listitem>
+	    <para>The current UUID on the synchronization source
+	      remains unchanged.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The bitmap UUID on the synchronization source is
+	      rotated out to the first historical UUID.</para>
+	  </listitem>
+	  <listitem>
+	    <para>A new bitmap UUID is generated on the
+	      synchronization source.</para>
+	  </listitem>
+	  <listitem>
+	    <para>This UUID becomes the new current UUID on the
+	      synchronization target.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The bitmap and historical UUID's on the
+	      synchronization target remain unchanged.</para>
+	  </listitem>
+	</orderedlist>
+	<figure>
+	  <title>GI tuple changes at start of re-synchronization</title>
+	  <graphic fileref="gi-changes-syncstart"/>
+	</figure>
+      </para>
+      <para>When re-synchronization concludes, the following changes
+	are performed:
+	<orderedlist>
+	  <listitem>
+	    <para>The current UUID on the synchronization source
+	      remains unchanged.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The bitmap UUID on the synchronization source is
+	      emptied (zeroed).</para>
+	  </listitem>
+	  <listitem>
+	    <para>The former bitmap UUID is rotated out to the first
+	      historical UUID, with that UUID moving to the second
+	      historical entry (any existing second historical entry
+	      is discarded).</para>
+	  </listitem>
+	  <listitem>
+	    <para>The synchronization target adopts the entire GI
+	      tuple from the synchronization source.</para>
+	  </listitem>
+	</orderedlist>
+	<figure>
+	  <title>GI tuple changes at completion of re-synchronization</title>
+	  <graphic fileref="gi-changes-synccomplete"/>
+	</figure>
+      </para>
+    </section>
+    <section>
+      <title>How DRBD uses generation identifiers</title>
+      <para>When a connection between nodes is established, the two
+	nodes exchange their currently available generation
+	identifiers, and proceed accordingly. A number of possible
+	outcomes exist:
+      <orderedlist>
+	  <listitem>
+	    <para>The local node detects that both its current UUID
+	      and the peer's current UUID are empty. This is the
+	      normal occurrence for a freshly configured resource that
+	      has not had the initial full sync initiated. No
+	      synchronization takes place; it has to be started
+	      manually.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The local node detects that the peer's current UUID
+	      is empty, and its own is not. This is the normal case
+	      for a freshly configured resource on which the initial
+	      full sync has just been initiated, the local node having
+	      been selected as the initial synchronization source.
+	      DRBD now sets all bits in the on-disk sync bitmap
+	      (meaning it considers the entire device out-of-sync),
+	      and starts synchronizing as a synchronization
+	      source.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The local node detects that its own current UUID is
+	      empty, and the peer's is not. This is the normal case
+	      for a freshly configured resource on which the initial
+	      full sync has just been initiated, the peer node having
+	      been selected as the initial synchronization source.
+	      DRBD now sets all bits in the on-disk sync bitmap
+	      (meaning it considers the entire device out-of-sync),
+	      and starts synchronizing as a synchronization
+	      target.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The local node detects that its current UUID and the
+	      peer's current UUID are non-empty and equal. This is the
+	      normal occurrence for a resource that went into
+	      disconnected mode at a time when it was in the secondary
+	      role, and was not promoted on either node while
+	      disconnected. No synchronization takes place, as none is
+	      necessary.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The local node detects that its bitmap UUID matches
+	      the peer's current UUID, and that the peer's bitmap UUID
+	      is empty. This is the normal and expected occurrence
+	      after a secondary node failure, with the local node
+	      being in the primary role. It means that the peer
+	      never became primary in the meantime and worked on the
+	      basis of the same data generation all along. DRBD now
+	      initiates a normal, background re-synchronization, with
+	      the local node becoming the synchronization source.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>The local node detects that its bitmap UUID is
+	      empty, and that the peer's bitmap matches the local
+	      node's current UUID. This is the normal and expected
+	      occurrence after a failure of the local node. DRBD now
+	      initiates a normal, background re-synchronization, with
+	      the local node becoming the synchronization target.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>The local node detects that its current UUID matches
+	      one of the peer's historical UUID's. This implies that
+	      while the two data sets share a common ancestor, and the
+	      local node has the up-to-date data, the information kept
+	      in the local node's bitmap is outdated and not useable.
+	      Thus, a normal resync would be insufficient. DRBD now
+	      marks the entire device as out-of-sync and initiates a
+	      full background re-synchronization, with the local node
+	      becoming the synchronization source.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>The local node detects that one of its historical
+	      UUID's matches the peer's current UUID. This implies
+	      that while the two data sets share a common ancestor,
+	      and the peer node has the up-to-date data, the
+	      information kept in the peer node's bitmap is outdated
+	      and not useable. Thus, a normal resync would be
+	      insufficient. DRBD now marks the entire device as
+	      out-of-sync and initiates a full background
+	      re-synchronization, with the local node becoming the
+	      synchronization target.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>The local node detects that its current UUID differs
+	      from the peer's current UUID, and that the bitmap UUIDs
+	      match. This is split brain, but one where the data
+	      generations have the same parent. This means that DRBD
+	      invokes split brain auto-recovery strategies, if
+	      configured. Otherwise, DRBD disconnects and waits for
+	      manual split brain resolution.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The local node detects that its current UUID differs
+	      from the peer's current UUID, and that the bitmap UUIDs
+	      do not match. This is split brain with unrelated
+	      ancestor generations, thus auto-recovery strategies,
+	      even if configured, are moot. DRBD disconnects and waits
+	      for manual split brain resolution.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Finally, in case DRBD fails to detect even single
+	      matching element in the two nodes' GI tuples, it logs a
+	      warning about unrelated data and disconnects. This is
+	      DRBD's safeguard against accidental connection of two
+	      cluster nodes that have never heard of each other
+	      before.</para>
+	  </listitem>
+	</orderedlist>
+      </para>
+    </section>
   </section>
   <section id="s-activity-log">
     <title>The Activity Log</title>
