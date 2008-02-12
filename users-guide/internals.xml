@@ -649,6 +649,46 @@
   </section>
   <section id="s-quick-sync-bitmap">
     <title>The quick-sync bitmap</title>
-    <para>To be written.</para>
+    <para>The quick-sync bitmap is the internal data structure which
+      DRBD uses, on a per-resource basis, to keep track of blocks
+      being in sync (identical on both nodes) or out-of sync. It is
+      only relevant when a resource is in disconnected mode.</para>
+    <para>In the quick-sync bitmap, one bit represents a 4-KiB chunk
+      of on-disk data. If the bit is cleared, it means that the
+      corresponding block is still in sync with the peer node. That
+      implies that the block has not been written to since the time of
+      disconnection. Conversely, if the bit is set, it means that the
+      block has been modified and needs to be re-synchronized whenever
+      the connection becomes available again.</para>
+    <para>As DRBD detects write I/O on a disconnected device, and
+      hence starts setting bits in the quick-sync bitmap, it does so
+      in RAM &mdash; thus avoiding expensive synchronous metadata I/O
+      operations. Only when the corresponding blocks turn
+      <phrase>cold</phrase> (that is, expire from the <link
+	linkend="s-activity-log">Activity Log</link>), DRBD makes the
+      appropriate modifications in an on-disk representation of the
+      quick-sync bitmap. Likewise, if the resource happens to be
+      manually shut down on the remaining node while disconnected,
+      DRBD flushes the <emphasis>complete</emphasis> quick-sync bitmap
+      out to persistent storage.</para>
+    <para>When the peer node recovers or the connection is
+      re-established, DRBD combines the in-memory and on-disk bitmap
+      information to determine the total data set that it must
+      re-synchronize. Then, it transmits the corresponding blocks to
+      the peer node, clearing sync bits in the bitmap as the secondary
+      node acknowledges the modifications. If the re-synchronization
+      is now interrupted (by another network outage, for example) and
+      subsequently resumed it will continue where it left off &mdash;
+      with any additional blocks modified in the meantime being added
+      to the re-synchronization data set, of course.
+      <note>
+	<para>Re-synchronization may be also be paused and resumed
+	  manually with the <command>drbdadm&nbsp;pause-sync</command>
+	  and <command>drbdadm&nbsp;resume-sync</command> commands.
+	  You should, however, not do so light-heartedly &mdash;
+	  interrupted re-synchronization leaves your secondary node's
+	  disk <code>Inconsistent</code> longer than necessary.</para>
+      </note>
+    </para>
   </section>
 </chapter>
