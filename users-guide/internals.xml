@@ -288,9 +288,9 @@
 	<emphasis>generation identifier tuple</emphasis>, or <quote>GI
 	  tuple</quote> for short.</para>
     </section>
-    <section>
+    <section id="s-gi-changes">
       <title>How generation identifiers change</title>
-      <section>
+      <section id="s-gi-changes-newgen">
 	<title>Start of a new data generation</title>
 	<para>When a node loses connection to its peer (either by
 	  network failure or manual intervention), DRBD modifies its
@@ -324,7 +324,7 @@
 	  </orderedlist>
 	</para>
       </section>
-      <section>
+      <section id="s-gi-changes-syncstart">
 	<title>Start of re-sychronization</title>
 	<para>Upon the initiation of re-synchronization, DRBD performs
 	  these modifications on the local generation identifiers:
@@ -363,7 +363,7 @@
 	  </orderedlist>
 	</para>
       </section>
-      <section>
+      <section id="s-gi-changes-synccomplete">
 	<title>Completion of re-synchronization</title>
 	<para>When re-synchronization concludes, the following changes
 	  are performed:
@@ -401,7 +401,7 @@
 	</para>
       </section>
     </section>
-    <section>
+    <section id="s-gi-use">
       <title>How DRBD uses generation identifiers</title>
       <para>When a connection between nodes is established, the two
 	nodes exchange their currently available generation
@@ -681,21 +681,26 @@
       DRBD flushes the <emphasis>complete</emphasis> quick-sync bitmap
       out to persistent storage.</para>
     <para>When the peer node recovers or the connection is
-      re-established, DRBD combines the in-memory and on-disk bitmap
-      information to determine the total data set that it must
-      re-synchronize. Then, it transmits the corresponding blocks to
-      the peer node, clearing sync bits in the bitmap as the secondary
-      node acknowledges the modifications. If the re-synchronization
-      is now interrupted (by another network outage, for example) and
-      subsequently resumed it will continue where it left off &mdash;
-      with any additional blocks modified in the meantime being added
-      to the re-synchronization data set, of course.
+      re-established, DRBD combines the bitmap information from both
+      nodes to determine the <emphasis>total data set</emphasis> that
+      it must re-synchronize. Simultaneously, DRBD <link
+	linkend="s-gi-use">examines the generation identifiers</link>
+      to determine the <emphasis>direction</emphasis> of
+      synchronization.</para>
+    <para>The node acting as the synchronization source then transmits
+      the agreed-upon blocks to the peer node, clearing sync bits in
+      the bitmap as the synchronization target acknowledges the
+      modifications. If the re-synchronization is now interrupted (by
+      another network outage, for example) and subsequently resumed it
+      will continue where it left off &mdash; with any additional
+      blocks modified in the meantime being added to the
+      re-synchronization data set, of course.
       <note>
 	<para>Re-synchronization may be also be paused and resumed
 	  manually with the <command>drbdadm&nbsp;pause-sync</command>
 	  and <command>drbdadm&nbsp;resume-sync</command> commands.
 	  You should, however, not do so light-heartedly &mdash;
-	  interrupted re-synchronization leaves your secondary node's
+	  interrupting re-synchronization leaves your secondary node's
 	  disk <code>Inconsistent</code> longer than necessary.</para>
       </note>
     </para>
