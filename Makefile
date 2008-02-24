@@ -13,12 +13,18 @@
 # lower-level Makefile. Refer the Makefile in the "users-guide"
 # subdirectory as an example.
 
+TOPDIR ?= $(PWD)
+
 # Path to the DRBD source tree
 DRBD ?= ../drbd-8
+
+# Method to use for PDF generation. Currently supported: fop, dblatex
+PDF_GENERATOR ?= fop
 
 # Sub-directories to descend into if doing recursive make
 SUBDIRS ?= users-guide images
 
+# Some useful wildcard expansions
 XML_FILES := $(wildcard *.xml)
 MML_FILES := $(wildcard *.mml)
 SVG_FILES := $(wildcard *.svg)
@@ -28,34 +34,36 @@ SVG_FILES := $(wildcard *.svg)
 # make sure you have a local copy of these stylesheets installed, and
 # XML catalogs set up correctly. On Debian/Ubuntu systems, this is a
 # simple matter of "apt-get install docbook-xsl".
-stylesheet_prefix ?= http://docbook.sourceforge.net/release/xsl/current
-html_stylesheet ?= $(stylesheet_prefix)/xhtml/docbook.xsl
-chunked_html_stylesheet ?= $(stylesheet_prefix)/xhtml/chunk.xsl
-fo_stylesheet ?= stylesheets/fo.xsl
-titlepage_stylesheet ?= $(stylesheet_prefix)/template/titlepage.xsl
+STYLESHEET_PREFIX ?= http://docbook.sourceforge.net/release/xsl/current
+HTML_STYLESHEET ?= $(STYLESHEET_PREFIX)/xhtml/docbook.xsl
+CHUNKED_HTML_STYLESHEET ?= $(STYLESHEET_PREFIX)/xhtml/chunk.xsl
 
-all: html chunked-html
+# The subdirectory to use for "chunked" (multiple page) HTML output.
+CHUNKED_HTML_SUBDIR ?= html/
 
-html: copy-images howto-collection.html
+TITLEPAGE_STYLESHEET ?= $(STYLESHEET_PREFIX)/template/titlepage.xsl
 
-chunked-html: howto-collection.xml images
-	mkdir -p html-multiple-pages/
-	cp -r images html-multiple-pages/
-	cp $(wildcard *.css) html-multiple-pages/
-	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) html-multiple-pages/
-	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) html-multiple-pages/
-	xsltproc -o html-multiple-pages/ \
+all: html pdf
+
+# Multiple-page HTML
+html: howto-collection.xml images
+	mkdir -p $(CHUNKED_HTML_SUBDIR)
+	cp -r images $(CHUNKED_HTML_SUBDIR)
+	cp $(wildcard *.css) $(CHUNKED_HTML_SUBDIR)
+	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) $(CHUNKED_HTML_SUBDIR)
+	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) $(CHUNKED_HTML_SUBDIR)
+	xsltproc -o $(CHUNKED_HTML_SUBDIR) \
 	--param generate.index 0 \
 	--param admon.graphics 1 \
+	--param use.id.as.filename 1 \
 	--stringparam admon.graphics.path images/ \
 	--stringparam admon.graphics.extension .png \
 	--stringparam ulink.target offsite-link \
 	--stringparam html.stylesheet drbd-howto-collection.css \
 	--stringparam graphic.default.extension png \
-	--xinclude $(chunked_html_stylesheet) $<
+	--xinclude $(CHUNKED_HTML_STYLESHEET) $<
 
-pdf: copy-images howto-collection.pdf
-
+# Single-page HTML
 %.html: 
 	xsltproc -o $@ \
 	--param generate.index 0 \
@@ -66,33 +74,20 @@ pdf: copy-images howto-collection.pdf
 	--stringparam html.stylesheet drbd-howto-collection.css \
 	--stringparam graphic.default.extension png \
 	--stringparam rootid $* \
-	--xinclude $(html_stylesheet) howto-collection.xml
+	--xinclude $(HTML_STYLESHEET) $(TOPDIR)/howto-collection.xml
 
-%.fo: stylesheets/fo-titlepage.xsl
-	xsltproc -o $@ \
-	--stringparam paper.type A4 \
-	--stringparam title.font.family serif \
-	--stringparam insert.link.page.number yes \
-	--stringparam insert.xref.page.number yes \
-	--stringparam graphic.default.extension svg \
-	--param section.autolabel 1 \
-	--param section.autolabel.max.depth 2 \
-	--param section.label.includes.component.label 1 \
-	--param use.extensions 1 \
-	--param fop1.extensions 1 \
-	--param admon.graphics 1 \
-	--stringparam admon.graphics.path images/ \
-	--stringparam admon.graphics.extension .svg \
-	--stringparam rootid $* \
-	--xinclude $(fo_stylesheet) howto-collection.xml
-
+# Title page layout (currently only used for FOP-generated PDF)
 %-titlepage.xsl: %-titlepage.xml
 	xsltproc -o $@ \
-	--xinclude $(titlepage_stylesheet) $<
+	--xinclude $(TITLEPAGE_STYLESHEET) $<
 
+# Generated images: SVG from MathML
+# (needed for HTML output, and PDF if using FOP)
 %.svg: %.mml
 	mathmlsvg --font-size=24 $<
 
+# Generated images: PNG from SVG
+# (needed for HTML output)
 %.png: %.svg
 	rsvg $< $@
 
@@ -110,9 +105,6 @@ copy-raster-images: raster-images
 copy-vector-images: vector-images
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) .
 
-copy-css: 
-	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.css)) .
-
 images: vector-images raster-images
 
 raster-images:
@@ -121,23 +113,12 @@ raster-images:
 vector-images:
 	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i vector-images; done
 
-%.pdf: %.fo
-	fop $< -pdf $@
+copy-css: 
+	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.css)) .
 
-%.ps: %.fo
-	fop $< -ps $@
-
+# Cleanup targets
 clean-html:
 	rm -f $(XML_FILES:.xml=.html) 
-
-clean-fo:
-	rm -f $(XML_FILES:.xml=.fo) 
-
-clean-ps:
-	rm -f $(XML_FILES:.xml=.ps)
-
-clean-pdf:
-	rm -f $(XML_FILES:.xml=.pdf)
 
 clean-svg:
 	rm -f $(MML_FILES:.mml=.svg) 
@@ -149,6 +130,11 @@ clean-png:
 
 clean: 
 	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i clean; done
-	rm -rf html-multiple-pages/
+	rm -rf $(CHUNKED_HTML_SUBDIR)
+
+# We defer all PDF processing to a separate Makefile
+include $(TOPDIR)/Makefile.$(PDF_GENERATOR)
+
+pdf: users-guide/users-guide.pdf
 
 .PHONY: all html chunked-html pdf clean-png clean-svg clean-html clean-fo clean-ps clean-pdf clean raster-images vector-images images
