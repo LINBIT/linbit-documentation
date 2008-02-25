@@ -14,8 +14,8 @@
   <section id="s-single-primary-mode">
     <title>Single-primary mode</title>
     <para>In single-primary mode, any <link
-	linkend="s-resources">resource</link>is, at any given time, in
-      the primary role on only one cluster member. Since it is thus
+	linkend="s-resources">resource</link> is, at any given time,
+      in the primary role on only one cluster member. Since it is thus
       guaranteed that only one cluster node manipulates the data at
       any moment, this mode can be used with any conventional file
       system (ext3, ext4, XFS etc.).</para>
@@ -28,8 +28,8 @@
     <subtitle>Available in DRBD versions 8.0 and later</subtitle>
     <para>In dual-primary mode, any resource is, at any given time, in
       the primary role on both cluster nodes. Since concurrent access
-      to the data is thus unrestricted, this mode requires the use of
-      a shared cluster file system that utilizes a distributed lock
+      to the data is thus possible, this mode requires the use of a
+      shared cluster file system that utilizes a distributed lock
       manager. Examples include <link linkend="ch-gfs">GFS</link> and
       OCFS2.</para>
     <para>Deploying DRBD in dual-primary mode is the preferred
@@ -50,10 +50,9 @@
 	on the Primary node are considered completed as soon as the
 	local disk write has occurred, and the replication packet has
 	been placed in the local TCP send buffer. In the event of
-	forced failover, data loss may occur. The data on the standby
-	node are consistent after the failover, however, the most
-	recent updates performed prior to the crash could be
-	lost.</para>
+	forced fail-over, data loss may occur. The data on the standby
+	node is consistent after fail-over, however, the most recent
+	updates performed prior to the crash could be lost.</para>
     </formalpara>
     <formalpara id="fp-protocol-b">
       <title>Protocol B</title>
@@ -61,8 +60,8 @@
 	operations on the Primary node are considered completed as
 	soon as the local disk write has occurred, and the replication
 	packet has reached the peer node. No writes are lost in case
-	of forced failover. However, in the event of simultaneous
-	power failure on both nodes and concurrent, irrevocable
+	of forced fail-over. However, in the event of simultaneous
+	power failure on both nodes and concurrent, irreversible
 	destruction of the Primary's data store, the most recent
 	writes completed on the Primary may be lost.</para> 
     </formalpara>
@@ -76,7 +75,7 @@
     </formalpara>
     <note>
       <para>Data loss is, of course, inevitable with every replication
-	protocol if both nodes are irrevocably destroyed at the same
+	protocol if both nodes are irreversibly destroyed at the same
 	time.</para>
     </note>
     <para>Note that the choice of replication protocol influences two
@@ -92,11 +91,10 @@
   </section>
   <section id="s-resync">
     <title>Efficient re-synchronization</title>
-    <para>(Re-)synchronization is distinct from device replication in
-      the sense that while replication occurs on any write event to a
-      resource in the primary role, synchronization is decoupled from
-      incoming writes. Rather, it affects the device as a
-      whole.</para>
+    <para>(Re-)synchronization is distinct from device replication.
+      While replication occurs on any write event to a resource in the
+      primary role, synchronization is decoupled from incoming writes.
+      Rather, it affects the device as a whole.</para>
     <para>
       Re-synchronization is necessary if the replication link has been
       interrupted for any reason, be it due to failure of the primary
@@ -107,7 +105,7 @@
       following consequences:
       <itemizedlist>
 	<listitem>
-	  <para>Re-synchronization is fast, since sectors in which
+	  <para>Re-synchronization is fast, since blocks in which
 	    several successive write operations occurred are only
 	    synchronized once.</para>
 	</listitem>
@@ -123,12 +121,11 @@
 	    <emphasis>inconsistent</emphasis>.</para></listitem>
       </itemizedlist>
     </para>
-    <para>Since a node with inconsistent data generally cannot be put
-      into operation, it is desirable to keep the time period during
-      which a node is inconsistent as short as possible. However, a
-      compromise between re-synchronization time and I/O performance
-      has to be found, since the service continues to run on the
-      active node during re-synchronization.</para>
+    <para>A node with inconsistent data generally cannot be put into
+      operation, thus it is desirable to keep the time period during
+      which a node is inconsistent as short as possible. The service
+      continues to run uninterrupted on the active node, while
+      background re-synchronization is in progress.</para>
     <para>See <xref linkend="s-configure-syncer-rate"/> for
       configuration suggestions with respect to
       re-synchronization.</para>
