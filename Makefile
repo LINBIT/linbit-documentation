@@ -45,7 +45,7 @@ TITLEPAGE_STYLESHEET ?= $(STYLESHEET_PREFIX)/template/titlepage.xsl
 
 all: html pdf
 
-# Multiple-page HTML
+# Multiple-page HTML (we disable the draft watermark here)
 html: howto-collection.xml images
 	mkdir -p $(CHUNKED_HTML_SUBDIR)
 	cp -r images $(CHUNKED_HTML_SUBDIR)
@@ -61,6 +61,8 @@ html: howto-collection.xml images
 	--stringparam ulink.target offsite-link \
 	--stringparam html.stylesheet drbd-howto-collection.css \
 	--stringparam graphic.default.extension png \
+	--stringparam draft.mode no \
+	--stringparam rootid users-guide \
 	--xinclude $(CHUNKED_HTML_STYLESHEET) $<
 
 # Single-page HTML

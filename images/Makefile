@@ -1,6 +1,6 @@
 all: raster-images
 
-raster-images: note.png warning.png tip.png caution.png important.png bottom-left.png bottom-right.png top-left.png top-right.png bottom-left-small.png bottom-right-small.png top-left-small.png top-right-small.png 
+raster-images: note.png warning.png tip.png caution.png important.png bottom-left.png bottom-right.png top-left.png top-right.png bottom-left-small.png bottom-right-small.png top-left-small.png top-right-small.png linbit-logo-subdued-small.png 
 
 vector-images:
 
