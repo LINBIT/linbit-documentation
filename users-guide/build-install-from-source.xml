@@ -1,140 +1,139 @@
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
-  <chapter id="ch-build-install-from-source">
-    <title>Building and installing DRBD from source</title>
-    <section id="s-downloading-drbd-sources">
-      <title>Downloading the DRBD sources</title>
-      <para>The source tarballs for both current and historic DRBD
-	releases are available for download from <ulink
-	  url="http://oss.linbit.com/drbd/"/>.<footnote>
-	  <para>LINBIT is the company that acts as the DRBD project's
-	    primary sponsor, and which also provides commercial DRBD
-	    support and consultancy services. More information about
-	    LINBIT is available at <ulink
-	      url="http://www.linbit.com/"/>.</para>
+<chapter id="ch-build-install-from-source">
+  <title>Building and installing DRBD from source</title>
+  <section id="s-downloading-drbd-sources">
+    <title>Downloading the DRBD sources</title>
+    <para>The source tarballs for both current and historic DRBD
+      releases are available for download from <ulink
+	url="http://oss.linbit.com/drbd/"/>.<footnote>
+	<para>LINBIT is the company that acts as the DRBD project's
+	  primary sponsor, and which also provides commercial DRBD
+	  support and consultancy services. More information about
+	  LINBIT is available at <ulink
+	    url="http://www.linbit.com/"/>.</para>
 	</footnote> Source tarballs, by convention, are named
-	<filename>drbd-x.y.z.tar.gz</filename>, where
-	<varname>x</varname>, <varname>y</varname> and
+      <filename>drbd-x.y.z.tar.gz</filename>, where
+      <varname>x</varname>, <varname>y</varname> and
       <varname>z</varname> refer to the major, minor and bugfix
       release numbers.</para>
-      <para>DRBD's compressed source archive is less
-      than half a megabyte in size. To download and uncompress into
-      your current working directory, issue
-	the following commands:<footnote>
-	  <para>The use of <command>wget</command> for downloading the
-      source tarball is purely an example. Of course, you may use any
-      downloader you prefer.</para>
-	</footnote>
-	<programlisting>wget http://oss.linbit.com/drbd/drbd-8.2.4.tar.gz
+    <para>DRBD's compressed source archive is less than half a
+      megabyte in size. To download and uncompress into your current
+      working directory, issue the following commands:<footnote>
+	<para>The use of <command>wget</command> for downloading the
+	  source tarball is purely an example. Of course, you may use
+	  any downloader you prefer.</para>
+	</footnote> 
+      <programlisting>wget http://oss.linbit.com/drbd/drbd-8.2.4.tar.gz 
 tar -xzf drbd-8.2.4.tar.gz</programlisting></para>
-      <para>It is recommended to uncompress DRBD into a directory
-	normally used for keeping source code, such as
-	<filename>/usr/src</filename> or
-	<filename>/usr/local/src</filename>. The examples in this
-	Howto assume <filename>/usr/src</filename>.</para>
+    <para>It is recommended to uncompress DRBD into a directory
+      normally used for keeping source code, such as
+      <filename>/usr/src</filename> or
+      <filename>/usr/local/src</filename>. The examples in this Howto
+      assume <filename>/usr/src</filename>.</para>
+  </section>
+  <section id="s-build-from-source">
+    <title>Building DRBD from source</title>
+    <section id="s-build-prereq">
+      <title>Checking build prerequisites</title>
+      <para>Before being able to build DRBD from source, your build
+	host must fulfill the following prerequisites:</para>
+      <itemizedlist>
+	<listitem>
+	  <para><code>gcc</code>, the glibc development libraries,
+	    <code>make</code>, and the <code>flex</code> scanner must
+	    be installed.</para>
+	  <note>
+	    <para>You should make sure that the gcc you use to compile
+	      the module is the same which was used to build the
+	      kernel you are running.
+	    </para>
+	  </note>
+	</listitem>
+	<listitem>
+	  <para>If you are running a stock kernel supplied by your
+	    distribution, you should install a matching precompiled
+	    kernel headers package. These are typically named
+	    <code>kernel-dev</code>, <code>kernel-headers</code>,
+	    <code>linux-headers</code> or similar. In this case, you
+	    can skip <xref linkend="s-build-prepare-tree"/> and
+	    continue with <xref
+	      linkend="s-build-compile-kernel-module"/>.</para>
+	</listitem>
+	<listitem>
+	  <para>If you are not running a distribution stock kernel
+	    (i.e. your system runs on a kernel built from source with
+	    a custom configuration), your kernel source files must be
+	    installed. Your distribution may provide for this via its
+	    package installation mechanism; distribution packages for
+	    kernel sources are typically named
+	    <code>kernel-source</code><footnote>
+	      <para>Note that on RPM-based systems, these packages
+		will be named similar to
+		<filename>kernel-source-VERSION.rpm</filename>, which
+		is easily confused with
+		<filename>kernel-VERSION.src.rpm</filename>. The
+		former is the correct package to install for building
+		DRBD.</para></footnote> or similar. </para>
+	  <para>"Vanilla" kernel tarballs from the kernel.org archive
+	    are simply named linux-KERNELVERSION-tar.bz2 and should be
+	    unpacked in
+	    <filename>/usr/src/linux-KERNELVERSION</filename>, with
+	    the symlink <filename>/usr/src/linux</filename> pointing
+	    to that directory. </para>
+	  <para>In this case of building DRBD against kernel sources
+	    (not headers), you must continue with <xref
+	      linkend="s-build-prepare-tree"/>.</para>
+	</listitem>
+      </itemizedlist>
     </section>
-    <section id="s-build-from-source">
-      <title>Building DRBD from source</title>
-      <section id="s-build-prereq">
-	<title>Checking build prerequisites</title>
-	<para>Before being able to build DRBD from source, your build
-	  host must fulfill the following prerequisites:</para>
-	<itemizedlist>
-	  <listitem>
-	    <para><code>gcc</code>, the glibc development libraries,
-	      <code>make</code>, and the <code>flex</code> scanner must
-	      be installed.</para>
-	    <note>
-	      <para>You should make sure that the gcc you use to compile the module
-		is the same which was used to build the kernel you are running.
-	      </para>
-	    </note>
-	  </listitem>
-	  <listitem>
-	    <para>If you are running a stock kernel supplied by your
-	      distribution, you should install a matching precompiled
-	      kernel headers package. These are typically named
-	      <code>kernel-dev</code>, <code>kernel-headers</code>,
-	      <code>linux-headers</code> or similar. In this case, you
-	      can skip <xref linkend="s-build-prepare-tree"/> and
-	      continue with <xref
-		linkend="s-build-compile-kernel-module"/>.</para>
-	  </listitem>
-	  <listitem>
-	    <para>If you are not running a distribution stock kernel
-	      (i.e. your system runs on a kernel built from source
-	      with a custom configuration), your kernel source files
-	      must be installed. Your distribution may provide for
-	      this via its package installation mechanism;
-	      distribution packages for kernel sources are typically named
-	      <code>kernel-source</code><footnote>
-		<para>Note that on RPM-based systems, these packages
-		  will be named similar to
-		  <filename>kernel-source-VERSION.rpm</filename>,
-		  which is easily confused with
-		  <filename>kernel-VERSION.src.rpm</filename>. The
-		  former is the correct package to install for
-		  building DRBD.</para></footnote> or
-	      similar. </para>
-	    <para>"Vanilla" kernel tarballs from the kernel.org
-	      archive are simply named linux-KERNELVERSION-tar.bz2 and
-	      should be unpacked in
-	      <filename>/usr/src/linux-KERNELVERSION</filename>, with
-	      the symlink <filename>/usr/src/linux</filename> pointing
-	      to that directory. </para>
-	    <para>In this case of building DRBD against
-	      kernel sources (not headers), you must continue with <xref
-		linkend="s-build-prepare-tree"/>.</para>
-	  </listitem>
-	</itemizedlist>
-      </section>
-      <section id="s-build-prepare-tree">
-	<title>Preparing the kernel source tree</title>
-	<para>To prepare your source tree for building DRBD, you must
+    <section id="s-build-prepare-tree">
+      <title>Preparing the kernel source tree</title>
+      <para>To prepare your source tree for building DRBD, you must
 	first enter the directory where your unpacked kernel sources
-	  are located. Typically this is
+	are located. Typically this is
 	<filename>/usr/src/linux-VERSION</filename>, or simply a
-	  symbolic link named <filename>/usr/src/linux</filename>:
-	  <programlisting>cd /usr/src/linux</programlisting></para>
-	<para>The next step is recommended, though not strictly
+	symbolic link named <filename>/usr/src/linux</filename>:
+	<programlisting>cd /usr/src/linux</programlisting></para>
+      <para>The next step is recommended, though not strictly
 	necessary. It essentially reverts your kernel source tree to
 	its original state, removing any leftovers from an earlier
-	build or configure run:
+	build or configure run: 
 	<programlisting>make mrproper</programlisting></para>
-	<para>Now it is time to <emphasis>clone</emphasis> your
+      <para>Now it is time to <emphasis>clone</emphasis> your
 	currently running kernel configuration into the kernel source
 	tree. There are a few possible options for doing this:
-	  <itemizedlist>
-	    <listitem>
-	      <para>Many reasonably recent kernel builds export the
-		currently-running configuration, in compressed form, via the
-		<filename>/proc</filename> filesystem, enabling you to copy
-		from there:
-		<programlisting>zcat /proc/config.gz > .config</programlisting>
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>SUSE kernel Makefiles include a
+	<itemizedlist>
+	  <listitem>
+	    <para>Many reasonably recent kernel builds export the
+	      currently-running configuration, in compressed form, via
+	      the <filename>/proc</filename> filesystem, enabling you
+	      to copy from there: 
+	      <programlisting>zcat /proc/config.gz &gt; .config</programlisting>
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>SUSE kernel Makefiles include a
 	      <code>cloneconfig</code> target, so on those systems,
-	      you can issue:
-		<programlisting>make cloneconfig</programlisting></para>
-	    </listitem>
-	    <listitem>
-	      <para>Some installs put a copy of the kernel config into
-		<filename>/boot</filename>, which allows you to do
-		this:</para>
-	      <programlisting>cp /boot/config-$(uname -r) .config</programlisting>
-	    </listitem>
-	    <listitem>
-	      <para>Finally, you may simply use a backup copy of a
-		<filename>.config</filename> file which you know to
-		have been used for building the currently-running
-		kernel.</para>
-	    </listitem>
-	  </itemizedlist>
-	</para>
-      </section>
-      <section id="s-build-compile-kernel-module">
-	<title>Compiling DRBD as a kernel module</title>
+	      you can issue: <programlisting>make cloneconfig</programlisting></para>
+	  </listitem>
+	  <listitem>
+	    <para>Some installs put a copy of the kernel config into
+	      <filename>/boot</filename>, which allows you to do
+	      this:</para>
+	    <programlisting>cp /boot/config-$(uname -r) .config</programlisting>
+	  </listitem>
+	  <listitem>
+	    <para>Finally, you may simply use a backup copy of a
+	      <filename>.config</filename> file which you know to have
+	      been used for building the currently-running
+	      kernel.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </section>
+    <section id="s-build-compile-kernel-module">
+      <title>Compiling DRBD as a kernel module</title>
+      <para>
 	<note>
 	  <para>This section only applies to building DRBD as a
 	    loadable module. If you want to build DRBD right
@@ -142,199 +141,222 @@ tar -xzf drbd-8.2.4.tar.gz</programlisting></para>
 	    to patch your kernel. See <xref
 	    linkend="s-build-patch-kernel"/>. Using DRBD as a loadable
 	    module is the preferred option.</para>
-	</note>
+      </note>
+      </para>
+      <section id="s-build-against-running-kernel">
+	<title>Building DRBD for the currently-running kernel</title>
 	<para>After changing into your unpacked DRBD sources
-	directory, you should now change into the kernel module
+	  directory, you should now change into the kernel module
 	  subdirectory, simply named <filename>drbd</filename>, and
-	build the module there:
-	  <programlisting>cd drbd
+	  build the module there: 
+	  <programlisting>cd drbd 
 make clean all</programlisting></para>
 	<para>This will build the DRBD kernel module to match your
-	currently-running kernel, whose kernel source is expected to
-	be accessible via the 
-	  <filename>/lib/modules/`uname -r`/build</filename> symlink.</para>
-	<para>If that symlink does not exist, and you are building
-	against a running stock kernel (one that was
-	shipped pre-compiled with your distribution), you may also set
-	  the <varname>KDIR</varname> variable to point to the
-	<emphasis>matching</emphasis> kernel headers (as opposed to
-	kernel sources) directory, for
-	example:
-	  <programlisting>cd drbd
-make clean
-make KDIR=/usr/src/linux-include/athlon</programlisting></para>
-	<para>If you are building DRBD against a kernel
-	<emphasis>other</emphasis> than your currently running one,
-	  set the <varname>KDIR</varname> variable to point to its
-	kernel sources directory:
-	  <programlisting>cd drbd
-make clean
-make KDIR=/path/to/kernel/source</programlisting></para>
-	<para>You also have the option of setting the compiler
-	  explicitly via the <varname>CC</varname> variable. This is
-	known to be necessary on some Fedora versions, for example:
-	  <programlisting>cd drbd
-make clean
-make CC=gcc32</programlisting></para>
-	<para>If the module build completes successfully, you should see
-	  a kernel module file named <filename>drbd.ko</filename> in
-	  the <filename>drbd</filename> directory. You may interrogate
-	  the newly-built module with <command>/sbin/modinfo
-	drbd.ko</command> if you are so inclined.</para>
+	  currently-running kernel, whose kernel source is expected to
+	  be accessible via the <filename>/lib/modules/`uname
+	    -r`/build</filename> symlink.</para>
       </section>
-      <section id="s-build-patch-kernel">
-	<title>Patching DRBD into the kernel</title>
-	<note>
-	  <para>This section only applies to building DRBD into a
-	    kernel image, as opposed to compiling it as a loadable
-	    module. Only use this if you have a valid reason to, for
-	    example if you are building a kernel without loadable
-	    modules support. Normally, using DRBD as a loadable
-	    module is the preferred option.</para>
-	</note>
-	<para>This approach involves having the DRBD build system
-	  generate a kernel patch, which you then apply to a kernel
-	  source tree. To create the patch, issue these commands:
+      <section id="s-build-against-kernel-headers">
+	<title>Building against precompiled kernel headers</title>
+	<para>If the <filename>/lib/modules/`uname
+	    -r`/build</filename> symlink does not exist, and you are
+	  building against a running stock kernel (one that was
+	  shipped pre-compiled with your distribution), you may also
+	  set the <varname>KDIR</varname> variable to point to the
+	  <emphasis>matching</emphasis> kernel headers (as opposed to
+	  kernel sources) directory. Note that besides the actual
+	  kernel headers &mdash; commonly found in
+	  <filename>/usr/src/linux-<replaceable>version</replaceable>/include</filename> 
+	  &mdash;	the DRBD build process also looks for the
+	  kernel Makefile and configuration file
+	  (<filename>.config</filename>), which pre-built kernel
+	  headers packages commonly include. To build against
+	  precompiled kernel headers, issue, for example:
 	  <programlisting>cd drbd
 make clean
-make KDIR=/usr/src/linux kernel-patch</programlisting>
-	  This command will create a file named
-	  <filename>patch-linux-KERNELVERSION-drbd-DRBDVERSION</filename>.</para>
-	<para>You may review this patch and then apply it to your
-	  kernel source tree, by issuing the following commands:
-	  <programlisting>cd /usr/src/linux 
-patch -p1 &lt; /usr/src/drbd-DRBDVERSION/patch-linux-KERNELVERSION-drbd-DRBDVERSION<footnote> 
-	      <para>This example, as all others in this section,
-		assume that you unpacked you DRBD source tarball in
-		<filename>/usr/src/drbd-x.y.z</filename>, where
-		<varname>x.y.z</varname> is your DRBD version you are
-		building, and that sources for the kernel you are
-		building against are in
-		<filename>/usr/src/linux</filename>.</para>
-	    </footnote></programlisting> After this, you can run
-	  <code>make config</code>,
-	  <code>make menuconfig</code>, or
-	  <code>make xconfig</code>, whichever your preferred way
-	  of configuring your kernel is, and enable DRBD for your
-	  build. For the menu- or GUI-based configuration facilities,
-	  you will find DRBD listed in the "Block devices"
-	  section.</para>
-	<para>After this, you can build your kernel as usual
-	  (<code>make bzImage</code> et al.), and the resulting kernel
-	  build will include DRBD.</para>
-	<para>With this approach, you will need to build the DRBD
-	  userspace management tools separately. This is done by
-	  changing into the top-level directory of your unpacked DRBD
-	  sources, and issuing the <command>make tools</command>
-	  command:
-	  <programlisting>cd /usr/src/drbd-x.y.z
-make tools</programlisting>
+make KDIR=/usr/src/linux-include/athlon</programlisting> or
+	  <programlisting>cd drbd 
+make clean
+make KDIR=/usr/src/linux-headers-<replaceable>version</replaceable></programlisting>
 	</para>
       </section>
+      <section id="s-build-against-source-tree">
+	<title>Building against a kernel source tree</title>
+	<para>If you are building DRBD against a kernel
+	  <emphasis>other</emphasis> than your currently running one,
+	  and you do not have precompiled kernel sources for your
+	  target kernel available, you need to build DRBD against a
+	  complete target kernel source tree. To do so, set the
+	  <varname>KDIR</varname> variable to point to the kernel
+	  sources directory: <programlisting>cd drbd 
+make clean
+make KDIR=/path/to/kernel/source</programlisting></para>
+      </section>
+      <section id="s-build-customcc">
+	<title>Using a non-default C compiler</title>
+	<para>You also have the option of setting the compiler
+	  explicitly via the <varname>CC</varname> variable. This is
+	  known to be necessary on some Fedora versions, for example:
+	  <programlisting>cd drbd 
+make clean 
+make CC=gcc32</programlisting></para>
+      </section>
+      <section id="s-build-modinfo">
+	<title>Checking for successful build completion</title>
+      <para>If the module build completes successfully, you should see
+	a kernel module file named <filename>drbd.ko</filename> in the
+	<filename>drbd</filename> directory. You may interrogate the
+	newly-built module with <command>/sbin/modinfo
+	  drbd.ko</command> if you are so inclined.</para>
+      </section>
     </section>
-    <section id="s-build-install">
-      <title>Installing DRBD</title>
-      <para>Provided you DRBD build completed successfully, you will
-	be able to install DRBD by issuing these
-	commands:
-	<programlisting>cd /usr/src/drbd-x.y.z
-make install</programlisting></para>
-      <para>If, however, you chose the build approach described in <xref
-      linkend="s-build-patch-kernel"/>, DRBD kernel functionality will be enabled whenever
-      you boot into your new kernel. In that case, you only need to
-      install DRBD's userspace components:
-	  <programlisting>cd /usr/src/drbd-x.y.z 
-make install-tools</programlisting></para>
-      <para>In either case, then DRBD userspace management tools
-	(<filename>drbdadm</filename>, <filename>drbdsetup</filename>,
-	and <filename>drbdmeta</filename>) will now be installed in
-	<filename>/sbin</filename>.</para>
-      <para>Note that any kernel upgrade will require you to rebuild
-	and reinstall the DRBD kernel module to match the new kernel.
-	The DRBD userspace tools, in contrast, need only be rebuilt
-	and reinstalled when upgrading to a new DRBD version. If at
-	any time you upgrade to a new kernel <emphasis>and</emphasis>
-	new DRBD version, you will need to upgrade both
-	components.</para>
-    </section>
-    <section id="s-build-rpm">
-      <title>Building a DRBD RPM package</title>
-      <para>The DRBD build system contains a facility to build RPM
-	packages directly out of the DRBD source tree. For building
-	RPMs, <xref linkend="s-build-prereq"/> applies essentially in
-	the same way as for building and installing with
-	<command>make</command>, except that you of course also need
-	the RPM build tools.</para>
-      <para>Also, see
-	<xref linkend="s-build-prepare-tree"/> if you are not building
-	against a running kernel with precompiled headers
-	available.</para>
-      <para>The build system offers two approaches for building RPMs.
-	The simpler approach is to simply invoke the <code>rpm</code>
-	target in the top-level Makefile: 
+    <section id="s-build-patch-kernel">
+      <title>Patching DRBD into the kernel</title>
+      <note>
+	<para>This section only applies to building DRBD into a kernel
+	  image, as opposed to compiling it as a loadable module. Only
+	  use this if you have a valid reason to, for example if you
+	  are building a kernel without loadable modules support.
+	  Normally, using DRBD as a loadable module is the preferred
+	  option.</para>
+      </note>
+      <para>This approach involves having the DRBD build system
+	generate a kernel patch, which you then apply to a kernel
+	source tree. To create the patch, issue these commands:
+	<programlisting>cd drbd
+make clean 
+make KDIR=/usr/src/linux kernel-patch</programlisting> 
+	This command will create a file named
+	<filename>patch-linux-KERNELVERSION-drbd-DRBDVERSION</filename>.</para>
+      <para>You may review this patch and then apply it to your kernel
+	source tree, by issuing the following commands:<footnote> 
+	    <para>This example, as all others in this section, assume
+	      that you unpacked you DRBD source tarball in
+	      <filename>/usr/src/drbd-x.y.z</filename>, where
+	      <varname>x.y.z</varname> is your DRBD version you are
+	      building, and that sources for the kernel you are
+	      building against are in
+	      <filename>/usr/src/linux</filename>.</para>
+	  </footnote>
+	<programlisting>cd /usr/src/linux 
+patch -p1 &lt; /usr/src/drbd-DRBDVERSION/patch-linux-KERNELVERSION-drbd-DRBDVERSION</programlisting> 
+	After this, you can run
+	<code>make config</code>, <code>make menuconfig</code>, or
+	<code>make xconfig</code>, whichever your preferred way of
+	configuring your kernel is, and enable DRBD for your build.
+	For the menu- or GUI-based configuration facilities, you will
+	find DRBD listed in the "Block devices" section.</para>
+      <para>After this, you can build your kernel as usual (<code>make
+	  bzImage</code> et al.), and the resulting kernel build will
+	include DRBD.</para>
+      <para>With this approach, you will need to build the DRBD
+	userspace management tools separately. This is done by
+	changing into the top-level directory of your unpacked DRBD
+	sources, and issuing the <command>make tools</command>
+	command: 
 	<programlisting>cd /usr/src/drbd-x.y.z 
+make tools</programlisting>
+      </para>
+    </section>
+  </section>
+  <section id="s-build-install">
+    <title>Installing DRBD</title>
+    <para>Provided you DRBD build completed successfully, you will be
+      able to install DRBD by issuing these commands:
+      <programlisting>cd /usr/src/drbd-x.y.z 
+make install</programlisting></para>
+    <para>If, however, you chose the build approach described in <xref
+      linkend="s-build-patch-kernel"/>, DRBD kernel functionality will
+      be enabled whenever you boot into your new kernel. In that case,
+      you only need to install DRBD's userspace components:
+      <programlisting>cd /usr/src/drbd-x.y.z 
+make install-tools</programlisting></para>
+    <para>In either case, then DRBD userspace management tools
+      (<filename>drbdadm</filename>, <filename>drbdsetup</filename>,
+      and <filename>drbdmeta</filename>) will now be installed in
+      <filename>/sbin</filename>.</para>
+    <para>Note that any kernel upgrade will require you to rebuild and
+      reinstall the DRBD kernel module to match the new kernel. The
+      DRBD userspace tools, in contrast, need only be rebuilt and
+      reinstalled when upgrading to a new DRBD version. If at any time
+      you upgrade to a new kernel <emphasis>and</emphasis> new DRBD
+      version, you will need to upgrade both components.</para>
+  </section>
+  <section id="s-build-rpm">
+    <title>Building a DRBD RPM package</title>
+    <para>The DRBD build system contains a facility to build RPM
+      packages directly out of the DRBD source tree. For building
+      RPMs, <xref linkend="s-build-prereq"/> applies essentially in
+      the same way as for building and installing with
+      <command>make</command>, except that you of course also need the
+      RPM build tools.</para>
+    <para>Also, see
+	<xref linkend="s-build-prepare-tree"/> if you are not building
+      against a running kernel with precompiled headers
+      available.</para>
+    <para>The build system offers two approaches for building RPMs.
+      The simpler approach is to simply invoke the <code>rpm</code>
+      target in the top-level Makefile: 
+      <programlisting>cd /usr/src/drbd-x.y.z 
 make rpm</programlisting> This approach
-	will auto-generate a spec file from a predefined template and
-	build a binary RPM package from it.</para>
-      <para>The other, more flexible approach is to copy the
-	<filename>drbd.spec.in</filename> file to
+      will auto-generate a spec file from a predefined template and
+      build a binary RPM package from it.</para>
+    <para>The other, more flexible approach is to copy the
+      <filename>drbd.spec.in</filename> file to
       <filename>drbd.spec</filename>, make any modifications you deem
       necessary, and manually invoke the RPM build process:
-	<programlisting>cd /usr/src/drbd-x.y.z
+      <programlisting>cd /usr/src/drbd-x.y.z 
 cp drbd.spec.in drbd.spec
-vi drbd.spec
-rpmbuild -bb drbd.spec</programlisting></para>
-      <para>The RPM build process will create two binary RPM packages:
+vi drbd.spec rpmbuild -bb drbd.spec</programlisting></para>
+    <para>The RPM build process will create two binary RPM packages:
 	<orderedlist>
-	  <listitem>
-	    <para>A package containing the DRBD userspace tools, named
-	      <filename>drbd-x.y.z-BUILD.ARCH.rpm</filename>;</para>
-	  </listitem>
-	  <listitem>
-	    <para>A separate package containing the DRBD kernel
-	      module, named
-	      <filename>drbd-km-KERNELVERSION-x.y.z-BUILD.ARCH.rpm</filename>.</para>
-	  </listitem>
+	<listitem>
+	  <para>A package containing the DRBD userspace tools, named
+	    <filename>drbd-x.y.z-BUILD.ARCH.rpm</filename>;</para>
+	</listitem>
+	<listitem>
+	  <para>A separate package containing the DRBD kernel module,
+	    named
+	    <filename>drbd-km-KERNELVERSION-x.y.z-BUILD.ARCH.rpm</filename>.</para>
+	</listitem>
 	</orderedlist>
-      </para>
-      <para>
-	If you chose the <command>make rpm</command> approach, you
-	will find these packages in the <filename>dist/RPMS</filename>
-	subdirectory of your DRBD source tree. If you hacked your own
-	spec file and then invoked <command>rpmbuild</command>, the
-	RPMs will be created wherever your system RPM configuration
-	(or your personal <filename>~/.rpmmacros</filename>)
-	dictates.</para>
-      <para>After you have created these packages, you can install,
-	upgrade, and uninstall them as you would any other RPM package
-	in your system.</para>
-      <para>Note that any kernel upgrade will require you to generate
-	a new <filename>drbd-km</filename> package to match the new
-	kernel. The <filename>drbd</filename> package, in contrast,
-	only need to be recreated when upgrading to a new DRBD
-	version. If at any time you upgrade to a new kernel
-	<emphasis>and</emphasis> new DRBD version, you will need to
-	upgrade both packages.</para>
-    </section>
-    <section id="s-build-deb">
-      <title>Building a DRBD Debian package</title>
-      <para>The DRBD build system contains a facility to build Debian
-	packages directly out of the DRBD source tree. For building
-	Debian packages, <xref linkend="s-build-prereq"/> applies essentially in
-	the same way as for building and installing with
-	<command>make</command>, except that you of course also need
-	the <filename>dpkg-dev</filename> package containing the
-	Debian packaging tools, and <filename>fakeroot</filename> if
-	you want to build DRBD as a non-<code>root</code> user (highly
-	recommended).</para>
-      <para>Also, see
+    </para>
+    <para>
+      If you chose the <command>make rpm</command> approach, you will
+      find these packages in the <filename>dist/RPMS</filename>
+      subdirectory of your DRBD source tree. If you hacked your own
+      spec file and then invoked <command>rpmbuild</command>, the RPMs
+      will be created wherever your system RPM configuration (or your
+      personal <filename>~/.rpmmacros</filename>) dictates.</para>
+    <para>After you have created these packages, you can install,
+      upgrade, and uninstall them as you would any other RPM package
+      in your system.</para>
+    <para>Note that any kernel upgrade will require you to generate a
+      new <filename>drbd-km</filename> package to match the new
+      kernel. The <filename>drbd</filename> package, in contrast, only
+      need to be recreated when upgrading to a new DRBD version. If at
+      any time you upgrade to a new kernel <emphasis>and</emphasis>
+      new DRBD version, you will need to upgrade both packages.</para>
+  </section>
+  <section id="s-build-deb">
+    <title>Building a DRBD Debian package</title>
+    <para>The DRBD build system contains a facility to build Debian
+      packages directly out of the DRBD source tree. For building
+      Debian packages, <xref linkend="s-build-prereq"/> applies
+      essentially in the same way as for building and installing with
+      <command>make</command>, except that you of course also need the
+      <filename>dpkg-dev</filename> package containing the Debian
+      packaging tools, and <filename>fakeroot</filename> if you want
+      to build DRBD as a non-<code>root</code> user (highly
+      recommended).</para>
+    <para>Also, see
 	<xref linkend="s-build-prepare-tree"/> if you are not building
-	against a running kernel with precompiled headers
-	available.</para>
-      <para>The DRBD source tree includes a
-      <filename>debian</filename> subdirectory containing the required
-      files for Debian packaging, so you can simply issue the
-      following commands to build DRBD Debian packages:<footnote>
+      against a running kernel with precompiled headers
+      available.</para>
+    <para>The DRBD source tree includes a <filename>debian</filename>
+      subdirectory containing the required files for Debian packaging,
+      so you can simply issue the following commands to build DRBD
+      Debian packages:<footnote>
 	<para>This (example) <command>drbd-buildpackage</command>
 	  invocation enables a binary-only build (<option>-b</option>)
 	  by a non-<code>root</code> user
@@ -343,39 +365,39 @@ rpmbuild -bb drbd.spec</programlisting></para>
 	  course, you may prefer other build options, see the
 	  <command>dpkg-buildpackage</command> man page for
 	  details.</para>
-	  </footnote>
-	<programlisting>cd /usr/src/drbd-x.y.z
+	  </footnote> <programlisting>cd /usr/src/drbd-x.y.z
 dpkg-buildpackage -rfakeroot -b -uc</programlisting></para>
-      <para>This build process will create two Debian packages:
+    <para>This build process will create two Debian packages:
 	<orderedlist>
-	  <listitem>
-	    <para>A package containing the DRBD userspace tools, named
-	      <filename>drbd8-utils_x.y.z-BUILD_ARCH.deb</filename>;</para>
-	  </listitem>
-	  <listitem>
-	    <para>A module source package suitable for <command>module-assistant</command> named
-	      <filename>drbd8-module-source_x.y.z-BUILD_all.deb</filename>.</para>
-	  </listitem>
+	<listitem>
+	  <para>A package containing the DRBD userspace tools, named
+	    <filename>drbd8-utils_x.y.z-BUILD_ARCH.deb</filename>;</para>
+	</listitem>
+	<listitem>
+	  <para>A module source package suitable for
+	    <command>module-assistant</command> named
+	    <filename>drbd8-module-source_x.y.z-BUILD_all.deb</filename>.</para>
+	</listitem>
 	</orderedlist>
-      </para>
-      <para>After you have created these packages, you can install,
-	upgrade, and uninstall them as you would any other Debian package
-	in your system.</para>
-      <para>Building and installing the actual kernel module from the
-	installed module source package is easily accomplished via
-	Debian's <command>module-assistant</command> facility:
-	<programlisting>module-assistant auto-install drbd8</programlisting>
-	You may also use the shorthand form
-	of the above command: 
-	<programlisting>m-a a-i drbd8</programlisting></para>
-      <para>Note that any kernel upgrade will require you to rebuild
-	the kernel module (with <command>module-assistant</command>,
-	as just described) to match the new kernel. The
-	<filename>drbd8-utils</filename> and
-	<filename>drbd8-module-source</filename> packages, in
-	contrast, only need to be recreated when upgrading to a new
-	DRBD version. If at any time you upgrade to a new kernel
-	<emphasis>and</emphasis> new DRBD version, you will need to
-	upgrade both packages.</para>
-    </section>
+    </para>
+    <para>After you have created these packages, you can install,
+      upgrade, and uninstall them as you would any other Debian
+      package in your system.</para>
+    <para>Building and installing the actual kernel module from the
+      installed module source package is easily accomplished via
+      Debian's <command>module-assistant</command> facility:
+      <programlisting>module-assistant auto-install drbd8</programlisting> 
+      You may also use the shorthand form of
+      the above command: 
+      <programlisting>m-a a-i drbd8</programlisting></para>
+    <para>Note that any kernel upgrade will require you to rebuild the
+      kernel module (with <command>module-assistant</command>, as just
+      described) to match the new kernel. The
+      <filename>drbd8-utils</filename> and
+      <filename>drbd8-module-source</filename> packages, in contrast,
+      only need to be recreated when upgrading to a new DRBD version.
+      If at any time you upgrade to a new kernel
+      <emphasis>and</emphasis> new DRBD version, you will need to
+      upgrade both packages.</para>
+  </section>
   </chapter>
