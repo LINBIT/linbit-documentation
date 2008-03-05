@@ -37,7 +37,11 @@
 	issues.</para>
 	<para>Also, DRBD does not support device stacking, meaning you
 	cannot use one DRBD device as a lower-level device for
-	another.</para>
+	another.<footnote>
+	  <para>DRBD+, a commercially-licensed DRBD extension, does
+	support resource stacking.</para>
+	</footnote>
+      </para>
       </note>
       <para>It is <emphasis>not</emphasis> necessary for this storage
       area to be empty before you create a DRBD resource from it. In
@@ -50,7 +54,7 @@
 	<itemizedlist>
 	  <listitem>
 	    <para>Both hosts have a free (currently unused) partition
-	      named <filename>/dev/hda7</filename>.</para>
+	      named <filename>/dev/sda7</filename>.</para>
 	  </listitem>
 	  <listitem>
 	    <para>We are using <link
@@ -75,6 +79,9 @@
 	</footnote> If and when you run DRBD over switches, use of
 	redundant components and the Linux <code>bonding</code> driver
 	(in <code>active-backup</code> mode) is recommended.</para>
+      <para>It is generally not recommended to run DRBD replication
+      via routers, for reasons of fairly obvious performance drawbacks
+      (adversely affecting both throughput and latency).</para>
       <para>In terms of local firewall considerations, it is important
 	to understand that DRBD (by convention) uses TCP ports from
 	7788 upwards, with every TCP resource listening on a separate,
@@ -93,7 +100,7 @@
       <para>You must, of course, also ensure that the TCP ports you
       will be using for DRBD are not already being used by another
       application.</para>
-      <para>For the purposes of this introductory howto, we assume a
+      <para>For the purposes of this introductory chapter, we assume a
 	very simple setup:
 	<itemizedlist>
 	  <listitem>
@@ -151,15 +158,15 @@ common {
   protocol C;
 }
 resource r0 {
-  on thost1 {
+  on alice {
     device    /dev/drbd1;
-    disk      /dev/hda7;
+    disk      /dev/sda7;
     address   10.1.1.31:7789;
     meta-disk internal;
   }
-  on thost2 {
+  on bob {
     device    /dev/drbd1;
-    disk      /dev/hda7;
+    disk      /dev/sda7;
     address   10.1.1.32:7789;
     meta-disk internal;
   }
@@ -180,12 +187,12 @@ resource r0 {
 	    </listitem>
 	    <listitem>
 	      <para>Our cluster consists of two nodes,
-		<code>thost1</code> and <code>thost2</code>.</para>
+		<code>alice</code> and <code>bob</code>.</para>
 	    </listitem>
 	    <listitem>
 	      <para>We have a resource arbitrarily named
 		<code>r0</code> which uses
-		<filename>/dev/hda7</filename> as the lower-level
+		<filename>/dev/sda7</filename> as the lower-level
 		device, and TCP port 7789 for its network connections.
 		This resource uses <link
 		  linkend="s-internal-meta-data">internal meta
@@ -257,12 +264,12 @@ resource r0 {
 	<programlisting>
 resource r0 {
   device    /dev/drbd1;
-  disk      /dev/hda7;
+  disk      /dev/sda7;
   meta-disk internal;
-  on thost1 {
+  on alice {
     address   10.1.1.31:7789;
   }
-  on thost2 {
+  on bob {
     address   10.1.1.32:7789;
   }
 }
