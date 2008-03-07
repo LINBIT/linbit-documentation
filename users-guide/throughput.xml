@@ -98,19 +98,77 @@
     <section>
       <title>Setting <code>max-buffers</code> and
       <code>max-epoch-size</code></title>
-      <para><xi:include href="todo.xml"/></para>
+      <para>These options affect write performance on the secondary
+	node. <option>max-buffers</option> is the maximum number of
+	buffers DRBD allocates for writing data to disk while
+	<option>max-epoch-size</option> is the maximum number of write
+	requests permitted between two write barriers. Under most
+	circumstances, these two options should be set in parallel,
+	and to identical values. The default for both is 2048; setting
+	it to around 8000 should be fine for most reasonably
+	high-performance hardware RAID controllers.</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  net {
+    max-buffers 8000;
+    max-epoch-size 8000;
+    ...
+  }
+  ...
+}</programlisting>
     </section>
     <section>
       <title>Tweaking the I/O unplug watermark</title>
-      <para><xi:include href="todo.xml"/></para>
+      <para>The I/O unplug watermark is a measure affects how often
+	the I/O subsystem's controller is <quote>kicked</quote>
+	(forced to process pending I/O requests) during normal
+	operation. There is no universally recommended setting for
+	this option; this is greatly hardware dependent.</para>
+      <para>Some controllers perform best when <quote>kicked</quote>
+	frequently, so for these controllers it makes sense to set
+	this fairly low, perhaps even as low as DRBD's allowable
+	minimum (16). Others perform best when left alone; for these
+	controllers a setting as high as <option>max-buffers</option>
+	is advisable.</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  net {
+    unplug-watermark 16;
+    ...
+  }
+  ...
+}</programlisting>
     </section>
     <section>
       <title>Tuning the TCP send buffer size</title>
-      <para><xi:include href="todo.xml"/></para>
+      <para>The TCP send buffer is a memory buffer for outgoing TCP
+	traffic. By default, it is set to a size of 128 KiB. For use
+	in high-throughput networks (such as dedicated Gigabit
+	Ethernet or load-balanced bonded connections), it may make
+	sense to increase this to a size of 512 KiB, or perhaps even
+	more. Send buffer sizes of more than 2 MiB are generally not
+	recommended (and are also unlikely to produce any throughput
+	improvement).</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  net {
+    sndbuf-size 512k;
+    ...
+  }
+  ...
+}</programlisting>
     </section>
     <section>
       <title>Tuning the Activity Log size</title>
-      <para><xi:include href="todo.xml"/></para>
+      <para>If the application using DRBD is write intensive in the
+      sense that it frequently issues small writes scattered across
+      the device, it is usually advisable to use a fairly large
+      activity log. Otherwise, frequent metadata updates may be
+      detrimental to write performance.</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  syncer {
+    al-extents 3389;
+    ...
+  }
+  ...
+}</programlisting>
     </section>
   </section>
 </chapter>
