@@ -1,19 +1,33 @@
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
 <chapter id="ch-lvm">
-    <title>Managing LVM volumes on DRBD</title>
-    <para>This chapter deals with managing DRBD on top of
-      LVM2,<footnote>
-	<para>LVM2 is an implementation of logical volume management
-	  in the context of the Linux device mapper framework. It has
-	  practically nothing in common, other than the name and
-	  acronym, with the original LVM implementation. The old
-	  implementation (now retroactively named "LVM1") is
-	  considered obsolete; it is not covered in this
-	  section.</para>
-      </footnote> in particular, using DRBD resources as Physical
-      Volumes and creating Logical Volumes in their context (if you
-      are unfamiliar with these terms, see <xref
-	linkend="s-lvm-primer"/>).</para>
+  <title>Using DRBD with LVM</title>
+  <para>This chapter deals with managing DRBD in conjunction with
+    LVM2.<footnote>
+      <para>LVM2 is an implementation of logical volume management in
+	the context of the Linux device mapper framework. It has
+	practically nothing in common, other than the name and
+	acronym, with the original LVM implementation. The old
+	implementation (now retroactively named "LVM1") is considered
+	obsolete; it is not covered in this section.</para>
+      </footnote> In particular, it covers
+    <itemizedlist>
+      <listitem>
+	<para>using LVM Logical Volumes as backing devices for
+	  DRBD;</para>
+      </listitem>
+      <listitem>
+	<para>using DRBD devices as Physical Volumes for LVM;</para>
+      </listitem>
+      <listitem>
+	<para>combining these to concepts to implement a layered LVM
+	  approach using DRBD.</para>
+      </listitem>
+    </itemizedlist></para>
+  <para>If you happen to be unfamiliar with these terms to begin with,
+    <xref linkend="s-lvm-primer"/> may serve as your LVM starting
+    point &mdash; although you are always encouraged, of course, to
+    familiarize yourself with LVM in some more detail than this
+    section provides.</para>
     <section id="s-lvm-primer">
       <title>LVM primer</title>
       <para>When working with LVM, it is important to understand its
@@ -78,6 +92,42 @@
 	</figure>
       </para>
     </section>
+  <section id="s-lvm-lv-as-drbd">
+    <title>Using a Logical Volume as a DRBD backing device</title>
+    <para>Since an existing Logical Volume is simply a block device in
+      Linux terms, you may of course use it as a DRBD backing device.
+      To use LV's in this manner, you simply create them, and then
+      initialize them for DRBD as you normally would.</para>
+    <para>This example assumes that a Volume Group named
+      <code>drbd</code> already exists on both nodes of on your
+      LVM-enabled system, and that you wish to create a DRBD resource
+      named <code>r0</code> using a Logical Volume in that Volume
+      Group</para>
+    <para>First, you create the Logical Volume:
+      <literallayout><userinput>lvcreate --name r0 --size 10G drbd</userinput>
+<computeroutput>  Logical volume "r0" created</computeroutput></literallayout>
+      Of course, you must complete this command on both nodes of
+      your DRBD cluster. After this, you should have a block device
+      named <filename>/dev/drbd/r0</filename> on either node. </para>
+    <para>Then, you can simply enter the newly-created volumes in your
+      resource configuration:
+      <programlisting>resource r0 {
+  ...
+  on alice {
+    device /dev/drbd0;
+    disk   /dev/drbd/r0;
+    ...
+  }
+  on bob {
+    device /dev/drbd0;
+    disk   /dev/drbd/r0;
+    ...
+  }
+}</programlisting></para>
+    <para>Now you can <link linkend="s-first-time-up">continue to
+	bring your resource</link>, just as you would if you were
+      using non-LVM block devices.</para>
+  </section>
     <section id="s-lvm-drbd-as-pv">
       <title>Configuring a DRBD resource as a Physical Volume</title>
       <para>In order to prepare a DRBD resource for use as a Physical
@@ -201,7 +251,7 @@
 	  <para>Now you may create your Logical Volume to be used as
 	    DRBD's backing device:
 	    <literallayout><userinput>lvcreate --name r0 --size 10G local</userinput>
-<computeroutput>  Logical volume "local" created</computeroutput></literallayout>
+<computeroutput>  Logical volume "r0" created</computeroutput></literallayout>
 	</para>
 	</listitem>
       <listitem>
