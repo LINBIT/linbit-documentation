@@ -47,7 +47,7 @@
     <formalpara id="fp-protocol-a">
       <title>Protocol A</title>
       <para>Asynchronous replication protocol. Local write operations
-	on the Primary node are considered completed as soon as the
+	on the primary node are considered completed as soon as the
 	local disk write has occurred, and the replication packet has
 	been placed in the local TCP send buffer. In the event of
 	forced fail-over, data loss may occur. The data on the standby
@@ -57,23 +57,24 @@
     <formalpara id="fp-protocol-b">
       <title>Protocol B</title>
       <para>Memory synchronous replication protocol. Local write
-	operations on the Primary node are considered completed as
+	operations on the primary node are considered completed as
 	soon as the local disk write has occurred, and the replication
-	packet has reached the peer node. No writes are lost in case
-	of forced fail-over. However, in the event of simultaneous
-	power failure on both nodes and concurrent, irreversible
-	destruction of the Primary's data store, the most recent
-	writes completed on the Primary may be lost.</para> 
+	packet has reached the peer node. Normally, no writes are lost
+	in case of forced fail-over. However, in the event of
+	simultaneous power failure on both nodes and concurrent,
+	irreversible destruction of the primary's data store, the most
+	recent writes completed on the primary may be lost.</para> 
     </formalpara>
     <formalpara id="fp-protocol-c">
       <title>Protocol C</title>
       <para>Synchronous replication protocol. Local write operations
-	on the Primary node are considered completed only after both
+	on the primary node are considered completed only after both
 	the local and the remote disk write have been confirmed. As a
 	result, loss of a single node is guaranteed not to lead to any
 	data loss. Data loss is, of course, inevitable even with this
-	replication protocol if both nodes are irreversibly destroyed
-	at the same time.</para>
+	replication protocol if both nodes (or their storage
+	subsystems) are irreversibly destroyed at the same
+	time.</para>
     </formalpara>
     <para>By far, the most commonly used replication protocol in DRBD
       setups is protocol C.</para>
@@ -131,10 +132,17 @@
   </section>
   <section id="s-online-verify">
     <title>On-line device verification</title>
-    <subtitle>Available in DRBD 8.2.4 and later</subtitle>
+    <subtitle>Available in DRBD 8.2.5 and later</subtitle>
     <para>On-line device verification enables users to do a
       block-by-block data integrity check between nodes in a very
-      efficient manner.</para>
+      efficient manner.<footnote>
+	<para>Note that <quote>efficient</quote> refers to efficient
+	  use of network bandwidth here, and to the fact that
+	  verification does not break redundancy in any way. On-line
+	  verification is still a resource-intensive operation, with a
+	  noticeable impact on CPU utilization and load
+	  average.</para>
+      </footnote></para>
     <para>It works by one node (the <emphasis>verification
 	source</emphasis>) sequentially calculating a cryptographic
       digest<footnote>
