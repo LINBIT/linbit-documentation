@@ -13,6 +13,9 @@
   </para>
   <section id="s-single-primary-mode">
     <title>Single-primary mode</title>
+    <indexterm>
+      <primary>single-primary mode</primary>
+    </indexterm>
     <para>In single-primary mode, any <link
 	linkend="s-resources">resource</link> is, at any given time,
       in the primary role on only one cluster member. Since it is thus
@@ -25,6 +28,9 @@
     </section>
   <section id="s-dual-primary-mode">
     <title>Dual-primary mode</title>
+    <indexterm>
+      <primary>dual-primary mode</primary>
+    </indexterm>
     <subtitle>Available in DRBD 8.0 and later</subtitle>
     <para>In dual-primary mode, any resource is, at any given time, in
       the primary role on both cluster nodes. Since concurrent access
@@ -46,6 +52,10 @@
       three degrees of replication synchronicity.</para>
     <formalpara id="fp-protocol-a">
       <title>Protocol A</title>
+      <indexterm>
+	<primary>replication mode</primary>
+	<secondary>asynchronous</secondary>
+      </indexterm>
       <para>Asynchronous replication protocol. Local write operations
 	on the primary node are considered completed as soon as the
 	local disk write has occurred, and the replication packet has
@@ -56,6 +66,10 @@
     </formalpara>
     <formalpara id="fp-protocol-b">
       <title>Protocol B</title>
+      <indexterm>
+	<primary>replication mode</primary>
+	<secondary>semi-synchronous</secondary>
+      </indexterm>
       <para>Memory synchronous replication protocol. Local write
 	operations on the primary node are considered completed as
 	soon as the local disk write has occurred, and the replication
@@ -67,6 +81,10 @@
     </formalpara>
     <formalpara id="fp-protocol-c">
       <title>Protocol C</title>
+      <indexterm>
+	<primary>replication mode</primary>
+	<secondary>synchronous</secondary>
+      </indexterm>
       <para>Synchronous replication protocol. Local write operations
 	on the primary node are considered completed only after both
 	the local and the remote disk write have been confirmed. As a
@@ -91,6 +109,13 @@
   </section>
   <section id="s-resync">
     <title>Efficient re-synchronization</title>
+    <indexterm>
+      <primary>synchronization</primary>
+    </indexterm>
+    <indexterm>
+      <primary>resynchronization</primary>
+      <see>synchronization</see>
+    </indexterm>
     <para>(Re-)synchronization is distinct from device replication.
       While replication occurs on any write event to a resource in the
       primary role, synchronization is decoupled from incoming writes.
@@ -115,6 +140,13 @@
 	    on-disk block layout.</para>
 	</listitem>
 	<listitem>
+	  <indexterm>
+	    <primary>disk state</primary>
+	    <secondary>inconsistent</secondary>
+	  </indexterm>
+	  <indexterm>
+	    <primary>inconsistent (disk state)</primary>
+	  </indexterm>
 	  <para>During re-synchronization, the data set on the standby
 	    node is partly obsolete and partly already updated. This
 	    state of data is called
@@ -128,6 +160,10 @@
       background re-synchronization is in progress.</para>
     <para>You may estimate the expected resync time based on the
       following simple formula:
+      <indexterm>
+	<primary>synchronization</primary>
+	<secondary>estimating duration</secondary>
+      </indexterm>
       <equation id="eq-resync-time">
 	<title>Re-synchronization time</title>
 	<alt>\[t_{sync}=\frac{D}{R}\]</alt>
@@ -147,6 +183,13 @@
   </section>
   <section id="s-online-verify">
     <title>On-line device verification</title>
+    <indexterm>
+      <primary>on-line device verification</primary>
+    </indexterm>
+    <indexterm>
+      <primary>device verification</primary>
+      <see>on-line device verification</see>
+    </indexterm>
     <subtitle>Available in DRBD 8.2.5 and later</subtitle>
     <para>On-line device verification enables users to do a
       block-by-block data integrity check between nodes in a very
@@ -189,6 +232,13 @@
   </section>
   <section id="s-integrity-check">
     <title>Replication traffic integrity checking</title>
+    <indexterm>
+      <primary>replication traffic integrity checking</primary>
+    </indexterm>
+    <indexterm>
+      <primary>data integrity checksums</primary>
+      <see>replication traffic integrity checking</see>
+    </indexterm>
     <subtitle>Available in DRBD 8.2.0 and later</subtitle>
     <para>DRBD optionally performs end-to-end message integrity
       checking using cryptographic message digest algorithms such as
@@ -236,6 +286,10 @@
   </section>
   <section id="s-auto-split-brain-recovery">
     <title>Automatic split brain recovery</title>
+    <indexterm>
+      <primary>split brain</primary>
+      <secondary>automatic recovery</secondary>
+    </indexterm>
     <subtitle>Available in DRBD 8.0 and later<footnote>
 	<para>In fact, automatic split brain recovery was available in
 	  DRBD 0.7, albeit using only the <quote>discard modifications
@@ -243,21 +297,21 @@
 	  configurable. Automatic split brain recovery is disabled by
 	  default from DRBD 8 onwards.</para>
       </footnote>
-</subtitle>
-    <para><emphasis>Split brain</emphasis> is a situation where, due
-      to temporary failure of all network links between cluster nodes,
-      and possibly due to intervention by a cluster management
-      software or human error, both nodes switched to the primary role
-      while disconnected. This is a potentially harmful state, as it
-      implies that modifications to the data might have been made on
-      either node, without have been replicated to the peer. Thus, it
-      is likely in this situation that two diverging sets of data have
-      been created, which cannot be trivially merged.</para>
+    </subtitle>
+    <para>Split brain is a situation where, due to temporary failure
+      of all network links between cluster nodes, and possibly due to
+      intervention by a cluster management software or human error,
+      both nodes switched to the primary role while disconnected. This
+      is a potentially harmful state, as it implies that modifications
+      to the data might have been made on either node, without have
+      been replicated to the peer. Thus, it is likely in this
+      situation that two diverging sets of data have been created,
+      which cannot be trivially merged.</para>
     <para>While the recommended course of action in this scenario is
-      to manually resolve the split brain and then eliminating its
-      root cause, it may be desirable, in some cases, to automate the
-      process. DRBD has several resolution algorithms available for
-      doing so:
+      to <link linkend="s-resolve-split-brain">manually resolve the
+	split brain</link> and then eliminate its root cause, it may
+      be desirable, in some cases, to automate the process. DRBD has
+      several resolution algorithms available for doing so:
       <itemizedlist>
 	<listitem>
 	  <formalpara>
@@ -283,7 +337,8 @@
 	</listitem>
 	<listitem>
 	  <formalpara>
-	    <title>Discarding modifications on the primary with fewer changes</title>
+	    <title>Discarding modifications on the primary with fewer
+	      changes</title>
 	    <para>In this mode, DRBD will check which of the two nodes
 	      has recorded fewer modifications, and will then discard
 	      <emphasis>all</emphasis> modifications made on that
@@ -309,6 +364,11 @@
       </itemizedlist>
     </para>
     <caution>
+      <indexterm>
+	<primary>split brain</primary>
+	<secondary>automatic recovery</secondary>
+	<tertiary>caveats</tertiary>
+      </indexterm>
       <para>Whether or not automatic split brain recovery is
 	acceptable depends largely on the individual application.
 	Consider the example of DRBD hosting a database. The
@@ -324,9 +384,16 @@
   </section>
   <section id="s-handling-disk-errors">
     <title>Disk error handling strategies</title>
-        <para>If a hard drive that is used as a backing block device
-      for DRBD on one of the nodes fails, DRBD may either pass on the
-      I/O error to the upper layer (usually the file system) or it can
+    <indexterm>
+      <primary>disk errors</primary>
+      <seealso>I/O errors</seealso>
+    </indexterm>
+    <indexterm>
+      <primary>I/O errors</primary>
+    </indexterm>
+    <para>If a hard drive that is used as a backing block device for
+      DRBD on one of the nodes fails, DRBD may either pass on the I/O
+      error to the upper layer (usually the file system) or it can
       hide I/O errors from upper layers.</para>
     <formalpara id="fp-io-error-pass-on">
       <title>Passing on I/O errors</title>
@@ -360,6 +427,20 @@
   </section>
   <section id="s-outdate">
     <title>Dealing with outdated data</title>
+    <indexterm>
+      <primary>disk state</primary>
+      <secondary>outdated</secondary>
+    </indexterm>
+    <indexterm>
+      <primary>outdated (disk state)</primary>
+    </indexterm>
+    <indexterm>
+      <primary>disk state</primary>
+      <secondary>inconsistent</secondary>
+    </indexterm>
+    <indexterm>
+      <primary>inconsistent (disk state)</primary>
+    </indexterm>
     <para>DRBD distinguishes between <emphasis>inconsistent</emphasis>
       and <emphasis>outdated</emphasis> data. Inconsistent data is
       data that cannot be expected to be accessible and useful in any
