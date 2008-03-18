@@ -108,7 +108,7 @@
       configuration.</para>
   </section>
   <section id="s-resync">
-    <title>Efficient re-synchronization</title>
+    <title>Efficient synchronization</title>
     <indexterm>
       <primary>synchronization</primary>
     </indexterm>
@@ -121,21 +121,21 @@
       primary role, synchronization is decoupled from incoming writes.
       Rather, it affects the device as a whole.</para>
     <para>
-      Re-synchronization is necessary if the replication link has been
+      Synchronization is necessary if the replication link has been
       interrupted for any reason, be it due to failure of the primary
       node, failure of the secondary node, or interruption of the
-      replication link. Re-synchronization is efficient in the sense
-      that DRBD does not re-synchronize modified blocks in the order
+      replication link. Synchronization is efficient in the sense
+      that DRBD does not synchronize modified blocks in the order
       they were originally written, but in linear order, which has the
       following consequences:
       <itemizedlist>
 	<listitem>
-	  <para>Re-synchronization is fast, since blocks in which
+	  <para>Synchronization is fast, since blocks in which
 	    several successive write operations occurred are only
 	    synchronized once.</para>
 	</listitem>
 	<listitem>
-	  <para>Re-synchronization is also associated with few disk
+	  <para>Synchronization is also associated with few disk
 	    seeks, as blocks are synchronized according to the natural
 	    on-disk block layout.</para>
 	</listitem>
@@ -147,7 +147,7 @@
 	  <indexterm>
 	    <primary>inconsistent (disk state)</primary>
 	  </indexterm>
-	  <para>During re-synchronization, the data set on the standby
+	  <para>During synchronization, the data set on the standby
 	    node is partly obsolete and partly already updated. This
 	    state of data is called
 	    <emphasis>inconsistent</emphasis>.</para></listitem>
@@ -157,29 +157,29 @@
       operation, thus it is desirable to keep the time period during
       which a node is inconsistent as short as possible. The service
       continues to run uninterrupted on the active node, while
-      background re-synchronization is in progress.</para>
-    <para>You may estimate the expected resync time based on the
+      background synchronization is in progress.</para>
+    <para>You may estimate the expected sync time based on the
       following simple formula:
       <indexterm>
 	<primary>synchronization</primary>
 	<secondary>estimating duration</secondary>
       </indexterm>
       <equation id="eq-resync-time">
-	<title>Re-synchronization time</title>
+	<title>Synchronization time</title>
 	<alt>\[t_{sync}=\frac{D}{R}\]</alt>
 	<graphic fileref="resync-time"/>
       </equation>
       <replaceable>t<subscript>sync</subscript></replaceable> is the
-      expected resync time. <replaceable>D</replaceable> is the amount
+      expected sync time. <replaceable>D</replaceable> is the amount
       of data to be synchronized, which you are unlikely to have any
       influence over (this is the amount of data that was modified by
       your application while the replication link was broken).
-      <replaceable>R</replaceable> is the rate of re-synchronization,
+      <replaceable>R</replaceable> is the rate of synchronization,
       which is configurable &mdash; bounded by the throughput
       limitations of the replication network and I/O subsystem.</para>
     <para>See <xref linkend="s-configure-syncer-rate"/> for
       configuration suggestions with respect to
-      re-synchronization.</para>
+      synchronization.</para>
   </section>
   <section id="s-online-verify">
     <title>On-line device verification</title>
@@ -214,7 +214,7 @@
       peer node (the <emphasis>verification target</emphasis>), where
       it is checked against a digest of the local copy of the affected
       block. If the digests do not match, the block is marked
-      out-of-sync and may later be resynchronized. Because DRBD
+      out-of-sync and may later be synchronized. Because DRBD
       transmits just the digests, not the full blocks, on-line
       verification uses network bandwidth very efficiently.</para>
     <para>The process is termed <emphasis>on-line</emphasis>
@@ -223,7 +223,7 @@
       though it does carry a slight performance penalty while it is
       running, on-line verification does not cause service
       interruption or system down time &mdash; neither during the
-      verification run nor during subsequent resynchronization.</para>
+      verification run nor during subsequent synchronization.</para>
     <para>It is a common use case to have on-line verification managed
       by the local <code>cron</code> daemon, running it, for example,
       one a week or once a month.</para>

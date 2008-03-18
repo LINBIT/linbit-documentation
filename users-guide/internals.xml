@@ -488,11 +488,11 @@
 		implies that while the two data sets share a common
 		ancestor, and the local node has the up-to-date data,
 		the information kept in the local node's bitmap is
-		outdated and not useable. Thus, a normal resync would
-		be insufficient. DRBD now marks the entire device as
-		out-of-sync and initiates a full background
-		re-synchronization, with the local node becoming the
-		synchronization source.
+		outdated and not useable. Thus, a normal
+		synchronization would be insufficient. DRBD now marks
+		the entire device as out-of-sync and initiates a full
+		background re-synchronization, with the local node
+		becoming the synchronization source.
 	      </para>
 	    </formalpara>
 	    <para>In the opposite case (one of the local node's
@@ -561,7 +561,7 @@
       <para>If, at this moment, the active node fails and fail-over is
 	being initiated, the data block that did not make it to the
 	peer prior to the crash has to be removed from the data set of
-	the node during subsequent resynchronisation. Otherwise, the
+	the node during subsequent synchronisation. Otherwise, the
 	crashed node would be "one write ahead" of the surviving node,
 	which would violate the <phrase>all or nothing</phrase>
 	principle of replicated storage.<footnote>
@@ -581,9 +581,9 @@
       </footnote> Colloquially, these areas are referred to as
 	<phrase>hot extents</phrase>.</para>
       <para>If a temporarily failed node that was in active mode at
-	the time of failure is resynchronized, only those hot extents
+	the time of failure is synchronized, only those hot extents
 	highlighted in the AL need to be synchronized, rather than the
-	full device. This drastically reduces resynchronization time
+	full device. This drastically reduces synchronization time
 	after an active node crash.</para>
     </section>
     <section id="s-active-extents">
@@ -615,7 +615,7 @@
 	    <formalpara>
 	      <title>Few active extents</title>
 	      <para>Keeping a small activity log reduces
-		resynchronization time after active node failure and
+		synchronization time after active node failure and
 		subsequent recovery.</para>
 	    </formalpara>
 	  </listitem>
@@ -628,30 +628,30 @@
 	<secondary>size</secondary>
       </indexterm>
       <para> The definition of the number of extents should be based
-	on the desired resynchronisation time at a given
-	resynchronization rate. The number of active extents can be
-	calculated as follows:</para>
+	on the desired synchronisation time at a given synchronization
+	rate. The number of active extents can be calculated as
+	follows:</para>
       <equation id="eq-al-extents">
-	<title>Active extents calculation based on resync rate and
-	  target resync time</title>
+	<title>Active extents calculation based on sync rate and
+	  target sync time</title>
 	<alt>\[E=\frac{R\cdot t_{sync}}4\]</alt>
 	<graphic fileref="al-extents"/>
       </equation>
-      <para><replaceable>R</replaceable> is the resynchronization
+      <para><replaceable>R</replaceable> is the synchronization
 	rate, given in MB/s.
 	<replaceable>t<subscript>sync</subscript></replaceable> is the
-	target resynchronization time, in seconds.
+	target synchronization time, in seconds.
 	<replaceable>E</replaceable> is the resulting number of active
 	extents.</para>
       <para>To provide an example, suppose our cluster has an I/O
 	subsystem with a throughput rate of 90 MiByte/s that was
-	configured to a resynchronisation rate of 30 MiByte/s
+	configured to a synchronization rate of 30 MiByte/s
 	(<replaceable>R</replaceable>=30), and we want to keep our
-	target resynchronization time at 4 minutes or 240 seconds
+	target synchronization time at 4 minutes or 240 seconds
 	(<replaceable>t<subscript>sync</subscript></replaceable>=240):</para>
       <equation id="eq-al-extents-example">
-	<title>Active extents calculation based on resync rate and
-	  target resync time (example)</title>
+	<title>Active extents calculation based on sync rate and
+	  target sync time (example)</title>
 	<alt>\[E=\frac{30\cdot240}{4}=1800\approx1801\]</alt>
 	<graphic fileref="al-extents-example"/>
       </equation>
