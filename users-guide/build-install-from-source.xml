@@ -3,6 +3,10 @@
   <title>Building and installing DRBD from source</title>
   <section id="s-downloading-drbd-sources">
     <title>Downloading the DRBD sources</title>
+    <indexterm>
+      <primary>source tarballs</primary>
+      <secondary>downloading</secondary>
+    </indexterm>
     <para>The source tarballs for both current and historic DRBD
       releases are available for download from <ulink
 	url="http://oss.linbit.com/drbd/"/>.<footnote>
@@ -23,8 +27,8 @@
 	  source tarball is purely an example. Of course, you may use
 	  any downloader you prefer.</para>
 	</footnote> 
-      <programlisting>wget http://oss.linbit.com/drbd/drbd-8.2.4.tar.gz 
-tar -xzf drbd-8.2.4.tar.gz</programlisting></para>
+      <programlisting>wget http://oss.linbit.com/drbd/drbd-8.2.5.tar.gz 
+tar -xzf drbd-8.2.5.tar.gz</programlisting></para>
     <para>It is recommended to uncompress DRBD into a directory
       normally used for keeping source code, such as
       <filename>/usr/src</filename> or
@@ -39,6 +43,9 @@ tar -xzf drbd-8.2.4.tar.gz</programlisting></para>
 	host must fulfill the following prerequisites:</para>
       <itemizedlist>
 	<listitem>
+	  <indexterm>
+	    <primary>build dependencies</primary>
+	  </indexterm>
 	  <para><code>make</code>, <code>gcc</code>, the glibc
 	    development libraries, and the <code>flex</code> scanner
 	    must be installed.</para>
@@ -73,15 +80,15 @@ tar -xzf drbd-8.2.4.tar.gz</programlisting></para>
 	    <code>kernel-source</code><footnote>
 	      <para>Note that on RPM-based systems, these packages
 		will be named similar to
-		<filename>kernel-source-VERSION.rpm</filename>, which
+		<filename>kernel-source-<replaceable>version</replaceable>.rpm</filename>, which
 		is easily confused with
-		<filename>kernel-VERSION.src.rpm</filename>. The
+		<filename>kernel-<replaceable>version</replaceable>.src.rpm</filename>. The
 		former is the correct package to install for building
 		DRBD.</para></footnote> or similar. </para>
 	  <para>"Vanilla" kernel tarballs from the kernel.org archive
-	    are simply named linux-KERNELVERSION-tar.bz2 and should be
+	    are simply named linux-<replaceable>version</replaceable>-tar.bz2 and should be
 	    unpacked in
-	    <filename>/usr/src/linux-KERNELVERSION</filename>, with
+	    <filename>/usr/src/linux-<replaceable>version</replaceable></filename>, with
 	    the symlink <filename>/usr/src/linux</filename> pointing
 	    to that directory. </para>
 	  <para>In this case of building DRBD against kernel sources
@@ -95,9 +102,10 @@ tar -xzf drbd-8.2.4.tar.gz</programlisting></para>
       <para>To prepare your source tree for building DRBD, you must
 	first enter the directory where your unpacked kernel sources
 	are located. Typically this is
-	<filename>/usr/src/linux-VERSION</filename>, or simply a
-	symbolic link named <filename>/usr/src/linux</filename>:
-	<programlisting>cd /usr/src/linux</programlisting></para>
+	<filename>/usr/src/linux-<replaceable>version</replaceable></filename>, 
+	or simply a symbolic link named
+	<filename>/usr/src/linux</filename>: <programlisting>cd
+	  /usr/src/linux</programlisting></para>
       <para>The next step is recommended, though not strictly
 	necessary. It essentially reverts your kernel source tree to
 	its original state, removing any leftovers from an earlier
@@ -137,6 +145,9 @@ tar -xzf drbd-8.2.4.tar.gz</programlisting></para>
     </section>
     <section id="s-build-compile-kernel-module">
       <title>Compiling DRBD as a kernel module</title>
+      <indexterm>
+	<primary>kernel module</primary>
+      </indexterm>
       <para>
 	<note>
 	  <para>This section only applies to building DRBD as a
@@ -162,8 +173,8 @@ make clean all</programlisting></para>
       </section>
       <section id="s-build-against-kernel-headers">
 	<title>Building against precompiled kernel headers</title>
-	<para>If the <filename>/lib/modules/`uname
-	    -r`/build</filename> symlink does not exist, and you are
+	<para>If the <filename>/lib/modules/`uname -r`/build</filename> 
+	  symlink does not exist, and you are
 	  building against a running stock kernel (one that was
 	  shipped pre-compiled with your distribution), you may also
 	  set the <varname>KDIR</varname> variable to point to the
@@ -171,7 +182,7 @@ make clean all</programlisting></para>
 	  kernel sources) directory. Note that besides the actual
 	  kernel headers &mdash; commonly found in
 	  <filename>/usr/src/linux-<replaceable>version</replaceable>/include</filename> 
-	  &mdash;	the DRBD build process also looks for the
+	  &mdash; the DRBD build process also looks for the
 	  kernel Makefile and configuration file
 	  (<filename>.config</filename>), which pre-built kernel
 	  headers packages commonly include. To build against
@@ -216,6 +227,9 @@ make CC=gcc32</programlisting></para>
     </section>
     <section id="s-build-patch-kernel">
       <title>Patching DRBD into the kernel</title>
+      <indexterm>
+	<primary>kernel patch</primary>
+      </indexterm>
       <note>
 	<para>This section only applies to building DRBD into a kernel
 	  image, as opposed to compiling it as a loadable module. Only
@@ -231,7 +245,7 @@ make CC=gcc32</programlisting></para>
 make clean 
 make KDIR=/usr/src/linux kernel-patch</programlisting> 
 	This command will create a file named
-	<filename>patch-linux-KERNELVERSION-drbd-DRBDVERSION</filename>.</para>
+	<filename>patch-linux-<replaceable>version</replaceable>-drbd-<replaceable>version</replaceable></filename>.</para>
       <para>You may review this patch and then apply it to your kernel
 	source tree, by issuing the following commands:<footnote> 
 	    <para>This example, as all others in this section, assume
@@ -243,7 +257,7 @@ make KDIR=/usr/src/linux kernel-patch</programlisting>
 	      <filename>/usr/src/linux</filename>.</para>
 	  </footnote>
 	<programlisting>cd /usr/src/linux 
-patch -p1 &lt; /usr/src/drbd-DRBDVERSION/patch-linux-KERNELVERSION-drbd-DRBDVERSION</programlisting> 
+patch -p1 &lt; /usr/src/drbd-<replaceable>version</replaceable>/patch-linux-<replaceable>version</replaceable>-drbd-<replaceable>version</replaceable></programlisting> 
 	After this, you can run
 	<code>make config</code>, <code>make menuconfig</code>, or
 	<code>make xconfig</code>, whichever your preferred way of
@@ -322,7 +336,7 @@ vi drbd.spec rpmbuild -bb drbd.spec</programlisting></para>
 	<listitem>
 	  <para>A separate package containing the DRBD kernel module,
 	    named
-	    <filename>drbd-km-KERNELVERSION-x.y.z-BUILD.ARCH.rpm</filename>.</para>
+	    <filename>drbd-km-<replaceable>version</replaceable>-x.y.z-BUILD.ARCH.rpm</filename>.</para>
 	</listitem>
 	</orderedlist>
     </para>
@@ -406,4 +420,4 @@ dpkg-buildpackage -rfakeroot -b -uc</programlisting></para>
       <emphasis>and</emphasis> new DRBD version, you will need to
       upgrade both packages.</para>
   </section>
-  </chapter>
+</chapter>

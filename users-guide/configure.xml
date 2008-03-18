@@ -1,157 +1,184 @@
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
-  <chapter id="ch-configure">
-    <title>Configuring DRBD</title>
-    <section id="s-prepare-storage">
-      <title>Preparing your lower-level storage</title>
-      <para>After you have installed DRBD, you must set aside a
-	roughly identically sized storage area on both cluster nodes.
-	This will become the <emphasis>lower-level device</emphasis>
-	for your DRBD resource. You may use any type of block device
-	found on your system for this purpose. Typical examples
-	include:
+<chapter id="ch-configure">
+  <title>Configuring DRBD</title>
+  <section id="s-prepare-storage">
+    <title>Preparing your lower-level storage</title>
+    <para>After you have installed DRBD, you must set aside a roughly
+      identically sized storage area on both cluster nodes. This will
+      become the <emphasis>lower-level device</emphasis> for your DRBD
+      resource. You may use any type of block device found on your
+      system for this purpose. Typical examples include:
 	<itemizedlist>
-	  <listitem>
-	    <para>A hard drive partition (or a full physical hard
-	      drive),</para>
-	  </listitem>
-	  <listitem>
-	    <para>a software RAID device,</para>
-	  </listitem>
-	  <listitem>
-	    <para>an LVM Logical Volume or any other block device
-	      configured by the Linux device-mapper
-	      infrastructure,</para>
-	  </listitem>
-	  <listitem>
-	    <para>an EVMS volume,</para>
-	  </listitem>
-	  <listitem>
-	    <para>any other block device type found on your
-	      system.</para>
-	  </listitem>
+	<listitem>
+	  <para>A hard drive partition (or a full physical hard
+	    drive),</para>
+	</listitem>
+	<listitem>
+	  <para>a software RAID device,</para>
+	</listitem>
+	<listitem>
+	  <indexterm>
+	    <primary>LVM</primary>
+	  </indexterm>
+	  <para>an LVM Logical Volume or any other block device
+	    configured by the Linux device-mapper
+	    infrastructure,</para>
+	</listitem>
+	<listitem>
+	  <indexterm>
+	    <primary>EVMS</primary>
+	  </indexterm>
+	  <para>an EVMS volume,</para>
+	</listitem>
+	<listitem>
+	  <para>any other block device type found on your
+	    system.</para>
+	</listitem>
 	</itemizedlist>
-      </para>
-      <note>
-	<para>While it is possible to use loop devices as lower-level
-	devices for DRBD, doing so is not recommended due to deadlock
-	issues.</para>
-	<para>Also, DRBD does not support device stacking, meaning you
+    </para>
+    <note>
+      <indexterm>
+	<primary>loop device</primary>
+      </indexterm>
+      <para>While it is possible to use loop devices<footnote>
+	  <para>Loop devices are logical block devices whose data is
+	    stored in an image file in an existing file system. They
+	    are managed using the <command>losetup</command>
+	    command.</para>
+	</footnote> as lower-level devices for DRBD, doing so is not
+	recommended due to deadlock issues.</para>
+      <para>Also, DRBD does not support device stacking, meaning you
 	cannot use one DRBD device as a lower-level device for
 	another.<footnote>
 	  <para>DRBD+, a commercially-licensed DRBD extension, does
-	support resource stacking.</para>
+	    support resource stacking.</para>
 	</footnote>
       </para>
-      </note>
-      <para>It is <emphasis>not</emphasis> necessary for this storage
+    </note>
+    <para>It is <emphasis>not</emphasis> necessary for this storage
       area to be empty before you create a DRBD resource from it. In
       fact it is a common use case to create a two-node cluster from a
       previously non-redundant single-server system using DRBD (some
-	caveats apply &ndash; please refer to <xref
-      linkend="s-metadata"/> if you are planning to do this).</para>
-      <para>For the purposes of this introductory howto, we assume a
-	very simple setup:
+      caveats apply &ndash; please refer to <xref
+	linkend="s-metadata"/> if you are planning to do this).</para>
+    <para>For the purposes of this introductory howto, we assume a
+      very simple setup:
 	<itemizedlist>
-	  <listitem>
-	    <para>Both hosts have a free (currently unused) partition
-	      named <filename>/dev/sda7</filename>.</para>
-	  </listitem>
-	  <listitem>
-	    <para>We are using <link
-	    linkend="s-internal-meta-data">internal meta
-	    data</link>.</para>
-	  </listitem>
+	<listitem>
+	  <para>Both hosts have a free (currently unused) partition
+	    named <filename>/dev/sda7</filename>.</para>
+	</listitem>
+	<listitem>
+	  <para>We are using <link
+	      linkend="s-internal-meta-data">internal meta
+	      data</link>.</para>
+	</listitem>
 	</itemizedlist>
-      </para>
-    </section>
-    <section id="s-prepare-network">
-      <title>Preparing your network configuration</title>
-      <para>It is recommended, though not strictly required, that you
-	run your DRBD replication over a dedicated connection. At the
-	time of this writing, the most reasonable choice for this is a
-	direct, back-to-back, Gigabit Ethernet connection.<footnote>
-	  <para>DRBD's replication and synchronization protocol is IP
-	    based, so DRBD can run over any data link layer device
-	    that IP can communicate over. Thus running DRBD over
-	    InfiniBand, for example, is entirely possible. Ethernet,
-	    however, is the most commonly encountered Layer 2
-	    option.</para>
-	</footnote> If and when you run DRBD over switches, use of
-	redundant components and the Linux <code>bonding</code> driver
-	(in <code>active-backup</code> mode) is recommended.</para>
-      <para>It is generally not recommended to run DRBD replication
+    </para>
+  </section>
+  <section id="s-prepare-network">
+    <title>Preparing your network configuration</title>
+    <indexterm>
+      <primary>network configuration</primary>
+    </indexterm>
+    <para>It is recommended, though not strictly required, that you
+      run your DRBD replication over a dedicated connection. At the
+      time of this writing, the most reasonable choice for this is a
+      direct, back-to-back, Gigabit Ethernet connection.<footnote>
+	<para>DRBD's replication and synchronization protocol is IP
+	  based, so DRBD can run over any data link layer device that
+	  IP can communicate over. Thus running DRBD over
+	  <indexterm>
+	    <primary>InfiniBand</primary>
+	  </indexterm> InfiniBand, for example, is entirely possible.
+	  Ethernet, however, is the most commonly encountered Layer 2
+	  option.</para>
+      </footnote> If and when you run DRBD over switches, use of
+      redundant components and the Linux <indexterm>
+	<primary>bonding driver</primary>
+      </indexterm> <code>bonding</code> driver (in
+      <code>active-backup</code> mode) is recommended.</para>
+    <para>It is generally not recommended to run DRBD replication
       via routers, for reasons of fairly obvious performance drawbacks
       (adversely affecting both throughput and latency).</para>
-      <para>In terms of local firewall considerations, it is important
-	to understand that DRBD (by convention) uses TCP ports from
-	7788 upwards, with every TCP resource listening on a separate,
-	configurable, but unchanging TCP port. DRBD uses
-	<emphasis>two</emphasis> separate TCP connections (one in
-	either direction) for every resource configured. For proper
-	DRBD functionality, it is required that these connections are
-	allowed by your firewall configuration.<footnote>
-	  <para>Security considerations other than firewalling may
-	    also apply if a Mandatory Access Control (MAC) scheme such
-	    as SELinux or AppArmor is enabled. You may have to adjust
-	    your local security policy so it does not keep DRBD from
-	    functioning properly.</para>
-	</footnote>
-      </para>
-      <para>You must, of course, also ensure that the TCP ports you
+    <para><indexterm>
+	<primary>firewall considerations</primary>
+      </indexterm>In terms of local firewall considerations, it is
+      important to understand that DRBD (by convention) uses TCP ports
+      from 7788 upwards, with every TCP resource listening on a
+      separate, configurable, but unchanging TCP port. DRBD uses
+      <emphasis>two</emphasis> separate TCP connections (one in either
+      direction) for every resource configured. For proper DRBD
+      functionality, it is required that these connections are allowed
+      by your firewall configuration.<footnote>
+	<para>Security considerations other than firewalling may also
+	  apply if a Mandatory Access Control (MAC) scheme such as
+	  <indexterm>
+	    <primary>SELinux</primary>
+	  </indexterm> SELinux or AppArmor <indexterm>
+	    <primary>AppArmor</primary>
+	  </indexterm> is enabled. You may have to adjust your local
+	  security policy so it does not keep DRBD from functioning
+	  properly.</para>
+      </footnote>
+    </para>
+    <para>You must, of course, also ensure that the TCP ports you
       will be using for DRBD are not already being used by another
       application.</para>
-      <para>For the purposes of this introductory chapter, we assume a
-	very simple setup:
-	<itemizedlist>
-	  <listitem>
-	    <para>Our two DRBD hosts each have a currently unused
-	      network interface, <code>eth1</code>, with IP addresses
-	      <code>10.1.1.31</code> and <code>10.1.1.32</code>
-	      assigned to it, respectively.</para>
-	  </listitem>
-	  <listitem>
-	    <para>No other services are using TCP ports 7788 through
+    <para>For the purposes of this introductory chapter, we assume a
+      very simple setup:
+      <itemizedlist>
+	<listitem>
+	  <para>Our two DRBD hosts each have a currently unused
+	    network interface, <code>eth1</code>, with IP addresses
+	    <code>10.1.1.31</code> and <code>10.1.1.32</code>
+	    assigned to it, respectively.</para>
+	</listitem>
+	<listitem>
+	  <para>No other services are using TCP ports 7788 through
 	    7799 on either host.</para>
-	  </listitem>
-	  <listitem>
-	    <para>The local firewall configuration allows both inbound
+	</listitem>
+	<listitem>
+	  <para>The local firewall configuration allows both inbound
 	    and outbound TCP connections between the hosts over these
 	    ports.</para>
-	  </listitem>
-	</itemizedlist>
-      </para>
-    </section>
-    <section id="s-configure-resource">
-      <title>Configuring your resource</title>
-      <para>All aspects of DRBD are controlled by a single
-	configuration file, <filename>/etc/drbd.conf</filename>. You
-	should always make sure this configuration file is
-	<emphasis>exactly identical</emphasis> on both participating
-	cluster nodes.
-      </para>
-      <para>The DRBD source tarball contains an example configuration
-	file in the <filename>scripts</filename>
-	subdirectory. Binary installation packages will either install
-	this example configuration directly in
-	<filename>/etc</filename>, or in a package-specific
-	documentation directory such as
-	<filename>/usr/share/doc/packages/drbd</filename>.
-      </para>
-      <note>
-	<para>This section describes only those few aspects of the
-	  configuration file which are absolutely necessary to
-	  understand in order to get DRBD up and running. The
-	  configuration file's syntax and contents are documented in
-	  great detail in <xref
-	    linkend="re-drbdconf"/>.</para>
-      </note>
-      <section id="s-drbdconf-example">
-	<title>Example configuration</title>
-	<para>For the purposes of this introductory howto, we assume a
-	  minimal setup in line with the examples given in the
-	  previous sections:</para>
-	<programlisting>
-global { 
+	</listitem>
+      </itemizedlist>
+    </para>
+  </section>
+  <section id="s-configure-resource">
+    <title>Configuring your resource</title>
+    <indexterm>
+      <primary>drbd.conf</primary>
+    </indexterm>
+    <para>All aspects of DRBD are controlled by a single
+      configuration file, <filename>/etc/drbd.conf</filename>. You
+      should always make sure this configuration file is
+      <emphasis>exactly identical</emphasis> on both participating
+      cluster nodes.
+    </para>
+    <para>The DRBD source tarball contains an example configuration
+      file in the <filename>scripts</filename>
+      subdirectory. Binary installation packages will either install
+      this example configuration directly in
+      <filename>/etc</filename>, or in a package-specific
+      documentation directory such as
+      <filename>/usr/share/doc/packages/drbd</filename>.
+    </para>
+    <note>
+      <para>This section describes only those few aspects of the
+	configuration file which are absolutely necessary to
+	understand in order to get DRBD up and running. The
+	configuration file's syntax and contents are documented in
+	great detail in <xref
+	  linkend="re-drbdconf"/>.</para>
+    </note>
+    <section id="s-drbdconf-example">
+      <title>Example configuration</title>
+      <para>For the purposes of this introductory howto, we assume a
+	minimal setup in line with the examples given in the
+	previous sections:</para>
+      <programlisting>global { 
   usage-count yes; 
 }
 common {
@@ -172,97 +199,106 @@ resource r0 {
   }
 }
 </programlisting>
-	<para>This example configures DRBD in the following fashion:
-	  <itemizedlist>
-	    <listitem>
-	      <para>You "opt in" to be included in DRBD's usage
-		statistics (see <link
+      <para>This example configures DRBD in the following fashion:
+	<itemizedlist>
+	  <listitem>
+	    <para>You "opt in" to be included in DRBD's usage
+	      statistics (see <link
 		linkend="fp-usage-count">below</link>).</para>
-	    </listitem>
-	    <listitem>
-	      <para>Resources are configured to use fully synchronous
-		replication (<link
+	  </listitem>
+	  <listitem>
+	    <para>Resources are configured to use fully synchronous
+	      replication (<link
 		linkend="s-replication-protocols">Protocol C</link>)
-		unless explicitly specified otherwise.</para>
-	    </listitem>
-	    <listitem>
-	      <para>Our cluster consists of two nodes,
-		<code>alice</code> and <code>bob</code>.</para>
-	    </listitem>
-	    <listitem>
-	      <para>We have a resource arbitrarily named
-		<code>r0</code> which uses
-		<filename>/dev/sda7</filename> as the lower-level
-		device, and TCP port 7789 for its network connections.
-		This resource uses <link
-		  linkend="s-internal-meta-data">internal meta
-		  data</link>.</para>
-	    </listitem>
-	  </itemizedlist>
+	      unless explicitly specified otherwise.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Our cluster consists of two nodes,
+	      <code>alice</code> and <code>bob</code>.</para>
+	  </listitem>
+	  <listitem>
+	    <para>We have a resource arbitrarily named
+	      <code>r0</code> which uses
+	      <filename>/dev/sda7</filename> as the lower-level
+	      device, and TCP port 7789 for its network connections.
+	      This resource uses <link
+		linkend="s-internal-meta-data">internal meta
+		data</link>.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </section>
+    <section id="s-drbdconf-global">
+      <title>The <code>global</code> section</title>
+      <indexterm>
+	<primary>drbd.conf</primary>
+	<secondary>global</secondary>
+      </indexterm>
+      <para>This section is allowed only once, preferrably at the very
+	top of the configuration file. Of the few options available in
+	this section, only one is of relevance to most users:</para>
+      <formalpara id="fp-usage-count">
+	<title><option>usage-count</option></title>
+	<para>The DRBD project keeps statistics about the usage of
+	  various DRBD versions.<footnote>
+	    <para>These statistics are, of course, publicly available:
+	      see <ulink url="http://usage.drbd.org"/>.</para>
+	    </footnote> This is done by contacting an HTTP server
+	  every time a new DRBD version is installed on a system. This
+	  can be disabled by setting <option>usage-count no;</option>.
+	  The default is <option>usage-count ask;</option> which will
+	  prompt you every time you upgrade DRBD.
 	</para>
-      </section>
-      <section id="s-drbdconf-global">
-	<title>The <code>global</code> section</title>
-	<para>This section is allowed only once, preferrably at the
-	  very top of the configuration file. Of the few options
-	  available in this section, only one is of relevance to most
-	  users:</para>
-	<formalpara id="fp-usage-count">
-	  <title><option>usage-count</option></title>
-	  <para>The DRBD project keeps statistics about the usage of
-	    various DRBD versions.<footnote>
-	      <para>These statistics are, of course, publicly
-		available: see <ulink url="http://usage.drbd.org"/>.</para>
-	    </footnote>
-	    This is done by contacting an HTTP server every time a new
-	    DRBD version is installed on a system. This can be disabled
-	    by setting <option>usage-count no;</option>. The default
-	    is <option>usage-count ask;</option> which will prompt you
-	    every time you upgrade DRBD.
-	  </para>
-	</formalpara>
-      </section>
-      <section id="s-drbdconf-common">
-	<title>The <code>common</code> section</title>
-	<para>This section provides a shorthand method to define
-	  configuration settings inherited by every resource. You may
-	  define any option you can also define on a per-resource
-	  basis.</para>
-	<para>Including a <code>common</code> section is not strictly
-	  required, but strongly recommended if you are using more
-	  than one resource. Otherwise, the configuration quickly
-	  becomes convoluted by repeatedly-used options.</para>
-	<para>In the example above, we included
-	  <code>protocol C;</code> in the <code>common</code>
-	  section, so every resource configured (including
-	  <code>r0</code>) inherits this option unless it has another
-	  <code>protocol</code> option configured explicitly. For
-	  other synchronization protocols available, see <xref
-	    linkend="s-replication-protocols"/>.</para>
-      </section>
-      <section id="s-drbdconf-resource">
-	<title>The <code>resource</code> sections</title>
-	<para>Any DRBD resource you define must be named by specifying
-	  <option>resource <replaceable>name</replaceable></option> in
-	  the configuration file. You may use any arbitrary
-	  identifier, however the name must not contain characters
-	  other than those found in the US-ASCII character set, and
-	  must also not include whitespace. </para>
-	<para>Every resource configuration must also have two
-	  <option>on <replaceable>host</replaceable></option>
-	  sub-sections (one for every cluster node). </para>
-	<para>All other configuration settings are either inherited
-	  from the <code>common</code> section (if it exists), or
-	  derived from DRBD's default settings.</para>
-	<para>In fact, you can use a shorthand notation for the
-	  <option>on <replaceable>host</replaceable></option>
-	  sub-sections, too: every option whose values are equal on
-	  both hosts may be specified directly in the
-	  <option>resource</option> section. Thus, we can further
-	  condense this section, in comparison with the example
-	  cited above:</para>
-	<programlisting>
-resource r0 {
+      </formalpara>
+    </section>
+    <section id="s-drbdconf-common">
+      <title>The <code>common</code> section</title>
+      <indexterm>
+	<primary>drbd.conf</primary>
+	<secondary>common</secondary>
+      </indexterm>
+      <para>This section provides a shorthand method to define
+	configuration settings inherited by every resource. You may
+	define any option you can also define on a per-resource
+	basis.</para>
+      <para>Including a <code>common</code> section is not strictly
+	required, but strongly recommended if you are using more
+	than one resource. Otherwise, the configuration quickly
+	becomes convoluted by repeatedly-used options.</para>
+      <para>In the example above, we included
+	<code>protocol C;</code> in the <code>common</code>
+	section, so every resource configured (including
+	<code>r0</code>) inherits this option unless it has another
+	<code>protocol</code> option configured explicitly. For
+	other synchronization protocols available, see <xref
+	  linkend="s-replication-protocols"/>.</para>
+    </section>
+    <section id="s-drbdconf-resource">
+      <title>The <code>resource</code> sections</title>
+      <indexterm>
+	<primary>drbd.conf</primary>
+	<secondary>resource</secondary>
+      </indexterm>
+      <para>Any DRBD resource you define must be named by specifying
+	<option>resource <replaceable>name</replaceable></option> in
+	the configuration file. You may use any arbitrary
+	identifier, however the name must not contain characters
+	other than those found in the US-ASCII character set, and
+	must also not include whitespace. </para>
+      <para>Every resource configuration must also have two
+	<option>on <replaceable>host</replaceable></option>
+	sub-sections (one for every cluster node). </para>
+      <para>All other configuration settings are either inherited
+	from the <code>common</code> section (if it exists), or
+	derived from DRBD's default settings.</para>
+      <para>In fact, you can use a shorthand notation for the
+	<option>on <replaceable>host</replaceable></option>
+	sub-sections, too: every option whose values are equal on
+	both hosts may be specified directly in the
+	<option>resource</option> section. Thus, we can further
+	condense this section, in comparison with the example
+	cited above:</para>
+      <programlisting>resource r0 {
   device    /dev/drbd1;
   disk      /dev/sda7;
   meta-disk internal;
@@ -273,79 +309,95 @@ resource r0 {
     address   10.1.1.32:7789;
   }
 }
-	</programlisting>
-	<para>This notation is available in DRBD versions 8.2.1 and above.</para>
-      </section>
+      </programlisting>
+      <para>This notation is available in DRBD versions 8.2.1 and above.</para>
     </section>
-    <section id="s-first-time-up">
-      <title>Enabling your resource for the first time</title>
-      <para>After you have completed initial resource configuration as
-	outlined in the previous sections, you can bring up your
-	resource.</para>
-      <note>
-	<para>Each of the following steps must be completed on both nodes.</para>
-      </note>
-      <orderedlist>
-	<listitem>
-	  <formalpara>
-	    <title>Create device metadata</title>
-	    <para>This step must be completed only on initial device
-	      creation. It initializes DRBD's metadata:
-	      <literallayout><userinput>drbdadm create-md <replaceable>resource</replaceable></userinput>
+  </section>
+  <section id="s-first-time-up">
+    <title>Enabling your resource for the first time</title>
+    <para>After you have completed initial resource configuration as
+      outlined in the previous sections, you can bring up your
+      resource.</para>
+    <note>
+      <para>Each of the following steps must be completed on both nodes.</para>
+    </note>
+    <orderedlist>
+      <listitem>
+	<formalpara>
+	  <title>Create device metadata</title>
+	  <indexterm>
+	    <primary>drbdadm</primary>
+	    <secondary>create-md</secondary>
+	  </indexterm>
+	  <para>This step must be completed only on initial device
+	    creation. It initializes DRBD's metadata:
+	    <literallayout><userinput>drbdadm create-md <replaceable>resource</replaceable></userinput>
 <computeroutput>v08 Magic number not found
 Writing meta data...
 initialising activity log
 NOT initialized bitmap
 New drbd meta data block sucessfully created.
 success</computeroutput>
-	      </literallayout>
-	    </para>
-	  </formalpara>
-	</listitem>
-	<listitem>
+	    </literallayout>
+	  </para>
+	</formalpara>
+      </listitem>
+      <listitem>
 	  <formalpara>
-	    <title>Attach</title>
-	    <para>This step associates the DRBD resource with its
-	      backing device:
-	      <literallayout><userinput>drbdadm attach <replaceable>resource</replaceable></userinput></literallayout>
-	    </para>
-	  </formalpara>
-	</listitem>
-	<listitem>
-	  <formalpara>
-	    <title>Connect</title>
-	    <para>This step connects the DRBD resource with its
-	      counterpart on the peer node:
-	      <literallayout><userinput>drbdadm connect <replaceable>resource</replaceable></userinput></literallayout>
-	    </para>
-	  </formalpara>
+	  <indexterm>
+	    <primary>drbdadm</primary>
+	    <secondary>attach</secondary>
+	  </indexterm>
+	  <title>Attach</title>
+	  <para>This step associates the DRBD resource with its
+	    backing device:
+	    <literallayout><userinput>drbdadm attach <replaceable>resource</replaceable></userinput></literallayout>
+	  </para>
+	</formalpara>
+      </listitem>
+      <listitem>
+	<formalpara>
+	  <title>Connect</title>
+	  <indexterm>
+	    <primary>drbdadm</primary>
+	    <secondary>connect</secondary>
+	  </indexterm>
+	  <para>This step connects the DRBD resource with its
+	    counterpart on the peer node:
+	    <literallayout><userinput>drbdadm connect <replaceable>resource</replaceable></userinput></literallayout>
+	  </para>
+	</formalpara>
 	<tip>
+	  <indexterm>
+	    <primary>drbdadm</primary>
+	    <secondary>up</secondary>
+	  </indexterm>
 	  <para>You may collapse the steps <command>drbdadm attach</command> and <command>drbdadm
 	      connect</command> into one, by using the shorthand
 	    command <command>drbdadm up</command>.</para>
 	</tip>
-	</listitem>
-	<listitem>
-	  <formalpara>
-	    <title>Observe <filename>/proc/drbd</filename></title>
-	    <para>DRBD's virtual status file in the
-	      <filename>/proc</filename> filesystem,
+      </listitem>
+      <listitem>
+	<formalpara>
+	  <title>Observe <filename>/proc/drbd</filename></title>
+	  <para>DRBD's virtual status file in the
+	    <filename>/proc</filename> filesystem,
 	    <filename>/proc/drbd</filename>, should now contain
 	    information similar to the following:</para>
-	  </formalpara>
-	  <literallayout><userinput>cat /proc/drbd</userinput>
+	</formalpara>
+	<literallayout><userinput>cat /proc/drbd</userinput>
 <computeroutput>version: 8.2.4 (api:88/proto:86-88)
 GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 2008-01-11 12:44:36
  0: cs:Connected st:Secondary/Secondary ds:Inconsistent/Inconsistent C r---
     ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0
         resync: used:0/31 hits:0 misses:0 starving:0 dirty:0 changed:0
         act_log: used:0/257 hits:0 misses:0 starving:0 dirty:0 changed:0</computeroutput></literallayout>
-	  <para>The
-	    <computeroutput>Inconsistent/Inconsistent</computeroutput>
-	    disk state is expected at this point.</para>
-	</listitem>
-      </orderedlist>
-      <para>By now, DRBD has successfully allocated both disk and
+	<para>The
+	  <computeroutput>Inconsistent/Inconsistent</computeroutput>
+	  disk state is expected at this point.</para>
+      </listitem>
+    </orderedlist>
+    <para>By now, DRBD has successfully allocated both disk and
       network resources and is ready for operation. What it does not
       know yet is which of your nodes should be used as the source of
       the initial device synchronization. </para>
@@ -354,45 +406,49 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
     <title>The initial device synchronization</title>
     <para>There are two more steps required for DRBD to become fully
       operational:</para>
-      <orderedlist>
-	<listitem>
-	  <formalpara>
-	    <title>Select an initial sync source</title>
-	    <para>If you are dealing with newly-initialized, empty
-	    disk, this choice is entirely arbitrary. If one of your
-	    nodes already has valuable data that you need to preserve,
-	      however, <emphasis>it is of crucial
-	    importance</emphasis> that you select that node as your
-	    synchronization source. If you do initial device
-	    synchronization in the wrong direction, you will lose that
-	    data. Exercise caution.</para>
-	  </formalpara>
-	</listitem>
-	<listitem>
-	  <formalpara>
-	    <title>Start the initial full synchronization</title>
-	    <para>This step must be performed on only one node, only
-	      on initial resource configuration, and only on the node
-	      you selected as the synchronization source. To perform
-	      this step, issue this command: 
-	      <literallayout><userinput>drbdadm -- --overwrite-data-of-peer primary <replaceable>resource</replaceable></userinput></literallayout>
-	    </para>
-	  </formalpara>
-	  <para>After issuing this command, the initial full
-	    synchronization will commence. You will be able to monitor
-	    its progress via <filename>/proc/drbd</filename>. It may
-	    take some time depending on the size of the device.
+    <orderedlist>
+      <listitem>
+	<formalpara>
+	  <title>Select an initial sync source</title>
+	  <para>If you are dealing with newly-initialized, empty disk,
+	    this choice is entirely arbitrary. If one of your nodes
+	    already has valuable data that you need to preserve,
+	    however, <emphasis>it is of crucial importance</emphasis>
+	    that you select that node as your synchronization source.
+	    If you do initial device synchronization in the wrong
+	    direction, you will lose that data. Exercise
+	    caution.</para>
+	</formalpara>
+      </listitem>
+      <listitem>
+	<formalpara>
+	  <title>Start the initial full synchronization</title>
+	  <indexterm>
+	    <primary>drbdadm</primary>
+	    <secondary>primary</secondary>
+	  </indexterm>
+	  <para>This step must be performed on only one node, only on
+	    initial resource configuration, and only on the node you
+	    selected as the synchronization source. To perform this
+	    step, issue this command:
+	    <literallayout><userinput>drbdadm -- --overwrite-data-of-peer primary <replaceable>resource</replaceable></userinput></literallayout>
 	  </para>
-	</listitem>
-      </orderedlist>
-      <para>By now, your DRBD device is fully operational, even before
-	the initial synchronization has completed (albeit with
-	slightly reduced performance). You may now create a filesystem
-	on the device, use it as a raw block device, mount it, and
-	perform any other operation you would with an accessible block
-	device.</para>
-      <para>You will now probably want to continue with <xref
-	linkend="ch-admin"/>, which describes common
-	administrative tasks to perform on your resource.</para>
-    </section>
-  </chapter>
+	</formalpara>
+	<para>After issuing this command, the initial full
+	  synchronization will commence. You will be able to monitor
+	  its progress via <filename>/proc/drbd</filename>. It may
+	  take some time depending on the size of the device.
+	</para>
+      </listitem>
+    </orderedlist>
+    <para>By now, your DRBD device is fully operational, even before
+      the initial synchronization has completed (albeit with slightly
+      reduced performance). You may now create a filesystem on the
+      device, use it as a raw block device, mount it, and perform any
+      other operation you would with an accessible block
+      device.</para>
+    <para>You will now probably want to continue with <xref
+	linkend="ch-admin"/>, which describes common administrative
+      tasks to perform on your resource.</para>
+  </section>
+</chapter>
