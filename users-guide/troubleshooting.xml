@@ -7,6 +7,14 @@
   </para>
   <section id="s-hard-drive-failure">
     <title>Dealing with hard drive failure</title>
+    <indexterm>
+      <primary>drive failure</primary>
+      <seealso>I/O errors</seealso>
+    </indexterm>
+    <indexterm>
+      <primary>disk failure</primary>
+      <seealso>I/O errors</seealso>
+    </indexterm>
     <para>How to deal with hard drive failure depends on the way DRBD
       is configured to handle disk I/O errors (see <xref
     linkend="s-handling-disk-errors"/>), and on the type of meta data
@@ -18,9 +26,12 @@
 	top of
 	<itemizedlist>
 	  <listitem>
-	    <para>a software RAID set (in this case, use
+	    <para>an MD software RAID set (in this case, use
 	      <command>mdadm</command> to manage drive replacement),
 	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>device-mapper RAID (use <command>dmraid</command>),</para>
 	  </listitem>
 	  <listitem>
 	    <para>a hardware RAID appliance (follow the vendor's
@@ -38,6 +49,10 @@
     </note>
     <section id="s-detach-hard-drive-manual">
       <title>Manually detaching DRBD from your hard drive</title>
+      <indexterm>
+	<primary>drbdadm</primary>
+	<secondary>detach</secondary>
+      </indexterm>
       <para>If DRBD is <link linkend="fp-io-error-pass-on">configured
 	  to pass on I/O errors</link> (not recommended), you must
 	first detach the DRBD resource, that is, disassociate it from
@@ -45,6 +60,16 @@
       <literallayout><userinput>drbdadm detach <replaceable>resource</replaceable></userinput></literallayout>
 	By running the <command>drbdadm dstate</command> command, you
 	will now be able to verify that the resource is now in
+	<indexterm>
+	  <primary>diskless mode</primary>
+	</indexterm>
+	<indexterm>
+	  <primary>diskless (disk state)</primary>
+	</indexterm>
+	<indexterm>
+	  <primary>disk state</primary>
+	  <secondary>Diskless</secondary>
+	</indexterm>
 	<emphasis>diskless mode</emphasis>:
 	<literallayout><userinput>drbdadm dstate <replaceable>resource</replaceable></userinput>
 <computeroutput>Diskless/UpToDate</computeroutput></literallayout>
@@ -72,6 +97,10 @@
 	file.</para>
       <para>This process involves creating a new meta data set, then
       re-attaching the resource:
+	<indexterm>
+	  <primary>drbdadm</primary>
+	  <secondary>create-md</secondary>
+	</indexterm>
 	<literallayout><userinput>drbdadm create-md <replaceable>resource</replaceable></userinput>
 <computeroutput>v08 Magic number not found
 Writing meta data...
@@ -113,6 +142,9 @@ success
   </section>
   <section id="s-node-failure">
     <title>Dealing with node failure</title>
+    <indexterm>
+      <primary>node failure</primary>
+    </indexterm>
     <para>When DRBD detects that its peer node is down (either by true
       hardware failure or manual intervention), DRBD changes its
       connection state from <code>Connected</code> to
@@ -126,6 +158,10 @@ success
       modified while disconnected.</para>
     <section id="s-temp-node-failure-secondary">
       <title>Dealing with temporary secondary node failure</title>
+      <indexterm>
+	<primary>node failure</primary>
+	<secondary>temporary</secondary>
+      </indexterm>
       <para>If a node that currently has a resource in the secondary
 	role fails temporarily (due to, for example, a memory problem
 	that is subsequently rectified by replacing RAM), no further
@@ -148,6 +184,10 @@ success
     </section>
     <section id="s-temp-node-failure-primary">
       <title>Dealing with temporary primary node failure</title>
+      <indexterm>
+	<primary>node failure</primary>
+	<secondary>temporary</secondary>
+      </indexterm>
       <para>From DRBD's standpoint, failure of the primary node is
 	almost identical to a failure of the secondary node. The
 	surviving node detects the peer node's failure, and switches
@@ -168,6 +208,10 @@ success
     </section>
     <section id="s-perm-node-failure">
       <title>Dealing with permanent node failure</title>
+      <indexterm>
+	<primary>node failure</primary>
+	<secondary>permanent</secondary>
+      </indexterm>
       <para>If a node suffers an unrecoverable problem or permanent
 	destruction, you must follow the following steps:
 	<itemizedlist>
@@ -204,6 +248,10 @@ success
   </section>
   <section id="s-resolve-split-brain">
     <title>Dealing with split brain</title>
+    <indexterm>
+      <primary>split brain</primary>
+      <secondary>manual recovery</secondary>
+    </indexterm>
     <para><emphasis>Split brain</emphasis> is a situation where both
       nodes are running, a resource is disconnected (either by manual
       disconnect, or by failure of the replication link), and the
@@ -238,23 +286,44 @@ success
       <programlisting>Split-Brain detected, dropping connection!</programlisting>
     </para>
     <para>After split brain has been detected, one node will always
-      have the resource in a <code>StandAlone</code> connection state.
+      have the resource in a <indexterm>
+	<primary>StandAlone (connection state)</primary>
+      </indexterm>
+      <indexterm>
+	<primary>connection state</primary>
+	<secondary>StandAlone</secondary>
+      </indexterm>
+      <code>StandAlone</code> connection state.
       The other might either also be in the <code>StandAlone</code>
       state (if both nodes detected the split brain simultaneously),
-      or in <code>WFConnection</code> (if the peer tore down the
+      or in 
+      <indexterm>
+	<primary>WFConnection (connection state)</primary>
+      </indexterm>
+      <indexterm>
+	<primary>connection state</primary>
+	<secondary>WFConnection</secondary>
+      </indexterm>
+      <code>WFConnection</code> (if the peer tore down the
       connection before the other node had a chance to detect split
       brain).</para>
     <para>At this point, unless you configured DRBD to automatically
       recover from split brain, you must manually intervene by
       selecting one node whose modifications will be discarded (this
-      node is referred to as the <emphasis>split brain
-	victim</emphasis>).
+      node is referred to as the <indexterm>
+	<primary>split brain</primary>
+	<secondary>victim</secondary>
+      </indexterm>
+      <emphasis>split brain victim</emphasis>).
       This intervention is made with the following commands:
       <literallayout><userinput>drbdadm secondary <replaceable>resource</replaceable></userinput> 
 <userinput>drbdadm -- --discard-my-data connect <replaceable>resource</replaceable></userinput></literallayout> 
-      On the other node (the <emphasis>split brain
-	survivor</emphasis>), if its connection state is also
-      <code>StandAlone</code>, you would enter:
+      On the other node (the <indexterm>
+	<primary>split brain</primary>
+	<secondary>survivor</secondary>
+      </indexterm> 
+      <emphasis>split brain survivor</emphasis>), if its connection
+      state is also <code>StandAlone</code>, you would enter:
       <literallayout><userinput>drbdadm connect <replaceable>resource</replaceable></userinput></literallayout> 
       You may omit this step if the node is already in the
       <code>WFConnection</code> state; it will then reconnect
