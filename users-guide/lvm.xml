@@ -1,6 +1,13 @@
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
 <chapter id="ch-lvm">
   <title>Using LVM with DRBD</title>
+  <indexterm>
+    <primary>LVM</primary>
+  </indexterm>
+  <indexterm>
+    <primary>Logical Volume Management</primary>
+    <see>LVM</see>
+  </indexterm>
   <para>This chapter deals with managing DRBD in conjunction with
     LVM2.<footnote>
       <para>LVM2 is an implementation of logical volume management in
@@ -36,6 +43,13 @@
 	<listitem>
 	  <formalpara>
 	    <title>Physical Volume (PV)</title>
+	    <indexterm>
+	      <primary>LVM</primary>
+	      <secondary>Physical Volume (PV)</secondary>
+	    </indexterm>
+	    <indexterm>
+	      <primary>Physical Volume (LVM)</primary>
+	    </indexterm>
 	    <para>A PV is an underlying block device exclusively
 	      managed by LVM. PVs can either be entire hard disks or
 	      individual partitions. It is common practice to create a
@@ -54,6 +68,13 @@
 	<listitem>
 	  <formalpara>
 	    <title>Volume Group (VG)</title>
+	    <indexterm>
+	      <primary>LVM</primary>
+	      <secondary>Volume Group (VG)</secondary>
+	    </indexterm>
+	    <indexterm>
+	      <primary>Volume Group (LVM)</primary>
+	    </indexterm>
 	    <para>A VG is the basic administrative unit of the LVM. A
 	      VG may include one or more several PVs. Every VG has a
 	      unique name. A VG may be increased during runtime by
@@ -64,6 +85,13 @@
 	<listitem>
 	  <formalpara>
 	    <title>Logical Volume (LV)</title>
+	    <indexterm>
+	      <primary>LVM</primary>
+	      <secondary>Logical Volume (LV)</secondary>
+	    </indexterm>
+	    <indexterm>
+	      <primary>Logical Volume (LVM)</primary>
+	    </indexterm>
 	    <para>LVs may be created during runtime within VGs and are
 	      available to the other parts of the kernel as regular
 	      block devices. As such, they may be used to hold a file
@@ -76,6 +104,13 @@
 	<listitem>
 	  <formalpara>
 	    <title>Snapshot Logical Volume (SLV)</title>
+	    <indexterm>
+	      <primary>snapshots (LVM)</primary>
+	    </indexterm>
+	    <indexterm>
+	      <primary>LVM</primary>
+	      <secondary>snapshots</secondary>
+	    </indexterm>
 	    <para>Snapshots are temporary point-in-time copies of LVs.
 	      Creating snapshots is an operation that completes almost
 	      instantly, even if the original LV (the <emphasis>origin
@@ -93,6 +128,13 @@
     </section>
   <section id="s-lvm-lv-as-drbd">
     <title>Using a Logical Volume as a DRBD backing device</title>
+    <indexterm>
+      <primary>LVM</primary>
+      <secondary>Logical Volume (LV)</secondary>
+    </indexterm>
+    <indexterm>
+      <primary>Logical Volume (LVM)</primary>
+    </indexterm>
     <para>Since an existing Logical Volume is simply a block device in
       Linux terms, you may of course use it as a DRBD backing device.
       To use LV's in this manner, you simply create them, and then
@@ -103,6 +145,13 @@
       named <code>r0</code> using a Logical Volume in that Volume
       Group</para>
     <para>First, you create the Logical Volume:
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>lvcreate command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>lvcreate (LVM command)</primary>
+      </indexterm>
       <literallayout><userinput>lvcreate --name r0 --size 10G drbd</userinput>
 <computeroutput>  Logical volume "r0" created</computeroutput></literallayout>
       Of course, you must complete this command on both nodes of
@@ -129,11 +178,25 @@
   </section>
   <section id="s-lvm-drbd-as-pv">
     <title>Configuring a DRBD resource as a Physical Volume</title>
+    <indexterm>
+      <primary>LVM</primary>
+      <secondary>Physical Volume (PV)</secondary>
+    </indexterm>
+    <indexterm>
+      <primary>Physical Volume (LVM)</primary>
+    </indexterm>
     <para>In order to prepare a DRBD resource for use as a Physical
       Volume, it is necessary to create a PV signature on the DRBD
       device. In order to do so, issue one of the following commands
       on the node where the resource is currently in the primary
       role:
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>pvcreate command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>pvcreate (LVM command)</primary>
+      </indexterm>
       <literallayout><userinput>pvcreate /dev/drbd<replaceable>num</replaceable></userinput></literallayout>
       or
       <literallayout><userinput>pvcreate $(drbdadm sh-dev <replaceable>resource</replaceable>)</userinput></literallayout>
@@ -141,12 +204,23 @@
     <para>Now, it is necessary to include this device in the list of
       devices LVM scans for PV signatures. In order to do this, you
       must edit the LVM configuration file, normally named
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>lvm.conf (configuration file)</secondary>
+      </indexterm>
       <filename>/etc/lvm/lvm.conf</filename>. Find the line in the
       <code>devices</code> section that contains the
       <option>filter</option> keyword and edit it accordingly. If
       <emphasis>all</emphasis> your PVs are to be stored on DRBD
       devices, the following is an appropriate <option>filter</option>
       option:
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>filter</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>filter expression (LVM)</primary>
+      </indexterm>
       <programlisting>filter = [ "a|drbd.*|", "r|.*|" ]</programlisting>
       This filter expression accepts PV signatures found on any
       DRBD devices, while rejecting (ignoring) all others.<footnote>
@@ -156,7 +230,14 @@
       </footnote>
     </para>
     <para>After modifying the <filename>lvm.conf</filename> file, you
-      must run the <command>vgscan</command> command so LVM discards
+      must run the 
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>vgscan command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>vgscan (LVM command)</primary>
+      </indexterm> <command>vgscan</command> command so LVM discards
       its configuration cache and re-scans devices for PV
       signatures.</para>
     <para>You may of course use a different <option>filter</option>
@@ -174,13 +255,56 @@
 	</listitem>
       </itemizedlist>
     </para>
+    <para>When you have configured your new PV, you may proceed to add
+    it to a Volume Group, or create a new Volume Group from it. The
+    DRBD resource must, of course, be in the primary role while doing
+    so.
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>vgcreate command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>vgcreate (LVM command)</primary>
+      </indexterm>
+      <literallayout><userinput>vgcreate <replaceable>name</replaceable> /dev/drbd<replaceable>num</replaceable></userinput></literallayout>
+      <note>
+	<para>While it is possible to mix DRBD and non-DRBD Physical
+	Volumes within the same Volume Group, doing so is not
+	recommended and unlikely to be of any practical value.</para>
+      </note>
+    </para>
+    <para>When you have created your VG, you may start carving Logical
+      Volumes out of it, using the 
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>lvcreate command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>lvcreate (LVM command)</primary>
+      </indexterm>
+      <command>lvcreate</command> command
+      (as with a non-DRBD-backed Volume Group)</para>
   </section>
   <section id="s-nested-lvm">
     <title>Nested LVM configuration with DRBD</title>
-    <para>It is possible, if slightly advanced, to both use Logical
-      Volumes as backing devices for DRBD <emphasis>and</emphasis> at
-      the same time use a DRBD device itself as a Physical Volume. To
-      provide an example, consider the following configuration:
+    <para>It is possible, if slightly advanced, to both use
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>Logical Volume (LV)</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>Logical Volume (LVM)</primary>
+      </indexterm> Logical Volumes as backing devices for DRBD
+      <emphasis>and</emphasis> at the same time use a DRBD device
+      itself as a 
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>Physical Volume (PV)</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>Physical Volume (LVM)</primary>
+      </indexterm> Physical Volume. To provide an example, consider
+      the following configuration:
 	<itemizedlist>
 	<listitem>
 	  <para>We have two partitions, named
@@ -219,18 +343,43 @@
     <orderedlist>
       <listitem>
 	<para>Set an appropriate <option>filter</option> option in your
+	  <indexterm>
+	    <primary>LVM</primary>
+	    <secondary>lvm.conf (configuration file)</secondary>
+	  </indexterm>
 	  <filename>/etc/lvm/lvm.conf</filename>:
+	  <indexterm>
+	    <primary>LVM</primary>
+	    <secondary>filter</secondary>
+	  </indexterm>
+	  <indexterm>
+	    <primary>filter expression (LVM)</primary>
+	  </indexterm>
 	  <programlisting>filter = ["a|sd.*|", "a|drbd.*|", "r|.*|"]</programlisting>
 	  This filter expression accepts PV
 	  signatures found on any SCSI and DRBD devices, while
 	  rejecting (ignoring) all others.</para>
-	<para>After modifying the <filename>lvm.conf</filename>
-	  file, you must run the <command>vgscan</command> command
-	  so LVM discards its configuration cache and re-scans
-	  devices for PV signatures.</para>
+	<para>After modifying the <filename>lvm.conf</filename> file,
+	  you must run the 
+	  <indexterm>
+	    <primary>LVM</primary>
+	    <secondary>vgscan command</secondary>
+	  </indexterm>
+	  <indexterm>
+	    <primary>vgscan (LVM command)</primary>
+	  </indexterm> <command>vgscan</command> command so LVM discards
+	  its configuration cache and re-scans devices for PV
+	  signatures.</para>
       </listitem>
       <listitem>
 	<para>Now, you may initialize your two SCSI partitions as PVs:
+	  <indexterm>
+	    <primary>LVM</primary>
+	    <secondary>pvcreate command</secondary>
+	  </indexterm>
+	  <indexterm>
+	    <primary>pvcreate (LVM command)</primary>
+	  </indexterm>
 	  <literallayout><userinput>pvcreate /dev/sda1</userinput>
 <computeroutput>  Physical volume "/dev/sda1" successfully created</computeroutput>
 <userinput>pvcreate /dev/sdb1</userinput>
@@ -239,7 +388,15 @@
       </listitem>
       <listitem>
 	<para>The next step is creating your low-level VG named
-	  <code>local</code>, consisting of the two PVs you just initialized:
+	  <code>local</code>, consisting of the two PVs you just
+	  initialized:
+	  <indexterm>
+	    <primary>LVM</primary>
+	    <secondary>vgcreate command</secondary>
+	  </indexterm>
+	  <indexterm>
+	    <primary>vgcreate (LVM command)</primary>
+	  </indexterm>
 	  <literallayout><userinput>vgcreate local /dev/sda1 /dev/sda2</userinput>
 <computeroutput>  Volume group "local" successfully created</computeroutput></literallayout>
 	</para>
@@ -247,6 +404,13 @@
 	<listitem>
 	<para>Now you may create your Logical Volume to be used as
 	  DRBD's backing device:
+	  <indexterm>
+	    <primary>LVM</primary>
+	    <secondary>lvcreate command</secondary>
+	  </indexterm>
+	  <indexterm>
+	    <primary>lvcreate (LVM command)</primary>
+	  </indexterm>
 	  <literallayout><userinput>lvcreate --name r0 --size 10G local</userinput>
 <computeroutput>  Logical volume "r0" created</computeroutput></literallayout>
 	</para>
@@ -258,6 +422,10 @@
 	<para>Then, edit your
 	  <filename>/etc/drbd.conf</filename> to create a new resource
 	  named <code>r0</code>:
+	  <indexterm>
+	    <primary>drbd.conf</primary>
+	    <secondary>resource</secondary>
+	  </indexterm>
 	  <programlisting>resource r0 {
   device /dev/drbd0;
   disk /dev/local/r0;
@@ -278,7 +446,10 @@
 	  <xref linkend="s-first-time-up"/> (on both nodes).</para>
       </listitem>
       <listitem>
-	<para>Then, promote your resource (on one node):
+	<para>Then, promote your resource (on one node):<indexterm>
+	    <primary>drbdadm</primary>
+	    <secondary>primary</secondary>
+	  </indexterm>
 	  <literallayout><userinput>drbdadm primary r0</userinput></literallayout>
 	</para>
       </listitem>
@@ -286,6 +457,13 @@
 	<para>Now, on the node where you just promoted your
 	  resource, initialize your DRBD device as a new Physical
 	  Volume:
+	  <indexterm>
+	    <primary>LVM</primary>
+	    <secondary>pvcreate command</secondary>
+	  </indexterm>
+	  <indexterm>
+	    <primary>pvcreate (LVM command)</primary>
+	  </indexterm>
 	  <literallayout><userinput>pvcreate /dev/drbd0</userinput>
 <computeroutput>  Physical volume "/dev/drbd0" successfully created</computeroutput></literallayout>
 	</para>
@@ -293,6 +471,13 @@
       <listitem>
 	<para>Create your VG named <code>replicated</code>, using
 	  the PV you just initialized, on the same node:
+	  <indexterm>
+	    <primary>LVM</primary>
+	    <secondary>vgcreate command</secondary>
+	  </indexterm>
+	  <indexterm>
+	    <primary>vgcreate (LVM command)</primary>
+	  </indexterm>
 	  <literallayout><userinput>vgcreate replicated /dev/drbd0</userinput>
 <computeroutput>  Volume group "replicated" successfully created</computeroutput></literallayout>
 	</para>
@@ -300,6 +485,13 @@
       <listitem>
 	<para>Finally, create your new Logical Volumes within this
 	  newly-created VG:
+	  <indexterm>
+	    <primary>LVM</primary>
+	    <secondary>lvcreate command</secondary>
+	  </indexterm>
+	  <indexterm>
+	    <primary>lvcreate (LVM command)</primary>
+	  </indexterm>
 	  <literallayout><userinput>lvcreate --name foo --size 4G replicated</userinput>
 <computeroutput>  Logical volume "foo" created</computeroutput>
 <userinput>lvcreate --name bar --size 6G replicated</userinput>
@@ -314,11 +506,29 @@
     </para>
     <para>To make them available on the peer node, first issue the following
       sequence of commands on the local node:
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>vgchange command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>vgchange (LVM command)</primary>
+      </indexterm>      
       <literallayout><userinput>vgchange -a n replicated</userinput>
 <computeroutput>  0 logical volume(s) in volume group "replicated" now active</computeroutput>
 <userinput>drbdadm secondary r0</userinput></literallayout>
     </para>
     <para>Then, issue these commands on the peer node:
+      <indexterm>
+	<primary>drbdadm</primary>
+	<secondary>primary</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>vgchange command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>vgchange (LVM command)</primary>
+      </indexterm>
       <literallayout><userinput>drbdadm primary r0</userinput>
 <userinput>vgchange -a y replicated</userinput>
 <computeroutput>  2 logical volume(s) in volume group "replicated" now active</computeroutput></literallayout>
@@ -328,7 +538,17 @@
     peer node.</para>
     <para>Of course, the process of transferring volume groups between
       peers and making the corresponding logical volumes available can
-      be automated. The Heartbeat <code>LVM</code> resource agent is
+      be automated.
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>Heartbeat resource agent</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>Heartbeat</primary>
+	<secondary>resource agent</secondary>
+	<tertiary>LVM</tertiary>
+      </indexterm>
+      The Heartbeat <code>LVM</code> resource agent is
       designed for exactly that purpose.</para>
   </section>
 </chapter>
