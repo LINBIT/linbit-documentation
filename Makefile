@@ -86,7 +86,8 @@ html: howto-collection.xml images
 # Generated images: SVG from MathML
 # (needed for HTML output, and PDF if using FOP)
 %.svg: %.mml
-	mathmlsvg --font-size=24 $<
+	mathmlsvg --font-size=24 $< 
+	sed -i -e 's/version="1"/version="1.0"/' $@
 
 # Generated images: PNG from SVG
 # (needed for HTML output)
