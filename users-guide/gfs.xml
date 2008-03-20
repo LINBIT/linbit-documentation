@@ -1,11 +1,22 @@
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
 <chapter id="ch-gfs" xmlns:xi="http://www.w3.org/2001/XInclude">
   <title>Using GFS with DRBD</title>
+  <indexterm>
+    <primary>GFS</primary>
+  </indexterm>
+  <indexterm>
+    <primary>Global File System</primary>
+    <see>GFS</see>
+  </indexterm>
   <para>This chapter outlines the steps necessary to set up a DRBD
   resource as a block device holding a shared Global File System
   (GFS).</para>
   <para>In order to use GFS on top of DRBD, you must configure DRBD in
-  dual-primary mode, which is available in DRBD 8.0 and later.</para>
+    <indexterm>
+      <primary>dual-primary mode</primary>
+    </indexterm>
+    dual-primary mode, which is available in DRBD 8.0 and
+    later.</para>
   <section id="s-gfs-primer">
     <title>GFS primer</title>
     <para>The Red Hat Global File System (GFS) is Red Hat's
@@ -24,20 +35,29 @@
       configured to run from. Also, of course, DRBD adds an additional
       physical copy to every GFS filesystem, thus adding redundancy to
       the concept.</para>
-    <para>GFS makes use of a cluster-aware variant of LVM, termed
-      Cluster Logical Volume Manager or CLVM. As such, some
-      parallelism exists between using DRBD as the data storage for
-      GFS, and using <link linkend="s-lvm-drbd-as-pv">DRBD as a
-	Physical Volume for conventional LVM</link>.</para>
+    <para>GFS makes use of a cluster-aware variant of LVM,
+      <indexterm>
+	<primary>LVM</primary>
+      </indexterm> termed Cluster Logical Volume Manager or CLVM. As
+      such, some parallelism exists between using DRBD as the data
+      storage for GFS, and using <link linkend="s-lvm-drbd-as-pv">DRBD
+	as a Physical Volume for conventional LVM</link>.</para>
     <para>GFS file systems are usually tightly integrated with Red
-      Hat's own cluster management framework, the Red Hat Cluster
-      Suite (RHCS). This chapter explains the use of DRBD in
-      conjunction with GFS in the RHCS context.</para>
+      Hat's own cluster management framework, the 
+      <indexterm>
+	<primary>Red Hat Cluster Suite</primary>
+      </indexterm> Red Hat Cluster Suite (RHCS). This chapter explains
+      the use of DRBD in conjunction with GFS in the RHCS
+      context.</para>
     <para>GFS, CLVM, and the Red Hat Cluster Suite are available in
       Red Hat Enterprise Linux (RHEL) and distributions derived from
-      it, such as CentOS. Packages built from the same sources are
-      also available in Debian GNU/Linux. This chapter assumes running
-      GFS on a Red Hat Enterprise Linux system.</para>
+      it, such as <indexterm>
+	<primary>CentOS</primary>
+      </indexterm> CentOS. Packages built from the same sources are
+      also available in <indexterm>
+	<primary>Debian GNU/Linux</primary>
+      </indexterm> Debian GNU/Linux. This chapter assumes running GFS
+      on a Red Hat Enterprise Linux system.</para>
   </section>
   <section id="s-gfs-create-resource">
     <title>Creating a DRBD resource suitable for GFS</title>
@@ -51,6 +71,10 @@
     for the resource to switch to the primary role immediately after
     startup. To do all this, include the following lines in the
     resource configuration:
+      <indexterm>
+	<primary>drbd.conf</primary>
+	<secondary>resource</secondary>
+      </indexterm>
       <programlisting>resource <replaceable>resource</replaceable> {
   startup {
     become-primary-on both;
@@ -72,6 +96,10 @@
 	resource</link>, you may <link
 	linkend="s-first-time-up">initialize your resource as you
 	normally would</link>. Since the
+      <indexterm>
+	<primary>drbd.conf</primary>
+	<secondary>allow-two-primaries</secondary>
+      </indexterm>
       <option>allow-two-primaries</option> option is set for this
       resource, you will be able to <link
 	linkend="s-switch-resource-roles">promote the resource</link>
@@ -82,7 +110,15 @@
     <para>GFS uses CLVM, the cluster-aware version of LVM, to manage
       block devices to be used by GFS. In order for CLVM to be able to
       recognize DRBD-based volumes, you must configure LVM to scan
-      your DRBD devices for Physical Volumes, as in a conventional LVM
+      your DRBD devices for 
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>Physical Volume (PV)</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>Physical Volume (LVM)</primary>
+      </indexterm>
+      Physical Volumes, as in a conventional LVM
       setup (see <xref linkend="s-lvm-drbd-as-pv"/>).</para>
   </section>
   <section id="s-gfs-enable">
@@ -94,6 +130,13 @@
 	apply to RHEL 4 derivatives such as CentOS 4.</para>
       <para>RHEL 4 clusters keep their configuration in a single
 	configuration file,
+	<indexterm>
+	  <primary>Red Hat Cluster Suite</primary>
+	  <secondary>cluster.conf (configuration file)</secondary>
+	</indexterm>
+	<indexterm>
+	  <primary>cluster.conf (RHCS configuration file)</primary>
+	</indexterm>
 	<filename>/etc/cluster/cluster.conf</filename>. You may manage
 	your cluster configuration either by editing this
 	configuration file, or by using the
@@ -139,6 +182,27 @@
     <para>Contrary to conventional, non-cluster-aware LVM
       configurations, the following steps must be completed on only
       one node due to the cluster-aware nature of CLVM:
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>pvcreate command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>pvcreate (LVM command)</primary>
+      </indexterm>
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>vgcreate command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>vgcreate (LVM command)</primary>
+      </indexterm>
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>lvcreate command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>lvcreate (LVM command)</primary>
+      </indexterm>
       <literallayout><userinput>pvcreate $(drbdadm sh-dev <replaceable>resource</replaceable>)</userinput>
 <computeroutput>  Physical volume "/dev/drbd<replaceable>num</replaceable>" successfully created</computeroutput>
 <userinput>vgcreate <replaceable>vg-name</replaceable> $(drbdadm sh-dev <replaceable>resource</replaceable>)</userinput>
@@ -147,10 +211,29 @@
 <computeroutput>  Logical volume "<replaceable>lv-name</replaceable>" created</computeroutput></literallayout>
     </para>
     <para>CLVM will immediately notify the peer node of these changes;
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>lvdisplay command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>lvdisplay (LVM command)</primary>
+      </indexterm>
+      <indexterm>
+	<primary>LVM</primary>
+	<secondary>lvs command</secondary>
+      </indexterm>
+      <indexterm>
+	<primary>lvs (LVM command)</primary>
+      </indexterm>
       issuing <command>lvs</command> (or <command>lvdisplay</command>)
       on the peer node will list the newly created logical
       volume.</para>
-    <para>Now, you may proceed by creating the actual filesystem:
+    <para>
+      <indexterm>
+	<primary>GFS</primary>
+	<secondary>creating a file system</secondary>
+      </indexterm>
+      Now, you may proceed by creating the actual filesystem:
       <literallayout><userinput>mkfs -t gfs -p lock_dlm -j 2 /dev/<replaceable>vg-name</replaceable>/<replaceable>lv-name</replaceable></userinput></literallayout>
       The <option>-j</option> option in this command refers to the
       number of journals to keep for GFS. This must be identical to
@@ -166,6 +249,10 @@
     </para>
     <para>After this, you may mount your new filesystem by starting the
     <code>gfs</code> service (on both nodes):
+      <indexterm>
+	<primary>GFS</primary>
+	<secondary>mounting a file system</secondary>
+      </indexterm>
       <literallayout><userinput>service gfs start</userinput></literallayout>
     </para>
     <para>From then onwards, as long as you have DRBD configured to
