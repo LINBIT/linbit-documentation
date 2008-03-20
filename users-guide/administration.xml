@@ -1105,14 +1105,14 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
 	  <tertiary>on-line</tertiary>
 	</indexterm>Before shrinking a DRBD device, you
 	<emphasis>must</emphasis> shrink that the layers above DRBD,
-	i.e. usually the file system.<footnote>
+	i.e. usually the file system. Since DRBD cannot ask the file
+	system how much space it actually uses, you have to be careful
+	in order not to cause data loss. <note>
 	  <para>Whether or not the <emphasis>filesystem</emphasis> can
 	    be shrunk on-line depends on the filesystem being used.
 	    Most filesystems do not support on-line shrinking. XFS
 	    does not support shrinking at all.</para>
-	</footnote> Since DRBD cannot ask the file system how much
-	space it actually uses, you have to be careful in order not to
-	cause data loss. 
+	</note>
 	</para>
 	<para>When internal meta data are used, make sure to consider
 	  the space required by the meta data. The size communicated
@@ -1184,24 +1184,18 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
 	  </listitem>
 	  <listitem>
 	    <para>Re-import the corrected meta data, on both
-	      nodes:<footnote>
-		<para>This example uses <code>bash</code> parameter
-		  substitution. It may or may not work in other
-		  shells. Check your <envar>SHELL</envar> environment
-		  variable if you are unsure which shell you are
-		  currently using.</para>
-	    </footnote>
-	    </para>
+	      nodes:
 	    <literallayout><userinput>drbdmeta_cmd=$(drbdadm -d	dump-md test-disk)</userinput>
-	      <userinput>${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata</userinput><footnote>
-		<para>This little <code>bash</code> hack will create
-		  your correct <command>drbdmeta</command> command on
-		  the fly. Use <command>set -x</command> prior to
-		  running it if you are interested to see the command
-		  being generated.</para>
-	    </footnote> 
+	      <userinput>${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata</userinput> 
 	    <computeroutput> Valid meta-data in place, overwrite? [need to type 'yes' to confirm]</computeroutput> <userinput>yes</userinput>
 	    <computeroutput> Successfully restored meta data</computeroutput></literallayout>
+	    <note>
+	      <para>This example uses <code>bash</code> parameter
+		substitution. It may or may not work in other shells.
+		Check your <envar>SHELL</envar> environment variable
+		if you are unsure which shell you are currently
+		using.</para>
+	    </note></para>
 	  </listitem>
 	  <listitem>
 	    <para>Re-enable your DRBD resource:</para>
