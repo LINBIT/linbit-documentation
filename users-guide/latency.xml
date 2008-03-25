@@ -1,17 +1,29 @@
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
 <chapter id="ch-latency" xmlns:xi="http://www.w3.org/2001/XInclude">
   <title>Optimizing DRBD latency</title>
+  <para>This chapter deals with optimizing DRBD latency. It examines
+    some hardware considerations with regard to latency minimization,
+    and details tuning recommendations for that purpose.</para>
   <section id="s-latency-hardware">
     <title>Hardware considerations</title>
+    <para>DRBD latency is affected by both the latency of the
+      underlying I/O subsystem (disks, controllers, and corresponding
+      caches), and the latency of the replication network.</para>
     <itemizedlist>
       <listitem>
 	<formalpara>
 	  <title>I/O subsystem latency</title>
-	  <para>I/O subsystem latency is primarily a function of disk
-	    rotation speed. Thus, using fast-spinning disks is a valid
-	    approach for reducing I/O subsystem latency.</para>
+	  <para><indexterm>
+	      <primary>latency</primary>
+	      <secondary>I/O subsystem</secondary>
+	    </indexterm>I/O subsystem latency is primarily a function
+	    of disk rotation speed. Thus, using fast-spinning disks is
+	    a valid approach for reducing I/O subsystem
+	    latency.</para>
 	</formalpara>
-	<para>Likewise, the use of a battery-backed write cache
+	<para>Likewise, the use of a <indexterm>
+	    <primary>battery-backed write cache</primary>
+	  </indexterm> battery-backed write cache
 	  (<acronym>BBWC</acronym>) reduces write completion times,
 	  also reducing write latency. Most reasonable storage
 	  subsystems come with some form of battery-backed cache, and
@@ -24,9 +36,12 @@
       <listitem>
 	<formalpara>
 	  <title>Network latency</title>
-	  <para>Network latency is, in essence, the packet round-trip
-	    time (<acronym>RTT</acronym>) between hosts. It is
-	    influenced by a number of factors, most of which are
+	  <para><indexterm>
+	      <primary>latency</primary>
+	      <secondary>network</secondary>
+	    </indexterm>Network latency is, in essence, the packet
+	    round-trip time (<acronym>RTT</acronym>) between hosts. It
+	    is influenced by a number of factors, most of which are
 	    irrelevant on the dedicated, back-to-back network
 	    connections recommended for use as DRBD replication links.
 	    Thus, it is sufficient to accept that a certain amount of
@@ -79,7 +94,127 @@
     </note>
   </section>
   <section id="s-latency-tuning">
-    <title>DRBD tuning recommendations</title>
-    <xi:include href="todo.xml"/>
+    <title>Tuning recommendations</title>
+    <para>First and foremost, for optimal DRBD performance in
+      environments where low latency &mdash; rather than high
+      throughput &mdash; is crucial, it is strongly recommended to use
+      DRBD 8.2.5 and above. The changeset for DRBD 8.2.5 contained a
+      number of improvements particularly targeted at optimizing DRBD
+      latency.</para>
+    <section id="s-latency-tuning-cpu-mask">
+      <title>Setting DRBD's CPU mask</title>
+      <para>DRBD allows for setting an explicit CPU mask for its
+	kernel threads. This is particularly beneficial for
+	applications which would otherwise compete with DRBD for CPU
+	cycles.</para>
+      <para>The CPU mask is a number in whose binary representation
+	the least significant bit represents the first CPU, the
+	second-least significant bit the second, and so forth. A set
+	bit in the bitmask implies that the corresponding CPU may be
+	used by DRBD, whereas a cleared bit means it must not. Thus,
+	for example, a CPU mask of 1 (<code>00000001</code>) means
+	DRBD may use the first CPU only. A mask of 12
+	(<code>00001100</code>) implies DRBD may use the third and
+	fourth CPU.</para>
+      <para>
+	An example CPU mask configuration for a resource may look like
+	this:
+	<programlisting>resource <replaceable>resource</replaceable> {
+  syncer {
+    cpu-mask 2;
+    ...
+  }
+  ...
+}</programlisting>
+	<important>
+	  <para>Of course, in order to minimize CPU competition
+	    between DRBD and the application using it, you need to
+	    configure your application to use only those CPU's which
+	    DRBD does not use.</para>
+	  <para>Some applications may provide for this via an entry in
+	    a configuration file, just like DRBD itself. Others
+	    include and invocation of the <command>taskset</command>
+	    command in an application init script.</para>
+	</important>
+      </para>
+    </section>
+    <section id="s-latency-tuning-mtu-size">
+      <title>Modifying the network MTU</title>
+      <para>When a block-based (as opposed to extent-based) filesystem
+	is layered above DRBD, it may be beneficial to change the
+	replication network's maximum transmission unit (MTU) size to
+	a value higher than the default auf 1500 bytes. Colloquially,
+	this is referred to as <indexterm>
+	  <primary>Jumbo frames</primary>
+	  <see>MTU</see>
+	</indexterm> <quote>enabling Jumbo frames</quote>.<note>
+	  <para>Block-based file systems include ext3, ReiserFS
+	    (version 3), and GFS. Extent-based file systems, in
+	    contrast, include XFS, Lustre and OCFS2. Extent-based file
+	    systems are expected to benefit from enabling Jumbo frames
+	    only if they hold few and large files.</para>
+	</note>
+      </para>
+      <para>The MTU may be changed using the following commands:
+	<literallayout><userinput>ifconfig <replaceable>interface</replaceable> mtu <replaceable>size</replaceable></userinput></literallayout>
+	or
+	<literallayout><userinput>ip link set <replaceable>interface</replaceable> mtu <replaceable>size</replaceable></userinput></literallayout>
+	<replaceable>interface</replaceable> refers to the network
+	interface used for DRBD replication. A typical value for
+	<replaceable>size</replaceable> would be 9000 (bytes).
+      </para>
+    </section>
+    <section id="s-latency-tuning-deadline-scheduler">
+      <title>Enabling the <code>deadline</code> I/O scheduler</title>
+      <para>When used in conjunction with high-performance, write back
+	enabled hardware RAID controllers, DRBD latency may benefit
+	greatly from using the simple <code>deadline</code> I/O
+	scheduler, rather than the CFQ scheduler typically enabled by
+	default reasonably recent kernel configurations (post-2.6.18
+	for most distributions).</para>
+      <para>Modifications to the I/O scheduler configuration may be
+	performed via the <code>sysfs</code> virtual file system,
+	mounted at <filename>/sys</filename>. The scheduler
+	configuration is in
+	<filename>/sys/block/<replaceable>device</replaceable></filename>, 
+	where <replaceable>device</replaceable> is the backing device
+	DRBD uses.</para>
+      <para>Enabling the <code>deadline</code> scheduler works via the
+	following command:
+	<literallayout><userinput>echo deadline &gt; /sys/block/<replaceable>device</replaceable>/queue/scheduler</userinput></literallayout>
+      </para>
+      <para>You may then also set the following values, which may
+      provide additional latency benefits:
+	<itemizedlist>
+	  <listitem>
+	    <para>Disable front merges:
+	      <literallayout><userinput>echo 0 &gt; /sys/block/<replaceable>device</replaceable>/queue/iosched/front_merges</userinput></literallayout>
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>Reduce read I/O deadline to 150 milliseconds (the
+	      default is 500ms):
+	      <literallayout><userinput>echo 150 &gt; /sys/block/<replaceable>device</replaceable>/queue/iosched/read_expire</userinput></literallayout>
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>Reduce write I/O deadline to 1500 milliseconds (the
+	    default is 3000ms):
+	      <literallayout><userinput>echo 1500 &gt; /sys/block/<replaceable>device</replaceable>/queue/iosched/write_expire</userinput></literallayout>
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>If these values effect a significant latency improvement,
+	you may want to make them permanent so they are automatically
+	set at system startup. <indexterm>
+	  <primary>Debian GNU/Linux</primary>
+	</indexterm>Debian and <indexterm>
+	  <primary>Ubuntu Linux</primary>
+	</indexterm>Ubuntu systems provide this functionality via the
+	<code>sysfsutils</code> package and the
+	<filename>/etc/sysfs.conf</filename> configuration
+	file.</para>
+    </section>
   </section>
 </chapter>
