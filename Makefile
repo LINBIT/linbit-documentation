@@ -61,7 +61,6 @@ html: howto-collection.xml images
 	--stringparam ulink.target offsite-link \
 	--stringparam html.stylesheet drbd-howto-collection.css \
 	--stringparam graphic.default.extension png \
-	--stringparam draft.mode no \
 	--stringparam rootid users-guide \
 	--xinclude $(CHUNKED_HTML_STYLESHEET) $<
 
