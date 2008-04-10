@@ -328,7 +328,7 @@ crm no</programlisting></para>
       <para>You may create an <filename>authkeys</filename> file,
 	using a generated secret, with the following shell
 	hack:</para>
-      <programlisting>echo -e "auth 1\n1 sha1 $(date | openssl md5)" &gt;/etc/ha.d/authkeys</programlisting>
+      <programlisting id="pl-heartbeat-authkeys-autogenerate">echo -e "auth 1\n1 sha1 $(date | openssl md5)" &gt; /etc/ha.d/authkeys</programlisting>
     </section>
   </section>
   <section id="s-heartbeat-r1">
@@ -409,7 +409,7 @@ crm no</programlisting></para>
 	  R1-compatible resource configuration involving a MySQL
 	  database backed by DRBD:
 	  <programlisting id="pl-haresources">bob drbddisk::mysql Filesystem::/dev/drbd0::/var/lib/mysql::ext3 \
-    192.168.42.1 mysql</programlisting></para>
+    10.9.42.1 mysql</programlisting></para>
 	<para>This resource configuration contains one resource group
 	  whose <emphasis>home node</emphasis> (the node where its
 	  resources are expected to run under normal circumstances) is
@@ -433,7 +433,7 @@ crm no</programlisting></para>
 	  <filename>/var/lib/mysql</filename> (the default location
 	  for MySQL data files).</para>
 	<para>The resource group also contains a service IP address,
-	  192.168.42.1. Heartbeat will make sure that this IP address
+	  10.9.42.1. Heartbeat will make sure that this IP address
 	  is configured and available on whichever node is currently
 	  active.</para>
 	<para>Finally, Heartbeat will use the <link
@@ -709,10 +709,18 @@ crm no</programlisting></para>
 	    linkend="fp-heartbeat-r1-advantages">those of R1-style
 	    clusters</link>. Which approach to follow is entirely up
 	  to the administrator's discretion.</para>
-	<para>In order to enable the same DRBD-backed configuration
-	for a MySQL database in a Heartbeat CRM cluster, you would use
-	a configuration like this:
-	  <programlisting id="pl-resource-group-mysql"><![CDATA[
+	<section id="s-heartbeat-crm-drbddisk-ra">
+	  <title>Using the <code>drbddisk</code> resource agent in a
+	  Heartbeat CRM configuration</title>
+	  <para>Even though you are using Heartbeat in CRM mode, you
+	    may still utilize R1-compatible resource agents such as
+	    <code>drbddisk</code>. This resource agent provides no
+	  secondary node monitoring, and ensures only resource
+	  promotion and demotion.</para>
+	  <para>In order to enable a DRBD-backed configuration
+	    for a MySQL database in a Heartbeat CRM cluster with 
+	    <code>drbddisk</code>, you would use a configuration like
+	  this:<programlisting id="pl-resource-group-mysql"><![CDATA[
 <group ordered="true" collocated="true" id="rg_mysql">
   <primitive class="heartbeat" type="drbddisk" 
              provider="heartbeat" id="drbddisk_mysql">
@@ -726,19 +734,24 @@ crm no</programlisting></para>
   <primitive class="ocf" type="Filesystem" 
              provider="heartbeat" id="fs_mysql">
     <instance_attributes>
-      <nvpair name="device" value="/dev/drbd0"/>
-      <nvpair name="directory" value="/var/lib/mysql"/>
-      <nvpair name="type" value="ext3"/>
+      <attributes>
+        <nvpair name="device" value="/dev/drbd0"/>
+        <nvpair name="directory" value="/var/lib/mysql"/>
+        <nvpair name="type" value="ext3"/>
+      <attributes>
     </instance_attributes>
   </primitive>
   <primitive class="ocf" type="IPaddr2" 
              provider="heartbeat" id="ip_mysql">
     <instance_attributes>
-      <nvpair name="ip" value="192.168.42.1/24"/>
+      <attributes>
+        <nvpair name="ip" value="192.168.42.1/24"/>
+          <nvpair name="nic" value="eth0"/>
+      <attributes>
     </instance_attributes>
   </primitive>
-  <primitive class="lsb" type="mysql" 
-             provider="heartbeat" id="mysql"/>
+  <primitive class="lsb" type="mysqld"
+             provider="heartbeat" id="mysqld"/>
 </group>
 ]]></programlisting></para>
 	<para>Assuming you created this configuration in a temporary
@@ -755,19 +768,96 @@ crm no</programlisting></para>
 	  <literallayout><userinput>cibadmin -o resources -C -x <filename>/tmp/hb_mysql.xml</filename></userinput></literallayout> 
 	  After this, Heartbeat will automatically propagate the
 	  newly-configured resource group to all cluster nodes.
-	<note>
-	    <para>There are numerous other ways to enable the above
-	      example configuration; the approach shown is by no means
-	      authoritative.</para>
-	    <para> For example, you might use the <code>drbd</code>
-	      OCF resource agent instead of the R1-compatible
-	      <code>drbddisk</code> resource agent mentioned here.
-	      Likewise, you may want to create four otherwise
-	      unrelated resources and then establish colocation and
-	      order constraints to make sure they are started in the
-	      correct fashion. You may also create place constraints
-	      to select a preferred node for a resource.</para>
-	</note></para>
+	  </para>
+	</section>
+	<section id="s-heartbeat-crm-drbd-ocf-ra">
+	  <title>Using the <code>drbd</code> OCF resource agent in a
+	    Heartbeat CRM configuration</title>
+	  <para>The <code>drbd</code> resource agent is a
+	    <quote>pure-bred</quote> OCF RA which provides
+	    Master/Slave capability, allowing Heartbeat to start and
+	    monitor the DRBD resource on multiple nodes and promoting
+	    a demoting as needed. You must, however, understand that
+	    the <code>drbd</code> RA disconnects and detaches all DRBD
+	    resources it manages on Heartbeat shutdown, and also upon
+	    enabling standby mode for a node.</para>
+	  <para>In order to enable a DRBD-backed configuration for a
+	    MySQL database in a Heartbeat CRM cluster with the
+	    <code>drbd</code> OCF resource agent, you must create both
+	    the necessary resources, and Heartbeat constraints to
+	    ensure your service only starts on a previously promoted
+	    DRBD resource. It is recommended that you start with the
+	    constraints, such as shown in this example:
+	    <programlisting
+	    id="pl-constraints-mysql-drbd-ocf"><![CDATA[<constraints>
+  <rsc_order id="mysql_after_drbd" from="rg_mysql" action="start"
+             to="ms_drbd_mysql" to_action="promote" type="after"/>
+  <rsc_colocation id="mysql_on_drbd" to="ms_drbd_mysql"
+                  to_role="master" from="rg_mysql" score="INFINITY"/>
+</constraints>]]></programlisting></para>
+	  <para>Assuming you put these settings in a file named
+	    <filename>/tmp/constraints.xml</filename>, here is how you
+	    would enable them:
+	    <literallayout><userinput>cibadmin -U -x /tmp/constraints.xml</userinput></literallayout></para>
+	  <para>Subsequently, you would create your relevant resources:
+	    <programlisting
+	      id="pl-resource-group-mysql-drbd-ocf"><![CDATA[<resources>
+  <master_slave id="ms_drbd_mysql">
+    <meta_attributes>
+      <attributes>
+        <nvpair name="notify" value="yes"/>
+      </attributes>
+    </meta_attributes>
+    <primitive id="drbd_mysql" class="ocf" provider="heartbeat"
+        type="drbd">
+      <instance_attributes>
+        <attributes>
+          <nvpair name="drbd_resource" value="mysql"/>
+        </attributes>
+      </instance_attributes>
+      <operations>
+        <op name="monitor" interval="29s" 
+            timeout="10s" role="Master"/>
+        <op name="monitor" interval="30s" 
+            timeout="10s" role="Slave"/>
+      </operations>
+    </primitive>
+  </master_slave>
+  <group id="rg_mysql">
+    <primitive class="ocf" type="Filesystem"
+               provider="heartbeat" id="fs_mysql">
+      <instance_attributes>
+        <attributes>
+          <nvpair name="device" value="/dev/drbd0"/>
+          <nvpair name="directory" value="/var/lib/mysql"/>
+          <nvpair name="type" value="ext3"/>
+        </attributes>
+      </instance_attributes>
+    </primitive>
+    <primitive class="ocf" type="IPaddr2"
+               provider="heartbeat" id="ip_mysql">
+      <instance_attributes>
+        <attributes>
+          <nvpair name="ip" value="10.9.42.1"/>
+          <nvpair name="nic" value="eth0"/>
+        </attributes>
+      </instance_attributes>
+    </primitive>
+    <primitive class="lsb" type="mysqld"
+               provider="heartbeat" id="mysqld"/>
+  </group>
+</resources>
+]]></programlisting>
+	  </para>
+	  <para>Assuming you put these settings in a file named
+	    <filename>/tmp/resources.xml</filename>, here is how you
+	    would enable them:
+	    <literallayout><userinput>cibadmin -U -x /tmp/resources.xml</userinput></literallayout></para>
+	  <para>After this, your configuration should be enabled.
+	    Heartbeat now selects a node on which it promotes the DRBD
+	    resource, and then starts the DRBD-backed resource group
+	    on that same node.</para>
+	</section>
       </section>
     </section>
     <section id="s-heartbeat-crm-manage">
