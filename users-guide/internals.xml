@@ -701,4 +701,85 @@
       </note>
     </para>
   </section>
+  <section id="s-outdate-peer">
+    <title>The peer outdater interface</title>
+    <para>DRBD has a defined interface for the mechanism that outdates
+      the peer node in case of the replication link being
+      interrupted. The <filename>drbd-peer-outdater</filename> helper,
+    bundled with Heartbeat, is the reference implementation for this
+    interface. However, you may easily implement your own peer
+    outdater helper program.</para>
+    <para>The outdate helper is invoked only in case
+      <orderedlist>
+	<listitem>
+	  <para>an <option>outdate-peer</option> handler has been
+	    defined in the resource's (or common)
+	    <code>handlers</code> section,
+	    <emphasis>and</emphasis></para>
+	</listitem>
+	<listitem>
+	  <para>the <option>fencing</option> option for the resource
+	    is set to either <code>resource-only</code> or
+	    <code>resource-and-stonith</code>, <emphasis>and</emphasis></para>
+	</listitem>
+	<listitem>
+	  <para>the replication link is interrupted long enough for
+	  DRBD to detect a network failure.</para>
+	</listitem>
+      </orderedlist>
+    </para>
+    <para>The program or script specified as the
+      <code>outdate-peer</code> handler, when it is invoked, has the
+      <code>DRBD_RESOURCE</code> and <code>DRBD_PEER</code>
+      environment variables available. They contain the name of the
+      affected DRBD resource and the peer's hostname,
+      respectively.</para>
+    <para>Any peer outdater helper program (or script) must return one
+    of the following exit codes:
+      <table>
+	<title>Peer outdater exit codes</title>
+	<tgroup cols="2">
+	  <colspec colnum="1" colname="exit-code" colwidth="10%"/>
+	  <colspec colnum="2" colname="implication" colwidth="90%"/>
+	  <thead>
+	    <row>
+	      <entry>Exit code</entry>
+	      <entry>Implication</entry>
+	    </row>
+	  </thead>
+	  <tbody>
+	    <row>
+	      <entry>3</entry>
+	      <entry>Peer's disk state was already <code>Inconsistent</code>.</entry>
+	    </row>
+	    <row>
+	      <entry>4</entry>
+	      <entry>Peer's disk state was successfully set to
+		<code>Outdated</code> (or was <code>Outdated</code> to
+	      begin with).</entry>
+	    </row>
+	    <row>
+	      <entry>5</entry>
+	      <entry>Connection to the peer node failed, peer could not
+	      be reached.</entry>
+	    </row>
+	    <row>
+	      <entry>6</entry>
+	      <entry>Peer refused to be outdated because the affected
+	      resource was in the primary role.</entry>
+	    </row>
+	    <row>
+	      <entry>7</entry>
+	      <entry>Peer node was successfully fenced off the
+		cluster. This should never occur unless
+		<option>fencing</option> is set to
+		<code>resource-and-stonith</code> for the affected
+		resource.
+	      </entry>
+	    </row>
+	  </tbody>
+	</tgroup>
+      </table>
+    </para>
+  </section>
 </chapter>
