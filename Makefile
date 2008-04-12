@@ -45,7 +45,7 @@ TITLEPAGE_STYLESHEET ?= $(STYLESHEET_PREFIX)/template/titlepage.xsl
 
 all: html pdf
 
-# Multiple-page HTML (we disable the draft watermark here)
+# Multiple-page HTML
 html: howto-collection.xml images
 	mkdir -p $(CHUNKED_HTML_SUBDIR)
 	cp -r images $(CHUNKED_HTML_SUBDIR)
