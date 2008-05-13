@@ -18,9 +18,6 @@ TOPDIR ?= $(PWD)
 # Path to the DRBD source tree
 DRBD ?= ../drbd-8
 
-# Method to use for PDF generation. Currently supported: fop, dblatex
-PDF_GENERATOR ?= fop
-
 # Sub-directories to descend into if doing recursive make
 SUBDIRS ?= users-guide images
 
@@ -43,7 +40,7 @@ CHUNKED_HTML_SUBDIR ?= html/
 
 TITLEPAGE_STYLESHEET ?= $(STYLESHEET_PREFIX)/template/titlepage.xsl
 
-all: html pdf
+all: html
 
 # Multiple-page HTML
 html: howto-collection.xml images
@@ -76,11 +73,6 @@ html: howto-collection.xml images
 	--stringparam graphic.default.extension png \
 	--stringparam rootid $* \
 	--xinclude $(HTML_STYLESHEET) $(TOPDIR)/howto-collection.xml
-
-# Title page layout (currently only used for FOP-generated PDF)
-%-titlepage.xsl: %-titlepage.xml
-	xsltproc -o $@ \
-	--xinclude $(TITLEPAGE_STYLESHEET) $<
 
 # Generated images: SVG from MathML
 # (needed for HTML output, and PDF if using FOP)
@@ -134,9 +126,4 @@ clean:
 	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i clean; done
 	rm -rf $(CHUNKED_HTML_SUBDIR)
 
-# We defer all PDF processing to a separate Makefile
-include $(TOPDIR)/Makefile.$(PDF_GENERATOR)
-
-pdf: users-guide/users-guide.pdf
-
-.PHONY: all html chunked-html pdf clean-png clean-svg clean-html clean-fo clean-ps clean-pdf clean raster-images vector-images images
+.PHONY: all html chunked-html clean-png clean-svg clean-html clean raster-images vector-images images
