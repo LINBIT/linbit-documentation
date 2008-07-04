@@ -49,7 +49,7 @@ html: howto-collection.xml images
 	cp $(wildcard *.css) $(CHUNKED_HTML_SUBDIR)
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) $(CHUNKED_HTML_SUBDIR)
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) $(CHUNKED_HTML_SUBDIR)
-	xsltproc -o $(CHUNKED_HTML_SUBDIR) \
+	xsltproc \
 	--param generate.index 0 \
 	--param admon.graphics 1 \
 	--param use.id.as.filename 1 \
@@ -59,7 +59,8 @@ html: howto-collection.xml images
 	--stringparam html.stylesheet drbd-howto-collection.css \
 	--stringparam graphic.default.extension png \
 	--stringparam rootid users-guide \
-	--xinclude $(CHUNKED_HTML_STYLESHEET) $<
+	--stringparam base.dir $(CHUNKED_HTML_SUBDIR) \
+	--xinclude $(CHUNKED_HTML_STYLESHEET) $(TOPDIR)/howto-collection.xml
 
 # Single-page HTML
 %.html: 
