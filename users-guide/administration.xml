@@ -1,3 +1,4 @@
+
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
 <chapter id="ch-admin">
   <title>Common administrative tasks</title>
@@ -1213,4 +1214,51 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
 	</orderedlist>
       </section>
     </section>
+  <section id="s-disable-flushes" status="draft">
+    <title>Disabling backing device flushes</title>
+    <para>
+      <caution>
+	<para>You should only disable device flushes when running DRBD
+	  on devices with a battery-backed write cache (BBWC). Most
+	  storage controllers allow to automatically disable the write
+	  cache when the battery is depleted, switching to
+	  write-through mode when the battery dies. It is strongly
+	  recommended to enable such a feature.</para>
+	<para>Disabling DRBD's flushes when running without BBWC, or
+	  on BBWC with a depleted battery, is <emphasis>likely to
+	  cause data loss</emphasis> and should not be attempted.</para>
+      </caution>
+    </para>
+    <para>DRBD allows you to enable and disable <link
+	linkend="s-disk-flush-support">backing device flushes</link>
+      separately for the replicated data set and DRBD's own meta data.
+      Both of these options are enabled by default. If you wish to
+      disable either (or both), you would set this in the
+      <code>disk</code> section for the DRBD configuration file,
+      <filename>/etc/drbd.conf</filename>.</para>
+    <para>To disable disk flushes for the replicated data set, include
+      the following line in your configuration:
+      <programlisting>resource <replaceable>resource</replaceable>
+  disk {
+    no-disk-flushes;
+    ...
+  }
+  ...
+}</programlisting></para>
+    <para>To disable disk flushes on DRBD's meta data, include the
+      following line:
+      <programlisting>resource <replaceable>resource</replaceable>
+  disk {
+    no-md-flushes;
+    ...
+  }
+  ...
+}</programlisting></para>
+    <para>After you have modified your resource configuration (and
+      synchronized your <filename>/etc/drbd.conf</filename> between
+      nodes, of course), you may enable these settings by issuing
+      these commands on both nodes:
+      <literallayout>drbdadm down <replaceable>resource</replaceable>
+drbdadm up <replaceable>resource</replaceable></literallayout></para>
+  </section>
 </chapter>

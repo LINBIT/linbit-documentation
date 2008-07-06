@@ -378,6 +378,53 @@
 	recovery.</para>
       </caution>
   </section>
+  <section id="s-disk-flush-support" status="draft">
+    <title>Support for disk flushes</title>
+    <para><indexterm>
+	<primary>disk flushes</primary>
+      </indexterm>
+      <indexterm>
+	<primary>flush()</primary>
+	<see>disk flushes</see>
+      </indexterm>When local block devices such as hard drives or RAID
+      logical disks have write caching enabled, writes to these
+      devices are considered <quote>completed</quote> as early as they
+      have reached reached the volatile cache. Controller
+      manufacturers typically refer to this as
+      <phrase>write-back</phrase> mode, the opposite being
+      <phrase>write-through</phrase>. If a power outage occurs on a
+      controller in write-back mode, the most recent pending writes
+      last writes are never committed to the disk, potentially causing
+      data loss.</para>
+    <para>To counteract this, DRBD makes use of disk flushes. A disk
+      flush is a write operation that completes only when the
+      associated data has been committed to stable (non-volatile)
+      storage &mdash; that is to say, it has effectively been written
+      to disk, rather than to the cache. DRBD uses disk flushes for
+      write operations both to its replicated data set and to its meta
+      data. In effect, DRBD circumvents the write cache in situations
+      it deems necessary, such as <link
+	linkend="s-activity-log">activity log</link> updates. This
+      means additional reliability even in the face of power
+      failure.</para>
+    <para>It is important to understand that DRBD can use disk flushes
+      only when layered on top of backing devices that support them.
+      Most reasonably recent kernels support disk flushes for most
+      SCSI and SATA devices. Linux software RAID (md) supports disk
+      flushes for RAID-1, provided all component devices support them
+      too. Device-mapper devices (LVM2, dmraid, multipath) are a
+      notable exception, these do not support disk flushes.</para>
+    <para>Controllers with battery-backed write cache (BBWC) use a
+      battery to back up their volatile storage. On such devices, when
+      power is restored after an outage, the controller flushes the
+      most recent pending writes out to disk from the battery-backed
+      cache, ensuring all writes committed to the volatile cache are
+      actually transferred to stable storage. When running DRBD on top
+      of such devices, it may be acceptable to disable disk flushes,
+      thereby improving DRBD's write performance. See <xref
+	linkend="s-disable-flushes"/> for
+      details.</para>
+  </section>
   <section id="s-handling-disk-errors">
     <title>Disk error handling strategies</title>
     <para><indexterm>
