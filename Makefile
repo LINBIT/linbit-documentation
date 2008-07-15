@@ -48,7 +48,6 @@ html: howto-collection.xml manpages images
 	cp -r images $(CHUNKED_HTML_SUBDIR)
 	cp $(wildcard *.css) $(CHUNKED_HTML_SUBDIR)
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.png)) $(CHUNKED_HTML_SUBDIR)
-	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.svg)) $(CHUNKED_HTML_SUBDIR)
 	xsltproc \
 	--param generate.index 0 \
 	--param admon.graphics 1 \
