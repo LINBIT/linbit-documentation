@@ -12,9 +12,6 @@ vector-images: $(VECTOR_IMAGES)
 
 clean: clean-svg clean-png clean-html
 
-%.xml: %.sgml
-	sgml2xml -x no-nl-in-tag -x lower -x empty $<  | xmllint --format --output $@ -
-
 %: force
 	@$(MAKE) -f ../Makefile $@
 force: ;

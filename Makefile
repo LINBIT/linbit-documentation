@@ -16,7 +16,7 @@
 TOPDIR ?= $(PWD)
 
 # Path to the DRBD source tree
-DRBD ?= ../drbd-8
+DRBD ?= $(abspath ../drbd-8)
 
 # Sub-directories to descend into if doing recursive make
 SUBDIRS ?= users-guide images
@@ -43,7 +43,7 @@ TITLEPAGE_STYLESHEET ?= $(STYLESHEET_PREFIX)/template/titlepage.xsl
 all: html
 
 # Multiple-page HTML
-html: howto-collection.xml images
+html: howto-collection.xml manpages images
 	mkdir -p $(CHUNKED_HTML_SUBDIR)
 	cp -r images $(CHUNKED_HTML_SUBDIR)
 	cp $(wildcard *.css) $(CHUNKED_HTML_SUBDIR)
@@ -61,19 +61,6 @@ html: howto-collection.xml images
 	--stringparam rootid users-guide \
 	--stringparam base.dir $(CHUNKED_HTML_SUBDIR) \
 	--xinclude $(CHUNKED_HTML_STYLESHEET) $(TOPDIR)/howto-collection.xml
-
-# Single-page HTML
-%.html: 
-	xsltproc -o $@ \
-	--param generate.index 0 \
-	--param admon.graphics 1 \
-	--stringparam admon.graphics.path images/ \
-	--stringparam admon.graphics.extension .png \
-	--stringparam ulink.target offsite-link \
-	--stringparam html.stylesheet drbd-howto-collection.css \
-	--stringparam graphic.default.extension png \
-	--stringparam rootid $* \
-	--xinclude $(HTML_STYLESHEET) $(TOPDIR)/howto-collection.xml
 
 # Generated images: SVG from MathML
 # (needed for HTML output, and PDF if using FOP)
@@ -110,6 +97,9 @@ vector-images:
 copy-css: 
 	cp $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.css)) .
 
+manpages:
+	@ set -e; $(MAKE) -C manpages
+
 # Cleanup targets
 clean-html:
 	rm -f $(XML_FILES:.xml=.html) 
@@ -122,8 +112,11 @@ clean-png:
 	rm -f $(SVG_FILES:.svg=-large.png) 
 	rm -f $(SVG_FILES:.svg=-small.png) 
 
+clean-manpages:
+	@ set -e; $(MAKE) -C manpages clean
+
 clean: 
 	@ set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i clean; done
 	rm -rf $(CHUNKED_HTML_SUBDIR)
 
-.PHONY: all html chunked-html clean-png clean-svg clean-html clean raster-images vector-images images
+.PHONY: all html manpages chunked-html clean-png clean-svg clean-html clean raster-images vector-images images
