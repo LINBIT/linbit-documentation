@@ -249,10 +249,7 @@ success
   </section>
   <section id="s-resolve-split-brain">
     <title>Dealing with split brain</title>
-    <para><indexterm>
-	<primary>split brain</primary>
-	<secondary>manual recovery</secondary>
-    </indexterm><emphasis>Split brain</emphasis> is a situation where
+    <para><emphasis>Split brain</emphasis> is a situation where
       both nodes are running, a resource is disconnected (either by
       manual disconnect, or by failure of the replication link), and
       the resource is switched to the primary role on both nodes. This
@@ -276,70 +273,146 @@ success
 	</itemizedlist>
       </para>
     </note>
-    <para>DRBD detects split brain at the time connectivity becomes
+    <section id="s-split-brain-notification">
+    <title>Notification on split brain</title>
+      <para>DRBD invokes the <code>split-brain</code> handler, if
+      configured, at any time split brain is detected. To configure
+	this handler, add the following item to your resource
+      configuration:
+	<programlisting>resource <replaceable>resource</replaceable>
+  handlers {
+    split-brain <replaceable>handler</replaceable>;
+    ...
+  }
+  ...
+}</programlisting>
+	<replaceable>handler</replaceable> may be any executable
+      present on the system.</para>
+      <para>Since DRBD version 8.2.6, the DRBD distribution contains a
+	split brain handler script that installs as
+      <filename>/usr/lib/drbd/notify-split-brain.sh</filename>. It
+	simply sends a notification e-mail message to
+      a specified address. To configure the handler to send a message
+      to <email>root@localhost</email> (which is expected to be an email
+      address that forwards the notification to a real system
+      administrator), configure the <code>split-brain handler</code> as
+      follows:
+	<programlisting>resource <replaceable>resource</replaceable>
+  handlers {
+    split-brain "/usr/lib/drbd/notify-split-brain.sh root";
+    ...
+  }
+  ...
+}</programlisting>
+      </para>
+    </section>
+    <section id="s-manual-split-brain-recovery">
+      <title>Manual split brain recovery</title>
+      <para><indexterm>
+	<primary>split brain</primary>
+	<secondary>manual recovery</secondary>
+	</indexterm>DRBD detects split brain at the time connectivity becomes
     available again and the peer nodes exchange the initial DRBD
     protocol handshake. If DRBD detects that both nodes are (or were
     at some point, while disconnected) in the primary role, it
     immediately tears down the replication connection. The tell-tale
     sign of this is a message like the following appearing in the
     system log:
-      <programlisting>Split-Brain detected, dropping connection!</programlisting>
-    </para>
-    <para>After split brain has been detected, one node will always
-      have the resource in a <indexterm>
-	<primary>StandAlone (connection state)</primary>
-      </indexterm>
-      <indexterm>
-	<primary>connection state</primary>
-	<secondary>StandAlone</secondary>
-      </indexterm>
-      <code>StandAlone</code> connection state.
-      The other might either also be in the <code>StandAlone</code>
-      state (if both nodes detected the split brain simultaneously),
-      or in 
-      <indexterm>
-	<primary>WFConnection (connection state)</primary>
-      </indexterm>
-      <indexterm>
-	<primary>connection state</primary>
-	<secondary>WFConnection</secondary>
-      </indexterm>
-      <code>WFConnection</code> (if the peer tore down the
-      connection before the other node had a chance to detect split
-      brain).</para>
-    <para>At this point, unless you configured DRBD to automatically
-      recover from split brain, you must manually intervene by
-      selecting one node whose modifications will be discarded (this
-      node is referred to as the <indexterm>
-	<primary>split brain</primary>
-	<secondary>victim</secondary>
-      </indexterm>
-      <emphasis>split brain victim</emphasis>).
-      This intervention is made with the following commands:
-      <literallayout><userinput>drbdadm secondary <replaceable>resource</replaceable></userinput> 
+	<programlisting>Split-Brain detected, dropping connection!</programlisting>
+      </para>
+      <para>After split brain has been detected, one node will always
+	have the resource in a <indexterm>
+	  <primary>StandAlone (connection state)</primary>
+	</indexterm>
+	<indexterm>
+	  <primary>connection state</primary>
+	  <secondary>StandAlone</secondary>
+	</indexterm>
+	<code>StandAlone</code> connection state.
+	The other might either also be in the <code>StandAlone</code>
+	state (if both nodes detected the split brain simultaneously),
+	or in 
+	<indexterm>
+	  <primary>WFConnection (connection state)</primary>
+	</indexterm>
+	<indexterm>
+	  <primary>connection state</primary>
+	  <secondary>WFConnection</secondary>
+	</indexterm>
+	<code>WFConnection</code> (if the peer tore down the
+	connection before the other node had a chance to detect split
+	brain).</para>
+      <para>At this point, unless you configured DRBD to automatically
+	recover from split brain, you must manually intervene by
+	selecting one node whose modifications will be discarded (this
+	node is referred to as the <indexterm>
+	  <primary>split brain</primary>
+	  <secondary>victim</secondary>
+	</indexterm>
+	<emphasis>split brain victim</emphasis>).
+	This intervention is made with the following commands:
+	<literallayout><userinput>drbdadm secondary <replaceable>resource</replaceable></userinput> 
 <userinput>drbdadm -- --discard-my-data connect <replaceable>resource</replaceable></userinput></literallayout> 
-      On the other node (the <indexterm>
-	<primary>split brain</primary>
-	<secondary>survivor</secondary>
-      </indexterm>
-      <emphasis>split brain survivor</emphasis>), if its connection
-      state is also <code>StandAlone</code>, you would enter:
-      <literallayout><userinput>drbdadm connect <replaceable>resource</replaceable></userinput></literallayout> 
-      You may omit this step if the node is already in the
-      <code>WFConnection</code> state; it will then reconnect
-      automatically.</para>
-    <para>Upon connection, your split brain victim immediately changes
-      its connection state to <code>SyncTarget</code>, and has its
-      modifications overwritten by the remaining primary node.
-    <note>
-	<para>The split brain victim is not subjected to a full device
-	  synchronization. Instead, it has its local modifications
-	  rolled back, and any modifications made on the split brain
-	  survivor propagate to the victim.</para>
-      </note>
-    </para>
-    <para>After re-synchronization has completed, the split brain is
-      considered resolved and the two nodes form a fully consistent,
-      redundant replicated storage system again.</para>
+	On the other node (the <indexterm>
+	  <primary>split brain</primary>
+	  <secondary>survivor</secondary>
+	</indexterm>
+	<emphasis>split brain survivor</emphasis>), if its connection
+	state is also <code>StandAlone</code>, you would enter:
+	<literallayout><userinput>drbdadm connect <replaceable>resource</replaceable></userinput></literallayout> 
+	You may omit this step if the node is already in the
+	<code>WFConnection</code> state; it will then reconnect
+	automatically.</para>
+      <para>Upon connection, your split brain victim immediately changes
+	its connection state to <code>SyncTarget</code>, and has its
+	modifications overwritten by the remaining primary node.
+	<note>
+	  <para>The split brain victim is not subjected to a full device
+	    synchronization. Instead, it has its local modifications
+	    rolled back, and any modifications made on the split brain
+	    survivor propagate to the victim.</para>
+	</note>
+      </para>
+      <para>After re-synchronization has completed, the split brain is
+	considered resolved and the two nodes form a fully consistent,
+	redundant replicated storage system again.</para>
+    </section>
+    <section id="s-automatic-split-brain-recovery-configuration">
+      <title>Configuring automatic split brain recovery
+      policies</title>
+      <para>In order to be able to enable and configure DRBD's
+      automatic split brain recovery policies, you must understand
+      that DRBD offers several configuration options for this
+      purpose. DRBD applies its split brain recovery procedures based
+      on the number of nodes in the Primary role at the time the split
+      brain is detected:
+	<ul>
+	  <li>
+	    <formalpara>
+	      <title><code>after-sb-0pri</code></title>
+	      <para>Split brain has just been detected, but at this
+	      time the resource is not in the Primary role on any
+	      host.</para>
+	    </formalpara>
+	  </li>
+	  <li>
+	    <formalpara>
+	      <title><code>after-sb-1pri</code></title>
+	      <para>Split brain has just been detected, and at this
+	      time the resource is in the Primary role on one
+	      host.</para>
+	    </formalpara>
+	  </li>
+	  <li>
+	    <formalpara>
+	      <title><code>after-sb-2pri</code></title>
+	      <para>Split brain has just been detected, and at this
+	      time the resource is in the Primary role on both
+	      hosts.</para>
+	    </formalpara>
+	  </li>
+	</ul>
+      </para>
+    </section>
   </section>
 </chapter>
