@@ -1,4 +1,3 @@
-
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
 <chapter id="ch-admin">
   <title>Common administrative tasks</title>
@@ -1261,168 +1260,188 @@ GIT-hash: fc00c6e00a1b6039bfcebe37afa3e7e28dbd92fa build by buildsystem@linbit, 
       <literallayout>drbdadm down <replaceable>resource</replaceable>
 drbdadm up <replaceable>resource</replaceable></literallayout></para>
   </section>
-  <section id="s-split-brain-notification">
-    <title>Configuring split brain notification</title>
-    <para>DRBD invokes the <code>split-brain</code> handler, if
-      configured, at any time split brain is detected. To configure
-      this handler, add the following item to your resource
-      configuration:
-      <programlisting>resource <replaceable>resource</replaceable>
+  <section id="s-configure-split-brain-behavior">
+    <title>Configuring split brain behavior</title>
+    <section id="s-split-brain-notification">
+      <title>Split brain notification</title>
+      <para>DRBD invokes the <code>split-brain</code> handler, if
+	configured, at any time split brain is detected. To configure
+	this handler, add the following item to your resource
+	configuration:
+	<programlisting>resource <replaceable>resource</replaceable>
   handlers {
     split-brain <replaceable>handler</replaceable>;
     ...
   }
   ...
 }</programlisting>
-      <replaceable>handler</replaceable> may be any executable
-      present on the system.</para>
-    <para>Since DRBD version 8.2.6, the DRBD distribution contains a
-      split brain handler script that installs as
-      <filename>/usr/lib/drbd/notify-split-brain.sh</filename>. It
-      simply sends a notification e-mail message to
-      a specified address. To configure the handler to send a message
-      to <code>root@localhost</code> (which is expected to be an email
-      address that forwards the notification to a real system
-      administrator), configure the <code>split-brain handler</code> as
-      follows:
-      <programlisting>resource <replaceable>resource</replaceable>
+	<replaceable>handler</replaceable> may be any executable
+	present on the system.</para>
+      <para>Since DRBD version 8.2.6, the DRBD distribution contains a
+	split brain handler script that installs as
+	<filename>/usr/lib/drbd/notify-split-brain.sh</filename>. It
+	simply sends a notification e-mail message to
+	a specified address. To configure the handler to send a message
+	to <code>root@localhost</code> (which is expected to be an email
+	address that forwards the notification to a real system
+	administrator), configure the <code>split-brain handler</code> as
+	follows:
+	<programlisting>resource <replaceable>resource</replaceable>
   handlers {
     split-brain "/usr/lib/drbd/notify-split-brain.sh root";
     ...
   }
   ...
 }</programlisting>
-    </para>
-    <para>After you have made this modfication on a running resource
-    (and synchronized the configuration file between nodes), no
-    additional intervention is needed to enable the handler. DRBD will
-    simply invoke the newly-configured handler on the next occurrence
-    of split brain.</para>
-  </section>
-  <section id="s-automatic-split-brain-recovery-configuration">
-    <title>Configuring automatic split brain recovery policies</title>
-    <para>In order to be able to enable and configure DRBD's automatic
-      split brain recovery policies, you must understand that DRBD
-      offers several configuration options for this purpose. DRBD
-      applies its split brain recovery procedures based on the number
-      of nodes in the Primary role at the time the split brain is
-      detected. To that end, DRBD examines the following keywords, all
-      found in the resource's <code>net</code> configuration section:
-      <itemizedlist>
-	<listitem>
-	  <formalpara>
-	    <title><code>after-sb-0pri</code></title>
-	    <para>Split brain has just been detected, but at this time
-	      the resource is not in the Primary role on any host. For
-	      this option, DRBD understands the following keywords:
+      </para>
+      <para>After you have made this modfication on a running resource
+	(and synchronized the configuration file between nodes), no
+	additional intervention is needed to enable the handler. DRBD will
+	simply invoke the newly-configured handler on the next occurrence
+	of split brain.</para>
+    </section>
+    <section id="s-automatic-split-brain-recovery-configuration">
+      <title>Automatic split brain recovery policies</title>
+      <para>In order to be able to enable and configure DRBD's automatic
+	split brain recovery policies, you must understand that DRBD
+	offers several configuration options for this purpose. DRBD
+	applies its split brain recovery procedures based on the number
+	of nodes in the Primary role at the time the split brain is
+	detected. To that end, DRBD examines the following keywords, all
+	found in the resource's <code>net</code> configuration section:
+	<itemizedlist>
+	  <listitem>
+	    <formalpara>
+	      <title><code>after-sb-0pri</code></title>
+	      <para>Split brain has just been detected, but at this time
+		the resource is not in the Primary role on any host. For
+		this option, DRBD understands the following keywords:
 		<itemizedlist>
-		<listitem>
-		  <formalpara>
-		    <title><code>disconnect</code></title>
-		    <para>Do not recover automatically, simply invoke
-		      the <code>split-brain</code> handler script (if
-		      configured), drop the connection and continue in
-		      disconnected mode.</para>
-		  </formalpara>
-		</listitem>
-		<listitem>
-		  <formalpara>
-		    <title><code>discard-younger-primary</code></title>
-		    <para>Discard and roll back the modifications made
-		      on the host which assumed the Primary role
-		      last.</para>
-		  </formalpara>
-		</listitem>
-		<listitem>
-		  <formalpara>
-		    <title><code>discard-least-changes</code></title>
-		    <para>Discard and roll back the modifications on
-		      the host where fewer changes occurred.</para>
-		  </formalpara>
-		</listitem>
-		<listitem>
-		  <formalpara>
-		    <title><code>discard-zero-changes</code></title>
-		    <para>If there is any host on which no changes
-		      occurred at all, simply apply all modifications
-		      made on the other and continue.</para>
-		  </formalpara>
-		</listitem>
+		  <listitem>
+		    <formalpara>
+		      <title><code>disconnect</code></title>
+		      <para>Do not recover automatically, simply invoke
+			the <code>split-brain</code> handler script (if
+			configured), drop the connection and continue in
+			disconnected mode.</para>
+		    </formalpara>
+		  </listitem>
+		  <listitem>
+		    <formalpara>
+		      <title><code>discard-younger-primary</code></title>
+		      <para>Discard and roll back the modifications made
+			on the host which assumed the Primary role
+			last.</para>
+		    </formalpara>
+		  </listitem>
+		  <listitem>
+		    <formalpara>
+		      <title><code>discard-least-changes</code></title>
+		      <para>Discard and roll back the modifications on
+			the host where fewer changes occurred.</para>
+		    </formalpara>
+		  </listitem>
+		  <listitem>
+		    <formalpara>
+		      <title><code>discard-zero-changes</code></title>
+		      <para>If there is any host on which no changes
+			occurred at all, simply apply all modifications
+			made on the other and continue.</para>
+		    </formalpara>
+		  </listitem>
 		</itemizedlist>
-	    </para>
-	  </formalpara>
-	</listitem>
-	<listitem>
-	  <formalpara>
-	    <title><code>after-sb-1pri</code></title>
-	    <para>Split brain has just been detected, and at this time
-	      the resource is in the Primary role on one host. For
-	      this option, DRBD understands the following keywords:
+	      </para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title><code>after-sb-1pri</code></title>
+	      <para>Split brain has just been detected, and at this time
+		the resource is in the Primary role on one host. For
+		this option, DRBD understands the following keywords:
 		<itemizedlist>
-		<listitem>
-		  <formalpara>
-		    <title><code>disconnect</code></title>
-		    <para>As with <code>after-sb-0pri</code>, simply
-		      invoke the <code>split-brain</code> handler
-		      script (if configured), drop the connection and
-		      continue in disconnected mode.</para>
-		  </formalpara>
-		</listitem>
-		<listitem>
-		  <formalpara>
-		    <title><code>consensus</code></title>
-		    <para>Apply the same recovery policies as
-		      specified in <code>after-sb-0pri</code>. If a
-		      split brain victim can be selected after
-		      applying these policies, automatically resolve.
-		      Otherwise, behave exactly as if
-		      <code>disconnect</code> were specified.</para>
-		  </formalpara>
-		</listitem>
-		<listitem>
-		  <formalpara>
-		    <title><code>call-pri-lost-after-sb</code></title>
-		    <para>Apply the recovery policies as specified in
-		      <code>after-sb-0pri</code>. If a split brain
-		      victim can be selected after applying these
-		      policies, invoke the
-		      <code>pri-lost-after-sb</code> handler on the
-		      victim node. This handler must be configured in
-		      the <code>handlers</code> section and is
-		      expected to forcibly remove the node from the
-		      cluster.</para>
-		  </formalpara>
-		</listitem>
-		<listitem>
-		  <formalpara>
-		    <title><code>discard-secondary</code></title>
-		    <para>Whichever host is currently in the Secondary
-		      role, make that host the split brain
-		      victim.</para>
-		  </formalpara>
-		</listitem>
+		  <listitem>
+		    <formalpara>
+		      <title><code>disconnect</code></title>
+		      <para>As with <code>after-sb-0pri</code>, simply
+			invoke the <code>split-brain</code> handler
+			script (if configured), drop the connection and
+			continue in disconnected mode.</para>
+		    </formalpara>
+		  </listitem>
+		  <listitem>
+		    <formalpara>
+		      <title><code>consensus</code></title>
+		      <para>Apply the same recovery policies as
+			specified in <code>after-sb-0pri</code>. If a
+			split brain victim can be selected after
+			applying these policies, automatically resolve.
+			Otherwise, behave exactly as if
+			<code>disconnect</code> were specified.</para>
+		    </formalpara>
+		  </listitem>
+		  <listitem>
+		    <formalpara>
+		      <title><code>call-pri-lost-after-sb</code></title>
+		      <para>Apply the recovery policies as specified in
+			<code>after-sb-0pri</code>. If a split brain
+			victim can be selected after applying these
+			policies, invoke the
+			<code>pri-lost-after-sb</code> handler on the
+			victim node. This handler must be configured in
+			the <code>handlers</code> section and is
+			expected to forcibly remove the node from the
+			cluster.</para>
+		    </formalpara>
+		  </listitem>
+		  <listitem>
+		    <formalpara>
+		      <title><code>discard-secondary</code></title>
+		      <para>Whichever host is currently in the Secondary
+			role, make that host the split brain
+			victim.</para>
+		    </formalpara>
+		  </listitem>
 		</itemizedlist>
-	    </para>
-	  </formalpara>
-	</listitem>
-	<listitem>
-	  <formalpara>
-	    <title><code>after-sb-2pri</code></title>
-	    <para>Split brain has just been detected, and at this time
-	      the resource is in the Primary role on both hosts. This
-	      option accepts the same keywords as
-	      <code>after-sb-1pri</code> except, of course,
-	      <code>discard-secondary</code>.</para>
-	  </formalpara>
-	</listitem>
+	      </para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title><code>after-sb-2pri</code></title>
+	      <para>Split brain has just been detected, and at this time
+		the resource is in the Primary role on both hosts. This
+		option accepts the same keywords as
+		<code>after-sb-1pri</code> except, of course,
+		<code>discard-secondary</code>.</para>
+	    </formalpara>
+	  </listitem>
 	</itemizedlist>
-    </para>
-    <note>
-      <para>DRBD understands additional keywords for these three
-	options, which have been omitted here because they are very
-	rarely used. Refer to <xref linkend="re-drbdconf"/> for
-	details on split brain recovery keywords not discussed
-	here.</para>
-    </note>
+      </para>
+      <note>
+	<para>DRBD understands additional keywords for these three
+	  options, which have been omitted here because they are very
+	  rarely used. Refer to <xref linkend="re-drbdconf"/> for
+	  details on split brain recovery keywords not discussed
+	  here.</para>
+      </note>
+      <para>For example, a resource which serves as the block device
+      for a GFS or OCFS2 file system in dual-Primary mode may have
+      its recovery policy defined as follows:
+	<programlisting>resource <replaceable>resource</replaceable> {
+  handlers {
+    split-brain "/usr/lib/drbd/notify-split-brain.sh root"
+    ...
+  }
+  net {
+    after-sb-0pri discard-zero-changes;
+    after-sb-1pri discard-secondary;
+    after-sb-2pri disconnect;
+    ...
+  }
+  ...
+}
+</programlisting></para>
+    </section>
   </section>
 </chapter>
