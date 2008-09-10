@@ -1,0 +1,193 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<chapter id="ch-ocfs2" xmlns:xi="http://www.w3.org/2001/XInclude" status="draft">
+  <title>Using OCFS2 with DRBD</title>
+  <indexterm>
+    <primary>OCFS2</primary>
+  </indexterm>
+  <indexterm>
+    <primary>Oracle Cluster File System</primary>
+    <see>OCFS</see>
+  </indexterm>
+  <para>This chapter outlines the steps necessary to set up a DRBD
+  resource as a block device holding a shared Oracle Cluster File
+  System, version 2 (OCFS2).</para>
+  <para>In order to use OCFS2 on top of DRBD, you must configure DRBD in
+    <indexterm>
+      <primary>dual-primary mode</primary>
+    </indexterm>
+    dual-primary mode, which is available in DRBD 8.0 and
+    later.</para>
+  <section id="s-ocfs2-primer">
+    <title>OCFS2 primer</title>
+    <para>The Oracle Cluster File System, version 2 (OCFS2) is a
+      concurrent access shared storage file system developed by Oracle
+      Corporation. Unlike its predecessor OCFS, which was specifically
+      designed and only suitable for Oracle database payloads, OCFS2
+      is a general-purpose filesystem that implements most POSIX
+      semantics. The most common use case for OCFS2 is arguably Oracle
+      Real Application Cluster (RAC), but OCFS2 may also be used for
+      load-balanced NFS clusters, for example.</para>
+    <para>Although originally designed for use with conventional
+      shared storage devices, OCFS2 is equally well suited to be
+      deployed on <link linkend="s-dual-primary-mode">dual-Primary
+	DRBD</link>. Applications reading from the filesystem may
+      benefit from reduced read latency due to the fact that DRBD
+      reads from and writes to local storage, as opposed to the SAN
+      devices OCFS2 otherwise normally runs on. In addition, DRBD adds
+      redundancy to OCFS2 by adding an additional copy to every
+      filesystem image, as opposed to just a single filesystem image
+      that is merely shared.</para>
+    <para>Like other shared cluster file systems such as <link
+	linkend="ch-gfs">GFS</link>, OCFS2 allows multiple nodes to
+      access the same storage device, in read/write mode,
+      simultaneously without risking data corruption. It does so by
+      using a Distributed Lock Manager (DLM) which manages concurrent
+      access from cluster nodes. The DLM itself uses a virtual file
+      system (<code>ocfs2_dlmfs</code>) which is separate from the
+      actual OCFS2 file systems present on the system.</para>
+    <para>OCFS2 may either use an intrinsic cluster communication
+      layer to manage cluster membership and filesystem mount and
+      unmount operation, or alternatively defer those tasks to the
+      <link linkend="ch-heartbeat">Linux-HA (Heartbeat)</link> cluster
+      infrastructure.</para>
+    <para>OCFS2 is available in SUSE Linux Enterprise Server (where it
+      is the primarily supported shared cluster file system), CentOS,
+      Debian GNU/Linux, and Ubuntu Server Edition. Oracle also
+      provides packages for Red Hat Enterprise Linux (RHEL). This
+      chapter assumes running OCFS2 on a SUSE Linux Enterprise Server
+      system.</para>
+  </section>
+  <section id="s-ocfs-create-resource">
+    <title>Creating a DRBD resource suitable for OCFS2</title>
+    <para>Since OCFS2 is a shared cluster file system expecting
+      concurrent read/write storage access from all cluster nodes, any
+      DRBD resource to be used for storing a OCFS2 filesystem must be
+      configured in <link linkend="s-dual-primary-mode">dual-primary
+	mode</link>. Also, it is recommended to use some of DRBD's
+      <link linkend="s-auto-split-brain-recovery">features for
+    automatic recovery from split brain</link>. And, it is necessary
+    for the resource to switch to the primary role immediately after
+    startup. To do all this, include the following lines in the
+    resource configuration:
+      <indexterm>
+	<primary>drbd.conf</primary>
+	<secondary>resource</secondary>
+      </indexterm>
+      <programlisting>resource <replaceable>resource</replaceable> {
+  startup {
+    become-primary-on both;
+    ...
+  }
+  net {
+    allow-two-primaries;
+    after-sb-0pri discard-zero-changes;
+    after-sb-1pri discard-secondary;
+    after-sb-2pri disconnect;
+    ...
+  }
+  ...
+}</programlisting>
+      </para>
+    <para>
+      Once you have added these options to <link
+	linkend="ch-configure">your freshly-configured
+	resource</link>, you may <link
+	linkend="s-first-time-up">initialize your resource as you
+	normally would</link>. Since the
+      <indexterm>
+	<primary>drbd.conf</primary>
+	<secondary>allow-two-primaries</secondary>
+      </indexterm>
+      <option>allow-two-primaries</option> option is set for this
+      resource, you will be able to <link
+	linkend="s-switch-resource-roles">promote the resource</link>
+      to the primary role on both nodes.</para>
+  </section>
+  <section id="s-ocfs2-enable">
+    <title>Configuring your cluster to support OCFS2</title>
+    <para>OCFS2 uses a central configuration file,
+    <filename>/etc/ocfs2/cluster.conf</filename>. You may edit this
+      file directly, but using the <code>ocfs2console</code> graphical
+    configuration utility is usually more convenient.</para>
+    <para>When creating your OCFS2 cluster, be sure to add both your
+      hosts to the cluster configuration. The default port (7777) is
+      usually an acceptable choice for cluster interconnect
+      communications. If you choose any other port number, be sure to
+      choose one that does not clash with an existing port used by
+      DRBD (or any other configured TCP/IP). 
+      <remark>TODO: Add	ocfs2console screenshots.</remark></para>
+    <para>When you have configured you cluster configuration, choose
+      the <code>Propagate Cluster Configuration</code>menu item to
+    distribute the configuration to both nodes in the cluster. Your
+      <filename>/etc/ocfs2/cluster.conf</filename> file contents
+    should then be identical on both nodes and will look roughly like
+    this:
+      <programlisting>node:
+    ip_port = 7777
+    ip_address = 10.1.1.31
+    number = 0
+    name = alice
+    cluster = ocfs2
+
+node:
+    ip_port = 7777
+    ip_address = 10.1.1.32
+    number = 1
+    name = bob
+    cluster = ocfs2
+
+cluster:
+    node_count = 2
+    name = ocfs2
+</programlisting></para>
+    <para>Next, you will configure the O2CB driver, using the
+      <option>configure</option> option of the <code>o2cb</code> init
+    script:
+      <literallayout><userinput>/etc/init.d/o2cb configure</userinput></literallayout>
+      <remark>TODO: Enter o2cb configure screen capture</remark>
+    </para>
+    <section id="s-ocfs2-enable-without-heartbeat">
+      <title>Using OCFS2 internal cluster management</title>
+      <para>This section outlines the configuration steps necessary to
+	get OCFS2 running on top of DRBD in SLES 10 clusters, using
+	OCFS2's built-in cluster membership layer.</para>
+    </section>
+    <section id="s-ocfs2-enable-with-heartbeat">
+      <title>Using Heartbeat</title>
+      <para>This section outlines the configuration steps necessary to
+	get OCFS2 running on top of DRBD in SLES 10 clusters, using
+	the Heartbeat cluster manager.</para>
+    </section>
+  </section>
+  <section id="s-ocfs2-create">
+    <title>Creating an OCFS2 filesystem</title>
+    <para>When your cluster configuration is complete and you have
+    configure O2CB on both hosts, you can create the actual file
+    system.</para>
+    <para>To that end, first check your cluster status:
+      <literallayout><userinput>/etc/init.d/o2cb status</userinput></literallayout>
+      <remark>TODO: Enter o2cb status screen capture</remark>
+    </para>
+    <para>Now, use OCFS2's <code>mkfs</code> implementation to create
+    the file system:
+      <literallayout><userinput>mkfs -t ocfs2 -n 2 -L ocfs2_drbd0 /dev/drbd0</userinput></literallayout>
+      <remark>TODO: Enter mkfs.ocfs2 capture</remark>
+      This will create an OCFS2 file system with two node slots on
+      <filename>/dev/drbd0</filename>, and set the filesystem label to
+      <code>ocfs2_drbd0</code>. You may specify other options on
+      <code>mkfs</code> invocation; please see the
+      <code>mkfs.ocfs2</code> system manual page for details.
+    </para>
+    <para>After formatting, <code>ocfs2console</code> should display
+    your newly created file system, albeit without a mount point.</para>
+  </section>
+  <section id="s-ocfs2-use">
+    <title>Using your OCFS2 filesystem</title>
+    <para>When you have completed cluster configuration and created
+    your file system, you may mount it as any other file system:
+      <literallayout><userinput>mount -t ocfs2 /dev/drbd0 /shared</userinput>
+<userinput>mount</userinput></literallayout>
+      <remark>TODO: Enter mount output.</remark>
+    </para>
+  </section>
+</chapter>
