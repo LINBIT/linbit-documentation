@@ -10,12 +10,12 @@
   <section id="s-xen-primer">
     <title>Xen primer</title>
     <para>Xen is a virtualization framework originally developed at
-      the University of Cambridge (UK), and now being maintained by
-      XenSource, Inc. It is included in reasonably recent releases of
-      most Linux distributions, such as Debian GNU/Linux (since
-      version 4.0), SUSE Linux Enterprise Server (since release 10),
-      Red Hat Enterprise Linux (since release 5), and many
-      others.</para>
+      the University of Cambridge (UK), and later being maintained by
+      XenSource, Inc. (now a part of Citrix). It is included in
+      reasonably recent releases of most Linux distributions, such as
+      Debian GNU/Linux (since version 4.0), SUSE Linux Enterprise
+      Server (since release 10), Red Hat Enterprise Linux (since
+      release 5), and many others.</para>
     <para>Xen uses
       <indexterm>
 	<primary>Xen</primary>
@@ -105,6 +105,39 @@
       domU. In that case, simply add more entries like the one
       provided in the example to the <option>disk</option> option,
       separated by commas.</para>
+    <note>
+      <para>There are three sets of circumstances under which you cannot
+      use this approach:
+	<itemizedlist>
+	  <listitem>
+	    <para>You are configuring a fully virtualized (HVM) domU.</para>
+	  </listitem>
+	  <listitem>
+	    <para>You are configuring a domU without the
+	      <option>kernel</option>, <option>initrd</option>, and
+	      <option>extra</option> options, relying instead on
+	      <option>bootloader</option> and
+	      <option>bootloader_args</option> to use a Xen
+	      pseudo-bootloader, <emphasis>and</emphasis> that
+	      pseudo-bootloader does not support the
+	      <code>drbd:</code> syntax.</para>
+	  </listitem>
+	  <listitem>
+	    <para>You are installing your domU using a graphical
+	      installation utility, <emphasis>and</emphasis> that
+	      graphical installer does not support the
+	      <code>drbd:</code> syntax.</para>
+	  </listitem>
+	</itemizedlist>
+	Under these circumstances, you must use the traditional
+	<code>phy:</code> device syntax and the DRBD device name
+	that is associated with your resource, not the resource name.
+	That, however, requires that you manage DRBD
+	state transitions outside Xen, which is a less flexible
+	approach than that provided by the <code>drbd</code>
+	resource type.
+      </para>
+    </note>
   </section>
   <section id="s-manage-domu">
     <title>Starting, stopping, and migrating DRBD-backed
@@ -164,13 +197,7 @@
 	    <title><code>phy</code></title>
 	    <para>This device type is used to hand "physical" block
 	      devices, available in the host environment, off to a
-	      guest domU in an essentially transparent fashion. You
-	      could use the <code>phy</code> device type for DRBD
-	      resources as well, as DRBD devices are, of course, block
-	      devices. That, however, requires that you manage DRBD
-	      state transitions outside Xen, which is a less flexible
-	      approach than that provided by the <code>drbd</code>
-	      resource type.
+	      guest domU in an essentially transparent fashion.
 	    </para>
 	  </formalpara>
 	</listitem>
