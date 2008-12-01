@@ -1,5 +1,5 @@
 <!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
-<chapter id="ch-admin">
+<chapter id="ch-admin" xmlns:xi="http://www.w3.org/2001/XInclude">
   <title>Common administrative tasks</title>
   <para>This chapter outlines typical administrative tasks encountered
     during day-to-day operations. It does not cover troubleshooting
@@ -1308,7 +1308,9 @@ drbdadm up <replaceable>resource</replaceable></literallayout></para>
 	applies its split brain recovery procedures based on the number
 	of nodes in the Primary role at the time the split brain is
 	detected. To that end, DRBD examines the following keywords, all
-	found in the resource's <code>net</code> configuration section:
+	found in the resource's <code>net</code> configuration
+	section:
+      </para>
 	<itemizedlist>
 	  <listitem>
 	    <formalpara>
@@ -1417,14 +1419,13 @@ drbdadm up <replaceable>resource</replaceable></literallayout></para>
 	    </formalpara>
 	  </listitem>
 	</itemizedlist>
-      </para>
-      <note>
+	<note>
 	<para>DRBD understands additional keywords for these three
 	  options, which have been omitted here because they are very
 	  rarely used. Refer to <xref linkend="re-drbdconf"/> for
 	  details on split brain recovery keywords not discussed
 	  here.</para>
-      </note>
+	</note>
       <para>For example, a resource which serves as the block device
       for a GFS or OCFS2 file system in dual-Primary mode may have
       its recovery policy defined as follows:
@@ -1442,6 +1443,149 @@ drbdadm up <replaceable>resource</replaceable></literallayout></para>
   ...
 }
 </programlisting></para>
+    </section>
+  </section>
+  <section id="s-three-nodes">
+    <title>Creating a three-node setup</title>
+    <subtitle>Available in DRBD version 8.3.0 and above</subtitle>
+    <para>A three-node setup involves one DRBD device
+    <quote>stacked</quote> atop another.</para>
+    <section id="s-stacking-considerations">
+    <title>Device stacking considerations</title>
+    <para> The following considerations apply to this type of setup:
+      <itemizedlist>
+	<listitem>
+	  <para>The stacked device is the active one. Assume you have configured
+	    one DRBD device <filename>/dev/drbd0</filename>, and the
+	    stacked device atop it is <filename>/dev/drbd10</filename>,
+	    then <filename>/dev/drbd10</filename> will be the device
+	    that you mount and use.</para>
+	</listitem>
+	<listitem>
+	  <para>Device meta data will be stored twice, on the
+	      underlying DRBD device <emphasis>and</emphasis> the
+	      stacked DRBD device. On the stacked device, you must
+	      always use <link linkend="s-internal-meta-data">internal
+		meta data</link>. This means that the effectively
+	      available storage area on a stacked device is slightly
+	      smaller, compared to an unstacked device.</para>
+	</listitem>
+	<listitem>
+	  <para>To get the stacked upper level device running, the
+	    underlying device must be in the primary role.</para>
+	</listitem>
+	<listitem>
+	  <para>To be able to synchronize the backup node, the stacked
+	    device on the active node must be up and in the primary
+	    role.</para>
+	</listitem>
+      </itemizedlist>
+    </para>
+  </section>
+    <section id="s-three-node-config">
+      <title>Configuring a stacked resource</title>
+      <para>In the following example, nodes are named
+	<code>alice</code>, <code>bob</code>, and
+	<code>charlie</code>, with <code>alice</code> and
+	<code>bob</code> forming a two-node cluster, and
+	<code>charlie</code> being the backup node.</para>
+    <programlisting>resource r0 {
+  protocol C;
+  ignore-on charlie;
+
+  on alice {
+    device     /dev/drbd0;
+    disk       /dev/sda6;
+    address    10.0.0.1:7788
+    meta-disk internal;
+  }
+
+  on bob {
+    device    /dev/drbd0;
+    disk      /dev/sda6;
+    address   10.0.0.2:7788
+    meta-disk internal;
+  }
+}
+
+resource r0-U {
+  protocol A;
+
+  stacked-on-top-of r0 {
+    device     /dev/drbd10;
+    address    192.168.42.1:7788;
+  }
+
+  on charlie {
+    device     /dev/drbd10;
+    disk       /dev/hda6;
+    address    192.168.42.2:7788; # Public IP of the backup node
+    meta-disk  internal;
+  }
+}</programlisting>
+      <para>As with any <filename>drbd.conf</filename> configuration
+	file, this must be distributed across all nodes in the cluster
+	&mdash; in this case, three nodes. Notice the following extra
+	keywords not found in an unstacked resource configuration:
+	<itemizedlist>
+	  <listitem>
+	    <formalpara>
+	      <title><code>ignore-on</code></title>
+	      <para>This option instructs one of the nodes (the backup
+		node, <code>charlie</code>) to ignore the resource
+		when parsing <filename>/etc/drbd.conf</filename>. This
+		option must always contain the hostname of your backup
+		node, and must be included in the lower-level resource
+		configuration. Do not use <option>ignore-on</option>
+		in a stacked resource.</para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title><code>stacked-on-top-of</code></title>
+	      <para>This option informs DRBD that the resource which
+		contains it is a stacked resource. It replaces one of
+		the <code>on</code> sections normally found in any
+		resource configuration. Do not use
+		<option>stacked-on-top-of</option> in an lower-level
+		resource.</para>
+	    </formalpara>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <note>
+	<para>It is not a strict requirement to use <link
+	    linkend="fp-protocol-a">Protocol A</link> for stacked
+	  resources. However, it is usually the only option that makes
+	  sense to use in practice.</para>
+      </note>
+    </section>
+    <section id="s-three-node-prepare">
+      <title>Preparing stacked resources for use</title>
+      <xi:include href="todo.xml"/>
+    </section>
+    <section id="s-three-node-enable">
+      <title>Enabling stacked resources</title>
+      <para>To enable a stacked resource, you first enable its
+	lower-level resource and promote it:</para>
+      <literallayout><userinput>drbdadm&nbsp;up&nbsp;r0</userinput>
+<userinput>drbdadm&nbsp;primary&nbsp;r0</userinput></literallayout>
+      <para>As with unstacked resources, you must create DRBD meta
+	data on the stacked resources. This is done using the
+	following command:
+	<literallayout><userinput>drbdadm&nbsp;--stacked&nbsp;create-md&nbsp;r0-U</userinput></literallayout></para>
+      <para>Then, you may enable the stacked resource:</para>
+      <literallayout><userinput>drbdadm&nbsp;--stacked&nbsp;up&nbsp;r0-U</userinput>
+<userinput>drbdadm&nbsp;--stacked&nbsp;primary&nbsp;r0-U</userinput></literallayout>
+      <para>After this, you may bring up the resource on the backup
+	node, enabling three-node replication:
+	<literallayout><userinput>drbdadm&nbsp;create-md&nbsp;r0-U</userinput> 
+<userinput>drbdadm&nbsp;up&nbsp;r0-U</userinput></literallayout></para>
+      <para>In order to automate stacked resource management, you may
+	integrate stacked resources in your cluster manager
+	configuration. See <xref linkend="s-heartbeat-stacked"/> for
+	information on doing this in a cluster managed by the
+	Heartbeat cluster management framework.</para>
     </section>
   </section>
 </chapter>

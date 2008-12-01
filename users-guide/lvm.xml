@@ -199,6 +199,8 @@
       <literallayout><userinput>pvcreate /dev/drbd<replaceable>num</replaceable></userinput></literallayout>
       or
       <literallayout><userinput>pvcreate $(drbdadm sh-dev <replaceable>resource</replaceable>)</userinput></literallayout>
+      or (for stacked resources)
+      <literallayout><userinput>pvcreate $(drbdadm --stacked sh-dev <replaceable>resource</replaceable>)</userinput></literallayout>
     </para>
     <para>Now, it is necessary to include this device in the list of
       devices LVM scans for PV signatures. In order to do this, you
@@ -227,6 +229,22 @@
 	  <filename>/dev</filename> for PV signatures. This is
 	  equivalent to <code>filter = [ "a|.*|" ]</code>.</para>
       </note>
+    </para>
+    <para>If you want to use stacked resources as LVM PVs, then
+      you will need a more explicit filter configuration. You need to
+      make sure that LVM detects PV signatures on stacked resources,
+      while ignoring them on the corresponding lower-level resources
+      and backing devices. This example assumes that your lower-level
+      DRBD resources use device minors 0 through 9, whereas your
+      stacked resources are using device minors from 10
+      upwards:<footnote>
+	<para>This is an emerging convention for stacked resources.</para>
+      </footnote>
+      <programlisting>filter = [ "a|drbd1[0-9]|", "r|.*|" ]</programlisting>
+      This filter expression accepts PV signatures found only on the 
+      DRBD devices <filename>/dev/drbd10</filename> through 
+      <filename>/dev/drbd19</filename>, while rejecting (ignoring) all
+      others.
     </para>
     <para>After modifying the <filename>lvm.conf</filename> file, you
       must run the 

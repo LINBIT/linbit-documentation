@@ -471,6 +471,65 @@ chmod 0600 /etc/ha.d/authkeys</programlisting>
 	  started, and from right to left when they are being
 	  stopped.</para>
       </section>
+      <section id="s-heartbeat-stacked">
+	<title>Stacked resources in Heartbeat R1-style
+	  configurations</title>
+	<subtitle>Available in DRBD version 8.3.0 and above</subtitle>
+	<para>In <link linkend="s-three-way-repl">three-way
+	    replication</link> with stacked resources, it is usually
+	  desirable to have the stacked resource managed by Heartbeat
+	  just as other cluster resources. Then, your two-node cluster
+	  will manage the stacked resource as a floating resource
+	  that runs on whichever node is currently the active one in
+	  the cluster. The third node, which is set aside from the
+	  Heartbeat cluster, will have the <quote>other half</quote>
+	  of the stacked resource available permanently.</para>
+	<note>
+	  <para>To have a stacked resource managed by Heartbeat, you
+	    must first configure it as outlined in
+	    <xref linkend="s-three-node-config"/>.</para>
+	</note>
+	<para>The stacked resource is managed by Heartbeat by way of
+	  the <code>drbdupper</code> resource agent. That resource
+	  agent is distributed, as all other
+	  Heartbeat R1 resource agents, in
+	  <filename>/etc/ha.d/resource.d</filename>. It is to stacked
+	  resources what the <code>drbddisk</code> resource agent is
+	  to conventional, unstacked resources.</para>
+	<para><code>drbdupper</code> takes care of managing both the
+	  lower-level resource <emphasis>and</emphasis> the stacked
+	  resource. Consider the following
+	  <filename>haresources</filename> example, which would
+	  replace the one given in the previous section:
+	  <programlisting>bob&nbsp;192.168.42.1&nbsp;\
+&nbsp;&nbsp;drbdupper::mysql-U&nbsp;Filesystem::/dev/drbd1::/var/lib/mysql::ext3&nbsp;\ 
+&nbsp;&nbsp;mysql</programlisting></para>
+	<para>Note the following differences to the earlier example:
+	  <itemizedlist>
+	    <listitem>
+	      <para>You start the cluster IP address
+		<emphasis>before</emphasis> all other resources. This
+		is necessary because stacked resource replication uses
+		a connection from the cluster IP address to the node
+		IP address of the third node. Lower-level resource
+		replication, by contrast, uses a connection between
+		the <quote>physical</quote> node IP addresses of the
+		two cluster nodes.</para>
+	    </listitem>
+	    <listitem>
+	      <para>You pass the stacked resource name to
+		<code>drbdupper</code> (in this example,
+		<code>mysql-U</code>).</para>
+	    </listitem>
+	    <listitem>
+	      <para>You configure the <code>Filesystem</code>
+	      resource agent to mount the DRBD device associated with
+		the stacked resource (in this example,
+	      <filename>/dev/drbd1</filename>), not the lower-level one.</para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </section>
     </section>
     <section id="s-heartbeat-r1-manage">
       <title>Managing Heartbeat R1-style clusters</title>
