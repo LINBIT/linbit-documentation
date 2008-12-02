@@ -91,4 +91,7 @@ clean-png:
 	rm -f $(SVG_FILES:.svg=-large.png) 
 	rm -f $(SVG_FILES:.svg=-small.png) 
 
+clean-tempfiles:
+	rm -f *~
+
 .PHONY: all html manpages chunked-html clean-png clean-svg clean-html clean raster-images vector-images images
