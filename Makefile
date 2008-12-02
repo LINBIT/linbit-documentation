@@ -62,8 +62,11 @@ html: manpages
 
 # Generated images: SVG from MathML
 # (needed for HTML output, and PDF if using FOP)
+# The ugly sed hack is because batik (used by FOP) complains about
+# 'svg version="1"', while 'svg version="1.0"' is OK.
 %.svg: %.mml
-	mathmlsvg --font-size=24 $< || echo "Warning: failed to generate $@ from $<, skipping this formula."
+	mathmlsvg --font-size=24 $< 
+	sed -i -e 's/<svg version="1"/<svg version="1.0"/' $@
 
 # Generated images: PNG from SVG
 # (needed for HTML output)
