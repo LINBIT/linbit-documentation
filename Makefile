@@ -93,6 +93,7 @@ clean-png:
 	rm -f $(SVG_FILES:.svg=.png) 
 	rm -f $(SVG_FILES:.svg=-large.png) 
 	rm -f $(SVG_FILES:.svg=-small.png) 
+	rm -f $(MML_FILES:.mml=.png) 
 
 clean-tempfiles:
 	rm -f *~
