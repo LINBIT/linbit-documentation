@@ -6,7 +6,7 @@ SYMLINKS := xinclude-not-found.xml todo.xml stylesheets images drbd-howto-collec
 
 all: html
 
-html: symlinks raster-images users-guide.html
+html: builddate symlinks raster-images users-guide.html
 
 raster-images: $(RASTER_IMAGES) 
 
@@ -15,7 +15,7 @@ vector-images: $(VECTOR_IMAGES)
 clean-symlinks:
 	rm -f $(SYMLINKS)
 
-clean: clean-svg clean-png clean-html clean-symlinks
+clean: clean-svg clean-png clean-html clean-symlinks clean-builddate
 
 $(SYMLINKS):
 	ln -s ../$@

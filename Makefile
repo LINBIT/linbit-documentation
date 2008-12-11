@@ -79,6 +79,9 @@ html: manpages
 %-large.png: %.svg
 	rsvg -x 2 -y 2 $< $@
 
+builddate: clean-builddate
+	date +"%B %d, %Y" > $@	
+
 manpages:
 	@ set -e; $(MAKE) -C manpages
 
@@ -97,5 +100,8 @@ clean-png:
 
 clean-tempfiles:
 	rm -f *~
+
+clean-builddate:
+	rm -f builddate
 
 .PHONY: all html manpages chunked-html clean-png clean-svg clean-html clean raster-images vector-images images
