@@ -1,0 +1,278 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<chapter id="ch-rhcs" status="draft" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Integrating DRBD with Red Hat Cluster Suite</title>
+  <indexterm>
+    <primary>Red Hat Cluster Suite</primary>
+  </indexterm>
+  <para>This chapter describes using DRBD as replicated storage for
+    Red Hat Cluster Suite high availability clusters.</para>
+  <note>
+    <para>This guide deals primarily with Red Hat Cluster Suite as
+      found in Red Hat Enterprise Linux (RHEL 5). If you are deploying
+      DRBD on earlier versions such as RHEL 4, configuration details
+      and semantics may vary.</para>
+  </note>
+  <section id="s-rhcs-primer">
+    <title>Red Hat Cluster Suite primer</title>
+    <section id="s-rhcs-openais">
+      <title>OpenAIS and CMAN</title>
+      <para><indexterm>
+	  <primary>OpenAIS</primary>
+	</indexterm>The <ulink url="http://www.saforum.org">Service
+	  Availability Forum</ulink> is an industry consortium with the
+	purpose of developing high availability interface definitions
+	and software specifications. The Application Interface
+	Specification (<acronym>AIS</acronym>) is one of these
+	specifications, and OpenAIS is an open source AIS
+	implementation maintained by a team staffed (primarily) by Red
+	Hat employees. OpenAIS serves as Red Hat Cluster Suite's
+	principal cluster communications infrastructure.</para>
+      <para>Specifically, Red Hat Cluster Suite makes use of the Totem
+	group communication algorithm for reliable group messaging
+	among cluster members.
+      </para>
+      <para>Red Hat Cluster Suite in Red Hat Enterprise Linux (RHEL)
+	version 5 adds an abstraction and convenience interface layer
+	above OpenAIS named <code>cman</code>. <code>cman</code> also
+	serves as a compatibility layer to RHEL 4, in which
+	<code>cman</code> behaved similarly, albeit without utilizing
+	OpenAIS.</para>
+    </section>
+    <section id="s-rhcs-ccs">
+      <title>CCS</title>
+      <para>The Cluster Configuration System (CCS) and its associated
+	daemon, <code>ccsd</code>, maintains and updates the cluster
+	configuration. Management applications utilize
+      <code>ccsd</code> and the CCS libraries to query and update
+      cluster configuration items.</para>
+    </section>
+    <section id="s-rhcs-fencing">
+      <title>Fencing</title>
+      <para>Red Hat Cluster Suite, originally designed primarily for
+	shared storage clusters, relies on node fencing to prevent
+	concurrent, uncoordinated access to shared resources. The Red
+	Hat Cluster Suite fencing infrastructure relies on the fencing
+	daemon <code>fenced</code>, and fencing agents implemented as
+	shell scripts.</para>
+      <para>Even though DRBD-based clusters utilize no shared storage
+	resources and thus fencing is not strictly required from
+	DRBD's standpoint, Red Hat Cluster Suite still requires
+	fencing even in DRBD-based configurations.</para>
+    </section>
+    <section id="s-rhcs-rgmanager">
+      <title>The Resource Group Manager</title>
+      <para>The resource group manager (<code>rgmanager</code>,
+	alternatively <code>clurgmgr</code>) is akin to the Cluster
+	Resource Manager in Heartbeat. It serves as the cluster
+	management suite's primary interface with the applications it
+	is configured to manage.</para>
+      <section id="s-rhcs-resources">
+      <title>Red Hat Cluster Suite resources</title>
+	<para><indexterm>
+	    <primary>Red Hat Cluster Suite</primary>
+	    <secondary>resources</secondary>
+	  </indexterm>A single highly available application,
+	  filesystem, IP address and the like is referred to as a
+	  <emphasis>resource</emphasis> in Red Hat Cluster Suite
+	  terminology.</para>
+	<para>Where resources depend on each other &mdash; such as,
+	  for example, an NFS export depending on a filesystem being
+	  mounted &mdash; they form a <emphasis>resource
+	    tree</emphasis>, a form of nesting resources inside
+	  another. Resources in inner levels of nesting may inherit
+	  parameters from resources in outer nesting levels. The
+	  concept of resource trees is absent in Heartbeat.</para>
+      </section>
+      <section id="s-rhcs-services">
+	<title>Red Hat Cluster Suite services</title>
+	<para><indexterm>
+	    <primary>Red Hat Cluster Suite</primary>
+	    <secondary>resources</secondary>
+	  </indexterm>Where resources form a co-dependent collection,
+	  that collection is called a <emphasis>service</emphasis>.
+	  This is different from Heartbeat, where such a collection is
+	  referred to as a <emphasis>resource group</emphasis>.</para>
+      </section>
+      <section id="s-rhcs-resource-agents">
+	<title>rgmanager resource agents</title>
+	<para>The resource agents invoked by <code>rgmanager</code>
+	  are similar to those used by the Heartbeat CRM, in the sense
+	  that they utilize the same shell-based API as defined in the
+	  Open Cluster Framework (<acronym>OCF</acronym>), although
+	  Heartbeat utilizes some extensions not defined in the
+	  framework. Thus in theory, the resource agents are largely
+	  interchangeable between Red Hat Cluster Suite and Heartbeat
+	  &mdash; in practive however, the two cluster management
+	  suites use different resource agents even for similar or
+	  identical tasks.</para>
+	<para>Red Hat Cluster Suite resource agents install into the
+	  <filename>/usr/share/cluster</filename> directory. Unlike
+	  Heartbeat OCF resource agents which are by convention
+	  self-contained, some RHCS resource agents are split into a
+	  <code>.sh</code> file containing the actual shell code, and
+	  a <code>.metadata</code> file containing XML resource agent
+	  metadata.
+	</para>
+	<para>Starting with version 8.3, DRBD includes a Red Hat
+	  Cluster Suite resource agent. It installs into the customary
+	  directory as <filename>drbd.sh</filename> and
+	  <filename>drbd.metadata</filename>.</para>
+      </section>
+    </section>
+  </section>
+  <section id="s-rhcs-config">
+    <title>Red Hat Cluster Suite configuration</title>
+    <para>This section outlines the configuration steps necessary to
+      get Red Hat Cluster Suite running. Preparing your cluster
+      configuration is fairly straightforward; all a DRBD-based RHCS
+      cluster requires are two participating nodes (referred to as
+      <emphasis>Cluster Members</emphasis> in Red Hat's documentation)
+      and a fencing device.
+      <note>
+	<para>
+	  For more information about configuring Red Hat clusters, see
+	  <ulink url="http://www.redhat.com/docs/manuals/csgfs/">Red
+	    Hat's documentation on the Red Hat Cluster Suite and
+	    GFS.</ulink>
+	</para>
+      </note>
+    </para>
+    <section id="s-rhcs-cluster-conf">
+      <title>The <filename>cluster.conf</filename> file</title>
+      <para>RHEL clusters keep their configuration
+	in a single configuration file,
+	<indexterm>
+	  <primary>Red Hat Cluster Suite</primary>
+	  <secondary>cluster.conf (configuration file)</secondary>
+	</indexterm>
+	<indexterm>
+	  <primary>cluster.conf (RHCS configuration file)</primary>
+	</indexterm> <filename>/etc/cluster/cluster.conf</filename>.
+	You may manage your cluster configuration in the following
+	ways:
+	<itemizedlist>
+	  <listitem>
+	    <formalpara>
+	      <title>Editing the configuration file directly</title>
+	      <para>This is the most straightforward method. It has no
+		prerequisites other than having a text editor
+		available.
+	      </para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>Using the
+	      <command>system-config-cluster</command> GUI</title>
+	      <para>This is a GUI application written in Python using
+	      Glade. It requires the availability of an X display
+	      (either directly on a server console, or tunneled via
+	      SSH).</para>
+	    </formalpara>
+	  </listitem>
+	  <listitem>
+	    <formalpara>
+	      <title>Using the Conga web-based management
+	      infrastructure</title>
+	      <para> The Conga infrastructure consists of a
+		node agent (<command>ricci</command>) communicating
+	      with the local cluster manager, cluster resource
+	      manager, and cluster LVM daemon, and an administration
+		web application (<command>luci</command>) which may be
+	      used to configure the cluster infrastructure using a
+	      simple web browser.</para>
+	    </formalpara>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </section>
+  </section>
+  <section id="s-rhcs-failover-clusters">
+    <title>Using DRBD in RHCS fail-over clusters</title>
+    <note>
+      <para>This section deals exclusively with setting up DRBD for
+	RHCS fail over clusters not involving GFS. For GFS (and GFS2)
+	configuration, please see
+      <xref linkend="ch-gfs"/>.</para>
+    </note>
+    <para>This section, like the <link
+	linkend="s-heartbeat-crm-config">corresponding section in the
+	chapter on Heartbeat clusters</link>, assumes you are about to
+      configure a highly available MySQL database with the following
+      configuration parameters:
+      <itemizedlist>
+	<listitem>
+	  <para>The DRBD resources to be used as your database storage
+	    area is named <code>mysql</code>, and it manages the
+	    device <filename>/dev/drbd0</filename>.</para>
+	</listitem>
+	<listitem>
+	  <para>The DRBD device holds an ext3 filesystem which is to
+	    be mounted to <filename>/var/lib/mysql</filename> (the
+	    default MySQL data directory).</para>
+	</listitem>
+	<listitem>
+	  <para>The MySQL database is to utilize that filesystem, and
+	    listen on a dedicated cluster IP address,
+	    192.168.42.1.</para>
+	</listitem>
+      </itemizedlist>
+    </para>
+    <section id="s-rhcs-example-cluster-conf">
+      <title>Setting up your cluster configuration</title>
+      <para>To configure your highly available MySQL database, create
+	or modify your <filename>/etc/cluster/cluster.conf</filename>
+	file to contain the following configuration items.</para>
+      <para>To do that, open
+	<filename>/etc/cluster/cluster.conf</filename> with your
+	preferred text editing application. Then, include the
+	following items in your resource configuration:</para>
+      <programlisting><![CDATA[
+<rm>
+  <resources>
+    <drbd name="res_drbd_mysql" resource="mysql"/>
+    <fs name="res_fs_mysql" device="/dev/drbd0" mountpoint="/var/lib/mysql" fstype="ext3"/>
+    <mysql name="res_mysql"/>
+  </resources>
+  <service name="mysql">
+    <drbd ref="res_drbd_mysql">
+      <fs ref="res_fs_mysql">
+        <mysql ref="res_mysql"/>
+      </fs>
+    </drbd>
+  </service>
+</rm>]]></programlisting>
+      <para>Nesting resource references inside one another in
+      <code>&lt;service/&gt;</code> is the Red Hat Cluster way of
+      expressing resource dependencies.</para>
+      <para>Be sure to increment the <code>config_version</code>
+	attribute, found on the root <code>&lt;cluster&gt;</code>
+	element, after you have completed your configuration. Then,
+	issue the following commands to commit your changes to the
+	running cluster configuration:</para>
+      <literallayout><userinput>ccs_tool update /etc/cluster/cluster.conf</userinput>
+	<userinput>cman_tool version -r <replaceable>version</replaceable></userinput>
+</literallayout>
+      <para>In the second command, be sure to replace
+      <replaceable>version</replaceable> with the new cluster
+      configuration version number.</para>
+      <note>
+	<para>Both the <code>system-config-cluster</code> GUI
+	  configuration utility and the Conga web based cluster
+	  management infrastructure will complain about your cluster
+	  configuration after including the <code>drbd</code> resource
+	  agent in your <filename>cluster.conf</filename> file. This
+	  is due to the design of the Python cluster management
+	  wrappers provided by these two applications which does not
+	  expect third party extensions to the cluster
+	  infrastructure.</para>
+	<para>Thus, when you utilize the <code>drbd</code> resource
+	  agent in cluster configurations, it is not recommended to
+	  utilize <code>system-config-cluster</code> nor Conga for
+	  cluster configuration purposes. Using either of these tools
+	  to only monitor the cluster's status, however, is expected
+	  to work fine.</para>
+      </note>
+    </section>
+  </section>
+</chapter>
