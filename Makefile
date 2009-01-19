@@ -33,8 +33,11 @@ SVG_FILES := $(wildcard *.svg)
 STYLESHEET_PREFIX ?= http://docbook.sourceforge.net/release/xsl/current
 HTML_STYLESHEET ?= $(STYLESHEET_PREFIX)/xhtml/docbook.xsl
 CHUNKED_HTML_STYLESHEET ?= $(STYLESHEET_PREFIX)/xhtml/chunk.xsl
-
 TITLEPAGE_STYLESHEET ?= $(STYLESHEET_PREFIX)/template/titlepage.xsl
+
+# For HTML output, define the name of the frame where 
+# <ulink> URLs should open
+ULINK_TARGET ?= offsite-link
 
 all: html
 
@@ -53,7 +56,7 @@ html: manpages
 	--param admon.graphics 1 \
 	--stringparam admon.graphics.path images/ \
 	--stringparam admon.graphics.extension .png \
-	--stringparam ulink.target offsite-link \
+	--stringparam ulink.target $(ULINK_TARGET) \
 	--stringparam html.stylesheet drbd-howto-collection.css \
 	--stringparam graphic.default.extension png \
 	--stringparam root.filename $* \
