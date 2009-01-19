@@ -109,22 +109,19 @@
   <section id="s-ocfs2-enable">
     <title>Configuring your cluster to support OCFS2</title>
     <para>OCFS2 uses a central configuration file,
-    <filename>/etc/ocfs2/cluster.conf</filename>. You may edit this
-      file directly, but using the <code>ocfs2console</code> graphical
-    configuration utility is usually more convenient.</para>
+    <filename>/etc/ocfs2/cluster.conf</filename>.</para>
     <para>When creating your OCFS2 cluster, be sure to add both your
       hosts to the cluster configuration. The default port (7777) is
       usually an acceptable choice for cluster interconnect
       communications. If you choose any other port number, be sure to
       choose one that does not clash with an existing port used by
-      DRBD (or any other configured TCP/IP). 
-      <remark>TODO: Add	ocfs2console screenshots.</remark></para>
-    <para>When you have configured you cluster configuration, choose
-      the <code>Propagate Cluster Configuration</code>menu item to
-    distribute the configuration to both nodes in the cluster. Your
+      DRBD (or any other configured TCP/IP).</para>
+    <para>When you have configured you cluster configuration, use
+      <code>scp</code> to distribute the configuration to both nodes
+      in the cluster. Your
       <filename>/etc/ocfs2/cluster.conf</filename> file contents
-    should then be identical on both nodes and will look roughly like
-    this:
+      should then be identical on both nodes and will look roughly
+      like this:
       <programlisting>node:
     ip_port = 7777
     ip_address = 10.1.1.31
@@ -143,24 +140,38 @@ cluster:
     node_count = 2
     name = ocfs2
 </programlisting></para>
+    <para>If you feel less than comfortable editing the
+      <filename>cluster.conf</filename> file directly, you may also
+      use the <code>ocfs2console</code> graphical configuration
+      utility which is usually more convenient.</para>
     <para>Next, you will configure the O2CB driver, using the
       <option>configure</option> option of the <code>o2cb</code> init
     script:
-      <literallayout><userinput>/etc/init.d/o2cb configure</userinput></literallayout>
-      <remark>TODO: Enter o2cb configure screen capture</remark>
+      <literallayout><userinput>/etc/init.d/o2cb configure</userinput>
+<computeroutput>Configuring the O2CB driver.
+
+This will configure the on-boot properties of the O2CB driver.
+The following questions will determine whether the driver is loaded on
+boot.  The current values will be shown in brackets ('[]').  Hitting
+&lt;ENTER&gt; without typing an answer will keep that current value.  Ctrl-C
+will abort.
+
+Load O2CB driver on boot (y/n) [y]: 
+Cluster to start on boot (Enter "none" to clear) [ocfs2]: 
+Specify heartbeat dead threshold (>=7) [31]: 
+Specify network idle timeout in ms (>=5000) [30000]: 
+Specify network keepalive delay in ms (>=1000) [2000]: 
+Specify network reconnect delay in ms (>=2000) [2000]: 
+Use user-space driven heartbeat? (y/n) [n]: 
+Writing O2CB configuration: OK
+Loading module "configfs": OK
+Mounting configfs filesystem at /sys/kernel/config: OK
+Loading module "ocfs2_nodemanager": OK
+Loading module "ocfs2_dlm": OK
+Loading module "ocfs2_dlmfs": OK
+Mounting ocfs2_dlmfs filesystem at /dlm: OK
+Starting O2CB cluster ocfs2: OK</computeroutput></literallayout>
     </para>
-    <section id="s-ocfs2-enable-without-heartbeat">
-      <title>Using OCFS2 internal cluster management</title>
-      <para>This section outlines the configuration steps necessary to
-	get OCFS2 running on top of DRBD in SLES 10 clusters, using
-	OCFS2's built-in cluster membership layer.</para>
-    </section>
-    <section id="s-ocfs2-enable-with-heartbeat">
-      <title>Using Heartbeat</title>
-      <para>This section outlines the configuration steps necessary to
-	get OCFS2 running on top of DRBD in SLES 10 clusters, using
-	the Heartbeat cluster manager.</para>
-    </section>
   </section>
   <section id="s-ocfs2-create">
     <title>Creating an OCFS2 filesystem</title>
@@ -168,29 +179,63 @@ cluster:
     configure O2CB on both hosts, you can create the actual file
     system.</para>
     <para>To that end, first check your cluster status:
-      <literallayout><userinput>/etc/init.d/o2cb status</userinput></literallayout>
-      <remark>TODO: Enter o2cb status screen capture</remark>
+      <literallayout><userinput>/etc/init.d/o2cb status</userinput>
+	<computeroutput>Module "configfs": Loaded
+Filesystem "configfs": Mounted
+Module "ocfs2_nodemanager": Loaded
+Module "ocfs2_dlm": Loaded
+Module "ocfs2_dlmfs": Loaded
+Filesystem "ocfs2_dlmfs": Mounted
+Checking O2CB cluster ocfs2: Online
+Heartbeat dead threshold = 31
+  Network idle timeout: 30000
+  Network keepalive delay: 2000
+  Network reconnect delay: 2000
+Checking O2CB heartbeat: Not active</computeroutput></literallayout>
     </para>
     <para>Now, use OCFS2's <code>mkfs</code> implementation to create
     the file system:
-      <literallayout><userinput>mkfs -t ocfs2 -n 2 -L ocfs2_drbd0 /dev/drbd0</userinput></literallayout>
-      <remark>TODO: Enter mkfs.ocfs2 capture</remark>
+      <literallayout><userinput>mkfs -t ocfs2 -N 2 -L ocfs2_drbd0 /dev/drbd0</userinput>
+	<computeroutput>mkfs.ocfs2 1.4.0
+Filesystem label=ocfs2_drbd0
+Block size=1024 (bits=10)
+Cluster size=4096 (bits=12)
+Volume size=205586432 (50192 clusters) (200768 blocks)
+7 cluster groups (tail covers 4112 clusters, rest cover 7680 clusters)
+Journal size=4194304
+Initial number of node slots: 2
+Creating bitmaps: done
+Initializing superblock: done
+Writing system files: done
+Writing superblock: done
+Writing backup superblock: 0 block(s)
+Formatting Journals: done
+Writing lost+found: done
+mkfs.ocfs2 successful
+</computeroutput>
+</literallayout>
       This will create an OCFS2 file system with two node slots on
       <filename>/dev/drbd0</filename>, and set the filesystem label to
       <code>ocfs2_drbd0</code>. You may specify other options on
       <code>mkfs</code> invocation; please see the
       <code>mkfs.ocfs2</code> system manual page for details.
     </para>
-    <para>After formatting, <code>ocfs2console</code> should display
-    your newly created file system, albeit without a mount point.</para>
+    <para>After formatting, opening <code>ocfs2console</code> should
+      display your newly created file system, albeit without a mount
+      point.</para>
   </section>
   <section id="s-ocfs2-use">
     <title>Using your OCFS2 filesystem</title>
     <para>When you have completed cluster configuration and created
     your file system, you may mount it as any other file system:
-      <literallayout><userinput>mount -t ocfs2 /dev/drbd0 /shared</userinput>
-<userinput>mount</userinput></literallayout>
-      <remark>TODO: Enter mount output.</remark>
+      <literallayout><userinput>mount -t ocfs2 /dev/drbd0 /shared</userinput></literallayout>
+      Your kernel log (accessible by issuing the command
+    <code>dmesg</code>) should then contain a line similar to this
+    one:
+      <programlisting>ocfs2: Mounting device (147,0) on (node 0, slot 0) with ordered data mode.</programlisting>
     </para>
+    <para>From that point forward, you should be able to
+    simultaneously mount your OCFS2 filesystem on both your nodes,
+    in read/write mode.</para>
   </section>
 </chapter>
