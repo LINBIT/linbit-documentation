@@ -83,7 +83,7 @@ html: manpages
 	rsvg -x 2 -y 2 $< $@
 
 builddate: clean-builddate
-	date +"%B %d, %Y" > $@	
+	env LC_ALL=C date +"%B %d, %Y" > $@	
 
 manpages:
 	@ set -e; $(MAKE) -C manpages
