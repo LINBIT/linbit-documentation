@@ -28,6 +28,57 @@ tar -xzf drbd-8.2.5.tar.gz</programlisting><note>
       <filename>/usr/local/src</filename>. The examples in this book
       assume <filename>/usr/src</filename>.</para>
   </section>
+  <section id="s-checking-out-git">
+    <title>Checking out sources from the public DRBD source
+    repository</title>
+    <para>DRBD's source code is kept in a public <ulink
+	url="http://git.or.cz/">Git</ulink> repository, which may be
+      browsed on-line at <ulink url="http://git.drbd.org/"/>. To check
+      out a specific DRBD release from the repository, you must first
+      <emphasis>clone</emphasis> your preferred DRBD branch. In this
+      example, you would clone from the DRBD 8.3 branch:
+      <programlisting>git clone git://git.drbd.org/drbd-8.3.git</programlisting>
+      </para>
+    <para>If your firewall does not permit TCP connections to port
+      9418, you may also check out via HTTP (please note that using
+      Git via HTTP is much slower than its native protocol, so native
+      Git is usually preferred whenever possible): 
+      <programlisting>git clone http://git.drbd.org/drbd-8.3.git</programlisting>
+    </para>
+    <para>Either command will create a Git checkout subdirectory,
+      named <filename>drbd-8.3</filename>. To now move to a source
+      code state equivalent to a specific DRBD release, issue the
+      following commands:
+      <programlisting>cd drbd-8.3
+git checkout drbd-8.3.<replaceable>x</replaceable></programlisting>
+      ... where <replaceable>x</replaceable> refers to the DRBD point
+      release you wish to build.</para>
+    <para>The checkout directory will now contain the equivalent of an
+      unpacked DRBD source tarball of a that specific version,
+      enabling you to build DRBD from source.</para>
+    <note>
+      <para>There are actually two minor differences between an
+      unpacked source tarball and a Git checkout of the same release:
+	<itemizedlist>
+	  <listitem>
+	    <para>The Git checkout contains a
+	      <filename>debian/</filename> subdirectoy, while the
+	      source tarball does not. This is due to a request from
+	      Debian maintainers, who prefer to add their own Debian
+	      build configuration to a pristine upstream
+	      tarball.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The source tarball contains preprocessed man pages,
+	      the Git checkout does not. Thus, building DRBD from a
+	      Git checkout requires a complete Docbook toolchain for
+	      building the man pages, while this is not a requirement
+	      for building from a source tarball.</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </note>
+  </section>
   <section id="s-build-from-source">
     <title>Building DRBD from source</title>
     <section id="s-build-prereq">
@@ -373,14 +424,10 @@ vi drbd.spec rpmbuild -bb drbd.spec</programlisting></para>
     <para>The DRBD source tree includes a <filename>debian</filename>
       subdirectory containing the required files for Debian packaging.
       That subdirectory, however, is not included in the DRBD source
-      tarballs &mdash; instead, you will need to create a Git checkout
-      of a <emphasis>tag</emphasis> associated with a specific DRBD
-      release. To do so, issue this command:
-      <programlisting>git clone git://git.drbd.org/drbd-8.3
-cd drbd-8.3
-git checkout drbd-8.3.<replaceable>x</replaceable></programlisting>
-      Replace <code><replaceable>x</replaceable></code> with the DRBD
-    point release you are planning to build.</para>
+      tarballs &mdash; instead, you will need to <link
+	linkend="s-checking-out-git">create a Git checkout of a
+	<emphasis>tag</emphasis> associated with a specific DRBD
+	release.</link></para>
     <para>Once you have created your checkout in this fashion, you can
       issue the following commands to build DRBD Debian packages:
     <programlisting>dpkg-buildpackage -rfakeroot -b -uc</programlisting>
