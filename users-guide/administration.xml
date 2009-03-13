@@ -1621,4 +1621,117 @@ resource r0-U {
 	Heartbeat cluster management framework.</para>
     </section>
   </section>
+
+  <section id="s-using-drbd-proxy">
+    <title>Using DRBD-proxy</title>
+    <para>DRBD-proxy is the only part of the DRBD product family that
+      is not published under an open source license. Please
+      contact <email>sales@linbit.com</email> or
+      <email>sales_us@linbit.com</email> for an evaluation copy of DRBD-proxy.</para>
+    <para>You need at lease DRBD 8.2.7 to use DRBD-proxy.</para>
+    <section id="s-drbd-proxy-deployment-considerations">
+      <title>DRBD-proxy deployment considerations</title>
+      <para>The DRBD-proxy processes can either be located directly on
+	the machines where DRBD is set up, or they can be placed on
+	distinct dedicated servers. A DRBD-proxy instance can server as
+	proxy for multiple DRBD devices of multiple nodes.</para>
+      <para>The DRBD-Proxy is completely transparent to
+	DRBD. Typically you will expect a high number of data packets
+	in flight, therefore the activity log should be of reasonable
+	big. A big transfer log causes longer re-sync runs after the
+	crash of a primary node. Therefore it is recommended to enable
+	DRBD's csums-alg setting.</para>
+    </section>
+    <section id="s-drbd-proxy-configuration">
+      <title>Configuration</title>
+      <para>DRBD-proxy is configured in DRBD's main configuration
+	file. It is configured by an additional options section called
+	<code>proxy</code> and additional <code>proxy on</code>
+	sections within the host
+	sections.</para>
+      <para>Configuration example for proxies running directly on the DRBD nodes.</para>
+      <programlisting>resource r0 {
+        protocol c;
+        device     minor 0;
+        disk       /dev/sdb1;
+        flexible-meta-disk  /dev/sdb2;
+
+	proxy {
+	      compression on;
+	      memlimit 100M;
+	}
+
+        on alice {
+                address 127.0.0.1:7789;
+                proxy on alice {
+                        inside 127.0.0.1:7788;
+                        outside 192.168.23.1:7788;
+                }
+        }
+
+        on bob {
+                address 127.0.0.1:7789;
+                proxy on bob {
+                        inside 127.0.0.1:7788;
+                        outside 192.168.23.2:7788;
+                }
+        }
+}</programlisting>
+      <para>The <code>inside</code> IP address is used for
+	communication between DRBD and the DRBD-proxy,
+	the <code>outside</code> IP address is used for communication
+	between the proxies.</para>
+    </section>
+
+    <section id="s-drbd-proxy-controlling">
+      <title>Controlling DRBD-proxy</title>
+      <para><code>Drbdadm</code> offers proxy-up and proxy-down to
+	configure or delete the connection on the local DRBD-proxy
+	process of the named DRBD resource(s). These commands are used
+	by <code>/etc/init.d/drbdproxy</code>'s start and stop
+	actions.</para>
+      <para>The DRBD-proxy has a low level configuration tool, called
+	drbd-proxy-ctl. When called without any option it operates in
+	interactive mode. The available commands are displayed by the
+	'help' command.</para>
+      <programlisting>Help for drbd-proxy.
+--------------------
+
+add connection &lt;name&gt; &lt;ip-listen1&gt;:&lt;port&gt; &lt;ip-connect1&gt;:&lt;port&gt;
+   &lt;ip-listen2&gt;:&lt;port&gt; &lt;ip-connect2&gt;:&lt;port&gt;
+   Creates a communication path between two DRBD instances.
+
+set memlimit &lt;name&gt; &lt;memlimit-in-bytes&gt;
+   Sets memlimit for connection &lt;name&gt;
+
+del connection &lt;name&gt;
+   Deletes communication path named name.
+
+show
+   Shows currently configured communication paths.
+
+show memusage
+   Shows memory usage of each connection.
+
+list [h]subconnections
+   Shows currently established individual connections
+   together with some stats. With h outputs bytes in human
+   readable format.
+
+list [h]connections
+   Shows currently configured connections and their states
+   With h outputs bytes in human readable format.
+
+list details
+   Shows currently established individual connections with
+   counters for each DRBD packet type.
+
+quit
+   Exits the client program (closes control connection).
+
+shutdown
+   Shuts down the drbd-proxy program. Attention: this
+   unconditionally terminates any DRBD connections running.</programlisting>
+    </section>
+  </section>
 </chapter>

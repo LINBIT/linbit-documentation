@@ -611,4 +611,32 @@
       basis, for example by running a nightly <code>cron</code>
       job.</para>
   </section>
+  <section id="s-drbd-proxy">
+    <title>DRBD-Proxy</title>
+    <subtitle>DRBD's issue with low bandwith links</subtitle>
+    <para>DRBD's protocol A is asynchronous, but the writing
+      application will block as soon as the socket output buffer is
+      full (see sndbuf-size in man drbd.conf). The writing application
+      has to wait until some of the data written run off through a
+      possibly small bandwith network link.</para>
+    <para>The average write bandwith is limited by available bandwith
+      of the network link. Write bursts can only be handled gracefully
+      if they fit into the limited socket output buffer.</para>
+    <para>You can mitigate this by DRBD-proxy's buffering mechanism.
+      DRBD-proxy will suck up all available data from the DRBD
+      on the primary node into its buffers. DRBD-proxy's buffer size
+      is freely configurable, only limited by the address room size
+      and available physical RAM.</para>
+    <para>Optionally DRBD-proxy can be configured to compress and
+      decompress the data it forwards. Compression and decompression
+      of DRBD's data packets might increase latency slightly. But when
+      the bandwidth of the network link is the limiting factor, the
+      gain in shortening transmit time out weights the compression and
+      decompression overhead by far.</para>
+    <para>Compression and decompression where implemented with multi core SMP
+      system in mind, and can utilize multiple CPU cores.</para>
+    <para>The fact that most block IO data compresses very well and
+      therefore the effective bandwidth increases well justifies the
+      use of the DRBD-proxy even with DRBD protocols B and C.</para>
+  </section>
 </chapter>
