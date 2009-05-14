@@ -108,21 +108,24 @@
   </section>
   <section id="s-ocfs2-enable">
     <title>Configuring your cluster to support OCFS2</title>
-    <para>OCFS2 uses a central configuration file,
-    <filename>/etc/ocfs2/cluster.conf</filename>.</para>
-    <para>When creating your OCFS2 cluster, be sure to add both your
-      hosts to the cluster configuration. The default port (7777) is
-      usually an acceptable choice for cluster interconnect
-      communications. If you choose any other port number, be sure to
-      choose one that does not clash with an existing port used by
-      DRBD (or any other configured TCP/IP).</para>
-    <para>When you have configured you cluster configuration, use
-      <code>scp</code> to distribute the configuration to both nodes
-      in the cluster. Your
-      <filename>/etc/ocfs2/cluster.conf</filename> file contents
-      should then be identical on both nodes and will look roughly
-      like this:
-      <programlisting>node:
+    <section>
+      <title>Creating the configuration file</title>
+      <para>OCFS2 uses a central configuration file,
+	<filename>/etc/ocfs2/cluster.conf</filename>.</para>
+      <para>When creating your OCFS2 cluster, be sure to add both your
+	hosts to the cluster configuration. The default port (7777) is
+	usually an acceptable choice for cluster interconnect
+	communications. If you choose any other port number, be sure to
+	choose one that does not clash with an existing port used by
+	DRBD (or any other configured TCP/IP).</para>
+      <para>If you feel less than comfortable editing the
+	<filename>cluster.conf</filename> file directly, you may also
+	use the <code>ocfs2console</code> graphical configuration
+	utility which is usually more convenient. Regardless of the
+	approach you selected, your
+	<filename>/etc/ocfs2/cluster.conf</filename> file contents should
+	look roughly like this:
+	<programlisting>node:
     ip_port = 7777
     ip_address = 10.1.1.31
     number = 0
@@ -140,14 +143,19 @@ cluster:
     node_count = 2
     name = ocfs2
 </programlisting></para>
-    <para>If you feel less than comfortable editing the
-      <filename>cluster.conf</filename> file directly, you may also
-      use the <code>ocfs2console</code> graphical configuration
-      utility which is usually more convenient.</para>
-    <para>Next, you will configure the O2CB driver, using the
-      <option>configure</option> option of the <code>o2cb</code> init
-    script:
-      <literallayout><userinput>/etc/init.d/o2cb configure</userinput>
+      <para>When you have configured you cluster configuration, use
+	<code>scp</code> to distribute the configuration to both nodes
+	in the cluster.</para>
+    </section>
+    <section>
+      <title>Configuring the O2CB driver</title>
+      <itemizedlist>
+	<listitem>
+	  <formalpara>
+	    <title>SUSE Linux Enterprise systems</title>
+	    <para>On SLES, you may utilize the <option>configure</option>
+	      option of the <code>o2cb</code> init script:
+	      <literallayout><userinput>/etc/init.d/o2cb configure</userinput>
 <computeroutput>Configuring the O2CB driver.
 
 This will configure the on-boot properties of the O2CB driver.
@@ -171,7 +179,47 @@ Loading module "ocfs2_dlm": OK
 Loading module "ocfs2_dlmfs": OK
 Mounting ocfs2_dlmfs filesystem at /dlm: OK
 Starting O2CB cluster ocfs2: OK</computeroutput></literallayout>
-    </para>
+	    </para>
+	  </formalpara>
+	</listitem>
+	<listitem>
+	  <formalpara>
+	    <title>Debian GNU/Linux systems</title>
+	    <para>On Debian, the <code>configure</code> option to
+	      <filename>/etc/init.d/o2cb</filename> is not
+	      available. Instead, reconfigure the <code>ocfs2-tools</code>
+	    package to enable the driver:
+	      <literallayout><userinput>dpkg-reconfigure -p medium -f readline ocfs2-tools</userinput>
+<computeroutput>Configuring ocfs2-tools</computeroutput>
+<computeroutput>-----------------------</computeroutput>
+<computeroutput>Would you like to start an OCFS2 cluster (O2CB) at boot time? </computeroutput><userinput>yes</userinput>
+<computeroutput>Name of the cluster to start at boot time: </computeroutput><userinput>ocfs2</userinput>
+<computeroutput>The O2CB heartbeat threshold sets up the maximum time in seconds that a node 
+awaits for an I/O operation. After it, the node "fences" itself, and you will 
+probably see a crash.
+
+It is calculated as the result of: (threshold - 1) x 2.
+
+Its default value is 31 (60 seconds).
+
+Raise it if you have slow disks and/or crashes with kernel messages like:
+
+o2hb_write_timeout: 164 ERROR: heartbeat write timeout to device XXXX after NNNN
+milliseconds</computeroutput>
+<computeroutput>O2CB Heartbeat threshold: </computeroutput><userinput>31</userinput>
+		<computeroutput>Loading filesystem "configfs": OK
+Mounting configfs filesystem at /sys/kernel/config: OK
+Loading stack plugin "o2cb": OK
+Loading filesystem "ocfs2_dlmfs": OK
+Mounting ocfs2_dlmfs filesystem at /dlm: OK
+Setting cluster stack "o2cb": OK
+Starting O2CB cluster ocfs2: OK</computeroutput>
+</literallayout>
+	    </para>
+	  </formalpara>
+	</listitem>
+      </itemizedlist>
+    </section>
   </section>
   <section id="s-ocfs2-create">
     <title>Creating an OCFS2 filesystem</title>
