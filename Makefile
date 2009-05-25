@@ -32,12 +32,40 @@ SVG_FILES := $(wildcard *.svg)
 # simple matter of "apt-get install docbook-xsl".
 STYLESHEET_PREFIX ?= http://docbook.sourceforge.net/release/xsl/current
 HTML_STYLESHEET ?= $(STYLESHEET_PREFIX)/xhtml/docbook.xsl
+PROFILING_HTML_STYLESHEET ?= $(STYLESHEET_PREFIX)/xhtml/profile-docbook.xsl
 CHUNKED_HTML_STYLESHEET ?= $(STYLESHEET_PREFIX)/xhtml/chunk.xsl
+CHUNKED_PROFILING_HTML_STYLESHEET ?= $(STYLESHEET_PREFIX)/xhtml/profile-chunk.xsl
 TITLEPAGE_STYLESHEET ?= $(STYLESHEET_PREFIX)/template/titlepage.xsl
 
 # For HTML output, define the name of the frame where 
 # <ulink> URLs should open
 ULINK_TARGET ?= offsite-link
+
+# Set profiling options if set in environment.
+ifneq ($(ARCH),)
+XSLTPROC_PROFILING_OPTIONS += --stringparam profile.arch $(ARCH)
+endif
+ifneq ($(CONDITION),)
+XSLTPROC_PROFILING_OPTIONS += --stringparam profile.condition $(CONDITION)
+endif
+ifneq ($(USERLEVEL),)
+XSLTPROC_PROFILING_OPTIONS += --stringparam profile.userlevel $(USERLEVEL)
+endif
+ifneq ($(VENDOR),)
+XSLTPROC_PROFILING_OPTIONS += --stringparam profile.vendor $(VENDOR)
+endif
+
+# xsltproc options for HTML output
+XSLTPROC_HTML_OPTIONS ?= --xinclude \
+ $(XSLTPROC_PROFILING_OPTIONS) \
+ --param use.id.as.filename 1 \
+ --param generate.index 0 \
+ --param admon.graphics 1 \
+ --stringparam admon.graphics.path images/ \
+ --stringparam admon.graphics.extension .png \
+ --stringparam ulink.target $(ULINK_TARGET) \
+ --stringparam html.stylesheet drbd-howto-collection.css \
+ --stringparam graphic.default.extension png
 
 all: html
 
@@ -51,17 +79,9 @@ html: manpages
 # Multiple-page HTML
 %.html: %.xml
 	xsltproc \
-	--param use.id.as.filename 1 \
-	--param generate.index 0 \
-	--param admon.graphics 1 \
-	--stringparam admon.graphics.path images/ \
-	--stringparam admon.graphics.extension .png \
-	--stringparam ulink.target $(ULINK_TARGET) \
-	--stringparam html.stylesheet drbd-howto-collection.css \
-	--stringparam graphic.default.extension png \
+	$(XSLTPROC_HTML_OPTIONS) \
 	--stringparam root.filename $* \
-	--xinclude \
-	$(CHUNKED_HTML_STYLESHEET) $< 
+	$(CHUNKED_PROFILING_HTML_STYLESHEET) $< 
 
 # Generated images: SVG from MathML
 # (needed for HTML output, and PDF if using FOP)
