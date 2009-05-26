@@ -48,15 +48,16 @@ endif
 ifneq ($(CONDITION),)
 XSLTPROC_PROFILING_OPTIONS += --stringparam profile.condition $(CONDITION)
 endif
-ifneq ($(STATUS),)
-XSLTPROC_PROFILING_OPTIONS += --stringparam profile.status $(STATUS)
-endif
 ifneq ($(USERLEVEL),)
 XSLTPROC_PROFILING_OPTIONS += --stringparam profile.userlevel $(USERLEVEL)
 endif
 ifneq ($(VENDOR),)
 XSLTPROC_PROFILING_OPTIONS += --stringparam profile.vendor $(VENDOR)
 endif
+# For "status", use a slightly different logic. Unless set otherwise,
+# always assume "current".
+STATUS ?= current
+XSLTPROC_PROFILING_OPTIONS += --stringparam profile.status $(STATUS)
 
 # xsltproc options for HTML output
 XSLTPROC_HTML_OPTIONS ?= --xinclude \
