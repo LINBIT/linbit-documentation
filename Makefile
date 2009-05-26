@@ -48,6 +48,9 @@ endif
 ifneq ($(CONDITION),)
 XSLTPROC_PROFILING_OPTIONS += --stringparam profile.condition $(CONDITION)
 endif
+ifneq ($(STATUS),)
+XSLTPROC_PROFILING_OPTIONS += --stringparam profile.status $(STATUS)
+endif
 ifneq ($(USERLEVEL),)
 XSLTPROC_PROFILING_OPTIONS += --stringparam profile.userlevel $(USERLEVEL)
 endif
