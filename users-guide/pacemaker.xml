@@ -592,4 +592,68 @@ property $id="cib-bootstrap-options" \
       </section>
     </section>
   </section>
+  <section id="s-pacemaker-fencing">
+    <title>Using resource-level fencing in Pacemaker clusters</title>
+    <para>This section outlines the steps necessary to prevent
+      Pacemaker from promoting a <code>drbd</code> Master/Slave
+      resource when its DRBD replication link has been interrupted.
+      This keeps Pacemaker from starting a service with outdated data
+      and causing an unwanted <quote>time warp</quote> in the process.
+      <important>
+	<para>It is absolutely vital to configure at least two
+	  independent <link
+	    linkend="s-pacemaker-communication-channels">Pacemaker
+	    communication channels</link> for this functionality to
+	  work correctly.</para>
+      </important>
+    </para>
+    <para>In order to enable resource-level fencing for Pacemaker, you
+      will have to set two options in
+      <filename>drbd.conf</filename>. Assuming your DRBD resource is
+      named <code>mysql</code>, and the corresponding Pacemaker
+      Master/Slave resource is named <code>ms_drbd_mysql</code>, you would
+      change your DRBD configuration as follows:
+      <programlisting>resource mysql {
+  disk {
+    fencing resource-only;
+    ...
+  }
+  handlers {
+    fence-peer "/usr/lib/drbd/crm-fence-peer.sh ms_drbd_mysql";
+    after-resync-target "/usr/lib/drbd/crm-unfence-peer.sh ms_drbd_mysql";
+    ...
+  }
+  ...
+}</programlisting>
+      Thus, if the DRBD replication link becomes disconnected, the
+      <filename>crm-fence-peer.sh</filename> script (which is a
+      wrapper invoking the <code>crm</code> shell) contacts the
+      cluster manager and ensures that the <code>ms_drbd_mysql</code>
+      resource no longer gets promoted on any node other than the
+      currently active one. Conversely, when the connection is
+      re-established and DRBD completes its synchronization process,
+      then that constraint is removed and the cluster manager is free
+      to promote the resource on any node again.
+    </para>
+    <para>If you adopt a Pacemaker resource naming convention that
+      incorporates the DRBD resource name, then you may also configure
+      this functionality for <emphasis>all</emphasis> resources
+      defined in <filename>drbd.conf</filename>, via the
+      <code>common</code> section. The example below uses a convention
+      where it is assumed that all Pacemaker DRBD Master/Slave
+      resources in the cluster configuration use the prefix
+      <code>ms_drbd_</code>:
+      <programlisting>common {
+  disk {
+    fencing resource-only;
+    ...
+  }
+  handlers {
+    fence-peer "/usr/lib/drbd/crm-fence-peer.sh ms_drbd_${DRBD_RESOURCE}";
+    after-resync-target "/usr/lib/drbd/crm-unfence-peer.sh ms_drbd_${DRBD_RESOURCE}";
+  ...
+}
+</programlisting>
+    </para>
+  </section>
 </chapter>
