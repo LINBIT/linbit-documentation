@@ -17,8 +17,9 @@
       manager infrastructure is concerned, a direct continuation of
       the Heartbeat 2 codebase. Since the intial stable release of
       OpenAIS/Pacemaker, Heartbeat 2 can be considered obsolete and
-      Pacemaker should be used instead. For legacy configurations
-      where Heartbeat must still be used, see <xref
+      Pacemaker should be used instead.</para>
+    <para>For legacy configurations where Heartbeat must still be
+      used, see <xref
 	linkend="ch-heartbeat"/>.</para>
   </note>
   <section id="s-pacemaker-primer">
@@ -251,58 +252,57 @@
       </indexterm>The following example is an example 
 	<filename>openais.conf</filename> file:
 <programlisting id="pl-openais-conf">totem {
-	version: 2
-	token: 3000
-	token_retransmits_before_loss_const: 10
-	join: 60
-	consensus: 1500
-	vsftype: none
-	max_messages: 20
-	clear_node_high_bit: yes
- 	secauth: on
- 	threads: 0
- 	rrp_mode: passive
-	interface {
-		ringnumber: 0
-		bindnetaddr: 192.168.122.0
-		mcastaddr: 239.94.1.1
-		mcastport: 5405
-	}
-	interface {
-		ringnumber: 1
-		bindnetaddr: 192.168.133.0
-		mcastaddr: 239.94.2.1
-		mcastport: 5405
-	}
+  version: 2
+  token: 3000
+  token_retransmits_before_loss_const: 10
+  join: 60
+  consensus: 1500
+  vsftype: none
+  max_messages: 20
+  clear_node_high_bit: yes
+  secauth: on
+  threads: 0
+  rrp_mode: passive
+  interface {
+    ringnumber: 0
+    bindnetaddr: 192.168.122.0
+    mcastaddr: 239.94.1.1
+    mcastport: 5405
+  }
+  interface {
+    ringnumber: 1
+    bindnetaddr: 192.168.133.0
+    mcastaddr: 239.94.2.1
+    mcastport: 5405
+  }
 }
 logging {
-	to_stderr: yes
-	debug: on
-	timestamp: on
-	to_file: no
-	to_syslog: yes
-	syslog_facility: daemon
+  to_stderr: yes
+  debug: on
+  timestamp: on
+  to_file: no
+  to_syslog: yes
+  syslog_facility: daemon
 }
 amf {
-	mode: disabled
+  mode: disabled
 }
 service {
- 	ver:       0
- 	name:      pacemaker
- 	use_mgmtd: yes
+  ver:       0
+  name:      pacemaker
+  use_mgmtd: yes
 }
 aisexec {
-	user:	root
-	
-group:	root
+  user:   root
+  group:  root
 }</programlisting></para>
       <para>This example assumes that <code>192.168.122.0</code> is
 	the <emphasis>network address</emphasis> of the cluster's
 	interface to the shared network, and that
 	<code>192.168.133.0</code> is the network address of the
 	interface dedicated for DRBD replication between both
-	nodes.</para>
-      <xi:include href="todo.xml"/>
+	nodes. Do not mistakenly add <emphasis>host</emphasis> IP
+	address in <code>interface</code> stanzas.</para>
     </section>
     <section id="s-pacemaker-authkey">
       <title>The <filename>authkey</filename> file</title>
@@ -314,7 +314,7 @@ group:	root
 	<code>root</code>.</para>
       <para>You may create an <filename>authkey</filename> file by
       issuing the following command without arguments:</para>
-      <programlisting><userinput>ais-keygen</userinput></programlisting>
+      <literallayout><userinput>ais-keygen</userinput></literallayout>
     </section>
     <section id="s-pacemaker-ha-propagate">
       <title>Propagating the cluster configuration to cluster
@@ -368,40 +368,118 @@ group:	root
 	  <filename>authkey</filename> files, distributing them among
 	  cluster nodes, starting OpenAIS services, and waiting for
 	  nodes to establish intra-cluster communications &mdash; a
-	  new, empty CIB is created automatically. Its contents will
-	  be similar to this:</para>
-	<xi:include href="todo.xml"/>
+	  new, empty CIB is created automatically. You can display
+	  this bootstrap CIB using the <code>crm configure show</code>
+	  command. Its output will be similar to this:</para>
+	<literallayout><userinput>crm configure show</userinput>
+<computeroutput>node alice
+node bob
+property $id="cib-bootstrap-options" \
+	dc-version="1.0.3-unknown" \
+	last-lrm-refresh="1243855262" \
+	cluster-infrastructure="openais" \
+	expected-quorum-votes="2"
+</computeroutput></literallayout>
+	<para>Based on this bootstrap configuration, there are two
+	  configuration changes that you should make straight away:</para>
+	<orderedlist>
+	  <listitem>
+	    <para>In a two-node cluster, the concept of quorum does
+	      not apply. It is thus safe to set Pacemaker's
+	      <quote>no quorum policy</quote> to ignore loss of
+	      quorum.</para>
+	  </listitem>
+	  <listitem>
+	    <para>In a DRBD backed cluster, node fencing (STONITH)
+	      is not necessary, as fencing is achieved through other
+	      means at the resource level. It is thus safe to
+	      disable STONITH in the Pacemaker cluster
+	      configuration.</para>
+	  </listitem>
+	</orderedlist>
+	<warning>
+	  <para><emphasis>Do not</emphasis> construe these
+	    recommendations to be generally applicable to high
+	    availability clusters. They are
+	    <emphasis>only</emphasis> applicable to the special case
+	    of having a DRBD based cluster consisting of only two
+	    nodes.</para>
+	</warning>
+	<para>You can set the appropriate cluster properties with the
+	  following commands:
+	  <literallayout><userinput>crm configure</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>property no-quorum-policy=ignore</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>property stonith-enabled=false</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>commit</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>exit</userinput>
+<computeroutput>bye</computeroutput>
+</literallayout></para>
+	<para>After this, your cluster configuration should look similar to this:
+	  <literallayout><userinput>crm configure show</userinput>
+<computeroutput>node alice
+node bob
+property $id="cib-bootstrap-options" \
+	dc-version="1.0.3-unknown" \
+	no-quorum-policy="ignore" \
+	last-lrm-refresh="1243855262" \
+	stonith-enabled="false" \
+	default-resource-stickiness="200" \
+	cluster-infrastructure="openais" \
+	expected-quorum-votes="2"
+</computeroutput></literallayout></para>
       </section>
       <section id="s-pacemaker-crm-drbd-backed-service">
 	<title>Adding a DRBD-backed service to the cluster
 	configuration</title>
 	<para>This section explains how to enable a DRBD-backed
 	  service in a Pacemaker cluster.</para>
-	<section id="s-pacemaker-crm-drbd-ocf-ra">
-	  <title>Using the <code>drbd</code> OCF resource agent in a
-	    Pacemaker CRM configuration</title>
-	  <para>The <code>drbd</code> resource agent is a
-	    <quote>pure-bred</quote> OCF RA which provides
-	    Master/Slave capability, allowing Pacemaker to start and
-	    monitor the DRBD resource on multiple nodes and promoting
-	    and demoting as needed. You must, however, understand that
-	    the <code>drbd</code> RA disconnects and detaches all DRBD
-	    resources it manages on Pacemaker shutdown, and also upon
-	    enabling standby mode for a node.</para>
-	  <para>In order to enable a DRBD-backed configuration for a
-	    MySQL database in a Pacemaker CRM cluster with the
-	    <code>drbd</code> OCF resource agent, you must create both
-	    the necessary resources, and Pacemaker constraints to
-	    ensure your service only starts on a previously promoted
-	    DRBD resource. It is recommended that you start with the
-	    constraints, such as shown in this example:
-	  </para>
-	  <xi:include href="todo.xml"/>
-	  <para>After this, your configuration should be enabled.
-	    Pacemaker now selects a node on which it promotes the DRBD
-	    resource, and then starts the DRBD-backed resource group
-	    on that same node.</para>
-	</section>
+	<para>DRBD version 8.3.2 and above include the
+	  <code>drbd</code> OCF resource agent which provides
+	  Master/Slave capability, allowing Pacemaker to start and
+	  monitor the DRBD resource on multiple nodes and promoting
+	  and demoting as needed. You must, however, understand that
+	  the <code>drbd</code> RA disconnects and detaches all DRBD
+	  resources it manages on Pacemaker shutdown, and also upon
+	  enabling standby mode for a node.</para>
+	<note>
+	  <para>The OCF resource agent which ships with DRBD is
+	    belongs to the <code>drbd</code> provider, and hence
+	    installs
+	    <filename>/usr/lib/ocf/resource.d/drbd/drbd</filename>. There
+	    is a legacy resource agent that shipped with Heartbeat 2,
+	    which installs into
+	    <filename>/usr/lib/ocf/resource.d/heartbeat/drbd</filename>. Using
+	    the legacy OCF RA is not recommended.</para>
+	</note>
+	<para>In order to enable a DRBD-backed configuration for a
+	  MySQL database in a Pacemaker CRM cluster with the
+	  <code>drbd</code> OCF resource agent, you must create both
+	  the necessary resources, and Pacemaker constraints to ensure
+	  your service only starts on a previously promoted DRBD
+	  resource. You may do so using the <code>crm</code> shell, as
+	  outlined in the following example:</para>
+	  <literallayout><userinput>crm configure</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>primitive drbd_mysql ocf:drbd:drbd \
+                    params drbd_resource="mysql" \
+                    op monitor interval="15s"</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>ms ms_drbd_mysql drbd_mysql \
+                    meta master_max="1" master_node_max="1" \
+                    notify="true"</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>primitive fs_mysql ocf:heartbeat:Filesystem \
+                    params device="/dev/drbd/by-res/mysql" directory="/var/lib/mysql" fstype="ext3" \</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>primitive ip_mysql ocf:heartbeat:IPaddr2 \
+                    params ip="10.9.42.1" nic="eth0"</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>primitive mysqld lsb:mysqld</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>group mysql fs_mysql ip_mysql mysqld</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>colocation mysql_on_drbd inf: fs_mysql ms_drbd_mysql:Master</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>order mysql_after_drbd inf: ms_drbd_mysql:promote fs_mysql:start</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>commit</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>exit</userinput>
+<computeroutput>bye</computeroutput></literallayout>
+	<para>After this, your configuration should be enabled.
+	  Pacemaker now selects a node on which it promotes the DRBD
+	  resource, and then starts the DRBD-backed resource group on
+	  that same node.</para>
       </section>
     </section>
     <section id="s-pacemaker-crm-manage">
@@ -415,17 +493,39 @@ group:	root
 	    <formalpara>
 	      <title>Manual takeover of a single cluster
 		resource</title>
-	      <xi:include href="todo.xml"/>
+	      <para>This is the approach normally taken if one simply
+		wishes to test resource migration, or move a resource
+		to the local node as a means of manual load balancing.
+		Assuming we want to move the resource group named
+		<code>mysql</code> to the node <code>alice</code>,
+		this operation is performed using the following
+		command:
+		<literallayout><userinput>crm resource migrate mysql alice</userinput></literallayout>
+		<note id="n-pacemaker-crm-migrate">
+		  <para>It is important to understand that the
+		    migration is <emphasis>permanent</emphasis>. That
+		    is, unless told otherwise, Pacemaker will not move
+		    the resource back to a node it was previouly
+		    migrated away from &mdash; even if that node
+		    happens to be the only surviving node in a
+		    near-cluster-wide system failure. This is
+		    undesirable under most circumstances. So, it is
+		    prudent to immediately <quote>un-migrate</quote>
+		    resources after successful migration, using the
+		    the following command:
+		    <literallayout><userinput>crm resource unmigrate mysql</userinput></literallayout></para>
+		</note>
+	      </para>
 	    </formalpara>
 	  </listitem>
 	  <listitem>
 	    <formalpara>
 	      <title>Manual takeover of all cluster resources</title>
 	      <para>This procedure involves switching the peer node to
-		standby mode (where
-		<replaceable>hostname</replaceable> is the peer node's
-		host name):
-		<xi:include href="todo.xml"/>
+		standby mode. Assuming we want to switch node
+		<code>bob</code> into standby mode, we would do so by
+		issuing the following command:
+		<literallayout><userinput>crm node standby bob</userinput></literallayout>
 	      </para>
 	    </formalpara>
 	  </listitem>
@@ -439,14 +539,27 @@ group:	root
 	  <listitem>
 	    <formalpara>
 	      <title>Giving up a single cluster resource</title>
-	      <xi:include href="todo.xml"/>
+	      <para>A node gives up control of a single resource when
+		issued the following command:
+		<literallayout><userinput>crm resource migrate mysql</userinput></literallayout>
+		Using <code>crm resource migrate</code> with
+	      just the resource name (and without an explicit host
+	      name to migrate to) implies that the resource is to be
+	      migrated <emphasis>away</emphasis> from where it is
+	      currently running. Please note that <link
+		linkend="n-pacemaker-crm-migrate">the considerations
+		outlined in the previous section</link> apply here,
+	      too.</para>
 	    </formalpara>
 	  </listitem>
 	  <listitem>
 	    <formalpara>
 	      <title>Switching a cluster node to standby
 		mode</title>
-	      <xi:include href="todo.xml"/>
+	      <para>This procedure involves switching the local node to
+		standby mode. We do so by issuing the following command:
+		<literallayout><userinput>crm node standby `uname -n`</userinput></literallayout>
+	      </para>
 	    </formalpara>
 	  </listitem>
 	  <listitem>
@@ -456,8 +569,11 @@ group:	root
 	      <para>This approach is suited for local maintenance
 		operations such as software updates which require that
 		the node be temporarily removed from the cluster, but
-		which do not necessitate a system reboot.
-	      <xi:include href="todo.xml"/>
+		which do not necessitate a system reboot. To shut down
+		cluster services on the local node, issue the
+		following command:
+		<literallayout><userinput>/etc/init.d/openais stop</userinput></literallayout>
+	      </para>
 	    </formalpara>
 	  </listitem>
 	  <listitem>
@@ -465,8 +581,11 @@ group:	root
 	      <title>Shutting down the local node</title>
 	      <para>For hardware maintenance or other interventions
 		that require a system shutdown or reboot, use a simple
-		graceful shutdown command.
-	      <xi:include href="todo.xml"/>
+		graceful shutdown command:
+		<literallayout><userinput>shutdown -h now</userinput></literallayout>
+		or
+		<literallayout><userinput>poweroff</userinput></literallayout>
+	      </para>
 	    </formalpara>
 	  </listitem>
 	</itemizedlist>
