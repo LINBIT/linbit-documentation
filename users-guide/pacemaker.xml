@@ -663,4 +663,106 @@ property $id="cib-bootstrap-options" \
 </programlisting>
     </para>
   </section>
+  <section id="s-pacemaker-stacked-resources">
+    <title>Using stacked DRBD resources in Pacemaker clusters</title>
+    <para>Stacked resources allow DRBD to be used for multi-level
+    redundancy in multiple-node clusters, or to establish off-site
+    disaster recovery capability. This section describes how to set
+    configure DRBD and Pacemaker in such configurations.</para>
+    <section>
+      <title>Adding off-site disaster recovery to Pacemaker
+      clusters</title>
+      <para>In this configuration scenario, we would deal with a
+	two-node high availability cluster in one site, plus a
+	separate node which would presumably be housed off-site. The
+	third node acts as a disaster recovery node and is a
+	standalone server. Consider the following illustration to
+	describe the concept.</para>
+      <xi:include href="todo.xml"/>
+      <para>In this example, <code>alice</code> and <code>bob</code>
+	form a two-node Pacemaker cluster, whereas
+      <code>charlie</code> is an off-site node not managed by
+      Pacemaker.</para>
+      <para>To create such a configuration, you would first 
+	configure and initialize DRBD resources as described in <xref
+      linkend="s-three-nodes"/>. Then, configure Pacemaker with the
+      following CRM configuration:</para>
+      <programlisting>primitive drbd_r0 ocf:drbd:drbd \
+	params drbd_resource="r0"
+
+primitive drbd_r0-U ocf:drbd:drbd \
+	params drbd_resource="r0-U" \
+
+primitive ip_stacked ocf:heartbeat:IPaddr2 \
+	params ip="192.168.42.1" nic="eth0"
+
+ms ms_drbd_r0 res_drbd_r0 \
+	meta master-max="1" master-node-max="1" \
+        clone-max="2" clone-node-max="1" \
+        notify="true" globally-unique="false"
+
+ms ms_drbd_r0-U res_drbd_r0-U \
+	meta master-max="1" clone-max="1" \
+        clone-node-max="1" master-node-max="1" \
+        notify="true" globally-unique="false"
+
+colocation c_drbd_r0-U_on_drbd_r0 \ 
+        inf: ms_drbd_r0-U ms_drbd_r0:Master
+
+colocation c_drbd_r0-U_on_ip \
+        inf: ms_drbd_r0-U res_ip_stacked
+
+colocation c_ip_on_r0_master \
+        inf: res_ip_stacked ms_drbd_r0:Master
+
+order o_ip_before_r0-U \
+        inf: res_ip_stacked ms_drbd_r0-U:start
+
+order o_drbd_r0_before_r0-U \
+        inf: ms_drbd_r0:promote ms_drbd_r0-U:start
+</programlisting>
+      <para>Assuming you created this configuration in a temporary
+        file named <filename>/tmp/crm.txt</filename>, you may import
+        it into the live cluster configuration with the following
+        command:
+	<literallayout><userinput>crm configure &lt; /tmp/crm.txt</userinput></literallayout>
+      </para>
+      <para>This configuration will ensure that the following actions
+        occur in the correct order on the
+        <code>alice</code>/<code>bob</code> cluster:</para>
+      <orderedlist>
+	<listitem>
+	  <para>Pacemaker starts the DRBD resource <code>r0</code> on
+	  both cluster nodes, and promotes one node to the Master
+	  (DRBD Primary) role.</para>
+	</listitem>
+	<listitem>
+	  <para>Pacemaker then starts the IP address 192.168.42.1,
+	    which the stacked resource is to use for replication to
+	    the third node. It does so on the node it has previously
+	    promoted to the Master role for <code>r0</code> DRBD
+	    resource.</para>
+	</listitem>
+	<listitem>
+	  <para>On the node which now has the Primary role for
+	    <code>r0</code> and also the replication IP address for
+	    <code>r0-U</code>, Pacemaker now starts the
+	    <code>r0-U</code> DRBD resource, which connects and
+	    replicates to the off-site node.</para>
+	</listitem>
+	<listitem>
+	  <para>Pacemaker then promotes the <code>r0-U</code> resource
+	  to the Primary role too, so it can be used by an
+	  application.</para>
+	</listitem>
+      </orderedlist>
+      <para>Thus, this Pacemaker configuration ensures that there is
+	not only full data redundancy between cluster nodes, but also
+	to the third, off-site node.</para>
+      <note>
+	<para>This type of setup is usually deployed together with
+	  <link linkend="s-drbd-proxy">DRBD Proxy</link>.</para>
+      </note>
+    </section>
+  </section>
 </chapter>
