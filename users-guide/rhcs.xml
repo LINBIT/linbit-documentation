@@ -229,17 +229,21 @@
 	following items in your resource configuration:</para>
       <programlisting><![CDATA[
 <rm>
-  <resources>
-    <drbd name="res_drbd_mysql" resource="mysql"/>
-    <fs name="res_fs_mysql" device="/dev/drbd0" mountpoint="/var/lib/mysql" fstype="ext3"/>
-    <mysql name="res_mysql"/>
-  </resources>
+  <resources />
   <service name="mysql">
     <drbd ref="res_drbd_mysql">
-      <fs ref="res_fs_mysql">
-        <mysql ref="res_mysql"/>
-      </fs>
-    </drbd>
+      <service autostart="1" name="mysql">
+	<drbd name="drbd-mysql" resource="mysql">
+	  <fs device="/dev/drbd/by-res/mysql" 
+              mountpoint="/var/lib/mysql" 
+              fstype="ext3" 
+              name="mysql" 
+              options="noatime"/>
+	</drbd>
+	<ip address="10.9.9.180" monitor_link="1"/>
+	<mysql config_file="/etc/my.cnf" 
+               listen_address="10.9.9.180"
+               name="mysqld"/>
   </service>
 </rm>]]></programlisting>
       <para>Nesting resource references inside one another in
