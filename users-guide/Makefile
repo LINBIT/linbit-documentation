@@ -4,8 +4,7 @@ RASTER_IMAGES := metadata-size-exact.png metadata-size-approx.png al-extents.png
 
 SYMLINKS := xinclude-not-found.xml todo.xml stylesheets images drbd-howto-collection.css
 
-RSYNC_RSH := ssh
-RSYNC_OPTIONS := -vtpr
+RSYNC_OPTIONS := --verbose --times --recursive --compress --copy-links
 
 all: html
 
@@ -26,7 +25,7 @@ $(SYMLINKS):
 symlinks: $(SYMLINKS)
 
 upload: html
-	rsync --exclude '*.svg' --exclude 'Makefile' --exclude '*~' -e '$(RSYNC_RSH)' $(RSYNC_OPTIONS) stylesheets images *.html $(RSYNC_TARGET)
+	rsync --exclude '*.svg' --exclude 'Makefile' --exclude '*~' --exclude '.gitignore' $(RSYNC_OPTIONS) images *.css *.png *.html $(RSYNC_TARGET)
 
 %: force
 	@$(MAKE) -f ../Makefile $@
