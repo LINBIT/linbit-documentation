@@ -451,4 +451,73 @@ GIT-hash: 9ba8b93e24d842f0dd3fb1f9b90e8348ddb95829 build by buildsystem@linbit, 
 	linkend="ch-admin"/>, which describes common administrative
       tasks to perform on your resource.</para>
   </section>
+  <section id="s-using-truck-based-replication">
+    <title>Using truck based replication</title>
+    <para>In order to preseed a remote node with data which is then to
+    be kept synchronized, and to skip the initial device
+    synchronization, follow these steps.</para>
+    <note>
+      <para>This assumes that your local node has a configured, but
+	disconnected DRBD resource in the Primary role.</para>
+      <para>That is to say, device configuration is completed,
+	identical <filename>drbd.conf</filename> copies exist on both
+	nodes, and you have issued the commands for <link
+	  linkend="s-initial-full-sync">initial resource
+	  promotion</link> on your local node &mdash; but the remote
+	node is not connected yet.</para>
+    </note>
+    <orderedlist>
+      <listitem>
+	<para>On the local node, issue the following command:
+	  <literallayout><userinput>drbdadm -- --clear-bitmap new-current-uuid <replaceable>resource</replaceable></userinput></literallayout></para>
+      </listitem>
+      <listitem>
+	<para>Create a consistent, verbatim copy of the resource's
+	  data <emphasis>and its metadata</emphasis>. You may do so,
+	  for example, by removing a hot-swappable drive from a RAID-1
+	  mirror.  You would, of course, replace it with a fresh
+	  drive, and rebuild the RAID set, to ensure continued
+	  redundancy. But the removed drive is a verbatim copy that
+	  can now be shipped off site.</para>
+	<para>If your local block device supports snapshot copies
+	  (such as when using DRBD on top of LVM), you may also create
+	  a bitwise copy of that snapshot using <code>dd</code>.
+	</para>
+      </listitem>
+      <listitem>
+	<para>On the local node, issue:
+	  <literallayout><userinput>drbdadm new-current-uuid <replaceable>resource</replaceable></userinput></literallayout></para>
+	<para>Note the absence of the <option>--clear-bitmap</option>
+	  option in this second invocation.</para>
+      </listitem>
+      <listitem>
+	<para>Physically transport the copies to the remote peer
+	location.</para>
+      </listitem>
+      <listitem>
+	<para>Add the copies to the remote node. This may again be a
+	  matter of plugging a physical disk, or grafting a bitwise
+	  copy of your shipped data onto existing storage on the
+	  remote node.</para>
+	<para>Be sure to restore or copy not only your replicated
+	  data, but also the associated DRBD metadata. If you fail to
+	  do so, the disk shipping process is moot.</para>
+      </listitem>
+      <listitem>
+	<para>Bring up the resource on the remote node:
+	  <literallayout><userinput>drbdadm up <replaceable>resource</replaceable></userinput></literallayout></para>
+      </listitem>
+    </orderedlist>
+    <para>After the two peers connect, they will not initiate a full
+      device synchronization. Instead, the automatic synchronization
+      that now commences only covers those blocks that changed since
+      the invocation of
+      <code>drbdadm&nbsp;--&nbsp;--clear-bitmap&nbsp;new-current-uuid</code>.</para>
+    <tip>
+      <para>You may use this same procedure regardless of whether the
+      resource is a regular DRBD resource, or a stacked resource. For
+	stacked resources, simply add the <option>-S</option> or
+	<option>--stacked</option> option to <code>drbdadm</code>.</para>
+    </tip>
+  </section>
 </chapter>
