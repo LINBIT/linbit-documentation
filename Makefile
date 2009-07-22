@@ -96,15 +96,15 @@ html: manpages
 	sed -i -e 's/<svg version="1"/<svg version="1.0"/' $@
 
 # Generated images: PNG from SVG
-# (needed for HTML output)
+# n(eeded for HTML output)
 %.png: %.svg
-	rsvg $< $@
+	inkscape --file=$< --export-dpi=90 --export-area-drawing --export-png=$@
 
 %-small.png: %.svg
-	rsvg -x 0.5 -y 0.5 $< $@
+	inkscape --file=$< --export-dpi=45 --export-area-drawing --export-png=$@
 
 %-large.png: %.svg
-	rsvg -x 2 -y 2 $< $@
+	inkscape --file=$< --export-dpi=180 --export-area-drawing --export-png=$@
 
 builddate: clean-builddate
 	env LC_ALL=C date +"%B %d, %Y" > $@	
