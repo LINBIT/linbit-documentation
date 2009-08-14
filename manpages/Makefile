@@ -1,16 +1,17 @@
 DRBD ?= ../../drbd-8
 
-SGML_SOURCES := drbd.sgml drbd.conf.sgml drbdsetup.sgml drbdadm.sgml drbdmeta.sgml drbddisk.sgml
-XML_SOURCES := $(SGML_SOURCES:.sgml=.xml) 
+SYMLINKS := drbd.xml drbd.conf.xml drbdsetup.xml drbdadm.xml drbdmeta.xml drbddisk.xml
 
-all: xml
+all: symlinks
 
-clean:
-	rm -f $(XML_SOURCES)
+$(SYMLINKS):
+	ln -s $(DRBD)/documentation/$@
 
-xml: $(XML_SOURCES)
+symlinks: $(SYMLINKS)
 
-%.xml: $(DRBD)/documentation/%.sgml
-	sgml2xml -x no-nl-in-tag -x lower -x empty $<  | xmllint --format --output $@ -
+clean-symlinks:
+	rm -f $(SYMLINKS)
 
-.PHONY: all clean xml
+clean: clean-symlinks
+
+.PHONY: all symlinks clean-symlinks clean
