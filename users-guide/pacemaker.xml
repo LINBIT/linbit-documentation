@@ -781,13 +781,36 @@ order o_drbd_r0_before_r0-U \
     </section>
     -->
   </section>
-  <!--
   <section id="s-pacemaker-floating-peers">
-    <title>Configuring Pacemaker for DRBD floating peers</title>
-      <para>In order to run Pacemaker in a configuration involving
-      <link linkend="s-floating-peers">floating peers</link>, you must
-      configure your resources (both your DRBD resource, and your
-      Pacemaker resource) in a special way. </para>
+    <title>Configuring DRBD to replicate between two SAN-backed
+      Pacemaker clusters</title>
+    <para>This is a somewhat advanced setup usually employed in
+      split-site configurations. It involves two separate Pacemaker
+      clusters, where each cluster has access to a separate Storage
+      Area Network (SAN). DRBD is then used to replicate data stored
+      on that SAN, across an IP link between sites.</para>
+    <para>Consider the following illustration to describe the concept.
+      <figure>
+	<title>Using DRBD to replicate between SAN-based
+	clusters</title>
+	<xi:include href="todo.xml"/>
+      </figure>
+    </para>
+    <para>Which of the individual nodes in each site currently acts as
+      the DRBD peer is not explicitly defined &mdash; the DRBD peers
+      <link linkend="s-floating-peers">are said to
+	<emphasis>float</emphasis></link>; that is, DRBD binds to
+      virtual IP addresses not tied to a specific physical
+      machine.</para>
+    <note>
+      <para>This type of setup is usually deployed together with <link
+	  linkend="s-drbd-proxy">DRBD Proxy</link> and/or <link
+	  linkend="s-truck-based-replication">truck based
+	  replication</link>.</para>
+      <para>Since this type of setup deals with shared storage,
+	configuring and testing STONITH is absolutely vital for it to
+	work properly.</para>
+    </note>
     <section id="s-pacemaker-floating-peers-drbd-config">
       <title>DRBD resource configuration</title>
       <para>To enable your DRBD resource to float, configure it in
@@ -798,79 +821,154 @@ order o_drbd_r0_before_r0-U \
   device /dev/drbd0;
   disk /dev/sda1;
   meta-disk internal;
-  floating {
-    address 10.9.9.100:7788;
-  }
-  floating {
-    address 10.9.9.101:7788;
+  floating 10.9.9.100:7788;
+  floating 10.9.10.101:7788;
   }
 }</programlisting>
     <para>The <option>floating</option> keyword replaces the
-      <option>on <replaceable>host</replaceable></option> sections
-      normally found in the resource configuration. In this mode, DRBD
-      identifies peers by IP address, rather than by host name. It is
-      important to note that the addresses specified must be virtual
-      cluster IP addresses, rather than physical node IP addresses,
-      for floating to function properly.</para>
+	<option>on <replaceable>host</replaceable></option> sections
+	normally found in the resource configuration. In this mode,
+	DRBD identifies peers by IP address and TCP port, rather than
+	by host name. It is important to note that the addresses
+	specified must be virtual cluster IP addresses, rather than
+	physical node IP addresses, for floating to function properly.
+	As shown in the example, in split-site configurations the two
+	floating addresses can be expected to belong to two separate
+	IP networks &mdash; it is thus vital for routers and firewalls
+	to properly allow DRBD replication traffic between the
+	nodes.</para>
     </section>
     <section id="s-pacemaker-floating-peers-crm-config">
       <title>Pacemaker resource configuration</title>
       <para>A DRBD floating peers setup, in terms of Pacemaker
-	configuration, involves the following items:
+	configuration, involves the following items (in each of the
+	two Pacemaker clusters involved):
 	<itemizedlist>
 	  <listitem>
-	    <para>Two virtual cluster IP addresses.</para>
+	    <para>A virtual cluster IP address.</para>
 	  </listitem>
 	  <listitem>
 	    <para>A master/slave DRBD resource (using the DRBD OCF
 	      resource agent).</para>
 	  </listitem>
 	  <listitem>
-	    <para>Several Pacemaker constraints ensuring that
+	    <para>Pacemaker constraints ensuring that
 	      resources are started on the correct nodes, and in the
 	      correct order.</para>
 	  </listitem>
 	</itemizedlist>
       </para>
       <para>To configure a resource named <code>mysql</code> in a
-	floating peers configuration in a 4-node cluster, to replicate
-	between IP addresses <code>10.9.9.100</code> and
-	<code>10.9.9.101</code>, configure Pacemaker with the
-	following <code>crm</code> commands:</para>
+	floating peers configuration in a 2-node cluster, using the
+	replication address <code>10.9.9.100</code>, configure
+	Pacemaker with the following <code>crm</code> commands:</para>
       <literallayout><userinput>crm configure</userinput>
 <computeroutput>crm(live)configure# </computeroutput><userinput>primitive ip_float_left ocf:heartbeat:IPaddr2 \
                     params ip=10.9.9.100</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>primitive ip_float_right ocf:heartbeat:IPaddr2 \
-                    params ip=10.9.9.101</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>location float_left ip_float_left \
-                    rule inf: #uname eq alice or #uname eq bob</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>location float_right ip_float_right \
-                    rule inf: #uname eq charlie or #uname eq daisy</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>primitive drbd_mysql ocf:drbd:drbd \
+<computeroutput>crm(live)configure# </computeroutput><userinput>primitive drbd_mysql ocf:linbit:drbd \
                     params drbd_resource=mysql</userinput>
 <computeroutput>crm(live)configure# </computeroutput><userinput>ms ms_drbd_mysql drbd_mysql \
                     meta master-max="1" master-node-max="1" \
-                         clone-max="2" clone-node-max="1" \
-                         notify="true"</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>order drbd_after_left inf: ip_float_left drbd_mysql:0</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>order drbd_after_right inf: ip_float_right drbd_mysql:1</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>colocation drbd_on_left inf: drbd_mysql:0 ip_float_left</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>colocation drbd_on_right inf: drbd_mysql:1 ip_float_right</userinput>
+                         clone-max="1" clone-node-max="1" \
+                         notify="true" target-role="Master"</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>order drbd_after_left inf: ip_float_left drbd_mysql</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>colocation drbd_on_left inf: drbd_mysql ip_float_left</userinput>
 <computeroutput>crm(live)configure# </computeroutput><userinput>commit</userinput>
 <computeroutput>bye</computeroutput></literallayout>
       <para>After adding this configuration to the CIB, Pacemaker will execute the following actions:</para>
       <orderedlist>
 	<listitem>
-	  <para>Bring up the IP addresses 10.9.9.100 (on either
-	    <code>alice</code> or <code>bob</code>) and 10.9.9.100 (on
-	    either <code>charlie</code> or <code>daisy</code>).</para>
+	  <para>Bring up the IP address 10.9.9.100 (on either
+	    <code>alice</code> or <code>bob</code>).</para>
 	</listitem>
 	<listitem>
 	  <para>Bring up the DRBD resource according to the IP
-	    addresses configured.</para>
+	    address configured.</para>
+	</listitem>
+	<listitem>
+	  <para>Promote the DRBD resource to the Primary role.</para>
+	</listitem>
+      </orderedlist>
+      <para>Then, in order to create the matching configuration in the
+	other cluster, configure <emphasis>that</emphasis> Pacemaker
+	instance with the following commands:</para>
+      <literallayout><userinput>crm configure</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>primitive ip_float_right ocf:heartbeat:IPaddr2 \
+                    params ip=10.9.10.101</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>primitive drbd_mysql ocf:linbit:drbd \
+                    params drbd_resource=mysql</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>ms ms_drbd_mysql drbd_mysql \
+                    meta master-max="1" master-node-max="1" \
+                         clone-max="1" clone-node-max="1" \
+                         notify="true" target-role="Slave"</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>order drbd_after_right inf: ip_float_right drbd_mysql</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>colocation drbd_on_right inf: drbd_mysql ip_float_right</userinput>
+<computeroutput>crm(live)configure# </computeroutput><userinput>commit</userinput>
+<computeroutput>bye</computeroutput></literallayout>
+      <para>After adding this configuration to the CIB, Pacemaker will execute the following actions:</para>
+      <orderedlist>
+	<listitem>
+	  <para>Bring up the IP address 10.9.10.101 (on either
+	    <code>charlie</code> or <code>daisy</code>).</para>
+	</listitem>
+	<listitem>
+	  <para>Bring up the DRBD resource according to the IP
+	    address configured.</para>
+	</listitem>
+	<listitem>
+	  <para>Leave the DRBD resource in the Secondary role (due to
+	    <code>target-role="Slave"</code>).</para>
 	</listitem>
       </orderedlist>
     </section>
+    <section id="s-pacemaker-floating-peers-site-fail-over">
+      <title>Site fail-over</title>
+      <para>In split-site configurations, it may be necessary to
+      transfer services from one site to another. This may be a
+      consequence of a scheduled transition, or of a disastrous
+      event. In case the transition is a normal, anticipated event,
+      the recommended course of action is this:</para>
+      <itemizedlist>
+	<listitem>
+	  <para>Connect to the cluster on the site about to relinquish
+	    resources, and change the affected DRBD resource's
+	    <code>target-role</code> attribute from
+	    <code>Master</code> to <code>Slave</code>. This will shut
+	    down any resources depending on the Primary role of the
+	    DRBD resource, demote it, and continue to run, ready to
+	    receive updates from a new Primary.</para>
+	</listitem>
+	<listitem>
+	  <para>Connect to the cluster on the site about to take over
+	    resources, and change the affected DRBD resource's
+	    <code>target-role</code> attribute from <code>Slave</code>
+	    to <code>Master</code>. This will promote the DRBD
+	    resources, start any other Pacemaker resources 
+	    depending on the Primary role of the DRBD resource, and
+	    replicate updates to the remote site.</para>
+	</listitem>
+	<listitem>
+	  <para>To fail back, simply reverse the procedure.</para>
+	</listitem>
+      </itemizedlist>
+      <para>In the event that of a catastrophic outage on the active
+      site, it can be expected that the site is off line and no longer
+      replicated to the backup site. In such an event:</para>
+      <itemizedlist>
+	<listitem>
+	  <para>Connect to the cluster on the still-functioning site
+	    resources, and change the affected DRBD resource's
+	    <code>target-role</code> attribute from <code>Slave</code>
+	    to <code>Master</code>. This will promote the DRBD
+	    resources, and start any other Pacemaker resources 
+	    depending on the Primary role of the DRBD resource.</para>
+	</listitem>
+	<listitem>
+	  <para>When the original site is restored or rebuilt, you may
+	  connect the DRBD resources again, and subsequently fail back
+	  using the reverse procedure.</para>
+	</listitem>
+      </itemizedlist>
+    </section>
   </section>
-  -->
 </chapter>
