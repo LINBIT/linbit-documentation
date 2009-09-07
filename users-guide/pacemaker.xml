@@ -759,8 +759,7 @@ order o_drbd_r0_before_r0-U \
 	  <link linkend="s-drbd-proxy">DRBD Proxy</link>.</para>
       </note>
     </section>
-    <!--
-    <section id="s-pacemaker-stacked-4way">
+    <section id="s-pacemaker-stacked-4way" status="draft">
       <title>Using stacked resources to achieve 4-way redundancy in
       Pacemaker clusters</title>
       <para>In this configuration, a total of three DRBD resources
@@ -772,14 +771,146 @@ order o_drbd_r0_before_r0-U \
 	concept.</para>
       <xi:include href="todo.xml"/>
       <para>In this example, <code>alice</code>, <code>bob</code>,
-	<code>charlie</code>, and <code>daisy</code> form a four-node
-	Pacemaker cluster. In this cluster, <code>alice</code> and
-	<code>bob</code> replicate data using a DRBD resource between
-	them, while <code>charlie</code> and <code>daisy</code> do the
-	same with a separate DRBD resource. A third, stacked DRBD
-	resource connects the two cluster halves.</para>
+	<code>charlie</code>, and <code>daisy</code> form two two-node
+	Pacemaker clusters. <code>alice</code> and <code>bob</code>
+	form the cluster named <code>left</code> and replicate data
+	using a DRBD resource between them, while <code>charlie</code>
+	and <code>daisy</code> do the same with a separate DRBD
+	resource, in a cluster named <code>right</code>. A third,
+	stacked DRBD resource connects the two clusters.</para>
+      <note>
+	<para>Due to limitations in the Pacemaker cluster manager as
+	  of Pacemaker version 1.0.5, it is not possible to create
+	  this setup in a single four-node cluster without disabling
+	  CIB validation, which is an advanced process not recommended
+	  for general-purpose use. It is anticipated that this is
+	  being addressed in future Pacemaker releases.</para>
+      </note>
+      <para>To create such a configuration, you would first configure
+	and initialize DRBD resources as described in <xref
+      linkend="s-three-nodes"/> (except that the remote half of the
+	DRBD configuration is also stacked, not just the local
+	cluster). Then, configure Pacemaker with the following CRM
+	configuration, starting with the cluster
+	<code>left</code>:</para>
+      <programlisting>primitive drbd_left ocf:linbit:drbd \
+	params drbd_resource="left"
+
+primitive drbd_stacked ocf:linbit:drbd \
+	params drbd_resource="stacked" \
+
+primitive ip_stacked_left ocf:heartbeat:IPaddr2 \
+	params ip="10.9.9.100" nic="eth0"
+
+ms ms_drbd_left res_drbd_left \
+	meta master-max="1" master-node-max="1" \
+        clone-max="2" clone-node-max="1" \
+        notify="true"
+
+ms ms_drbd_stacked res_drbd_stacked \
+	meta master-max="1" clone-max="1" \
+        clone-node-max="1" master-node-max="1" \
+        notify="true" target-role="Master"
+
+colocation c_ip_on_left_master \
+        inf: res_ip_stacked_left ms_drbd_left:Master
+
+colocation c_drbd_stacked_on_ip_left \
+        inf: ms_drbd_stacked res_ip_stacked_left
+
+order o_ip_before_stacked_left \
+        inf: res_ip_stacked_left ms_drbd_stacked_left:start
+
+order o_drbd_left_before_stacked_left \
+        inf: ms_drbd_left:promote ms_drbd_stacked_left:start
+</programlisting>
+      <para>Assuming you created this configuration in a temporary
+        file named <filename>/tmp/crm.txt</filename>, you may import
+        it into the live cluster configuration with the following
+        command:
+	<literallayout><userinput>crm configure &lt; /tmp/crm.txt</userinput></literallayout>
+      </para>
+      <para>After adding this configuration to the CIB, Pacemaker will
+	execute the following actions:</para>
+      <orderedlist>
+	<listitem>
+	  <para>Bring up the DRBD resource <code>left</code>
+	    replicating between <code>alice</code> and
+	    <code>bob</code> promoting the resource to the Master
+	    role on one of these nodes.</para>
+	</listitem>
+	<listitem>
+	  <para>Bring up the IP address 10.9.9.100 (on either
+	    <code>alice</code> or <code>bob</code>, depending on which
+	    of these holds the Master role for the resource
+	    <code>left</code>).</para>
+	</listitem>
+	<listitem>
+	  <para>Bring up the DRBD resource <code>stacked</code> on the
+	    same node that holds the just-configured IP address.</para>
+	</listitem>
+	<listitem>
+	  <para>Promote the stacked DRBD resource to the Primary
+	    role.</para>
+	</listitem>
+      </orderedlist>
+      <para>Now, proceed on the cluster <code>right</code> by creating
+	the following configuration:</para>
+      <programlisting>primitive drbd_right ocf:linbit:drbd \
+	params drbd_resource="right"
+
+primitive drbd_stacked ocf:linbit:drbd \
+	params drbd_resource="stacked" \
+
+primitive ip_stacked_right ocf:heartbeat:IPaddr2 \
+	params ip="10.9.10.101" nic="eth0"
+
+ms ms_drbd_right res_drbd_right \
+	meta master-max="1" master-node-max="1" \
+        clone-max="2" clone-node-max="1" \
+        notify="true"
+
+ms ms_drbd_stacked res_drbd_stacked \
+	meta master-max="1" clone-max="1" \
+        clone-node-max="1" master-node-max="1" \
+        notify="true" target-role="Slave"
+
+colocation c_drbd_stacked_on_ip_right \
+        inf: ms_drbd_stacked res_ip_stacked_right
+
+colocation c_ip_on_right_master \
+        inf: res_ip_stacked_right ms_drbd_right:Master
+
+order o_ip_before_stacked_right \
+        inf: res_ip_stacked_right ms_drbd_stacked_right:start
+
+order o_drbd_right_before_stacked_right \
+        inf: ms_drbd_right:promote ms_drbd_stacked_right:start
+</programlisting>
+      <para>After adding this configuration to the CIB, Pacemaker will execute the following actions:</para>
+      <orderedlist>
+	<listitem>
+	  <para>Bring up the DRBD resource <code>right</code>
+	    replicating between <code>charlie</code> and
+	    <code>daisy</code>, promoting the resource to the Master
+	    role on one of these nodes.</para>
+	</listitem>
+	<listitem>
+	  <para>Bring up the IP address 10.9.10.101 (on either
+	    <code>charlie</code> or <code>daisy</code>, depending on
+	    which of these holds the Master role for the resource
+	    <code>right</code>).</para>
+	</listitem>
+	<listitem>
+	  <para>Bring up the DRBD resource <code>stacked</code> on the
+	    same node that holds the just-configured IP address.</para>
+	</listitem>
+	<listitem>
+	  <para>Leave the stacked DRBD resource in the Secondary role
+	    (due to <code>target-role="Slave"</code>).</para>
+	</listitem>
+      </orderedlist>
     </section>
-    -->
   </section>
   <section id="s-pacemaker-floating-peers" status="draft">
     <title>Configuring DRBD to replicate between two SAN-backed
