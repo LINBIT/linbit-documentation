@@ -1149,13 +1149,80 @@ GIT-hash: 9ba8b93e24d842f0dd3fb1f9b90e8348ddb95829 build by buildsystem@linbit, 
 	  <primary>resource</primary>
 	  <secondary>growing</secondary>
 	  <tertiary>off-line</tertiary>
-	</indexterm>When the backing block devices on both nodes are grown
-	  while DRBD is inactive, the new size is recognized
-	  automatically. No administrative intervention is
-	  necessary.</para>
-	<para>The resulting DRBD device will have the new size after
-	  the next activation of DRBD on both nodes and a successful
-	  establishment of a network connection.</para>
+	</indexterm>When the backing block devices on both nodes are
+	grown while DRBD is inactive, and the DRBD resource is using
+	<link linkend="s-external-meta-data">external meta
+	  data</link>, then the new size is recognized automatically.
+	No administrative intervention is necessary. The DRBD device
+	will have the new size after the next activation of DRBD on
+	both nodes and a successful establishment of a network
+	connection.</para>
+      <para>If however the DRBD resource is configured to use <link
+	  linkend="s-internal-meta-data">internal meta data</link>,
+	then this meta data must be moved to the end of the grown
+	device before the new size becomes available. To do so,
+	complete the following steps:</para>
+	<warning>
+	  <para>This is an advanced procedure. Use at your own
+	  discretion.</para>
+	</warning>
+	<orderedlist>
+	  <listitem>
+	    <para>Unconfigure your DRBD resource:</para>
+	    <programlisting>drbdadm down <replaceable>resource</replaceable></programlisting>
+	  </listitem>
+	  <listitem>
+	    <para>Save the meta data in a text file prior to
+	      shrinking: <programlisting>drbdadm dump-md <replaceable>resource</replaceable> &gt; <filename>/tmp/metadata</filename></programlisting></para>
+	    <para>You must do this on both nodes, using a separate
+	      dump file for every node. <emphasis>Do not</emphasis>
+	      dump the meta data on one node, and simply copy the dump
+	      file to the peer. This will not work.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Grow the backing block device on both
+	      nodes.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Adjust the size information
+	      (<code>la-size-sect</code>) in the file
+	      <filename>/tmp/metadata</filename> accordingly, on both
+	      nodes. Remember that <code>la-size-sect</code> must be
+	      specified in sectors.</para>
+	  </listitem>
+	  <listitem>
+	    <para>Re-initialize
+	      the metadata area:</para>
+	    <programlisting>drbdadm create-md <replaceable>resource</replaceable></programlisting>
+	  </listitem>
+	  <listitem>
+	    <para>Re-import the corrected meta data, on both
+	      nodes:
+	    <literallayout><userinput>drbdmeta_cmd=$(drbdadm -d	dump-md test-disk)</userinput>
+<userinput>${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata</userinput> 
+<computeroutput> Valid meta-data in place, overwrite? [need to type 'yes' to confirm]</computeroutput> <userinput>yes</userinput>
+<computeroutput> Successfully restored meta data</computeroutput></literallayout>
+	    <note>
+	      <para>This example uses <code>bash</code> parameter
+		substitution. It may or may not work in other shells.
+		Check your <envar>SHELL</envar> environment variable
+		if you are unsure which shell you are currently
+		using.</para>
+	    </note></para>
+	  </listitem>
+	  <listitem>
+	    <para>Re-enable your DRBD resource:</para>
+	    <programlisting>drbdadm up <replaceable>resource</replaceable></programlisting>
+	  </listitem>
+	  <listitem>
+	    <para>On one node, promote the DRBD resource:</para>
+	    <programlisting>drbdadm primary <replaceable>resource</replaceable></programlisting>
+	  </listitem>
+	  <listitem>
+	    <para>Finally, grow the file system so it fills the
+	    extended size of the DRBD device.</para>
+	  </listitem>
+	</orderedlist>
       </section>
       <section id="s-shrinking-online">
 	<title>Shrinking on-line</title>
