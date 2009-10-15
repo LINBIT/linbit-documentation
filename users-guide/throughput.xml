@@ -1,0 +1,223 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<chapter id="ch-throughput" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Optimizing DRBD throughput</title>
+  <para>This chapter deals with optimizing DRBD throughput. It
+  examines some hardware considerations with regard to throughput
+  optimization, and details tuning recommendations for that
+  purpose.</para>
+  <section id="s-throughput-hardware">
+    <title>Hardware considerations</title>
+    <para>DRBD throughput is affected by both the bandwidth of the
+      underlying I/O subsystem (disks, controllers, and corresponding
+      caches), and the bandwidth of the replication network.</para>
+    <itemizedlist>
+      <listitem>
+	<formalpara>
+	  <title>I/O subsystem throughput</title>
+	  <para><indexterm>
+	      <primary>throughput</primary>
+	      <secondary>I/O subsystem</secondary>
+	    </indexterm>I/O subsystem throughput is determined,
+	    largely, by the number of disks that can be written to in
+	    parallel. A single, reasonably recent, SCSI or SAS disk
+	    will typically allow streaming writes of rougly 40MB/s to
+	    the single disk. When deployed in a striping
+	    configuration, the I/O subsystem will parallelize writes
+	    across disks, effectively multiplying a single disk's
+	    throughput by the number of stripes in the configuration.
+	    Thus the same, 40MB/s disks will allow effective
+	    throughput of 120MB/s in a RAID-0 or RAID-1+0
+	    configuration with three stripes, or 200MB/s with five
+	    stripes.</para>
+	</formalpara>
+	<note>
+	  <para>Disk <emphasis>mirroring</emphasis> (RAID-1) in
+	    hardware typically has little, if any effect on
+	    throughput. Disk <emphasis>striping with parity</emphasis>
+	    (RAID-5) does have an effect on throughput, usually an
+	    adverse one when compared to striping.</para>
+	</note>
+      </listitem>
+      <listitem>
+	<formalpara>
+	  <title>Network throughput</title>
+	  <para><indexterm>
+	      <primary>throughput</primary>
+	      <secondary>network</secondary>
+	    </indexterm>Network throughput is usually determined by the amount
+	    of traffic present on the network, and on the throughput
+	    of any routing/switching infrastructure present. These
+	    concerns are, however, largely irrelevant in DRBD
+	    replication links which are normally dedicated,
+	    back-to-back network connections.</para>
+	</formalpara>
+	<para>Thus, network throughput may be improved either by
+	  switching to a higher-throughput protocol (such as 10
+	  Gigabit Ethernet), or by using link aggregation over several
+	  network links, as one may do using the Linux<indexterm>
+	    <primary>bonding driver</primary>
+	  </indexterm> <code>bonding</code> network driver.</para>
+      </listitem>
+    </itemizedlist>
+  </section>
+  <section id="s-throughput-overhead-expectations">
+    <title>Throughput overhead expectations</title>
+    <para>When estimating the throughput overhead associated with
+      DRBD, it is important to consider the following natural
+      limitations:
+	<itemizedlist>
+	<listitem>
+	  <para>DRBD throughput is limited by that of the raw I/O
+	    subsystem.</para>
+	</listitem>
+	<listitem>
+	  <para>DRBD throughput is limited by the available network
+	    bandwidth.</para>
+	</listitem>
+	</itemizedlist>
+    </para>
+    <para>The <emphasis>minimum</emphasis> between the two establishes
+      the theoretical throughput <emphasis>maximum</emphasis>
+      available to DRBD. DRBD then reduces that throughput maximum by
+      its additional throughput overhead, which can be expected to be
+      less than 3 percent.</para>
+    <itemizedlist>
+      <listitem>
+	<para>Consider the example of two cluster nodes containing I/O
+	  subsystems capable of 200 MB/s throughput, with a Gigabit
+	  Ethernet link available between them. Gigabit Ethernet can
+	  be expected to produce 110 MB/s throughput for TCP
+	  connections, thus the network connection would be the
+	  <quote>bottleneck</quote> in this configuration and one
+	  would expect about 107 MB/s maximum DRBD throughput.</para>
+      </listitem>
+      <listitem>
+	<para>By contrast, if the I/O subsystem is capable of only 100
+	  MB/s for sustained writes, then it constitutes the
+	  bottleneck, and you would be able to expect only 97 MB/s
+	  maximum DRBD throughput.</para>
+      </listitem>
+    </itemizedlist>
+  </section>
+  <section id="s-throughput-tuning">
+    <title>Tuning recommendations</title>
+    <para>DRBD offers a number of configuration options which may have
+      an effect on your system's throughput. This section list some
+      recommendations for tuning for throughput. However, since
+      throughput is largely hardware dependent, the effects of
+      tweaking the options described here may vary greatly from system
+      to system. It is important to understand that these
+      recommendations should not be interpreted as <quote>silver
+	bullets</quote> which would magically remove any and all
+      throughput bottlenecks.</para>
+    <section id="s-tune-max-buffer-max-epoch-size">
+      <title>Setting <code>max-buffers</code> and
+      <code>max-epoch-size</code></title>
+      <para>These options affect write performance on the secondary
+	node. <option>max-buffers</option> is the maximum number of
+	buffers DRBD allocates for writing data to disk while
+	<option>max-epoch-size</option> is the maximum number of write
+	requests permitted between two write barriers. Under most
+	circumstances, these two options should be set in parallel,
+	and to identical values. The default for both is 2048; setting
+	it to around 8000 should be fine for most reasonably
+	high-performance hardware RAID controllers.</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  net {
+    max-buffers 8000;
+    max-epoch-size 8000;
+    ...
+  }
+  ...
+}</programlisting>
+    </section>
+    <section id="s-tune-unplug-watermark">
+      <title>Tweaking the I/O unplug watermark</title>
+      <para>The I/O unplug watermark is a measure affects how often
+	the I/O subsystem's controller is <quote>kicked</quote>
+	(forced to process pending I/O requests) during normal
+	operation. There is no universally recommended setting for
+	this option; this is greatly hardware dependent.</para>
+      <para>Some controllers perform best when <quote>kicked</quote>
+	frequently, so for these controllers it makes sense to set
+	this fairly low, perhaps even as low as DRBD's allowable
+	minimum (16). Others perform best when left alone; for these
+	controllers a setting as high as <option>max-buffers</option>
+	is advisable.</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  net {
+    unplug-watermark 16;
+    ...
+  }
+  ...
+}</programlisting>
+    </section>
+    <section id="s-tune-sndbuf-size">
+      <title>Tuning the TCP send buffer size</title>
+      <para>The TCP send buffer is a memory buffer for outgoing TCP
+	traffic. By default, it is set to a size of 128 KiB. For use
+	in high-throughput networks (such as dedicated Gigabit
+	Ethernet or load-balanced bonded connections), it may make
+	sense to increase this to a size of 512 KiB, or perhaps even
+	more. Send buffer sizes of more than 2 MiB are generally not
+	recommended (and are also unlikely to produce any throughput
+	improvement).</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  net {
+    sndbuf-size 512k;
+    ...
+  }
+  ...
+}</programlisting>
+      <para>From DRBD 8.2.7 forward, DRBD also supports TCP send
+      buffer auto-tuning. After enabling this feature, DRBD will
+      dynamically select an appropriate TCP send buffer size. TCP send
+      buffer auto tuning is enabled by simply setting the buffer size
+      to zero:</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  net {
+    sndbuf-size 0;
+    ...
+  }
+  ...
+}</programlisting>
+    </section>
+    <section id="s-tune-al-extents">
+      <title>Tuning the Activity Log size</title>
+      <para>If the application using DRBD is write intensive in the
+      sense that it frequently issues small writes scattered across
+      the device, it is usually advisable to use a fairly large
+      activity log. Otherwise, frequent metadata updates may be
+      detrimental to write performance.</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  syncer {
+    al-extents 3389;
+    ...
+  }
+  ...
+}</programlisting>
+    </section>
+    <section>
+      <title>Disabling barriers and disk flushes</title>
+      <warning>
+	<para>The recommendations outlined in this section should be
+	  applied <emphasis>only</emphasis> to systems with
+	  non-volatile (battery backed) controller caches.</para>
+      </warning>
+      <para>Systems equipped with battery backed write cache come with
+	built-in means of protecting data in the face of power
+	failure. In that case, it is permissible to disable some of
+	DRBD's own safeguards created for the same purpose. This may
+	be beneficial in terms of throughput:</para>
+	<programlisting>resource <replaceable>resource</replaceable> {
+  disk {
+    no-disk-barrier;
+    no-disk-flushes;
+    ...
+  }
+  ...
+}</programlisting>
+
+    </section>
+  </section>
+</chapter>
