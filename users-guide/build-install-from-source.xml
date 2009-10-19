@@ -196,16 +196,6 @@ git checkout drbd-8.3.<replaceable>x</replaceable></programlisting>
       <indexterm>
 	<primary>kernel module</primary>
       </indexterm>
-      <para>
-	<note>
-	  <para>This section only applies to building DRBD as a
-	    loadable module. If you want to build DRBD right
-	    <emphasis>into</emphasis> your kernel image, you will have
-	    to patch your kernel. See <xref
-	    linkend="s-build-patch-kernel"/>. Using DRBD as a loadable
-	    module is the preferred option.</para>
-      </note>
-      </para>
       <section id="s-build-against-running-kernel">
 	<title>Building DRBD for the currently-running kernel</title>
 	<para>After changing into your unpacked DRBD sources
@@ -273,57 +263,6 @@ make CC=gcc32</programlisting></para>
 	  drbd.ko</command> if you are so inclined.</para>
       </section>
     </section>
-    <section id="s-build-patch-kernel">
-      <title>Patching DRBD into the kernel</title>
-      <indexterm>
-	<primary>kernel patch</primary>
-      </indexterm>
-      <note>
-	<para>This section only applies to building DRBD into a kernel
-	  image, as opposed to compiling it as a loadable module. Only
-	  use this if you have a valid reason to, for example if you
-	  are building a kernel without loadable modules support.
-	  Normally, using DRBD as a loadable module is the preferred
-	  option.</para>
-      </note>
-      <para>This approach involves having the DRBD build system
-	generate a kernel patch, which you then apply to a kernel
-	source tree. To create the patch, issue these commands:
-	<programlisting>cd drbd
-make clean
-make KDIR=/usr/src/linux kernel-patch</programlisting>
-	This command will create a file named
-	<filename>patch-linux-<replaceable>version</replaceable>-drbd-<replaceable>version</replaceable></filename>.</para>
-      <para>You may review this patch and then apply it to your kernel
-	source tree, by issuing the following commands:
-	<programlisting>cd /usr/src/linux
-patch -p1 &lt;/usr/src/drbd-<replaceable>version</replaceable>/patch-linux-<replaceable>version</replaceable>-drbd-<replaceable>version</replaceable></programlisting>
-	<note>
-	  <para>This example, as all others in this section, assume
-	    that you unpacked you DRBD source tarball in
-	    <filename>/usr/src/drbd-x.y.z</filename>, where
-	    <varname>x.y.z</varname> is your DRBD version you are
-	    building, and that sources for the kernel you are building
-	    against are in <filename>/usr/src/linux</filename>.</para>
-	</note>
-	After this, you can run
-	<code>make config</code>, <code>make menuconfig</code>, or
-	<code>make xconfig</code>, whichever your preferred way of
-	configuring your kernel is, and enable DRBD for your build.
-	For the menu- or GUI-based configuration facilities, you will
-	find DRBD listed in the "Block devices" section.</para>
-      <para>After this, you can build your kernel as usual (<code>make
-	  bzImage</code> et al.), and the resulting kernel build will
-	include DRBD.</para>
-      <para>With this approach, you will need to build the DRBD
-	userspace management tools separately. This is done by
-	changing into the top-level directory of your unpacked DRBD
-	sources, and issuing the <command>make tools</command>
-	command:
-	<programlisting>cd /usr/src/drbd-x.y.z
-make tools</programlisting>
-      </para>
-    </section>
   </section>
   <section id="s-build-install">
     <title>Installing DRBD</title>
@@ -331,14 +270,7 @@ make tools</programlisting>
       able to install DRBD by issuing these commands:
       <programlisting>cd /usr/src/drbd-x.y.z
 make install</programlisting></para>
-    <para>If, however, you chose the build approach described in <xref
-      linkend="s-build-patch-kernel"/>, DRBD kernel functionality will
-      be enabled automatically, whenever you boot into your new
-      kernel. In that case, you only need to install DRBD's userspace
-      components:
-      <programlisting>cd /usr/src/drbd-x.y.z
-make install-tools</programlisting></para>
-    <para>In either case, then DRBD userspace management tools
+    <para>The DRBD userspace management tools
       (<filename>drbdadm</filename>, <filename>drbdsetup</filename>,
       and <filename>drbdmeta</filename>) will now be installed in
       <filename>/sbin</filename>.</para>
