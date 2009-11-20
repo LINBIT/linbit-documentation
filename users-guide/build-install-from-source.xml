@@ -115,7 +115,7 @@ git checkout drbd-8.3.<replaceable>x</replaceable></programlisting>
 	    kernel headers package. These are typically named
 	    <code>kernel-dev</code>, <code>kernel-headers</code>,
 	    <code>linux-headers</code> or similar. In this case, you
-	    can skip <xref linkend="s-build-prepare-tree"/> and
+	    can skip <xref linkend="s-build-prepare-kernel-tree"/> and
 	    continue with <xref
 	      linkend="s-build-compile-kernel-module"/>.</para>
 	</listitem>
@@ -143,7 +143,7 @@ git checkout drbd-8.3.<replaceable>x</replaceable></programlisting>
 	    to that directory. </para>
 	  <para>In this case of building DRBD against kernel sources
 	    (not headers), you must continue with <xref
-	      linkend="s-build-prepare-tree"/>.</para>
+	      linkend="s-build-prepare-kernel-tree"/>.</para>
 	</listitem>
       </itemizedlist>
     </section>
@@ -200,10 +200,124 @@ git checkout drbd-8.3.<replaceable>x</replaceable></programlisting>
       <title>Preparing the DRBD build tree</title>
       <para>Any DRBD kernel module compilation requires that you first
       configure your DRBD source tree with the included
-      <filename>configure</filename> script. Invoking the script with
-      the <option>--help</option> option returns a full list of
-      supported options.
-      </para>
+      <filename>configure</filename> script. </para>
+      <note>
+	<para>When building from a git checkout, the
+	<filename>configure</filename> script does not yet exist. You
+	must create it by simply typing <command>autoconf</command> at
+	the top of the checkout.</para>
+      </note>
+      <para>Invoking the configure script with the
+      <option>--help</option> option returns a full list of supported
+      options. The table below summarizes the most important ones:</para>
+      <table id="t-configure-options">
+	<title>Options supported by DRBD's configure script</title>
+	<tgroup cols="4">
+	  <thead>
+	    <row>
+	      <entry>Option</entry>
+	      <entry>Description</entry>
+	      <entry>Default</entry>
+	      <entry>Remarks</entry>
+	    </row>
+	    </thead>
+	    <tbody>
+	      <row>
+		<entry><option>--prefix</option></entry>
+		<entry>Installation directory prefix</entry>
+		<entry><filename>/usr/local</filename></entry>
+		<entry>This is the default to maintain Filesystem
+		Hierarchy Standard compatibility for locally
+		installed, unpackaged software. In packaging, this is
+		typically overridden with
+		<filename>/usr</filename>.</entry>
+	      </row>
+	      <row>
+		<entry><option>--sysconfdir</option></entry>
+		<entry>System configuration directory</entry>
+		<entry><filename>/usr/local/etc</filename></entry>
+		<entry>Even with a default <code>prefix</code>, most
+		users will want to override this with
+		<filename>/etc</filename>.</entry>
+	      </row>
+	      <row>
+		<entry><option>--with-km</option></entry>
+		<entry>Build the DRBD kernel module</entry>
+		<entry>no</entry>
+		<entry>Enable this option when you are building a DRBD
+		kernel module.</entry>
+	      </row>
+	      <row>
+		<entry><option>--with-utils</option></entry>
+		<entry>Build the DRBD userland utilities</entry>
+		<entry>yes</entry>
+		<entry>Disable this option when you are building a
+		DRBD kernel module against a new kernel version, and
+		not upgrading DRBD at the same time.</entry>
+	      </row>
+	      <row>
+		<entry><option>--with-heartbeat</option></entry>
+		<entry>Build DRBD Heartbeat integration</entry>
+		<entry>yes</entry>
+		<entry>You may disable this option unless you are
+		planning to use DRBD's Heartbeat v1 resource agent or
+		dopd.</entry>
+	      </row>
+	      <row>
+		<entry><option>--with-pacemaker</option></entry>
+		<entry>Build DRBD Pacemaker integration</entry>
+		<entry>yes</entry>
+		<entry>You may disable this option if you are not
+		planning to use the Pacemaker cluster resource
+		manager.</entry>
+	      </row>
+	      <row>
+		<entry><option>--with-rgmanager</option></entry>
+		<entry>Build DRBD Red Hat Cluster Suite integration</entry>
+		<entry>no</entry>
+		<entry>You should enable this option if you are
+		planning to use DRBD with rgmanager, the Red Hat
+		Cluster Suite cluster resource manager.</entry>
+	      </row>
+	      <row>
+		<entry><option>--with-xen</option></entry>
+		<entry>Build DRBD Xen integration</entry>
+		<entry>yes (on x86 architectures)</entry>
+		<entry>You may disable this option if you are not
+		planning to use the <filename>block-drbd</filename>
+		helper script for Xen integration.</entry>
+	      </row>
+	      <row>
+		<entry><option>--with-bashcompletion</option></entry>
+		<entry>Build programmable bash completion for
+		<command>drbdadm</command></entry>
+		<entry>yes</entry>
+		<entry>You may disable this option if you are using a
+		shell other than bash, or if you do not want to
+		utilize programmable completion for the
+		<command>drbdadm</command> command.</entry>
+	      </row>
+	      <row>
+		<entry><option>--enable-spec</option></entry>
+		<entry>Create a distribution specific RPM spec file</entry>
+		<entry>no</entry>
+		<entry>For package builders only: you may use this
+		option if you want to create an RPM spec file adapted
+		to your distribution.</entry>
+	      </row>
+	    </tbody>
+	</tgroup>
+      </table>
+      <para>The configure script will adapt your DRBD build to distribution
+      specific needs. It does so by auto-detecting which distribution
+      it is being invoked on, and setting defaults accordingly. When
+      overriding defaults, do so with caution.</para>
+      <para>The configure script creates a log file,
+      <filename>config.log</filename>, in the directory where it was
+      invoked. When reporting build issues on the mailing list, it is
+      usually wise to either attach a copy of that file to your email,
+      or point others to a location from where it may be viewed or
+      downloaded.</para>
     </section>
     <section id="s-build-compile-kernel-module">
       <title>Compiling DRBD as a kernel module</title>
@@ -280,17 +394,19 @@ make CC=gcc32</programlisting></para>
     <para>Provided your DRBD build completed successfully, you will be
       able to install DRBD by issuing these commands:
       <programlisting>cd /usr/src/drbd-x.y.z
-make install</programlisting></para>
+sudo make install</programlisting></para>
     <para>The DRBD userspace management tools
       (<filename>drbdadm</filename>, <filename>drbdsetup</filename>,
       and <filename>drbdmeta</filename>) will now be installed in
       <filename>/sbin</filename>.</para>
     <para>Note that any kernel upgrade will require you to rebuild and
-      reinstall the DRBD kernel module to match the new kernel. The
-      DRBD userspace tools, in contrast, need only be rebuilt and
-      reinstalled when upgrading to a new DRBD version. If at any time
-      you upgrade to a new kernel <emphasis>and</emphasis> new DRBD
-      version, you will need to upgrade both components.</para>
+    reinstall the DRBD kernel module to match the new kernel. See
+    <xref linkend="t-configure-options"/> for configure options that
+    may speed up the process.</para>
+    <para> The DRBD userspace tools, in contrast, need only be rebuilt
+    and reinstalled when upgrading to a new DRBD version. If at any
+    time you upgrade to a new kernel <emphasis>and</emphasis> new DRBD
+    version, you will need to upgrade both components.</para>
   </section>
   <section id="s-build-rpm">
     <title>Building a DRBD RPM package</title>
@@ -301,7 +417,7 @@ make install</programlisting></para>
       <command>make</command>, except that you also need the RPM build
       tools, of course.</para>
     <para>Also, see
-	<xref linkend="s-build-prepare-tree"/> if you are not building
+	<xref linkend="s-build-prepare-kernel-tree"/> if you are not building
       against a running kernel with precompiled headers
       available.</para>
     <para>The build system offers two approaches for building RPMs.
@@ -345,7 +461,8 @@ rpmbuild -bb drbd.spec</programlisting></para>
       in your system.</para>
     <para>Note that any kernel upgrade will require you to generate a
       new <filename>drbd-km</filename> package to match the new
-      kernel. The <filename>drbd</filename> package, in contrast, need
+      kernel.</para>
+      <para>The DRBD userland packages, in contrast, need
       only be recreated when upgrading to a new DRBD version. If at
       any time you upgrade to a new kernel <emphasis>and</emphasis>
       new DRBD version, you will need to upgrade both packages.</para>
@@ -362,7 +479,7 @@ rpmbuild -bb drbd.spec</programlisting></para>
       to build DRBD as a non-<code>root</code> user (highly
       recommended).</para>
     <para>Also, see
-	<xref linkend="s-build-prepare-tree"/> if you are not building
+	<xref linkend="s-build-prepare-kernel-tree"/> if you are not building
       against a running kernel with precompiled headers
       available.</para>
     <para>The DRBD source tree includes a <filename>debian</filename>
