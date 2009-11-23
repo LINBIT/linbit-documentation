@@ -306,7 +306,8 @@ git checkout drbd-8.3.<replaceable>x</replaceable></programlisting>
 		<entry>no</entry>
 		<entry>For package builders only: you may use this
 		option if you want to create an RPM spec file adapted
-		to your distribution.</entry>
+		to your distribution. See also <xref linkend="s-build-rpm"/>.
+		</entry>
 	      </row>
 	    </tbody>
 	</tgroup>
@@ -445,6 +446,11 @@ sudo make install</programlisting></para>
   -->
   <section id="s-build-rpm">
     <title>Building a DRBD RPM package</title>
+    <note>
+      <para>The information in this section applies to DRBD 8.3.6 and
+      above. Up until release 8.3.5, DRBD used a different RPM build
+      approach.</para>
+    </note>
     <para>The DRBD build system contains a facility to build RPM
       packages directly out of the DRBD source tree. For building
       RPMs, <xref linkend="s-build-prereq"/> applies essentially in
@@ -458,39 +464,67 @@ sudo make install</programlisting></para>
     <para>The build system offers two approaches for building RPMs.
       The simpler approach is to simply invoke the <code>rpm</code>
       target in the top-level Makefile:
-      <programlisting>cd /usr/src/drbd-x.y.z
-make rpm</programlisting> This approach
-      will auto-generate a spec file from a pre-defined template, and
-      then use that spec file to build binary RPM packages.</para>
-    <para>The other, more flexible approach is to copy the
-      <filename>drbd.spec.in</filename> file to
-      <filename>drbd.spec</filename>, make any modifications you deem
-      necessary, and manually invoke the RPM build process:
-      <programlisting>cd /usr/src/drbd-x.y.z
-cp drbd.spec.in drbd.spec
-vi drbd.spec
-rpmbuild -bb drbd.spec</programlisting></para>
-    <para>The RPM build process will create two binary RPM packages:
-	<orderedlist>
-	<listitem>
-	  <para>A package containing the DRBD userspace tools, named
-	    <filename>drbd-x.y.z-BUILD.ARCH.rpm</filename>;</para>
-	</listitem>
-	<listitem>
-	  <para>A separate package containing the DRBD kernel module,
-	    named
-	    <filename>drbd-km-<replaceable>version</replaceable>-x.y.z-BUILD.ARCH.rpm</filename>.</para>
-	</listitem>
-	</orderedlist>
-    </para>
+      <screen><computeroutput>$ </computeroutput><userinput>./configure</userinput>
+<computeroutput>$ </computeroutput><userinput>make rpm</userinput>
+<computeroutput>$ </computeroutput><userinput>make km-rpm</userinput></screen>
+      This approach will auto-generate spec files from pre-defined
+      templates, and then use those spec files to build binary RPM
+      packages.</para>
+      <para>The <command>make rpm</command> approach generates a
+      number of RPM packages:</para>
+      <table id="t-rpm-packages">
+	<title>DRBD userland RPM packages</title>
+	<tgroup cols="4">
+	  <thead>
+	    <row>
+	      <entry>Package name</entry>
+	      <entry>Description</entry>
+	      <entry>Dependencies</entry>
+	      <entry>Remarks</entry>
+	    </row>
+	    </thead>
+	    <tbody>
+	      <row>
+		<entry><code>drbd-utils</code></entry>
+		<entry>Binary administration utilities</entry>
+		<entry/>
+		<entry>Required for any DRBD enabled host</entry>
+	      </row>
+	      <row>
+		<entry><code>drbd-udev</code></entry>
+		<entry>udev integration facility</entry>
+		<entry><code>drbd-utils</code>, <code>udev</code></entry>
+		<entry>Enables udev to manage user-friendly symlinks to
+		DRBD devices</entry>
+	      </row>
+	      <row>
+		<entry><code>drbd-xen</code></entry>
+		<entry>Xen DRBD helper scripts</entry>
+		<entry><code>drbd-utils</code>, <code>xen</code></entry>
+		<entry>Enables xend to auto-manage DRBD resources</entry>
+	      </row>
+	    </tbody>
+	</tgroup>
+      </table>
+    <para>The other, more flexible approach is to have
+    <filename>configure</filename> generate the spec file, make any
+    changes you deem necessary, and then use the
+    <command>rpmbuild</command> command:</para>
+    <screen><computeroutput>$ </computeroutput><userinput>./configure --enable-spec</userinput>
+<computeroutput>$ </computeroutput><userinput>make tgz</userinput>
+<computeroutput>$ </computeroutput><userinput>cp drbd*.tar.gz `rpm -E _sourcedir`</userinput>
+<computeroutput>$ </computeroutput><userinput>rpmbuild -bb drbd.spec</userinput></screen>
+    <para>If you are about to build RPMs for both the DRBD userspace
+    utilities and the kernel module, use:</para>
+    <screen><computeroutput>$ </computeroutput><userinput>./configure --enable-spec --with-km</userinput>
+<computeroutput>$ </computeroutput><userinput>make tgz</userinput>
+<computeroutput>$ </computeroutput><userinput>cp drbd*.tar.gz `rpm -E _sourcedir`</userinput>
+<computeroutput>$ </computeroutput><userinput>rpmbuild -bb drbd.spec</userinput>
+<computeroutput>$ </computeroutput><userinput>rpmbuild -bb drbd-km.spec</userinput></screen>
     <para>
-      If you chose the <command>make rpm</command> approach, you will
-      find these packages in the <filename>dist/RPMS</filename>
-      subdirectory of your DRBD source tree. If you hacked your own
-      spec file and then invoked <command>rpmbuild</command>, the RPMs
-      will be created wherever your system RPM configuration (or your
-      personal <filename>~/.rpmmacros</filename> configuration)
-      dictates.</para>
+      The RPMs will be created wherever your system RPM configuration
+      (or your personal <filename>~/.rpmmacros</filename>
+      configuration) dictates.</para>
     <para>After you have created these packages, you can install,
       upgrade, and uninstall them as you would any other RPM package
       in your system.</para>
