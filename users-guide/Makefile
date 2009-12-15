@@ -31,5 +31,7 @@ upload: html
 	@$(MAKE) -f ../Makefile $@
 force: ;
 
+validate:
+	xmllint --xinclude users-guide.xml | xmllint --noout --valid -
 
 .PHONY: all raster-images vector-images clean-symlinks symlinks clean html upload
