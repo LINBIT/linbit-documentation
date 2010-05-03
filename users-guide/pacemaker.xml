@@ -4,415 +4,52 @@
   <indexterm>
     <primary>Pacemaker</primary>
   </indexterm>
-  <para>Using DRBD in conjunction with the OpenAIS/Pacemaker cluster
+  <para>Using DRBD in conjunction with the Pacemaker cluster
     stack is arguably DRBD's most frequently found use case. Pacemaker
     is also one of the applications that make DRBD extremely powerful
-    in a wide variety of usage scenarios. Hence, this is one of the
-    more detailed chapters in this guide.</para>
-  <para>This chapter describes using DRBD as replicated storage for
-    Pacemaker High Availability clusters.</para>
+    in a wide variety of usage scenarios.</para>
   <important>
     <para>This chapter is relevant for Pacemaker versions 1.0.3 and
       above, and DRBD version 8.3.2 and above. It does not touch upon
       DRBD configuration in Pacemaker clusters of earlier
       versions.</para>
-  </important>
-  <note>
-    <para>OpenAIS/Pacemaker is the direct, logical successor to the
+    <para>Pacemaker is the direct, logical successor to the
       Heartbeat 2 cluster stack, and as far as the cluster resource
       manager infrastructure is concerned, a direct continuation of
       the Heartbeat 2 codebase. Since the intial stable release of
-      OpenAIS/Pacemaker, Heartbeat 2 can be considered obsolete and
+      Pacemaker, Heartbeat 2 can be considered obsolete and
       Pacemaker should be used instead.</para>
-    <para>For legacy configurations where Heartbeat must still be
-      used, see <xref
-	linkend="ch-heartbeat"/>.</para>
-  </note>
+    <para>For legacy configurations where the legacy Heartbeat 2
+    cluster manager must still be used, see <xref
+    linkend="ch-heartbeat"/>.</para>
+  </important>
   <section id="s-pacemaker-primer">
     <title>Pacemaker primer</title>
-    <section id="s-pacemaker-cluster-manager">
-      <title>The Pacemaker cluster manager</title>
-      <para><indexterm>
-	  <primary>Pacemaker</primary>
-	  <secondary>cluster manager</secondary>
-      </indexterm>Pacemaker's purpose as a cluster manager is to
-	ensure that the cluster maintains its services to the clients,
-	even if single machines of the cluster fail. Applications that
-	may be managed by Pacemaker as cluster services include, for
-	example,
-	<itemizedlist>
-	  <listitem>
-	    <para>a web server such as Apache,</para>
-	  </listitem>
-	  <listitem>
-	    <para>a database server such as MySQL, Oracle, or
-	      PostgreSQL,</para>
-	  </listitem>
-	  <listitem>
-	    <para>a file server such as NFS or Samba, and many
-	      others.</para>
-	  </listitem>
-	</itemizedlist>In essence, any server application may be
-	managed by Pacemaker as a cluster service.</para>
-      <para>Services managed by Pacemaker are typically removed from
-	the system startup configuration; rather than being started at
-	boot time, the cluster manager starts and stops them as
-	required by the cluster configuration and status. If a machine
-	(a physical cluster node) fails while running a particular set
-	of services, Pacemaker will start the failed services on
-	another machine in the cluster. These operations performed by
-	Pacemaker are commonly referred to as (automatic)
-	<indexterm>
-	  <primary>fail-over</primary>
-	</indexterm>
-	<emphasis>fail-over</emphasis>.</para>
-      <para>Moving cluster services from one cluster node to
-	another, by manual intervention, is commonly termed "manual
-	fail-over". This being a slightly self-contradictory term, the
-	in Pacemaker terminology such an action is referred to as a
-	<indexterm>
-	  <primary>migration</primary>
-	</indexterm><indexterm>
-	  <primary>cluster resource</primary>
-	  <secondary>migration</secondary>
-	  <see>migration</see>
-	</indexterm>
-	<emphasis>resource migration</emphasis>, or simply
-      <emphasis>migration</emphasis> for short. We use that same
-      terminology throughout this chapter.</para>
-      <para>Pacemaker is also capable of automatically migrating
-	resources back to a previously failed node, as soon as the
-	latter recovers (if this is desired). This process is
-	called
-	<indexterm>
-	  <primary>fail-back</primary>
-	</indexterm><emphasis>fail-back</emphasis>.</para>
-    </section>
-    <section id="s-pacemaker-resources">
-      <title>Pacemaker resources</title>
-      <para><indexterm>
-	  <primary>Pacemaker</primary>
-	  <secondary>resources</secondary>
-      </indexterm>
-      <indexterm>
-	  <primary>resource (Pacemaker)</primary>
-      </indexterm>Usually, there will be certain requirements in order
-	to be able to start a cluster service managed by Pacemaker on
-	a node. Consider the example of a typical database-driven web
-	application:
-	<itemizedlist>
-	  <listitem>
-	    <para>Both the web server and the database server assume
-	      that their designated <emphasis>IP addresses</emphasis>
-	      are available (i.e. configured) on the node.</para>
-	  </listitem>
-	  <listitem>
-	    <para>The database will require a <emphasis>file
-		system</emphasis> to retrieve data files from.</para>
-	  </listitem>
-	  <listitem>
-	    <para>That file system will require its underlying
-	      <emphasis>block device</emphasis> to read from and write
-	      to (this is where DRBD comes in, as we will see
-	      later).</para>
-	  </listitem>
-	  <listitem>
-	    <para>The web server will also depend on the database
-	      being started, assuming it cannot serve dynamic content
-	      without an available database.</para>
-	  </listitem>
-	</itemizedlist>
-      </para>
-      <para>The services Pacemaker controls, and any additional
-	requirements those services depend on, are referred to as
-	<emphasis>resources</emphasis> in Pacemaker terminology. Where
-	resources form a co-dependent collection, that collection is
-	called a <emphasis>resource group</emphasis>.</para>
-    </section>
-    <section id="s-pacemaker-resource-agents">
-      <title>Pacemaker resource agents</title>
-      <para><indexterm>
-	<primary>Pacemaker</primary>
-	<secondary>resource agent</secondary>
-      </indexterm>
-      <indexterm>
-	<primary>resource agent (Pacemaker)</primary>
-      </indexterm>
-	Pacemaker manages resources by way of invoking
-	standardized shell scripts known as <emphasis>resource
-	  agents</emphasis> (RA's). In Pacemaker clusters,
-	the following resource agent types are available:
-	<itemizedlist>
-	  <listitem>
-	    <formalpara id="fp-pacemaker-heartbeat-compatible-ra">
-	      <title>Heartbeat 1 compatible resource agents</title>
-	      <para>These agents are commonly found in the
-		<filename>/etc/ha.d/resource.d</filename> directory.
-		They are supported in Pacemaker for compatibility
-	      reasons only, and should generally not be used in
-	      production clusters.</para>
-	    </formalpara>
-	  </listitem>
-	  <listitem>
-	    <formalpara id="fp-pacemaker-lsb-ra">
-	      <title>LSB resource agents</title>
-	      <para>These are conventional, Linux Standard
-		Base-compliant init scripts found in
-		<filename>/etc/init.d</filename>, which Pacemaker
-		simply invokes with the <code>start</code>,
-		<code>stop</code>, or <code>status</code> argument.
-		They take no positional parameters. Thus, the
-		corresponding resources' configuration cannot be
-		managed by Pacemaker; these services are expected to
-		be configured by conventional configuration
-		files.</para>
-	    </formalpara>
-	  </listitem>
-	  <listitem>
-	    <formalpara id="fp-pacemaker-ocf-ra">
-	      <title>OCF resource agents</title>
-	      <para>These are resource agents that conform to the
-		guidelines of the Open Cluster Framework. They are
-		usually found in either
-		<filename>/usr/lib/ocf/resource.d</filename> or
-		<filename>/usr/lib64/ocf/resource.d</filename>,
-		depending on system architecture and distribution.
-		They are grouped by <emphasis>providers</emphasis>,
-		where each provider corresponds to one subdirectory in
-		the aforementioned directory. They take no positional
-		parameters, but may be extensively configured via
-		environment variables that the cluster management
-		process derives from the cluster configuration, and
-		passes in to the resource agent upon
-		invocation.</para>
-	    </formalpara>
-	  </listitem>
-	</itemizedlist>
-      </para>
-    </section>
-    <section id="s-openais-communication-channels">
-      <title>OpenAIS communication channels</title>
-      <para><indexterm>
-	  <primary>OpenAIS</primary>
-	  <secondary>communication channels</secondary>
-      </indexterm>
-      <indexterm>
-	  <primary>communication channels (OpenAIS)</primary>
-      </indexterm>OpenAIS uses a UDP multicast based communication
-	protocol to periodically check for node availability. This
-	communcation protocol may be configured to use multiple
-	network paths using the <emphasis>Redundant Ring
-	  Protocol</emphasis> (<acronym>RRP</acronym>). The absolute
-	minimum requirement for stable cluster operation is two
-	independent communication channels in a redundant ring.
-	<important>
-	  <para>A bonded network interface (a virtual aggregation of
-	    physical interfaces using the <indexterm>
-	      <primary>bonding driver</primary>
-	    </indexterm><code>bonding</code> driver) constitutes
-	    <emphasis>one</emphasis> Pacemaker communication
-	    channel.</para>
-	  <para>Bonded links are not protected against bugs, known or
-	    as-yet-unknown, in the <code>bonding</code> driver. Also,
-	    bonded links are typically formed using identical network
-	    interface models, thus they are vulnerable to bugs in the
-	    NIC driver as well. Any such issue could lead to a cluster
-	    partition if no independent second OpenAIS communication
-	    channel were available.</para>
-	  <para>It is thus <emphasis>not</emphasis> acceptable to omit
-	    the inclusion of a second OpenAIS communication link in
-	    the cluster configuration just because the first uses a
-	    bonded interface.
-	  </para>
-	</important>
-      </para>
-    </section>
+    <para>Pacemaker is a sophisticated, feature-rich, and widely
+    deployed cluster resource manager for the Linux platform. It comes
+    with a rich set of documentation. In order to understand this
+    chapter, reading the following documents is highly recommended:</para>
+    <itemizedlist>
+      <listitem><para><ulink
+      url="http://www.clusterlabs.org/doc/Cluster_from_Scratch.pdf">Clusters
+      From Scratch</ulink>, a step-by-step guide to configuring high
+      availability clusters;</para></listitem>
+      <listitem>
+	<para><ulink
+	url="http://www.clusterlabs.org/doc/crm_cli.html">CRM CLI
+	(command line interface) tool</ulink>, a manual for the CRM
+	shell, a simple and intuitive command line interface bundled
+	with Pacemaker;</para>
+      </listitem>
+      <listitem>
+	<para><ulink
+	url="http://www.clusterlabs.org/doc/en-US/Pacemaker/1.0/html/Pacemaker_Explained/s-intro-pacemaker.html">Pacemaker
+	Configuration Explained</ulink>, a reference document
+	explaining the concept and design behind Pacemaker.</para>
+      </listitem>
+    </itemizedlist>
   </section>
-  <section id="s-pacemaker-config">
-    <title>Pacemaker configuration</title>
-    <para><indexterm>
-	<primary>Pacemaker</primary>
-	<secondary>configuration</secondary>
-      </indexterm>For any Pacemaker cluster, the following
-      configuration files must be available:
-      <itemizedlist>
-	<listitem>
-	  <para><indexterm>
-	      <primary>openais.conf (OpenAIS configuration file)</primary>
-	    </indexterm><filename>/etc/ais/openais.conf</filename> &mdash;
-	    global cluster configuration.</para>
-	</listitem>
-	<listitem>
-	  <para><indexterm>
-	      <primary>authkey (OpenAIS configuration
-		file)</primary>
-	    </indexterm><filename>/etc/ais/authkey</filename>
-	    &mdash; shared secret for mutual node authentication.</para>
-	</listitem>
-      </itemizedlist>
-    </para>
-    <section id="s-pacemaker-openais-conf">
-      <title>The <filename>openais.conf</filename> file</title>
-      <para><indexterm>
-	<primary>openais.conf (OpenAIS configuration file)</primary>
-      </indexterm>The following example is an example
-	<filename>openais.conf</filename> file:
-<programlisting id="pl-openais-conf">totem {
-  version: 2
-  token: 3000
-  token_retransmits_before_loss_const: 10
-  join: 60
-  consensus: 1500
-  vsftype: none
-  max_messages: 20
-  clear_node_high_bit: yes
-  secauth: on
-  threads: 0
-  rrp_mode: passive
-  interface {
-    ringnumber: 0
-    bindnetaddr: 192.168.122.0
-    mcastaddr: 239.94.1.1
-    mcastport: 5405
-  }
-  interface {
-    ringnumber: 1
-    bindnetaddr: 192.168.133.0
-    mcastaddr: 239.94.2.1
-    mcastport: 5405
-  }
-}
-logging {
-  to_stderr: yes
-  debug: on
-  timestamp: on
-  to_file: no
-  to_syslog: yes
-  syslog_facility: daemon
-}
-amf {
-  mode: disabled
-}
-service {
-  ver:       0
-  name:      pacemaker
-  use_mgmtd: yes
-}
-aisexec {
-  user:   root
-  group:  root
-}</programlisting></para>
-      <para>This example assumes that <code>192.168.122.0</code> is
-	the <emphasis>network address</emphasis> of the cluster's
-	interface to the shared network, and that
-	<code>192.168.133.0</code> is the network address of the
-	interface dedicated for DRBD replication between both
-	nodes. Do not mistakenly add <emphasis>host</emphasis> IP
-	address in <code>interface</code> stanzas.</para>
-    </section>
-    <section id="s-pacemaker-authkey">
-      <title>The <filename>authkey</filename> file</title>
-      <para><indexterm>
-	<primary>authkey (Pacemaker configuration file)</primary>
-      </indexterm><filename>/etc/ais/authkey</filename> contains
-	a pre-shared secrets used for mutual cluster node
-	authentication. It should only be readable by
-	<code>root</code>.</para>
-      <para>You may create an <filename>authkey</filename> file by
-      issuing the following command without arguments:</para>
-      <literallayout><userinput>ais-keygen</userinput></literallayout>
-    </section>
-    <section id="s-pacemaker-ha-propagate">
-      <title>Propagating the cluster configuration to cluster
-      nodes</title>
-      <para>In order to propagate the OpenAIS configuration, copy the
-      two configuration files to the peer node in a secure
-      fashion:</para>
-      <literallayout><userinput>scp /etc/ais/{authkey,openais.conf} bob:/etc/ais</userinput></literallayout>
-    </section>
-  </section>
-  <section id="s-pacemaker-crm">
-    <title>Using DRBD in Pacemaker clusters</title>
-    <section id="s-pacemaker-crm-config">
-      <title>Pacemaker CRM configuration</title>
-      <para>Pacemaker's cluster configuration is maintained in the
-	<emphasis>Cluster Information Base</emphasis>
-	(<acronym>CIB</acronym>), covered in detail in <link
-	  linkend="s-pacemaker-cib">the following section</link>.
-	Contrary to the two relevant configuration files, the CIB need
-	not be manually distributed among cluster nodes; the Pacemaker
-	services take care of that automatically.</para>
-      <section id="s-pacemaker-cib">
-	<title>The Cluster Information Base</title>
-	<para><indexterm>
-	    <primary>Pacemaker</primary>
-	    <secondary>Cluster Information Base (CIB)</secondary>
-	</indexterm>
-	<indexterm>
-	    <primary>Cluster Information Base (CIB)</primary>
-	    <see>Pacemaker</see>
-	</indexterm>The Cluster Information Base
-	  (<acronym>CIB</acronym>) is kept in one XML file,
-	  <indexterm>
-	    <primary>cib.xml (Pacemaker configuration file)</primary>
-	  </indexterm>
-	  <filename>/var/lib/heartbeat/crm/cib.xml</filename>. It is,
-	  however, not recommended to edit the contents of this file
-	  directly, except in the case of creating a new cluster
-	  configuration from scratch. Instead, Pacemaker comes with
-	  both command-line applications and a GUI to modify the CIB.
-	</para>
-	<para>The CIB actually contains both the cluster
-	  <emphasis>configuration</emphasis> (which is persistent and
-	  is kept in the <filename>cib.xml</filename> file), and
-	  information about the current cluster
-	  <emphasis>status</emphasis> (which is volatile). Status
-	  information, too, may be queried either using Pacemaker
-	  command-line tools, and the Pacemaker GUI.</para>
-	<para>After creating a new Pacemaker cluster &mdash; that is,
-	  creating the <filename>openais.conf</filename> and
-	  <filename>authkey</filename> files, distributing them among
-	  cluster nodes, starting OpenAIS services, and waiting for
-	  nodes to establish intra-cluster communications &mdash; a
-	  new, empty CIB is created automatically. You can display
-	  this bootstrap CIB using the <code>crm configure show</code>
-	  command. Its output will be similar to this:</para>
-	<literallayout><userinput>crm configure show</userinput>
-<computeroutput>node alice
-node bob
-property $id="cib-bootstrap-options" \
-	dc-version="1.0.3-unknown" \
-	last-lrm-refresh="1243855262" \
-	cluster-infrastructure="openais" \
-	expected-quorum-votes="2"
-</computeroutput></literallayout>
-	<para>Based on this bootstrap configuration, there is one
-	  configuration change that you should make straight away: In
-	  a two-node cluster, the concept of quorum does not apply. It
-	  is thus safe to set Pacemaker's <quote>no quorum
-	    policy</quote> to ignore loss of quorum.</para>
-	<para>You can set the appropriate cluster property with the
-	  following commands:
-	  <literallayout><userinput>crm configure</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>property no-quorum-policy=ignore</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>commit</userinput>
-<computeroutput>crm(live)configure# </computeroutput><userinput>exit</userinput>
-<computeroutput>bye</computeroutput>
-</literallayout></para>
-	<para>After this, your cluster configuration should look similar to this:
-	  <literallayout><userinput>crm configure show</userinput>
-<computeroutput>node alice
-node bob
-property $id="cib-bootstrap-options" \
-	dc-version="1.0.3-unknown" \
-	no-quorum-policy="ignore" \
-	last-lrm-refresh="1243855262" \
-	default-resource-stickiness="200" \
-	cluster-infrastructure="openais" \
-	expected-quorum-votes="2"
-</computeroutput></literallayout></para>
-      </section>
-      <section id="s-pacemaker-crm-drbd-backed-service">
+  <section id="s-pacemaker-crm-drbd-backed-service">
 	<title>Adding a DRBD-backed service to the cluster
 	configuration</title>
 	<para>This section explains how to enable a DRBD-backed
@@ -475,117 +112,6 @@ property $id="cib-bootstrap-options" \
 	  Pacemaker now selects a node on which it promotes the DRBD
 	  resource, and then starts the DRBD-backed resource group on
 	  that same node.</para>
-      </section>
-    </section>
-    <section id="s-pacemaker-crm-manage">
-      <title>Managing Pacemaker CRM clusters</title>
-      <section id="s-pacemaker-crm-assume-resources">
-	<title>Assuming control of cluster resources</title>
-	<para>A Pacemaker CRM cluster node may assume control of
-	 cluster resources in the following ways:</para>
-	<itemizedlist>
-	  <listitem>
-	    <formalpara>
-	      <title>Manual takeover of a single cluster
-		resource</title>
-	      <para>This is the approach normally taken if one simply
-		wishes to test resource migration, or move a resource
-		to the local node as a means of manual load balancing.
-		Assuming we want to move the resource group named
-		<code>mysql</code> to the node <code>alice</code>,
-		this operation is performed using the following
-		command:
-		<literallayout><userinput>crm resource migrate mysql alice</userinput></literallayout>
-		<note id="n-pacemaker-crm-migrate">
-		  <para>It is important to understand that the
-		    migration is <emphasis>permanent</emphasis>. That
-		    is, unless told otherwise, Pacemaker will not move
-		    the resource back to a node it was previouly
-		    migrated away from &mdash; even if that node
-		    happens to be the only surviving node in a
-		    near-cluster-wide system failure. This is
-		    undesirable under most circumstances. So, it is
-		    prudent to immediately <quote>un-migrate</quote>
-		    resources after successful migration, using the
-		    the following command:
-		    <literallayout><userinput>crm resource unmigrate mysql</userinput></literallayout></para>
-		</note>
-	      </para>
-	    </formalpara>
-	  </listitem>
-	  <listitem>
-	    <formalpara>
-	      <title>Manual takeover of all cluster resources</title>
-	      <para>This procedure involves switching the peer node to
-		standby mode. Assuming we want to switch node
-		<code>bob</code> into standby mode, we would do so by
-		issuing the following command:
-		<literallayout><userinput>crm node standby bob</userinput></literallayout>
-	      </para>
-	    </formalpara>
-	  </listitem>
-	</itemizedlist>
-      </section>
-      <section id="s-pacemaker-crm-relinquish-resources">
-	<title>Relinquishing cluster resources</title>
-	<para>A Pacemaker CRM cluster node may be forced to give up
-	  one or all of its resources in several ways.</para>
-	<itemizedlist>
-	  <listitem>
-	    <formalpara>
-	      <title>Giving up a single cluster resource</title>
-	      <para>A node gives up control of a single resource when
-		issued the following command:
-		<literallayout><userinput>crm resource migrate mysql</userinput></literallayout>
-		Using <code>crm resource migrate</code> with
-	      just the resource name (and without an explicit host
-	      name to migrate to) implies that the resource is to be
-	      migrated <emphasis>away</emphasis> from where it is
-	      currently running. Please note that <link
-		linkend="n-pacemaker-crm-migrate">the considerations
-		outlined in the previous section</link> apply here,
-	      too.</para>
-	    </formalpara>
-	  </listitem>
-	  <listitem>
-	    <formalpara>
-	      <title>Switching a cluster node to standby
-		mode</title>
-	      <para>This procedure involves switching the local node to
-		standby mode. We do so by issuing the following command:
-		<literallayout><userinput>crm node standby `uname -n`</userinput></literallayout>
-	      </para>
-	    </formalpara>
-	  </listitem>
-	  <listitem>
-	    <formalpara>
-	      <title>Shutting down the local cluster manager
-		instance</title>
-	      <para>This approach is suited for local maintenance
-		operations such as software updates which require that
-		the node be temporarily removed from the cluster, but
-		which do not necessitate a system reboot. To shut down
-		cluster services on the local node, issue the
-		following command:
-		<literallayout><userinput>/etc/init.d/openais stop</userinput></literallayout>
-	      </para>
-	    </formalpara>
-	  </listitem>
-	  <listitem>
-	    <formalpara>
-	      <title>Shutting down the local node</title>
-	      <para>For hardware maintenance or other interventions
-		that require a system shutdown or reboot, use a simple
-		graceful shutdown command:
-		<literallayout><userinput>shutdown -h now</userinput></literallayout>
-		or
-		<literallayout><userinput>poweroff</userinput></literallayout>
-	      </para>
-	    </formalpara>
-	  </listitem>
-	</itemizedlist>
-      </section>
-    </section>
   </section>
   <section id="s-pacemaker-fencing">
     <title>Using resource-level fencing in Pacemaker clusters</title>
