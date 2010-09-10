@@ -80,6 +80,11 @@ clean:
 html: manpages
 	@ $(MAKE) -C users-guide html
 
+# XML from asciidoc
+%.xml: %.asciidoc
+	asciidoc --out-file=$@ \
+	--backend=docbook --doctype=article $<
+
 # Multiple-page HTML
 %.html: %.xml
 	xsltproc \
