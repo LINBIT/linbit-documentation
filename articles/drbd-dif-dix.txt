@@ -1,0 +1,239 @@
+= DRBD and Linux Data Integrity Extensions
+Andreas Grünbacher <agruen@linbit.com>
+
+== Introduction
+
+The data integrity extensions described in
+http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=blob;f=Documentation/block/data-integrity.txt[Documentation/block/data-integrity.txt]
+in the kernel attach 8 bytes of extra data to each 512-byte block (or
+either 8 or 8x8 bytes to each 4096-byte block).  SCSI disks long could
+be low-level formatted to sectors bigger than 512 bytes; this is
+mostly used by RAID array controllers for storing internal metadata.
+
+The idea of the data integrity extensions is to standardize how the
+extra bytes per sector are used and to expose them to layers further
+up the stack: to the block layer, the file system layer, or to the
+application itself.  The data integrity extensions (DIF, DIX aka. T10
+PI) define how to split up the available space into fields, and how to
+compute those fields (see
+http://oss.oracle.com/~mkp/docs/dix-draft.pdf[I/O Controller Data
+Integrity Extensions]).
+
+== Status
+
+The Linux data integrity extensions are supposed to support data
+integrity on SCSI and SATA block devices.  As of 2.6.36-rc4, it seems
+that DIF is supported on (at least) SCSI disks which have been
+formatted with DIF support; it is unclear which scsi drivers support
+this feature, though.  The block layer can be configured to generate
+and/or check the data integrity fields in
++/sys/block/<device>/integrity/+.
+
+No file systems currently use the data integrity framework, but modern
+file systems like btrfs may optionally start supporting this in the
+near future.  (Btrfs already checksums all blocks it writes using
+crc32c, while DIF/DIX supports a different crc variant.)
+
+Oracle with their proprietary Automatic Storage Management (ASM)
+kernel module uses data integrity in the application (and thus on the
+complete path between application and disk).
+
+A general-purpose user-space interface for data integrity information
+currently does not exist.
+
+== DRBD
+
+DRBD sits at the block layer, below the file system.
+
+DRBD already supports a data integrity feature, but this feature does
+not extend to other layers in the I/O stack: if enabled, a checksum is
+computed on the primary node and verified on the secondary node before
+writing the data to disk.  This can be used to detect memory
+corruption, changes to pages which are under I/O, and network
+corruption (that is, it is a second layer of protection on the
+network).
+
+It would make sense for DRBD to support the data integrity framework:
+when enabled, this could replace DRBD's current data integrity feature
+while offering additional features.  Depending on the configuration,
+DRBD could compute and/or verify the data integrity information, and
+pass it on to layers further up or down in the I/O stack.
+
+More specifically, DRBD would have to be extended to support
+transporting the extra bytes over the network.  It could then use this
+as follows:
+
+* As a substitute for its own data integrity feature.  In this configuration,
+
+** Upon write, the primary node would compute the DIF/DIX checksums
+   and the secondary node would verify them.  Neither node would not
+   pass the checksums on to the lower layer.
+
+** Upon read from the secondary node, the secondary node would compute
+   the DIF/DIX checksums and the primary node would verify them.
+
+* If supported by the lower layer, DIF/DIX checksums could be computed
+  by DRBD on the primary node upon write, passed on to the lower layer
+  on both sides, and verified when returned by the lower layer (upon
+  read).  Computing and verifying checksums should probably be
+  configurable separately.
+
+* If the upper layer supports DIF/DIX checksums, DRBD could verify the
+  provided checksums on the primary and secondary node upon write.  If
+  supported by the lower layer, the checksums could be passed on.
+  Otherwise, they would have to be discarded and recomputed upon read
+  in this configuration.
+
+* If the lower any upper layers support DIF/DIX checksums, DRBD's role
+  would be reduced to verifying checksums when configured to do so.
+
+Independent of DIF/DIX support, DRBD's strategy for dealing with data
+inconsistencies could be improved:
+
+* First, if data integrity information is available in writes, either
+  through DRBD's current data integrity feature or through DIF/DIX,
+  and an inconsistency is detected on the secondary node, DRBD could
+  signal to the primary node to retry only this particular I/O (a
+  limited number of times).  DRBD's current strategy is to mark the
+  entire device as inconsistent and trigger a resync.
+
+* Second, if data integrity information is available in reads and an
+  inconsistency is detected, DRBD could degrade more gracefully and
+  retry the read locally and/or remotely.  DRBD's current strategy is
+  to treat inconsistencies like I/O errors; upon an I/O error, it
+  marks the entire device as inconsistent and stops using it (it
+  "disconnects" it).
+
+== Various Notes ==
+
+=== Conversation with Martin K. Petersen, November 2010 ===
+
+-----------------------------------------------------------
+<agruen> can I ask some stupid questions even before reading all the docs?
+<mkp> go ahead
+<agruen> how wide spread is support for this from the OS down by now? does oracle use it from
+           the app down already?
+<mkp> the Oracle DB with ASM supports it
+<mkp> we announced GA wrt. the software stack in September
+<mkp> drives have been shipping for a couple of years, host adapters are shipping with 
+        various levels of support implemented
+<agruen> how about iscsi? how about linux software raid?
+<mkp> iSCSI DIF support is supposed to show up in nab's target stack shortly
+<mkp> DM and MD support passing protected I/Os down to the hw drivers
+<agruen> hmm, very nice!
+<agruen> how about 4k sectors, have those been standardized yet?
+<mkp> I guess for drbd you'd need to add support to the daemon
+<mkp> it would have to store the PI somewhere
+<mkp> and the client would have to send it, of course, with whatever that entails in terms of
+        the wire protocol
+<mkp> 4k + 8 works fine
+<mkp> 4k + 8 * 8 has been sorted out in T10 and is part of DIX 1.1 which we're wrapping up soon
+<agruen> yes, daemon and protocol ... we have a different data integrity feature right now, and
+           I'm trying to figure out how to merge that together ... won't happen overnight, but it
+           seems to make a lot of sense to me
+<mkp> we're also working on several non-SCSI type technologies that use the same format
+<mkp> so one set of PI can be prepared regardless of what the target device is and how it's
+        connected
+<mkp> the PI format is kind of stupid but it's good enough that it made sense to standardize on
+        it
+<agruen> okay, so how standardized is it?
+<mkp> well, even the non-SCSI devices have decided to implement support for T10 Type 1, 2 and 3
+<agruen> is it always the exact same type of CRC for example?
+<mkp> yep
+<mkp> so the PI that gets prepared is the same regardless of target type and protocol
+<mkp> also makes it possible to mirror between say SCSI and drbd
+<agruen> is the APP tag entirely unused by anything below the application?
+<mkp> the app tag is owned by the owner of the block device
+<mkp> in the Oracle case we actually use it
+<mkp> we also have some impending changes in T10 that will allow the storage device to check it
+<agruen> hmm, okay ... so this would commonly be the file system, or the app if the app doesn't
+           use a file system, right?
+<mkp> none of the Linux filesystems use it yet
+<mkp> and the filesystem can decide to use it for internal purposes or it can let the
+        applications supply it
+<agruen> okay ... how would the storage device know what to expect in the APP tag?
+<mkp> that's what we're working on in T10 right now
+<mkp> the current proposal involves a mode page where you can set <lba, length, expected app tag>
+<mkp> and the storage device will reject writes to a given block range if the app tag is
+        incorrect
+<agruen> so lba refers to the REF tag then?
+<mkp> lba refers to the actual target lba
+<mkp> this is not supported for Type 2 devices because the expected app tag is included in the
+        CDB
+<agruen> I'll need to read a bit more to really understand this
+<mkp> for Type 1 the ref tag is the LBA
+<mkp> for Type 2 the ref tag and the app tag are supplied in the SCSI command
+<mkp> for Type 3 the ref tag and the app tag are opaque storage
+<agruen> okay, thanks a lot ... I will try to make sense of what you've told me and see how we
+           can make drbd fit in.
+-----------------------------------------------------------
+
+-----------------------------------------------------------
+<agruen> one more thing though:
+<agruen> one of the problems we are seeing is blocks that are being modified while they are
+           under io: this can happen with mmap, when directly writing to a device, and even file
+           systems do it sometimes.
+<mkp> yeah, my headache #1
+<agruen> okay, so we have the same headache then :(
+<mkp> at the storage summit the VM folks chastised the FS folks
+<mkp> and told them to stop it
+<mkp> it was agreed that the FS folks would stop this practice
+<agruen> that's not the entire story though ...
+<mkp> well, for direct I/O it's up to the application
+<mkp> for mmap we can unmap while the page is being submitted. That works fine
+<agruen> yes, and we'll have to somehow live with nasty/buggy applications even once all the
+           file systems have become nice citizens
+<mkp> yeah, but thankfully there are not that many applications that would be affected
+<agruen> yeah, probably not
+<agruen> so for mmap an app woul ddirty the page, the page would end up in writeout, would be
+           unmapped, and if the app again writes it, the page fault handler would block until the
+           io (in this case, the write) has completed?
+<mkp> correct
+<mkp> basically we'd unmap when the writeback bit is set
+<mkp> the VM already does this for most I/O
+<mkp> the problem is that extN in particular use buffer heads and thus completely ignore the
+        page writeback bit
+<mkp> Ted converted ext4 to bios a couple of weeks ago
+<agruen> okay, my naive approach would have been to try setting the page ro and do a copy on
+           write, but there are probably reasons against that
+<mkp> getting rid of buffer heads will make everything much easier
+<mkp> we've talked about cow but the VM folks said that they unmap anyway
+<mkp> I've got a couple of concalls coming up now. But feel free to send mail
+<agruen> the difference is that apps might end up blocked much more without cow, no?
+<mkp> yup
+<agruen> I'll continue reading now. thanks for all the info, I'm sure we'll continue this
+           conversation sooner or later.
+-----------------------------------------------------------
+
+=== How To Experiment Without DIF Hardware ===
+
+-----------------------------------------------------------
+modprobe scsi_debug protection=1 guard=1 ato=1 dev_size_mb=1024
+-----------------------------------------------------------
+
+=== RHEL6 Known Issues ===
+
+When using the DIF/DIX hardware checksum features of a storage path
+behind a block device, errors will occur if the block device is used
+as a general purpose block device.
+
+Buffered I/O or mmap(2) based IO will not work reliably as there are
+no interlocks in the buffered write path to prevent overwriting cached
+data while the hardware is performing DMA operations. An overwrite
+during a DMA operation will cause a torn write and the write will fail
+checksums in the hardware storage path. This problem is common to all
+block device or file system based buffered or mmap(2) I/O, so the
+problem of I/O errors during overwrites cannot be worked around.
+
+DIF/DIX enabled block devices should only be used with applications
+that use +O_DIRECT+ I/O. Applications should use the raw block device,
+though it should be safe to use the XFS file system on a DIF/DIX
+enabled block device if only +O_DIRECT+ I/O is issued through the file
+system. In both cases the responsibility for preventing torn writes
+lies with the application, so only applications designed for use with
++O_DIRECT+ I/O and DIF/DIX hardware should enable this feature.
+
+== References
+  * http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=blob;f=Documentation/block/data-integrity.txt[Documentation/block/data-integrity.txt]
+  * http://oss.oracle.com/~mkp/[Martin K. Petersen's homepage at Oracle] (and http://oss.oracle.com/projects/data-integrity/[Oracle's landing page])
+  * Martin K. Petersen: http://oss.oracle.com/~mkp/docs/dix-draft.pdf[I/O Controller Data Integrity Extensions]
