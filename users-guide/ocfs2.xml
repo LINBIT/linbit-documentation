@@ -100,6 +100,61 @@
 	linkend="s-switch-resource-roles">promote the resource</link>
       to the primary role on both nodes.</para>
   </section>
+  <section id="s-ocfs2-create">
+    <title>Creating an OCFS2 filesystem</title>
+    <!--
+    <para>When your cluster configuration is complete and you have
+    configure O2CB on both hosts, you can create the actual file
+    system.</para>
+    <para>To that end, first check your cluster status:
+      <screen><userinput>/etc/init.d/o2cb status</userinput>
+	<computeroutput>Module "configfs": Loaded
+Filesystem "configfs": Mounted
+Module "ocfs2_nodemanager": Loaded
+Module "ocfs2_dlm": Loaded
+Module "ocfs2_dlmfs": Loaded
+Filesystem "ocfs2_dlmfs": Mounted
+Checking O2CB cluster ocfs2: Online
+Heartbeat dead threshold = 31
+  Network idle timeout: 30000
+  Network keepalive delay: 2000
+  Network reconnect delay: 2000
+Checking O2CB heartbeat: Not active</computeroutput></screen>
+    </para>
+    -->
+    <para>Now, use OCFS2's <code>mkfs</code> implementation to create
+    the file system:
+      <screen><userinput>mkfs -t ocfs2 -N 2 -L ocfs2_drbd0 /dev/drbd0</userinput>
+	<computeroutput>mkfs.ocfs2 1.4.0
+Filesystem label=ocfs2_drbd0
+Block size=1024 (bits=10)
+Cluster size=4096 (bits=12)
+Volume size=205586432 (50192 clusters) (200768 blocks)
+7 cluster groups (tail covers 4112 clusters, rest cover 7680 clusters)
+Journal size=4194304
+Initial number of node slots: 2
+Creating bitmaps: done
+Initializing superblock: done
+Writing system files: done
+Writing superblock: done
+Writing backup superblock: 0 block(s)
+Formatting Journals: done
+Writing lost+found: done
+mkfs.ocfs2 successful
+</computeroutput>
+</screen>
+      This will create an OCFS2 file system with two node slots on
+      <filename>/dev/drbd0</filename>, and set the filesystem label to
+      <code>ocfs2_drbd0</code>. You may specify other options on
+      <code>mkfs</code> invocation; please see the
+      <code>mkfs.ocfs2</code> system manual page for details.
+    </para>
+    <!--
+    <para>After formatting, opening <code>ocfs2console</code> should
+      display your newly created file system, albeit without a mount
+      point.</para>
+      -->
+  </section>
   <section id="s-ocfs2-pacemaker">
     <title>Pacemaker-managed OCFS2 management</title>
     <section id="s-ocfs2-pacemaker-mgmtdaemons">
@@ -259,57 +314,6 @@ Starting O2CB cluster ocfs2: OK</computeroutput>
 	</listitem>
       </itemizedlist>
     </section>
-  </section>
-  <section id="s-ocfs2-create">
-    <title>Creating an OCFS2 filesystem</title>
-    <para>When your cluster configuration is complete and you have
-    configure O2CB on both hosts, you can create the actual file
-    system.</para>
-    <para>To that end, first check your cluster status:
-      <screen><userinput>/etc/init.d/o2cb status</userinput>
-	<computeroutput>Module "configfs": Loaded
-Filesystem "configfs": Mounted
-Module "ocfs2_nodemanager": Loaded
-Module "ocfs2_dlm": Loaded
-Module "ocfs2_dlmfs": Loaded
-Filesystem "ocfs2_dlmfs": Mounted
-Checking O2CB cluster ocfs2: Online
-Heartbeat dead threshold = 31
-  Network idle timeout: 30000
-  Network keepalive delay: 2000
-  Network reconnect delay: 2000
-Checking O2CB heartbeat: Not active</computeroutput></screen>
-    </para>
-    <para>Now, use OCFS2's <code>mkfs</code> implementation to create
-    the file system:
-      <screen><userinput>mkfs -t ocfs2 -N 2 -L ocfs2_drbd0 /dev/drbd0</userinput>
-	<computeroutput>mkfs.ocfs2 1.4.0
-Filesystem label=ocfs2_drbd0
-Block size=1024 (bits=10)
-Cluster size=4096 (bits=12)
-Volume size=205586432 (50192 clusters) (200768 blocks)
-7 cluster groups (tail covers 4112 clusters, rest cover 7680 clusters)
-Journal size=4194304
-Initial number of node slots: 2
-Creating bitmaps: done
-Initializing superblock: done
-Writing system files: done
-Writing superblock: done
-Writing backup superblock: 0 block(s)
-Formatting Journals: done
-Writing lost+found: done
-mkfs.ocfs2 successful
-</computeroutput>
-</screen>
-      This will create an OCFS2 file system with two node slots on
-      <filename>/dev/drbd0</filename>, and set the filesystem label to
-      <code>ocfs2_drbd0</code>. You may specify other options on
-      <code>mkfs</code> invocation; please see the
-      <code>mkfs.ocfs2</code> system manual page for details.
-    </para>
-    <para>After formatting, opening <code>ocfs2console</code> should
-      display your newly created file system, albeit without a mount
-      point.</para>
   </section>
   <section id="s-ocfs2-use">
     <title>Using your OCFS2 filesystem</title>
