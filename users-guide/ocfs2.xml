@@ -100,6 +100,42 @@
 	linkend="s-switch-resource-roles">promote the resource</link>
       to the primary role on both nodes.</para>
   </section>
+  <section id="s-ocfs2-pacemaker">
+    <title>Pacemaker-managed OCFS2 management</title>
+    <section id="s-ocfs2-pacemaker-mgmtdaemons">
+      <title>Adding OCFS2 management capability to Pacemaker</title>
+      <para>In order to manage OCFS2 and the kernel Distributed Lock
+      Manager (DLM), Pacemaker uses a total of three different
+      resource agents:</para>
+      <itemizedlist>
+	<listitem>
+	  <para><code>ocf:pacemaker:controld</code> &mdash;
+	  Pacemaker's interface to the DLM;</para>
+	</listitem>
+	<listitem>
+	  <para><code>ocf:ocfs2:o2cb</code> &mdash; Pacemaker's
+	  interface to OCFS2 cluster management;</para>
+	</listitem>
+	<listitem>
+	  <para><code>ocf:heartbeat:Filesystem</code> &mdash; the
+	  generic filesystem management resource agent which supports
+	  cluster file systems when configured as a Pacemaker
+	  clone.</para>
+	</listitem>
+      </itemizedlist>
+    <para>You may enable all nodes in a Pacemaker cluster for OCFS2
+    management by creating a <emphasis>cloned group</emphasis> of
+    resources, with the following <code>crm</code>
+    configuration:</para>
+    <programlisting>primitive p_controld ocf:pacemaker:controld
+primitive p_o2cb ocf:ocfs2:o2cb
+group g_ocfs2mgmt p_controld p_o2cb
+clone cl_ocfs2mgmt g_ocfs2mgmt meta interleave=true</programlisting>
+    <para>Once this configuration is committed, Pacemaker will start
+    instances of the <code>controld</code> and <code>o2cb</code>
+    resource types on all nodes in the cluster.</para>
+    </section>
+  </section>
   <section id="s-ocfs2-legacy">
     <title>Legacy OCFS2 management (without Pacemaker)</title>
   <important>
@@ -107,7 +143,7 @@
     systems where OCFS2 DLM support is not available in Pacemaker. It
     is preserved here for reference purposes only. New installations
     should always use the <link
-    linkend="ch-pacemaker">Pacemaker</link> approach.</para>
+    linkend="s-ocfs2-pacemaker">Pacemaker</link> approach.</para>
   </important>
   <section id="s-ocfs2-enable">
     <title>Configuring your cluster to support OCFS2</title>
