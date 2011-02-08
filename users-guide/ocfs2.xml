@@ -51,7 +51,7 @@
       chapter assumes running OCFS2 on a SUSE Linux Enterprise Server
       system.</para>
   </section>
-  <section id="s-ocfs-create-resource">
+  <section id="s-ocfs2-create-resource">
     <title>Creating a DRBD resource suitable for OCFS2</title>
     <para>Since OCFS2 is a shared cluster file system expecting
       concurrent read/write storage access from all cluster nodes, any
@@ -157,6 +157,23 @@ mkfs.ocfs2 successful
   </section>
   <section id="s-ocfs2-pacemaker">
     <title>Pacemaker OCFS2 management</title>
+    <section id="s-ocfs2-pacemaker-drbd">
+      <title>Adding a Dual-Primary DRBD resource to Pacemaker</title>
+      <para>An existing <link
+      linkend="s-ocfs2-create-resource">Dual-Primary DRBD
+      resource</link> may be added to Pacemaker resource management
+      with the following <code>crm</code> configuration:</para>
+      <programlisting>primitive p_drbd_ocfs2 ocf:linbit:drbd \
+params drbd_resource="ocfs2"
+ms ms_drbd_ocfs2 p_drbd_ocfs2 meta master-max=2 clone-max=2</programlisting>
+      <important>
+	<para>Note the <code>master-max=2</code> meta variable; it
+	enables dual-Master mode for a Pacemaker master/slave
+	set. This requires that <code>allow-two-primaries</code> is
+	also set in the DRBD configuration. Otherwise, Pacemaker will
+	flag a configuration error during resource validation.</para>
+      </important>
+    </section>
     <section id="s-ocfs2-pacemaker-mgmtdaemons">
       <title>Adding OCFS2 management capability to Pacemaker</title>
       <para>In order to manage OCFS2 and the kernel Distributed Lock
@@ -190,11 +207,32 @@ clone cl_ocfs2mgmt g_ocfs2mgmt meta interleave=true</programlisting>
     instances of the <code>controld</code> and <code>o2cb</code>
     resource types on all nodes in the cluster.</para>
     </section>
+    <section id="s-ocfs2-pacemaker-fs">
+      <title>Adding an OCFS2 filesystem to Pacemaker</title>
+      <para>Pacemaker manages OCFS2 filesystems using the conventional
+      <code>ocf:heartbeat:Filesystem</code> resource agent, albeit in
+      clone mode. To put an OCFS2 filesystem under Pacemaker
+      management, use the following <code>crm</code>
+      configuration:</para>
+      <programlisting>primitive p_fs_ocfs2 ocf:heartbeat:Filesystem \
+  params device="/dev/drbd/by-res/ocfs2" directory="/srv/ocfs2" \
+         fstype="ocfs2" options="rw,noatime"
+clone cl_fs_ocfs2 p_fs_ocfs2</programlisting>
+    </section>
+    <section id="s-ocfs2-pacemaker-constraints">
+      <title>Adding required Pacemaker constraints to manage OCFS2
+      filesystems</title>
+      <para>In order to tie all OCFS2-related resources and clones
+      together, add the following contraints to your Pacemaker
+      configuration:</para>
+      <programlisting>order o_ocfs2 ms_drbd_ocfs2:promote cl_ocfs2mgmt:start p_fs_ocfs2:start
+colocation c_ocfs2 p_fs_ocfs2 cl_ocfs2mgmt ms_drbd_ocfs2:Master</programlisting>
+    </section>
   </section>
   <section id="s-ocfs2-legacy">
     <title>Legacy OCFS2 management (without Pacemaker)</title>
   <important>
-    <para>The information presented in this chapter section to legacy
+    <para>The information presented in this section applies to legacy
     systems where OCFS2 DLM support is not available in Pacemaker. It
     is preserved here for reference purposes only. New installations
     should always use the <link
