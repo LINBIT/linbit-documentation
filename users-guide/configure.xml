@@ -133,13 +133,30 @@
   <section id="s-configure-resource">
     <title>Configuring your resource</title>
     <para><indexterm>
-      <primary>drbd.conf</primary>
-    </indexterm>All aspects of DRBD are controlled by a single
-      configuration file, <filename>/etc/drbd.conf</filename>. You
-      should always make sure this configuration file is
-      <emphasis>exactly identical</emphasis> on both participating
-      cluster nodes.
-    </para>
+      <primary>drbd.conf</primary> </indexterm>All aspects of DRBD are
+      controlled in its configuration file,
+      <filename>/etc/drbd.conf</filename>. Normally, this
+      configuration file is just a skeleton with the following
+      contents:</para>
+      <programlisting>include "/etc/drbd.d/global_common.conf";
+include "/etc/drbd.d/*.res";</programlisting>
+      <para>By convention,
+      <filename>/etc/drbd.d/global_common.conf</filename> contains the 
+      <link linkend="s-drbdconf-global"><code>global</code></link> and
+      <link linkend="s-drbdconf-common"><code>common</code></link>
+      sections of the DRBD configuration, whereas the
+      <filename>.res</filename> files contain one <link
+      linkend="s-drbdconf-resource"><code>resource</code></link>
+      section each.</para>
+      <para>It is also possible to use <filename>drbd.conf</filename>
+      as a flat configuration file without any <code>include</code>
+      statements at all. Such a configuration, however, quickly
+      becomes cluttered and hard to manage, which is why the
+      multiple-file approach is the preferred one.</para>
+      <para>Regardless of which approach you employ, you should always
+      make sure that <filename>drbd.conf</filename>, and any other
+      files it includes, are <emphasis>exactly identical</emphasis> on
+      all participating cluster nodes.</para>
     <para>The DRBD source tarball contains an example configuration
       file in the <filename>scripts</filename>
       subdirectory. Binary installation packages will either install
@@ -218,11 +235,13 @@ resource r0 {
       <title>The <code>global</code> section</title>
       <para><indexterm>
 	  <primary>drbd.conf</primary>
-	  <secondary>global</secondary>
-      </indexterm>This section is allowed only once, preferrably at
-	the very top of the configuration file. Of the few options
-	available in this section, only one is of relevance to most
-	users:</para>
+	  <secondary>global</secondary> </indexterm>This section is
+	  allowed only once in the configuration. It is normally in
+	  the <filename>/etc/drbd.d/global_common.conf</filename>
+	  file. In a single-file configuration, it should go to the
+	  very top of the configuration file. Of the few options
+	  available in this section, only one is of relevance to most
+	  users:</para>
       <formalpara id="fp-usage-count">
 	<title><option>usage-count</option></title>
 	<para>The DRBD project keeps statistics about the usage of
@@ -245,7 +264,9 @@ resource r0 {
 	  <primary>drbd.conf</primary>
 	  <secondary>common</secondary>
       </indexterm>This section provides a shorthand method to define
-	configuration settings inherited by every resource. You may
+	configuration settings inherited by every resource. It is
+	normally found in
+	<filename>/etc/drbd.d/global_common.conf</filename>. You may
 	define any option you can also define on a per-resource
 	basis.</para>
       <para>Including a <code>common</code> section is not strictly
@@ -265,13 +286,15 @@ resource r0 {
       <para><indexterm>
 	  <primary>drbd.conf</primary>
 	  <secondary>resource</secondary>
-      </indexterm>Any DRBD resource you define must be named by
+      </indexterm>A per-resource configuration file is usually named
+      <filename>/etc/drbd.d/<replaceable>resource</replaceable>.res</filename>.
+      Any DRBD resource you define must be named by
 	specifying <option>resource
 	  <replaceable>name</replaceable></option> in the
-	configuration file. You may use any arbitrary identifier,
+	configuration. You may use any arbitrary identifier,
 	however the name must not contain characters other than those
 	found in the US-ASCII character set, and must also not include
-	whitespace. </para>
+	whitespace.</para>
       <para>Every resource configuration must also have two
 	<option>on <replaceable>host</replaceable></option>
 	sub-sections (one for every cluster node). </para>
