@@ -1,0 +1,131 @@
+[[ch-fundamentals]]
+== DRBD Fundamentals
+
+The Distributed Replicated Block Device (DRBD) is a software-based,
+shared-nothing, replicated storage solution mirroring the content of
+block devices (hard disks, partitions, logical volumes etc.) between
+servers.
+
+DRBD mirrors data
+
+* *in real time*. Replication occurs continuously, while applications
+  modify the data on the device.
+
+* *transparently*. The applications that store their data on the
+  mirrored device are oblivious of the fact that the data is in fact
+  stored on several computers.
+
+* *synchronously* or *asynchronously*. With synchronous mirroring, a
+  writing application is notified of write completion only after the
+  write has been carried out on both computer systems. Asynchronous
+  mirroring means the writing application is notified of write
+  completion when the write has completed locally, but before the
+  write has propagated to the peer system.
+
+
+[[s-kernel-module]]
+=== Kernel module
+
+DRBD's core functionality is implemented by way of a Linux kernel
+module. Specifically, DRBD constitutes a driver for a virtual block
+device, so DRBD is situated right near the bottom of a system's I/O
+stack. Because of this, DRBD is extremely flexible and versatile,
+which makes it a replication solution suitable for adding high
+availability to just about any application.
+
+DRBD is, by definition and as mandated by the Linux kernel
+architecture, agnostic of the layers above it. Thus, it is impossible
+for DRBD to miraculously add features to upper layers that these do
+not possess. For example, DRBD cannot auto-detect file system
+corruption or add active-active clustering capability to file systems
+like ext3 or XFS.
+
+[[f-drbd-linux-io-stack]]
+.DRBD's position within the Linux I/O stack
+image::drbd-in-kernel[scaledwidth="100%"]
+
+[[s-userland]]
+=== User space administration tools ===
+
+DRBD comes with a handful of administration tools capable of
+communicating with the kernel module, in order to be able to configure
+and administer DRBD resources.
+
+.+drbdadm+
+The high-level administration tool of the DRBD program suite. It
+obtains all DRBD configuration parameters from the configuration file
++/etc/drbd.conf+.  +drbdadm+ acts as a front-end application for both
++drbdsetup+ and +drbdmeta+ and hands off instructions to either of the two
+for actual command execution.  +drbdadm+ has a _dry-run_ mode, invoked
+with the +-d+ option, which exposes the commands issued by the back-end
+programs.
+
+.+drbdsetup+
+The program that allows users to configure the DRBD module that has
+been loaded into the running kernel. It is the low-level tool within
+the DRBD program suite. When using this program, all configuration
+parameters have to be directly handed over on the command line. This
+allows for maximum flexibility, albeit at the price of reduced ease of
+use. Most users will use +drbdsetup+ very rarely.
+
+.+drbdmeta+
+The program which allows users to create, dump, restore, and modify
+DRBD's meta data structures. This, too, is a command that most users
+will use only very rarely.
+
+[[s-resources]]
+=== Resources ===
+
+In DRBD, _resource_ is the collective term that refers to all aspects of
+a particular replicated storage device. These include:
+
+* *Resource name*. This can be any arbitrary, US-ASCII name not
+  containing whitespace by which the resource is referred to.
+
+* *DRBD device*. This is the virtual block device managed by DRBD. It
+  has a device major number of 147, and its minor numbers are numbered
+  from 0 onwards, as is customary. The associated block device is
+  always named +/dev/drbdX+, where +X+ is the device minor
+  number.
+
+NOTE: Very early DRBD versions hijacked NBD's device major number
+      43. This is long obsolete; 147 is the
+      http://www.lanana.org/docs/device-list/[LANANA-registered] DRBD
+      device major.
+
+* *Disk configuration*. This entails the local copy of the data, and
+  meta data for DRBD's internal use.
+
+* *Network configuration*. This entails all aspects of DRBD's
+  communication with the peer node.
+
+[[s-resource-roles]]
+=== Resource roles ===
+
+In DRBD, every <<s-resources,resource>> has a role, which may be
+_Primary_ or _Secondary_.
+
+NOTE: The choice of terms here is not arbitrary. These roles were
+      deliberately not named "Active" and "Passive" by DRBD's
+      creators. Primary vs. secondary refers to a concept related to
+      availability of _storage_, whereas active vs. passive refers to
+      the availability of an _application_. It is usually the case in a
+      high-availability environment that the primary node is also the
+      active one, but this is by no means necessary.
+
+* A DRBD device in the primary role can be used unrestrictedly for
+  read and write operations. It may be used for creating and mounting
+  file systems, raw or direct I/O to the block device, etc.
+
+* A DRBD device in the secondary role receives all updates from the
+  peer node's device, but otherwise disallows access completely. It
+  can not be used by applications, neither for read nor write
+  access. The reason for disallowing even read-only access to the
+  device is the necessity to maintain cache coherency, which would be
+  impossible if a secondary resource were made accessible in any way.
+
+The resource's role can, of course, be changed, either by
+<<s-switch-resource-roles,manual intervention>> or by way of some
+automated algorithm by a cluster management application. Changing the
+resource role from secondary to primary is referred to as _promotion_,
+whereas the reverse operation is termed _demotion_.
