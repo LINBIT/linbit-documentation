@@ -1,0 +1,1009 @@
+[[ch-heartbeat]]
+= Integrating DRBD with Heartbeat clusters
+
+indexterm:[Heartbeat]
+
+IMPORTANT: This chapter talks about DRBD in combination with the
+legacy Linux-HA cluster manager found in Heartbeat 2.0 and 2.1. That
+cluster manager has been superseded by Pacemaker and the latter should
+be used whenever possible — please see <<ch-pacemaker>>for more
+information. This chapter outlines legacy Heartbeat configurations and
+is intended for users who must maintain existing legacy Heartbeat
+systems for policy reasons. 
+
+The Heartbeat _cluster messaging layer_, a distinct part of the
+Linux-HA project that continues to be supported as of Heartbeat
+version 3, is fine to use in conjunction with the Pacemaker cluster
+manager. More information about configuring Heartbeat can be found as
+part of the Linux-HA User's Guide at http://www.linux-ha.org/doc/[].
+
+
+
+[[s-heartbeat-primer]]
+== Heartbeat primer
+
+[[s-heartbeat-cluster-manager]]
+=== The Heartbeat cluster manager
+
+indexterm:[Heartbeat]Heartbeat's purpose as a cluster manager is to
+ensure that the cluster maintains its services to the clients, even if
+single machines of the cluster fail. Applications that may be managed
+by Heartbeat as cluster services include, for example, 
+
+* a web server such as Apache,
+* a database server such as MySQL, Oracle, or PostgreSQL,
+* a file server such as NFS or Samba, and many others.
+
+In essence, any server application may be managed by Heartbeat as a cluster service. 
+
+Services managed by Heartbeat are typically removed from the system
+startup configuration; rather than being started at boot time, the
+cluster manager starts and stops them as required by the cluster
+configuration and status. If a machine (a physical cluster node) fails
+while running a particular set of services, Heartbeat will start the
+failed services on another machine in the cluster. These operations
+performed by Heartbeat are commonly referred to as (automatic)
+indexterm:[fail-over]_fail-over_.
+
+A migration of cluster services from one cluster node to another, by
+manual intervention, is commonly termed "manual fail-over". This being
+a slightly self-contradictory term, we use the alternative term
+indexterm:[switch-over]indexterm:[fail-over]_switch-over_for the
+purposes of this guide.
+
+Heartbeat is also capable of automatically migrating resources back to
+a previously failed node, as soon as the latter recovers. This process
+is called indexterm:[fail-back]_fail-back_.
+
+[[s-heartbeat-resources]]
+=== Heartbeat resources
+
+indexterm:[Heartbeat]indexterm:[resource (Heartbeat)]Usually, there
+will be certain requirements in order to be able to start a cluster
+service managed by Heartbeat on a node. Consider the example of a
+typical database-driven web application: 
+
+* Both the web server and the database server assume that their
+  designated _IP addresses_are available (i.e. configured) on the
+  node.
+* The database will require a _file system_to retrieve data files
+  from.
+* That file system will require its underlying _block device_ to read
+  from and write to (this is where DRBD comes in, as we will see
+  later).
+* The web server will also depend on the database being started,
+  assuming it cannot serve dynamic content without an available
+  database.
+
+The services Heartbeat controls, and any additional requirements those
+services depend on, are referred to as _resources_ in Heartbeat
+terminology. Where resources form a co-dependent collection, that
+collection is called a _resource group_.
+
+[[s-resource-agents]]
+=== Heartbeat resource agents
+
+indexterm:[Heartbeat]indexterm:[resource agent (Heartbeat)]Heartbeat
+manages resources by way of invoking standardized shell scripts known
+as _resource agents_(RA's). In Heartbeat clusters, the following
+resource agent types are available:
+
+[[fp-heartbeat-ra]]
+.Heartbeat resource agents
+These agents are found in the +/etc/ha.d/resource.d+ directory. They
+may take zero or more positional, unnamed parameters, and one
+operation argument ( +start+, +stop+, or +status+). Heartbeat
+translates resource parameters it finds for a matching resource in
++/etc/ha.d/haresources+ into positional parameters for the RA, which
+then uses these to configure the resource.
+
+[[fp-lsb-ra]]
+.LSB resource agents
+These are conventional, Linux Standard Base-compliant init scripts
+found in +/etc/init.d+, which Heartbeat simply invokes with the
++start+, +stop+, or +status+ argument. They take no positional
+parameters. Thus, the corresponding resources' configuration cannot be
+managed by Heartbeat; these services are expected to be configured by
+conventional configuration files.
+
+[[fp-ocf-ra]]
+.OCF resource agents
+These are resource agents that conform to the guidelines of the Open
+Cluster Framework, and they _only_work with clusters in CRM mode. They
+are usually found in either +/usr/lib/ocf/resource.d/heartbeat+ or
++/usr/lib64/ocf/resource.d/heartbeat+, depending on system
+architecture and distribution. They take no positional parameters, but
+may be extensively configured via environment variables that the
+cluster management process derives from the cluster configuration, and
+passes in to the resource agent upon invocation.
+
+
+[[s-heartbeat-communication-channels]]
+=== Heartbeat communication channels
+
+indexterm:[Heartbeat]indexterm:[communication channels
+(Heartbeat)]Heartbeat uses a UDP-based communication protocol to
+periodically check for node availability (the "heartbeat" proper). For
+this purpose, Heartbeat can use several communication methods,
+including: 
+* IP multicast,
+* IP broadcast,
+* IP unicast,
+* serial line.
+
+Of these, IP multicast and IP broadcast are the most relevant in
+practice. The absolute minimum requirement for stable cluster
+operation is two independent communication channels.
+
+IMPORTANT: A bonded network interface (a virtual aggregation of
+physical interfaces using the indexterm:[bonding
+driver]+bonding+driver) constitutes _one_ Heartbeat communication
+channel.
+
+Bonded links are not protected against bugs, known or as-yet-unknown,
+in the +bonding+ driver. Also, bonded links are typically formed using
+identical network interface models, thus they are vulnerable to bugs
+in the NIC driver as well. Any such issue could lead to a cluster
+partition if no independent second Heartbeat communication channel
+were available.
+
+It is thus _not_ acceptable to omit the inclusion of a second
+Heartbeat link in the cluster configuration just because the first
+uses a bonded interface.
+
+
+[[s-heartbeat-config]]
+== Heartbeat configuration
+
+indexterm:[Heartbeat]For any Heartbeat cluster, the following
+configuration files must be available: 
+
+* indexterm:[ha.cf (Heartbeat configuration file)]+/etc/ha.d/ha.cf+ --
+  global cluster configuration.
+
+* indexterm:[authkeys (Heartbeat configuration
+  file)]+/etc/ha.d/authkeys+ -- keys for mutual node authentication.
+
+Depending on whether Heartbeat is running in R1-compatible or in CRM
+mode, additional configuration files are required. These are covered
+in <<s-heartbeat-r1>> and <<s-heartbeat-crm>>.
+
+[[s-heartbeat-hacf]]
+=== The +ha.cf+ file
+
+indexterm:[ha.cf (Heartbeat configuration file)]The following example
+is a small and simple +ha.cf+file:
+
+[source]
+----------------------------
+autojoin none
+mcast bond0 239.0.0.43 694 1 0
+bcast eth2
+warntime 5
+deadtime 15
+initdead 60
+keepalive 2
+node alice
+node bob
+----------------------------
+
+Setting +autojoin+ to +none+ disables cluster node auto-discovery and
+requires that cluster nodes be listed explicitly, using the
++node+options. This speeds up cluster start-up in clusters with a
+fixed number of nodes (which is always the case in R1-style Heartbeat
+clusters).
+
+This example assumes that +bond0+ is the cluster's interface to the
+shared network, and that +eth2+ is the interface dedicated for DRBD
+replication between both nodes. Thus, +bond0+ can be used for
+Multicast heartbeat, whereas on +eth2+ broadcast is acceptable as
++eth2+ is not a shared network.
+
+The next options configure node failure detection. They set the time
+after which Heartbeat issues a warning that a no longer available peer
+node _may_ be dead ( +warntime+), the time after which Heartbeat
+considers a node _confirmed_ dead ( +deadtime+), and the maximum time
+it waits for other nodes to check in at cluster startup (
++initdead+). +keepalive+ sets the interval at which Heartbeat
+keep-alive packets are sent. All these options are given in seconds.
+
+The +node+ option identifies cluster members. The option values listed
+here must match the exact host names of cluster nodes as given by
+`uname -n`. 
+
+Not adding a +crm+ option implies that the cluster is operating in
+<<s-heartbeat-r1,R1-compatible mode>> with CRM disabled. If +crm yes+
+were included in the configuration, Heartbeat would be running in
+<<s-heartbeat-crm,CRM mode>>.
+
+[[s-heartbeat-authkeys]]
+=== The +authkeys+ file
+
+indexterm:[authkeys (Heartbeat configuration
+file)]+/etc/ha.d/authkeys+ contains pre-shared secrets used for mutual
+cluster node authentication. It should only be readable by +root+and
+follows this format:
+
+[source]
+----------------------------
+auth _num_
+_num_ _algorithm_ _secret_
+----------------------------
+
+
+_num_ is a simple key index, starting with 1. Usually, you will only
+have one key in your +authkeys+ file.
+
+_algorithm_ is the signature algorithm being used. You may use either
++md5+or +sha1+; the use of +crc+ (a simple cyclic redundancy check,
+not secure) is not recommended.
+
+_secret_ is the actual authentication key.
+
+You may create an +authkeys+ file, using a generated secret, with the
+following shell hack:
+
+[source]
+
+----------------------------
+( echo -ne "auth 1\n1 sha1 "; \
+  dd if=/dev/urandom bs=512 count=1 | openssl md5 ) \
+  > /etc/ha.d/authkeys
+chmod 0600 /etc/ha.d/authkeys
+----------------------------
+
+[[s-heartbeat-ha-propagate]]
+=== Propagating the cluster configuration to cluster nodes
+
+In order to propagate the contents of the +ha.cf+ and +authkeys+
+configuration files, you may use the `ha_propagate` command, which you
+would invoke using either 
+----------------------------
+/usr/lib/heartbeat/ha_propagate
+----------------------------
+or 
+----------------------------
+/usr/lib64/heartbeat/ha_propagate
+----------------------------
+
+
+This utility will copy the configuration files over to any +node+
+listed in +/etc/ha.d/ha.cf+ using `scp`. It will afterwards also
+connect to the nodes using `ssh` and issue `chkconfig heartbeat on` in
+order to enable Heartbeat services on system startup.
+
+[[s-heartbeat-r1]]
+== Using DRBD in Heartbeat R1-style clusters
+
+Running Heartbeat clusters in release 1 compatible configuration is
+now considered obsolete by the Linux-HA development team. However, it
+is still widely used in the field, which is why it is documented here
+in this section.
+
+[[fp-heartbeat-r1-advantages]]
+.Advantages
+
+Configuring Heartbeat in R1 compatible mode has some advantages over
+using CRM configuration. In particular, 
+
+* Heartbeat R1 compatible clusters are simple and easy to configure;
+* it is fairly straightforward to extend Heartbeat's functionality
+  with custom, R1-style resource agents.
+
+[[fp-heartbeat-r1-disadvantages]]
+.Disadvantages
+
+Disadvantages of R1 compatible configuration, as opposed to CRM
+configurations, include: 
+
+* Cluster configuration must be manually kept in sync between cluster
+  nodes, it is not propagated automatically.
+* While node monitoring is available, resource-level monitoring is
+  not. Individual resources must be monitored by an external
+  monitoring system.
+* Resource group support is limited to two resource groups. CRM
+  clusters, by contrast, support any number, and also come with a
+  complex resource-level constraint framework.
+
+Another disadvantage, namely the fact that R1 style configuration
+limits cluster size to 2 nodes (whereas CRM clusters support up to
+255) is largely irrelevant for setups involving DRBD, DRBD itself
+being limited to two nodes.
+
+
+[[s-heartbeat-r1-config]]
+=== Heartbeat R1-style configuration
+
+In R1-style clusters, Heartbeat keeps its complete configuration in
+three simple configuration files:
+
+* +/etc/ha.d/ha.cf+, as described in <<s-heartbeat-hacf>>.
+* +/etc/ha.d/authkeys+, as described in <<s-heartbeat-authkeys>>.
+* +/etc/ha.d/haresources+ -- the resource configuration file,
+  described below.
+
+[[s-heartbeat-haresources]]
+==== The +haresources+ file
+
+indexterm:[haresources (Heartbeat configuration file)]The following is
+an example of a Heartbeat R1-compatible resource configuration
+involving a MySQL database backed by DRBD:
+
+[source]
+----------------------------
+bob drbddisk::mysql Filesystem::/dev/drbd0::/var/lib/mysql::ext3 \
+    10.9.42.1 mysql
+----------------------------
+
+
+This resource configuration contains one resource group whose _home
+node_ (the node where its resources are expected to run under normal
+circumstances) is named +bob+. Consequentially, this resource group
+would be considered the _local_ resource group on host +bob+, whereas
+it would be the _foreign_ resource group on its peer host.
+
+The resource group includes a DRBD resource named +mysql+, which will
+be promoted to the primary role by the cluster manager (specifically,
+the +drbddisk+ <<fp-heartbeat-ra,resource agent>>) on whichever node
+is currently the active node. Of course, a corresponding resource must
+exist and be configured in +/etc/drbd.conf+ for this to work.
+
+That DRBD resource translates to the block device named +/dev/drbd0+,
+which contains an ext3 filesystem that is to be mounted at
++/var/lib/mysql+ (the default location for MySQL data files).
+
+The resource group also contains a service IP address,
+10.9.42.1. Heartbeat will make sure that this IP address is configured
+and available on whichever node is currently active.
+
+Finally, Heartbeat will use the <<fp-lsb-ra,LSB resource agent>> named
++mysql+in order to start the MySQL daemon, which will then find its
+data files at +/var/lib/mysql+ and be able to listen on the service IP
+address, 192.168.42.1.
+
+It is important to understand that the resources listed in the
++haresources+ file are always evaluated from left to right when
+resources are being started, and from right to left when they are
+being stopped.
+
+[[s-heartbeat-stacked]]
+==== Stacked resources in Heartbeat R1-style configurations
+
+// Available in DRBD version 8.3.0 and above
+
+In <<s-three-way-repl,three-way replication>> with stacked resources,
+it is usually desirable to have the stacked resource managed by
+Heartbeat just as other cluster resources. Then, your two-node cluster
+will manage the stacked resource as a floating resource that runs on
+whichever node is currently the active one in the cluster. The third
+node, which is set aside from the Heartbeat cluster, will have the
+"other half" of the stacked resource available permanently.
+
+NOTE: To have a stacked resource managed by Heartbeat, you must first
+configure it as outlined in <<s-three-node-config>>.
+
+The stacked resource is managed by Heartbeat by way of the +drbdupper+
+resource agent. That resource agent is distributed, as all other
+Heartbeat R1 resource agents, in +/etc/ha.d/resource.d+. It is to
+stacked resources what the +drbddisk+ resource agent is to
+conventional, unstacked resources.
+
++drbdupper+ takes care of managing both the lower-level resource
+_and_the stacked resource. Consider the following +haresources+
+example, which would replace the one given in the previous section:
+
+[source]
+----------------------------
+bob 192.168.42.1 \
+  drbdupper::mysql-U Filesystem::/dev/drbd1::/var/lib/mysql::ext3 \
+  mysql
+----------------------------
+
+Note the following differences to the earlier example: 
+
+* You start the cluster IP address _before_ all other resources. This
+  is necessary because stacked resource replication uses a connection
+  from the cluster IP address to the node IP address of the third
+  node. Lower-level resource replication, by contrast, uses a
+  connection between the "physical" node IP addresses of the two cluster nodes.
+
+* You pass the stacked resource name to +drbdupper+ (in this example,
+  +mysql-U+).
+
+* You configure the +Filesystem+resource agent to mount the DRBD
+  device associated with the stacked resource (in this example,
+  +/dev/drbd1+), not the lower-level one.
+
+[[s-heartbeat-r1-manage]]
+=== Managing Heartbeat R1-style clusters
+
+[[s-heartbeat-r1-assume-resources]]
+==== Assuming control of cluster resources
+
+A Heartbeat R1-style cluster node may assume control of cluster
+resources in the following way:
+
+[[fp-heartbeat-r1-manual-resource-takeover]]
+.Manual resource takeover
+This is the approach normally taken if one simply wishes to test
+resource migration, or assume control of resources for any reason
+other than the peer having to leave the cluster. This operation is
+performed using the following command: 
+
+----------------------------
+`/usr/lib/heartbeat/hb_takeover`
+----------------------------
+
+On some distributions and architectures, you may be required to enter: 
+
+----------------------------
+`/usr/lib64/heartbeat/hb_takeover`
+----------------------------
+
+
+[[s-heartbeat-r1-relinquish-resources]]
+==== Relinquishing cluster resources
+
+A Heartbeat R1-style cluster node may be forced to give up its
+resources in several ways.
+
+.Switching a cluster node to standby mode
+This is the approach normally taken if one simply wishes to test
+resource migration, or perform some other activity that does not
+require the node to leave the cluster. This operation is performed
+using the following command: 
+----------------------------
+/usr/lib/heartbeat/hb_standby
+----------------------------
+On some distributions and architectures, you may be required to enter: 
+----------------------------
+/usr/lib64/heartbeat/hb_standby
+----------------------------
+
+[[fp-heartbeat-r1-shutdown-local-cluster-manager]]
+.Shutting down the local cluster manager instance
+
+This approach is suited for local maintenance operations such as
+software updates which require that the node be temporarily removed
+from the cluster, but which do not necessitate a system reboot. It
+involves shutting down all processes associated with the local cluster
+manager instance: 
+----------------------------
+/etc/init.d/heartbeat stop
+----------------------------
+
+Prior to stopping its services, Heartbeat will gracefully migrate any
+currently running resources to the peer node. This is the approach to
+be followed, for example, if you are upgrading DRBD to a new release,
+without also upgrading your kernel.
+
+[[fp-heartbeat-r1-shutdown-local-node]]
+.Shutting down the local node
+For hardware maintenance or other interventions that require a system
+shutdown or reboot, use a simple graceful shutdown command, such as 
+
+----------------------------
+reboot
+----------------------------
+or 
+----------------------------
+poweroff
+----------------------------
+
+Since Heartbeat services will be shut down gracefully in the process
+of a normal system shutdown, the previous paragraph applies to this
+situation, too. This is also the approach you would use in case of a
+kernel upgrade (which also requires the installation of a matching
+DRBD version).
+
+
+[[s-heartbeat-crm]]
+== Using DRBD in Heartbeat CRM-enabled clusters
+
+Running Heartbeat clusters in CRM configuration mode is the
+recommended approach as of Heartbeat release 2 (per the Linux-HA
+development team).
+
+[[fp-heartbeat-crm-advantages]]
+.Advantages
+Advantages of using CRM configuration mode, as opposed to R1
+compatible configuration, include: 
+
+* Cluster configuration is distributed cluster-wide and automatically,
+  by the Cluster Resource Manager. It need not be propagated manually.
+
+* CRM mode supports both node-level and resource-level monitoring, and
+  configurable responses to both node and resource failure. It is
+  still advisable to also monitor cluster resources using an external
+  monitoring system.
+
+* CRM clusters support any number of resource groups, as opposed to
+  Heartbeat R1-style clusters which only support two.
+
+* CRM clusters support a powerful (if complex) constraints
+  framework. This enables you to ensure correct resource startup and
+  shutdown order, resource co-location (forcing resources to always
+  run on the same physical node), and to set preferred nodes for
+  particular resources.
+
+Another advantage, namely the fact that CRM clusters support up to 255
+nodes in a single cluster, is somewhat irrelevant for setups involving
+DRBD (DRBD itself being limited to two nodes).
+
+[[fp-heartbeat-crm-disadvantages]]
+.Disadvantages
+Configuring Heartbeat in CRM mode also has some disadvantages in
+comparison to using R1-compatible configuration. In particular, 
+
+* Heartbeat CRM clusters are comparatively complex to configure and
+  administer;
+* Extending Heartbeat's functionality with custom OCF resource agents
+is non-trivial. 
+
+NOTE: This disadvantage is somewhat mitigated by the fact that you do
+have the option of using custom (or legacy) R1-style resource agents
+in CRM clusters.
+
+
+[[s-heartbeat-crm-config]]
+=== Heartbeat CRM configuration
+
+In CRM clusters, Heartbeat keeps part of configuration in the
+following configuration files: 
+
+* indexterm:[ha.cf (Heartbeat configuration file)]+/etc/ha.d/ha.cf+,
+as described in <<s-heartbeat-hacf>>. You must include the following
+line in this configuration file to enable CRM mode:
+[source]
+----------------------------
+crm yes
+----------------------------
+
+* indexterm:[authkeys (Heartbeat configuration
+  file)]+/etc/ha.d/authkeys+. The contents of this file are the same
+  as for R1 style clusters. See <<s-heartbeat-authkeys>> for details.
+
+The remainder of the cluster configuration is maintained in the
+_Cluster Information Base_ (CIB), covered in detail in
+<<s-heartbeat-cib,the following section>>. Contrary to the two
+relevant configuration files, the CIB need not be manually distributed
+among cluster nodes; the Heartbeat services take care of that
+automatically.
+
+[[s-heartbeat-cib]]
+==== The Cluster Information Base
+
+indexterm:[Heartbeat]indexterm:[Cluster Information Base (CIB)] The
+Cluster Information Base (CIB) is kept in one XML file,
+indexterm:[cib.xml (Heartbeat configuration
+file)]+/var/lib/heartbeat/crm/cib.xml+. It is, however, not
+recommended to edit the contents of this file directly, except in the
+case of creating a new cluster configuration from scratch. Instead,
+Heartbeat comes with both command-line applications and a GUI to
+modify the CIB.
+
+The CIB actually contains both the cluster _configuration_ (which is
+persistent and is kept in the +cib.xml+file), and information about
+the current cluster _status_ (which is volatile). Status information,
+too, may be queried either using Heartbeat command-line tools, and the
+Heartbeat GUI.
+
+After creating a new Heartbeat CRM cluster -- that is, creating the
++ha.cf+ and +authkeys+ files, distributing them among cluster nodes,
+starting Heartbeat services, and waiting for nodes to establish
+intra-cluster communications -- new, empty CIB is created
+automatically. Its contents will be similar to this:
+
+[source xml]
+----------------------------
+<cib>
+   <configuration>
+     <crm_config>
+       <cluster_property_set id="cib-bootstrap-options">
+         <attributes/>
+       </cluster_property_set>
+     </crm_config>
+     <nodes>
+       <node uname="alice" type="normal"
+             id="f11899c3-ed6e-4e63-abae-b9af90c62283"/>
+       <node uname="bob" type="normal"
+             id="663bae4d-44a0-407f-ac14-389150407159"/>
+     </nodes>
+     <resources/>
+     <constraints/>
+   </configuration>
+ </cib>
+----------------------------
+
+The exact format and contents of this file are documented at length
+http://www.linux-ha.org/ClusterInformationBase/UserGuide[on the
+Linux-HA web site], but for practical purposes it is important to
+understand that this cluster has two nodes named +alice+ and +bob+, and
+that neither any resources nor any resource constraints have been
+configured at this point.
+
+[[s-heartbeat-crm-drbd-backed-service]]
+==== Adding a DRBD-backed service to the cluster configuration
+
+This section explains how to enable a DRBD-backed service in a
+Heartbeat CRM cluster. The examples used in this section mimic, in
+functionality, those described in <<s-heartbeat-resources>>, dealing
+with R1-style Heartbeat clusters.
+
+The complexity of the configuration steps described in this section
+may seem overwhelming to some, particularly those having previously
+dealt only with R1-style Heartbeat configurations. While the
+configuration of Heartbeat CRM clusters is indeed complex (and
+sometimes not very user-friendly), <<fp-heartbeat-crm-advantages,the
+CRM's advantages>> may outweigh <<fp-heartbeat-r1-advantages,those of
+R1-style clusters>>. Which approach to follow is entirely up to the
+administrator's discretion.
+
+[[s-heartbeat-crm-drbddisk-ra]]
+===== Using the +drbddisk+ resource agent in a Heartbeat CRM
+configuration
+
+Even though you are using Heartbeat in CRM mode, you may still utilize
+R1-compatible resource agents such as +drbddisk+. This resource agent
+provides no secondary node monitoring, and ensures only resource
+promotion and demotion.
+
+In order to enable a DRBD-backed configuration for a MySQL database in
+a Heartbeat CRM cluster with +drbddisk+, you would use a configuration
+like this:
+
+[source xml]
+----------------------------
+<group ordered="true" collocated="true" id="rg_mysql">
+  <primitive class="heartbeat" type="drbddisk"
+             provider="heartbeat" id="drbddisk_mysql">
+    <meta_attributes>
+      <attributes>
+        <nvpair name="target_role" value="started"/>
+      </attributes>
+    </meta_attributes>
+    <instance_attributes>
+      <attributes>
+        <nvpair name="1" value="mysql"/>
+      </attributes>
+    </instance_attributes>
+  </primitive>
+  <primitive class="ocf" type="Filesystem"
+             provider="heartbeat" id="fs_mysql">
+    <instance_attributes>
+      <attributes>
+        <nvpair name="device" value="/dev/drbd0"/>
+        <nvpair name="directory" value="/var/lib/mysql"/>
+        <nvpair name="type" value="ext3"/>
+      </attributes>
+    </instance_attributes>
+  </primitive>
+  <primitive class="ocf" type="IPaddr2"
+             provider="heartbeat" id="ip_mysql">
+    <instance_attributes>
+      <attributes>
+        <nvpair name="ip" value="192.168.42.1"/>
+        <nvpair name="cidr_netmask" value="24"/>
+        <nvpair name="nic" value="eth0"/>
+      </attributes>
+    </instance_attributes>
+  </primitive>
+  <primitive class="lsb" type="mysqld"
+             provider="heartbeat" id="mysqld"/>
+</group>
+----------------------------
+
+
+Assuming you created this configuration in a temporary file named
++/tmp/hb_mysql.xml+, you would add this resource group to the cluster
+configuration using the following command (on any cluster node):
+indexterm:[Heartbeat]indexterm:[cibadmin (Heartbeat command)]
+----------------------------
+cibadmin -o resources -C -x /tmp/hb_mysql.xml
+----------------------------
+
+After this, Heartbeat will automatically propagate the
+newly-configured resource group to all cluster nodes. 
+
+[[s-heartbeat-crm-drbd-ocf-ra]]
+===== Using the +drbd+ OCF resource agent in a Heartbeat CRM configuration
+
+The +drbd+resource agent is a "pure-bred" OCF RA which provides
+Master/Slave capability, allowing Heartbeat to start and monitor the
+DRBD resource on multiple nodes and promoting and demoting as
+needed. You must, however, understand that the +drbd+ RA disconnects
+and detaches all DRBD resources it manages on Heartbeat shutdown, and
+also upon enabling standby mode for a node.
+
+In order to enable a DRBD-backed configuration for a MySQL database in
+a Heartbeat CRM cluster with the +drbd+ OCF resource agent, you must
+create both the necessary resources, and Heartbeat constraints to
+ensure your service only starts on a previously promoted DRBD
+resource. It is recommended that you start with the constraints, such
+as shown in this example:
+
+[source xml]
+----------------------------
+<constraints>
+  <rsc_order id="mysql_after_drbd" from="rg_mysql" action="start"
+             to="ms_drbd_mysql" to_action="promote" type="after"/>
+  <rsc_colocation id="mysql_on_drbd" to="ms_drbd_mysql"
+                  to_role="master" from="rg_mysql" score="INFINITY"/>
+</constraints>
+----------------------------
+
+Assuming you put these settings in a file named
++/tmp/constraints.xml+, here is how you would enable them: 
+----------------------------
+cibadmin -U -x /tmp/constraints.xml
+----------------------------
+
+Subsequently, you would create your relevant resources:
+
+[source xml]
+----------------------------
+<resources>
+  <master_slave id="ms_drbd_mysql">
+    <meta_attributes id="ms_drbd_mysql-meta_attributes">
+      <attributes>
+        <nvpair name="notify" value="yes"/>
+        <nvpair name="globally_unique" value="false"/>
+      </attributes>
+    </meta_attributes>
+    <primitive id="drbd_mysql" class="ocf" provider="heartbeat"
+        type="drbd">
+      <instance_attributes id="ms_drbd_mysql-instance_attributes">
+        <attributes>
+          <nvpair name="drbd_resource" value="mysql"/>
+        </attributes>
+      </instance_attributes>
+      <operations id="ms_drbd_mysql-operations">
+        <op id="ms_drbd_mysql-monitor-master"
+	    name="monitor" interval="29s"
+            timeout="10s" role="Master"/>
+        <op id="ms_drbd_mysql-monitor-slave"
+            name="monitor" interval="30s"
+            timeout="10s" role="Slave"/>
+      </operations>
+    </primitive>
+  </master_slave>
+  <group id="rg_mysql">
+    <primitive class="ocf" type="Filesystem"
+               provider="heartbeat" id="fs_mysql">
+      <instance_attributes id="fs_mysql-instance_attributes">
+        <attributes>
+          <nvpair name="device" value="/dev/drbd0"/>
+          <nvpair name="directory" value="/var/lib/mysql"/>
+          <nvpair name="type" value="ext3"/>
+        </attributes>
+      </instance_attributes>
+    </primitive>
+    <primitive class="ocf" type="IPaddr2"
+               provider="heartbeat" id="ip_mysql">
+      <instance_attributes id="ip_mysql-instance_attributes">
+        <attributes>
+          <nvpair name="ip" value="10.9.42.1"/>
+          <nvpair name="nic" value="eth0"/>
+        </attributes>
+      </instance_attributes>
+    </primitive>
+    <primitive class="lsb" type="mysqld"
+               provider="heartbeat" id="mysqld"/>
+  </group>
+</resources>
+----------------------------
+
+Assuming you put these settings in a file named +/tmp/resources.xml+,
+here is how you would enable them: 
+
+----------------------------
+cibadmin -U -x /tmp/resources.xml
+----------------------------
+
+After this, your configuration should be enabled. Heartbeat now
+selects a node on which it promotes the DRBD resource, and then starts
+the DRBD-backed resource group on that same node.
+
+[[s-heartbeat-crm-manage]]
+=== Managing Heartbeat CRM clusters
+
+[[s-heartbeat-crm-assume-resources]]
+==== Assuming control of cluster resources
+
+A Heartbeat CRM cluster node may assume control of cluster resources in the following ways:
+
+.Manual takeover of a single cluster resource
+This is the approach normally taken if one simply wishes to test
+resource migration, or move a resource to the local node as a means of
+manual load balancing. This operation is performed using the following
+command: indexterm:[Heartbeat]indexterm:[crm_resource (Heartbeat
+command)]
+
+----------------------------
+crm_resource -r _resource_ -M -H uname -n
+----------------------------
+
+NOTE: The +-M+ (or +--migrate+) option for the `crm_resource` command,
+when used without the +-H+ option, implies a resource migration _away_
+from the local host. You must initiate a migration _to_ the local host
+by specifying the +-H+ option, giving the local host name as the
+option argument.
+
+It is also important to understand that the migration is _permanent_,
+that is, unless told otherwise, Heartbeat will not move the resource
+back to a node it was previously migrated away from — even if that
+node happens to be the only surviving node in a near-cluster-wide
+system failure. This is undesirable under most circumstances. So, it
+is prudent to immediately "un-migrate" resources after successful
+migration, using the the following command:
+indexterm:[Heartbeat]indexterm:[crm_resource (Heartbeat command)]
+
+----------------------------
+crm_resource -r resource -U
+----------------------------
+
+Finally, it is important to know that during resource migration,
+Heartbeat may simultaneously migrate resources other than the one
+explicitly specified (as required by existing resource groups or
+colocation and order constraints).
+
+.Manual takeover of all cluster resources
+This procedure involves switching the peer node to standby mode (where
+_hostname_ is the peer node's host name):
+indexterm:[Heartbeat]indexterm:[crm_standby (Heartbeat command)]
+
+----------------------------
+crm_standby -U hostname -v on
+----------------------------
+
+
+[[s-heartbeat-crm-relinquish-resources]]
+==== Relinquishing cluster resources
+
+A Heartbeat CRM cluster node may be forced to give up one or all of
+its resources in several ways.
+
+.Giving up a single cluster resource
+A node gives up control of a single resource when issued the following
+command (note that <<n-heartbeat-crm-migrate,the considerations
+outlined in the previous section>>apply here, too):
+indexterm:[Heartbeat]indexterm:[crm_resource (Heartbeat command)]
+
+----------------------------
+crm_resource -r resource -M 
+----------------------------
+
+If you want to migrate to a specific host, use this variant: 
+
+----------------------------
+crm_resource -r resource -M -H hostname
+----------------------------
+
+However, the latter syntax is usually of little relevance to CRM
+clusters using DRBD, DRBD being limited to two nodes (so the two
+variants are, essentially, identical in meaning).
+
+.Switching a cluster node to standby mode
+This is the approach normally taken if one simply wishes to test
+resource migration, or perform some other activity that does not
+require the node to leave the cluster. This operation is performed
+using the following command:
+indexterm:[Heartbeat]indexterm:[crm_standby (Heartbeat command)]
+
+----------------------------
+crm_standby -U `uname -n` -v on
+----------------------------
+
+.Shutting down the local cluster manager instance
+This approach is suited for local maintenance operations such as
+software updates which require that the node be temporarily removed
+from the cluster, but which do not necessitate a system reboot. The
+procedure is <<fp-heartbeat-r1-shutdown-local-cluster-manager,the same
+as for Heartbeat R1 style clusters>>.
+
+.Shutting down the local node
+For hardware maintenance or other interventions that require a system
+shutdown or reboot, use a simple graceful shutdown command, just as
+previously outlined <<fp-heartbeat-r1-shutdown-local-node,for
+Heartbeat R1 style clusters>>.
+
+
+[[s-heartbeat-dopd]]
+== Using Heartbeat with +dopd+
+
+indexterm:[dopd]The steps outlined in this section enable DRBD to deny
+services access to <<s-outdate,outdated data>>. The Heartbeat
+component that implements this functionality is the _DRBD outdate-peer
+daemon_, or +dopd+ for short. It works, and uses identical
+configuration, on both <<s-heartbeat-r1,R1-compatible>>and
+<<s-heartbeat-crm,CRM>> clusters.
+
+IMPORTANT:It is absolutely vital to configure at least two independent
+<<s-heartbeat-communication-channels,Heartbeat communication
+channels>>for +dopd+to work correctly.
+
+
+
+[[s-dopd-heartbeat-config]]
+=== Heartbeat configuration
+
+To enable dopd, you must add these lines to your indexterm:[ha.cf
+(Heartbeat configuration file)]+/etc/ha.d/ha.cf+ file: [source]
+
+----------------------------
+respawn hacluster /usr/lib/heartbeat/dopd
+apiauth dopd gid=haclient uid=hacluster
+----------------------------
+
+You may have to adjust +dopd+'s path according to your preferred
+distribution. On some distributions and architectures, the correct
+path is +/usr/lib64/heartbeat/dopd+.
+
+After you have made this change and copied +ha.cf+to the peer node,
+you must run `/etc/init.d/heartbeat reload`to have Heartbeat re-read
+its configuration file. Afterwards, you should be able to verify that
+you now have a running +dopd+process.
+
+NOTE: You can check for this process either by running `ps ax | grep
+dopd` or by issuing `killall -0 dopd`.
+
+
+
+[[s-dopd-drbd-config]]
+=== DRBD Configuration
+
+Then, add these items to your DRBD resource configuration: [source]
+
+----------------------------
+resource _resource_ {
+    handlers {
+        fence-peer "/usr/lib/heartbeat/drbd-peer-outdater -t 5";
+        ...
+    }
+    disk {
+        fencing resource-only;
+        ...
+    }
+    ...
+}
+----------------------------
+
+As with +dopd+, your distribution may place the +drbd-peer-outdater+
+binary in +/usr/lib64/heartbeat+ depending on your system
+architecture.
+
+Finally, copy your +drbd.conf+ to the peer node and issue `drbdadm
+adjust resource` to reconfigure your resource and reflect your
+changes.
+
+[[s-dopd-test]]
+=== Testing +dopd+ functionality
+
+To test whether your +dopd+ setup is working correctly, interrupt the
+replication link of a configured and connected resource while
+Heartbeat services are running normally. You may do so simply by
+physically unplugging the network link, but that is fairly
+invasive. Instead, you may insert a temporary +iptables+ rule to drop
+incoming DRBD traffic to the TCP port used by your resource.
+
+After this, you will be able to observe the resource
+<<s-connection-states,connection state>> change from
+indexterm:[connection state]indexterm:[Connected (connection state)]
++Connected+ to ndexterm:[connection state]indexterm:[WFConnection
+(connection state)]+WFConnection+. Allow a few seconds to pass, and
+you should see the <<s-disk-states,disk state>>become indexterm:[disk
+state]indexterm:[Outdated (disk state)]+Outdated/DUnknown+. That is
+what +dopd+is responsible for.
+
+Any attempt to switch the outdated resource to the primary role will
+fail after this.
+
+When re-instituting network connectivity (either by plugging the
+physical link or by removing the temporary +iptables+ rule you inserted
+previously), the connection state will change to +Connected+, and then
+promptly to +SyncTarget+ (assuming changes occurred on the primary node
+during the network interruption). Then you will be able to observe a
+brief synchronization period, and finally, the previously outdated
+resource will be marked as indexterm:[disk state]indexterm:[UpToDate
+(disk state)]+UpToDate+ again.
+
