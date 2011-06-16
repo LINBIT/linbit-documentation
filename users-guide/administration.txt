@@ -1,0 +1,1432 @@
+[[ch-admin]]
+= Common administrative tasks
+
+This chapter outlines typical administrative tasks encountered during
+day-to-day operations. It does not cover troubleshooting tasks, these
+are covered in detail in <<ch-troubleshooting>>.
+
+[[s-check-status]]
+== Checking DRBD status
+
+[[s-drbd-overview]]
+=== Retrieving status with +drbd-overview+
+
+The most convenient way to look at DRBD's status is the
+indexterm:[drbd-overview]+drbd-overview+utility. It is available since
+DRBD-8.0.15 and 8.3.0. In 8.3.0 it is installed as +drbd-overview.pl+.
+
+----------------------------
+`drbd-overview`
+  0:home                 Connected Primary/Secondary   UpToDate/UpToDate C r--- /home        xfs  200G 158G 43G  79%
+  1:data                 Connected Primary/Secondary   UpToDate/UpToDate C r--- /mnt/ha1     ext3 9.9G 618M 8.8G 7%
+  2:nfs-root             Connected Primary/Secondary   UpToDate/UpToDate C r--- /mnt/netboot ext3 79G  57G  19G  76%
+----------------------------
+
+
+[[s-proc-drbd]]
+=== Status information in +/proc/drbd+
+
+indexterm:[/proc/drbd]+/proc/drbd+is a virtual file displaying
+real-time status information about all DRBD resources currently
+configured. You may interrogate this file's contents using this
+command:
+
+----------------------------
+`cat /proc/drbd`
+version: 8.3.0 (api:88/proto:86-89)
+GIT-hash: 9ba8b93e24d842f0dd3fb1f9b90e8348ddb95829 build by buildsystem@linbit, 2008-12-18 16:02:26
+ 0: cs:Connected ro:Secondary/Secondary ds:UpToDate/UpToDate C r---
+    ns:0 nr:8 dw:8 dr:0 al:0 bm:2 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+ 1: cs:Connected ro:Secondary/Secondary ds:UpToDate/UpToDate C r---
+    ns:0 nr:12 dw:12 dr:0 al:0 bm:1 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+ 2: cs:Connected ro:Secondary/Secondary ds:UpToDate/UpToDate C r---
+    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+----------------------------
+
+The first line, prefixed with +version:+, shows the DRBD version used
+on your system. The second line contains information about this
+specific build.
+
+The other four lines in this example form a block that is repeated for
+every DRBD device configured, prefixed by the device minor number. In
+this case, this is +0+, corresponding to the device +/dev/drbd0+.
+
+The resource-specific output from +/proc/drbd+contains various pieces
+of information about the resource:
+
+.+cs+ (connection state)
+indexterm:[connection state]Status of the network connection. See <<s-connection-states>>for details about the various connection states.
+
+.+ro+ (roles)
+indexterm:[resource]Roles of the nodes. The role of the local node is displayed first, followed by the role of the partner node shown after the slash. See <<s-roles>>for details about the possible resource roles. 
+NOTE:Prior to DRBD 8.3, +/proc/drbd+used the +st+field (referring to the ambiguous term ``state'') when referring to resource roles.
+
+.+ds+ (disk states)
+indexterm:[disk state]State of the hard disks. Prior to the slash the state of the local node is displayed, after the slash the state of the hard disk of the partner node is shown. See <<s-disk-states>>for details about the various disk states.
+
+.+ns+ (network send)
+Volume of net data sent to the partner via the network connection; in Kibyte.
+
+.+nr+ (network receive)
+Volume of net data received by the partner via the network connection; in Kibyte.
+
+.+dw+ (disk write)
+Net data written on local hard disk; in Kibyte.
+
+.+dr+ (disk read)
+Net data read from local hard disk; in Kibyte.
+
+.+al+ (activity log)
+Number of updates of the activity log area of the meta data.
+
+.+bm+ (bit map)
+Number of updates of the bitmap area of the meta data.
+
+.+lo+ (local count)
+Number of open requests to the local I/O sub-system issued by DRBD.
+
+.+pe+ (pending)
+Number of requests sent to the partner, but that have not yet been answered by the latter.
+
+.+ua+ (unacknowledged)
+Number of requests received by the partner via the network connection, but that have not yet been answered.
+
+.+ap+ (application pending)
+Number of block I/O requests forwarded to DRBD, but not yet answered by DRBD.
+
+.+ep+ (epochs)
+Number of epoch objects. Usually 1. Might increase under I/O load when using either the +barrier+or the +none+write ordering method. Since 8.2.7.
+
+.+wo+ (write order)
+Currently used write ordering method: +b+(barrier), +f+(flush), +d+(drain) or +n+(none). Since 8.2.7.
+
+.+oos+ (out of sync)
+Amount of storage currently out of sync; in Kibibytes. Since 8.2.6.
+
+
+[[s-connection-states]]
+=== Connection states
+
+indexterm:[connection state]A resource's connection state can be
+observed either by monitoring +/proc/drbd+, or by issuing the `drbdadm
+cstate`command:
+
+----------------------------
+drbdadm cstate <resource>
+Connected
+----------------------------
+
+A resource may have one of the following connection states: 
+
+.+StandAlone+
+indexterm:[connection state]No network configuration available. The
+resource has not yet been connected, or has been administratively
+disconnected (using `drbdadm disconnect`), or has dropped its
+connection due to failed authentication or split brain.
+
+.+Disconnecting+
+indexterm:[connection state]Temporary state during disconnection. The next state is StandAlone.
+
+.+Unconnected+
+indexterm:[connection state]Temporary state, prior to a connection attempt. Possible next states: WFConnection and WFReportParams.
+
+.+Timeout+
+indexterm:[connection state]Temporary state following a timeout in the communication with the peer. Next state: Unconnected.
+
+.+BrokenPipe+
+indexterm:[connection state]Temporary state after the connection to the peer was lost. Next state: Unconnected.
+
+.+NetworkFailure+
+indexterm:[connection state]Temporary state after the connection to the partner was lost. Next state: Unconnected.
+
+.+ProtocolError+
+indexterm:[connection state]Temporary state after the connection to the partner was lost. Next state: Unconnected.
+
+.+TearDown+
+indexterm:[connection state]Temporary state. The peer is closing the connection. Next state: Unconnected.
+
+.+WFConnection+
+indexterm:[connection state]This node is waiting until the peer node becomes visible on the network.
+
+.+WFReportParams+
+indexterm:[connection state]TCP connection has been established, this node waits for the first network packet from the peer.
+
+.+Connected+
+indexterm:[connection state]A DRBD connection has been established, data mirroring is now active. This is the normal state.
+
+.+StartingSyncS+
+indexterm:[connection state]Full synchronization, initiated by the administrator, is just starting. The next possible states are: SyncSource or PausedSyncS.
+
+.+StartingSyncT+
+indexterm:[connection state]Full synchronization, initiated by the administrator, is just starting. Next state: WFSyncUUID.
+
+.+WFBitMapS+
+indexterm:[connection state]Partial synchronization is just starting. Next possible states: SyncSource or PausedSyncS.
+
+.+WFBitMapT+
+indexterm:[connection state]Partial synchronization is just starting. Next possible state: WFSyncUUID.
+
+.+WFSyncUUID+
+indexterm:[connection state]Synchronization is about to begin. Next possible states: SyncTarget or PausedSyncT.
+
+.+SyncSource+
+indexterm:[connection state]Synchronization is currently running, with the local node being the source of synchronization.
+
+.+SyncTarget+
+indexterm:[connection state]Synchronization is currently running, with the local node being the target of synchronization.
+
+.+PausedSyncS+
+indexterm:[connection state]The local node is the source of an ongoing
+synchronization, but synchronization is currently paused. This may be
+due to a dependency on the completion of another synchronization
+process, or due to synchronization having been manually interrupted by
+`drbdadm pause-sync`.
+
+.+PausedSyncT+
+indexterm:[connection state]The local node is the target of an ongoing
+synchronization, but synchronization is currently paused. This may be
+due to a dependency on the completion of another synchronization
+process, or due to synchronization having been manually interrupted by
+`drbdadm pause-sync`.
+
+.+VerifyS+
+indexterm:[connection state]On-line device verification is currently
+running, with the local node being the source of verification.
+
+.+VerifyT+
+indexterm:[connection state]On-line device verification is currently
+running, with the local node being the target of verification.
+
+
+
+[[s-roles]]
+=== Resource roles
+
+indexterm:[resource]A resource's role can be observed either by
+monitoring +/proc/drbd+, or by issuing the indexterm:[drbdadm]
+`drbdadm role`command:
+
+----------------------------
+`drbdadm role _resource_`
+Primary/Secondary
+----------------------------
+
+The local resource role is always displayed first, the remote resource
+role last.
+
+NOTE:Prior to DRBD 8.3, the `drbdadm state`command provided the same
+     information. Since ``state''is an ambigious term, DRBD uses
+     ``role''in its stead from version 8.3.0 forward. `drbdadm
+     state`is also still available, albeit only for compatibility
+     reasons. You should use `drbdadm role`.
+
+You may see one of the following resource roles: 
+
+.+Primary+
+The resource is currently in the primary role, and may be read from
+and written to. This role only occurs on one of the two nodes, unless
+<<s-dual-primary-mode,dual-primary mode>> is enabled.
+
+.+Secondary+
+The resource is currently in the secondary role. It normally receives
+updates from its peer (unless running in disconnected mode), but may
+neither be read from nor written to. This role may occur on one node
+or both nodes.
+
+.+Unknown+
+The resource's role is currently unknown. The local resource role
+never has this status. It is only displayed for the peer's resource
+role, and only in disconnected mode.
+
+
+[[s-disk-states]]
+=== Disk states
+
+A resource's disk state can be observed either by monitoring
++/proc/drbd+, or by issuing the `drbdadm dstate` command:
+
+----------------------------
+drbdadm dstate <resource>
+UpToDate/UpToDate
+----------------------------
+
+The local disk state is always displayed first, the remote disk state
+last.
+
+Both the local and the remote disk state may be one of the following:
+
+.+Diskless+
+indexterm:[disk state]No local block device has been assigned to the
+DRBD driver. This may mean that the resource has never attached to its
+backing device, that it has been manually detached using `drbdadm
+detach`, or that it automatically detached after a lower-level I/O
+error.
+
+.+Attaching+
+indexterm:[disk state]Transient state while reading meta data.
+
+.+Failed+
+indexterm:[disk state]Transient state following an I/O failure report
+by the local block device. Next state: Diskless.
+
+.+Negotiating+
+indexterm:[disk state]Transient state when an Attach is carried out on
+an already-connected DRBD device.
+
+.+Inconsistent+
+indexterm:[disk state]The data is inconsistent. This status occurs
+immediately upon creation of a new resource, on both nodes (before the
+initial full sync). Also, this status is found in one node (the
+synchronization target) during synchronization.
+
+.+Outdated+
+indexterm:[disk state]Resource data is consistent, but
+<<s-outdate,outdated>>.
+
+.+DUnknown+
+indexterm:[disk state]This state is used for the peer disk if no
+network connection is available.
+
+.+Consistent+
+indexterm:[disk state]Consistent data of a node without
+connection. When the connection is established, it is decided whether
+the data are UpToDate or Outdated.
+
+.+UpToDate+
+indexterm:[disk state]Consistent, up-to-date state of the data. This
+is the normal state.
+
+
+[[s-enable-disable]]
+== Enabling and disabling resources
+
+[[s-enable-resource]]
+=== Enabling resources
+
+indexterm:[resource]Normally, all resources configured in
++/etc/drbd.conf+ are automatically enabled upon system startup by the
++/etc/init.d/drbd+ init script. If you choose to disable this startup
+script (as may be required by some applications), you may enable
+specific resources by issuing the commands 
+
+----------------------------
+drbdadm attach <resource>
+drbdadm syncer <resource>
+drbdadm connect <resource>
+----------------------------
+
+or the shorthand version of the three commands above, 
+
+----------------------------
+drbdadm up resource
+----------------------------
+
+As always, you may use the keyword +all+ instead of a specific
+resource name if you want to enable all resources configured in
++/etc/drbd.conf+ at once.
+
+[[s-disable-resource]]
+=== Disabling resources
+
+indexterm:[resource]You may temporarily disable specific resources by
+issuing the commands
+
+----------------------------
+drbdadm disconnect <resource>
+drbdadm detach <resource>
+----------------------------
+
+or the shorthand version of the above, 
+
+----------------------------
+drbdadm down <resource>
+----------------------------
+
+NOTE: There is, in fact, a slight syntactical difference between these
+      two methods. While `drbdadm down` implies a preceding
+      <<s-switch-resource-roles,resource demotion>>, `drbdadm
+      disconnect/detach` does not. So while you can run `drbdadm down`
+      on a resource that is currently in the primary role, `drbdadm
+      disconnect/detach` in the same situation will be refused by
+      DRBD's internal state engine.
+
+Here, too, you may use the keyword +all+in place of a resource name if
+you wish to temporarily disable all resources listed in
++/etc/drbd.conf+ at once.
+
+[[s-reconfigure]]
+== Reconfiguring resources
+
+indexterm:[resource]DRBD allows you to reconfigure resources while
+they are operational. To that end,
+
+* make any necessary changes to the resource configuration in
+  +/etc/drbd.conf+,
+
+* synchronize your +/etc/drbd.conf+ file between both nodes,
+
+* issue the indexterm:[drbdadm]`drbdadm adjust <resource>` command on
+  both nodes.
+
+`drbdadm adjust` then hands off to `drbdsetup` to make the necessary
+adjustments to the configuration. As always, you are able to review
+the pending `drbdsetup` invocations by running `drbdadm` with the
++-d+ (dry-run) option.
+
+NOTE: When making changes to the +common+ section in +/etc/drbd.conf+,
+you can adjust the configuration for all resources in one run, by
+issuing `drbdadm adjust all`.
+
+[[s-switch-resource-roles]]
+== Promoting and demoting resources
+
+indexterm:[resource]Manually switching a <<s-resource-roles,resource's
+role>> from secondary to primary (promotion) or vice versa (demotion)
+is done using the following commands: 
+
+----------------------------
+drbdadm primary <resource>
+drbdadm secondary <resource>
+----------------------------
+
+In <<s-single-primary-mode,single-primary mode>> (DRBD's default), any
+resource can be in the primary role on only one node at any given time
+while the <<s-connection-states,connection state>> is
++Connected+. Thus, issuing `drbdadm primary <resource>` on one node
+while _<resource>_ is still in the primary role on the peer will
+result in an error.
+
+A resource configured to allow <<s-dual-primary-mode,dual-primary
+mode>> can be switched to the primary role on both nodes.
+
+[[s-enable-dual-primary]]
+== Enabling dual-primary mode
+
+This feature is available in DRBD 8.0 and later.
+
+indexterm:[dual-primary mode]To enable dual-primary mode, add the
++allow-two-primaries+ option to the +net+ section of your resource
+configuration:
+
+[source]
+----------------------------
+resource <resource>
+  net {
+    allow-two-primaries;
+  }
+  ...
+}
+----------------------------
+
+When a resource is configured to support dual-primary mode, it may
+also be desirable to automatically switch the resource into the
+primary role upon system (or DRBD) startup. To do this, add the
++become-primary-on+ option, available in DRBD 8.2.0 and above, to the
++startup+ section of your resource configuration:
+
+[source]
+----------------------------
+resource <resource>
+  startup {
+    become-primary-on both;
+  }
+  ...
+}
+----------------------------
+
+After you have made these changes to +/etc/drbd.conf+, do not forget
+to synchronize the configuration between nodes. Then, proceed as
+follows:
+
+* Run `drbdadm disconnect <resource>` on both nodes.
+
+* Execute `drbdadm connect <resource>` on both nodes.
+
+* Finally, you may now execute `drbdadm primary _resource_` on both
+  nodes, instead of on just one.
+
+
+[[s-use-online-verify]]
+== Using on-line device verification
+
+This feature is available in DRBD 8.2.5 and later.
+
+[[s-online-verify-enable]]
+=== Enabling on-line verification
+
+indexterm:[on-line device verification]<<s-online-verify,On-line
+device verification>> is not enabled for resources by default. To
+enable it, add the following lines to your resource configuration in
++/etc/drbd.conf+:
+
+[source]
+----------------------------
+resource <resource>
+  syncer {
+    verify-alg <algorithm>;
+  }
+  ...
+}
+----------------------------
+
+_<algorithm>_ may be any message digest algorithm supported by the
+kernel crypto API in your system's kernel configuration. Normally, you
+should be able to choose at least from +sha1+, +md5+, and +crc32c+.
+
+If you make this change to an existing resource, as always,
+synchronize your +drbd.conf+ to the peer, and run `drbdadm adjust
+<resource>` on both nodes.
+
+[[s-online-verify-invoke]]
+=== Invoking on-line verification
+
+indexterm:[on-line device verification]After you have enabled on-line
+verification, you will be able to initiate a verification run using
+the following command:
+
+----------------------------
+drbdadm verify <resource>
+----------------------------
+
+When you do so, DRBD starts an online verification run for
+_<resource>_, and if it detects any blocks not in sync, will mark
+those blocks as such and write a message to the kernel log. Any
+applications using the device at that time can continue to do so
+unimpeded, and you may also <<s-switch-resource-roles,switch resource
+roles>> at will.
+
+If out-of-sync blocks were detected during the verification run, you
+may resynchronize them using the following commands after verification
+has completed:
+
+----------------------------
+drbdadm disconnect <resource>
+drbdadm connect <resource>
+----------------------------
+
+
+[[s-online-verify-automate]]
+=== Automating on-line verification
+
+indexterm:[on-line device verification]Most users will want to
+automate on-line device verification. This can be easily
+accomplished. Create a file with the following contents, named
++/etc/cron.d/drbd-verify+ on _one_of your nodes: 
+
+[source]
+----------------------------
+42 0 * * 0    root    /sbin/drbdadm verify <resource>
+----------------------------
+
+This will have +cron+ invoke a device verification every Sunday at 42
+minutes past midnight.
+
+If you have enabled on-line verification for all your resources (for
+example, by adding +verify-alg <algorithm> + to the +common+ section
+in +/etc/drbd.conf+), you may also use:
+
+[source]
+----------------------------
+42 0 * * 0    root    /sbin/drbdadm verify all
+----------------------------
+
+
+[[s-configure-syncer-rate]]
+== Configuring the rate of synchronization
+
+indexterm:[synchronization]Normally, one tries to ensure that
+background synchronization (which makes the data on the
+synchronization target temporarily inconsistent) completes as quickly
+as possible. However, it is also necessary to keep background
+synchronization from hogging all bandwidth otherwise available for
+foreground replication, which would be detrimental to application
+performance. Thus, you must configure the sychronization bandwidth to
+match your hardware -- which you may do in a permanent fashion or
+on-the-fly.
+
+IMPORTANT: It does not make sense to set a synchronization rate that
+is higher than the maximum write throughput on your secondary
+node. You must not expect your secondary node to miraculously be able
+to write faster than its I/O subsystem allows, just because it happens
+to be the target of an ongoing device synchronization.
+
+Likewise, and for the same reasons, it does not make sense to set a
+synchronization rate that is higher than the bandwidth available on
+the replication network.
+
+[[s-configure-syncer-rate-permanent]]
+=== Permanent syncer rate configuration
+
+The maximum bandwidth a resource uses for background
+re-synchronization is permanently configured using the +rate+ option
+for a resource. This must be included in the resource configuration's
++syncer+section in +/etc/drbd.conf+:
+
+[source]
+----------------------------
+resource <resource>
+  syncer {
+    rate 40M;
+    ...
+  }
+  ...
+}
+----------------------------
+
+Note that the rate setting is given in _bytes_, not _bits_ per second.
+
+TIP: A good rule of thumb for this value is to use about 30% of the
+available replication bandwidth. Thus, if you had an I/O subsystem
+capable of sustaining write throughput of 180MB/s, and a Gigabit
+Ethernet network capable of sustaining 110 MB/s network throughput
+(the network being the bottleneck), you would calculate:
+
+[[eq-syncer-rate-example1]]
+.Syncer rate example, 110MB/s effective available bandwidth
+image:syncer-rate-example1[]
+
+Thus, the recommended value for the +rate+option would be +33M+.
+
+By contrast, if you had an I/O subsystem with a maximum throughput of
+80MB/s and a Gigabit Ethernet connection (the I/O subsystem being the
+bottleneck), you would calculate:
+
+[[eq-syncer-rate-example2]]
+.Syncer rate example, 80MB/s effective available bandwidth
+image:syncer-rate-example2[]
+
+In this case, the recommended value for the +rate+option would be
++24M+.
+
+[[s-configure-syncer-rate-temporary]]
+=== Temporary syncer rate configuration
+
+It is sometimes desirable to temporarily adjust the syncer rate. For
+example, you might want to speed up background re-synchronization
+after having performed scheduled maintenance on one of your cluster
+nodes. Or, you might want to throttle background re-synchronization if
+it happens to occur at a time when your application is extremely busy
+with write operations, and you want to make sure that a large portion
+of the existing bandwidth is available to replication.
+
+For example, in order to make most bandwidth of a Gigabit Ethernet
+link available to re-synchronization, issue the following command:
+
+----------------------------
+`drbdsetup +/dev/drbd<num>+ syncer -r 110M`
+----------------------------
+
+As always, replace _<num>_ with the device minor number of your DRBD
+device. You need to issue this command on only one of your nodes.
+
+To revert this temporary setting and re-enable the syncer rate set in
++/etc/drbd.conf+, issue this command: 
+----------------------------
+`drbdadm adjust _resource_`
+----------------------------
+
+
+[[s-configure-checksum-sync]]
+== Configuring checksum-based synchronization
+
+indexterm:[checksum-based
+synchronization]<<p-checksum-sync,Checksum-based synchronization>> is
+not enabled for resources by default. To enable it, add the following
+lines to your resource configuration in +/etc/drbd.conf+: [source]
+
+----------------------------
+resource <resource>
+  syncer {
+    csums-alg <algorithm>;
+  }
+  ...
+}
+----------------------------
+
+_algorithm_ may be any message digest algorithm supported by the
+kernel crypto API in your system's kernel configuration. Normally, you
+should be able to choose at least from +sha1+, +md5+, and +crc32c+.
+
+If you make this change to an existing resource, as always,
+synchronize your +drbd.conf+ to the peer, and run `drbdadm adjust
+<resource>` on both nodes.
+
+[[s-configure-io-error-behavior]]
+== Configuring I/O error handling strategies
+
+indexterm:[I/O errors]indexterm:[drbd.conf]DRBD's
+<<s-handling-disk-errors,strategy for handling lower-level I/O
+errors>> is determined by the +on-io-error+ option, included in the
+resource +disk+configuration in +/etc/drbd.conf+:
+
+[source]
+----------------------------
+resource <resource> {
+  disk {
+    on-io-error <strategy>;
+    ...
+  }
+  ...
+}
+----------------------------
+
+You may, of course, set this in the +common+ section too, if you want
+to define a global I/O error handling policy for all resources.
+
+_<strategy>_ may be one of the following options: 
+
+. +detach+
+This is the recommended option. On the occurrence of a lower-level I/O
+error, the node drops its backing device, and continues in diskless
+mode.
+
+. +pass_on+
+This causes DRBD to report the I/O error to the upper layers. On the
+primary node, it is reported to the mounted file system. On the
+secondary node, it is ignored (because the secondary has no upper
+layer to report to). This is the default for historical reasons, but
+is no longer recommended for most new installations — except if you
+have a very compelling reason to use this strategy, instead of
++detach+.
+
+. +call-local-io-error
+Invokes the command defined as the local I/O error handler. This
+requires that a corresponding +local-io-error+ command invocation is
+defined in the resource's +handlers+ section. It is entirely left to
+the administrator's discretion to implement I/O error handling using
+the command (or script) invoked by +local-io-error+.
+
+NOTE: Early DRBD versions (prior to 8.0) included another option,
++panic+, which would forcibly remove the node from the cluster by way
+of a kernel panic, whenever a local I/O error occurred. While that
+option is no longer available, the same behavior may be mimicked via
+the +local-io-error+/+call-local-io-error+ interface. You should do so
+only if you fully understand the implications of such behavior.
+
+
+You may reconfigure a running resource's I/O error handling strategy
+by following this process:
+
+* Edit the resource configuration in +/etc/drbd.conf+.
+
+* Copy the configuration to the peer node.
+
+* Issue `drbdadm adjust <resource>`on both nodes.
+
+NOTE: DRBD versions prior to 8.3.1 will incur a full resync after
+running +drbdadm adjust+ on a node that is in the Primary role. On
+such systems, the affected resource must be demoted prior to running
++drbdadm adjust+ after its +disk+ configuration section has been
+changed.
+
+
+[[s-configure-integrity-check]]
+== Configuring replication traffic integrity checking
+
+indexterm:[replication traffic integrity
+checking]<<s-integrity-check,Replication traffic integrity checking>>
+is not enabled for resources by default. To enable it, add the
+following lines to your resource configuration in +/etc/drbd.conf+:
+
+[source]
+----------------------------
+resource <resource>
+  net {
+    data-integrity-alg <algorithm>;
+  }
+  ...
+}
+----------------------------
+
+_<algorithm>_ may be any message digest algorithm supported by the
+kernel crypto API in your system's kernel configuration. Normally, you
+should be able to choose at least from +sha1+, +md5+, and +crc32c+.
+
+If you make this change to an existing resource, as always,
+synchronize your +drbd.conf+ to the peer, and run `drbdadm adjust
+<resource>` on both nodes.
+
+[[s-resizing]]
+== Resizing resources
+
+[[s-growing-online]]
+=== Growing on-line
+
+indexterm:[resource]If the backing block devices can be grown while in
+operation (online), it is also possible to increase the size of a DRBD
+device based on these devices during operation. To do so, two criteria
+must be fulfilled:
+
+. The affected resource's backing device must be one managed by a
+  logical volume management subsystem, such as LVM or EVMS.
+
+. The resource must currently be in the +Connected+ connection state.
+
+Having grown the backing block devices on both nodes, ensure that only
+one node is in primary state. Then enter on one node:
+
+----------------------------
+drbdadm resize <resource>
+----------------------------
+
+This triggers a synchronization of the new section. The
+synchronization is done from the primary node to the secondary node.
+
+[[s-growing-offline]]
+=== Growing off-line
+
+indexterm:[resource]When the backing block devices on both nodes are
+grown while DRBD is inactive, and the DRBD resource is using
+<<s-external-meta-data,external meta data>>, then the new size is
+recognized automatically. No administrative intervention is
+necessary. The DRBD device will have the new size after the next
+activation of DRBD on both nodes and a successful establishment of a
+network connection.
+
+If however the DRBD resource is configured to use
+<<s-internal-meta-data,internal meta data>>, then this meta data must
+be moved to the end of the grown device before the new size becomes
+available. To do so, complete the following steps:
+
+WARNING: This is an advanced procedure. Use at your own discretion.
+
+* Unconfigure your DRBD resource:
+
+[source]
+----------------------------
+drbdadm down <resource>
+----------------------------
+
+* Save the meta data in a text file prior to shrinking: 
+---------------------------- 
+drbdadm dump-md _resource_ > /tmp/metadata
+----------------------------
+
+You must do this on both nodes, using a separate dump file for every
+node. _Do not_ dump the meta data on one node, and simply copy the
+dump file to the peer. This will not work.
+
+* Grow the backing block device on both nodes.
+
+* Adjust the size information ( +la-size-sect+) in the file
+  +/tmp/metadata+ accordingly, on both nodes. Remember that
+  +la-size-sect+ must be specified in sectors.
+
+* Re-initialize the metadata area:
+
+----------------------------
+drbdadm create-md <resource>
+----------------------------
+
+* Re-import the corrected meta data, on both nodes:
+---------------------------- 
+drbdmeta_cmd=$(drbdadm -d dump-md test-disk)
+${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata
+Valid meta-data in place, overwrite? [need to type 'yes' to confirm] 
+yes
+Successfully restored meta data
+----------------------------
+
+NOTE: This example uses +bash+ parameter substitution. It may or may
+not work in other shells. Check your +SHELL+ environment variable if
+you are unsure which shell you are currently using.
+
+* Re-enable your DRBD resource:
+----------------------------
+drbdadm up <resource>
+----------------------------
+
+* On one node, promote the DRBD resource:
+----------------------------
+drbdadm primary <resource>
+----------------------------
+
+* Finally, grow the file system so it fills the extended size of the
+  DRBD device.
+
+
+[[s-shrinking-online]]
+=== Shrinking on-line
+
+indexterm:[resource]Before shrinking a DRBD device, you _must_ shrink
+the layers above DRBD, i.e. usually the file system. Since DRBD cannot
+ask the file system how much space it actually uses, you have to be
+careful in order not to cause data loss.
+
+NOTE: Whether or not the _filesystem_ can be shrunk on-line depends on
+the filesystem being used. Most filesystems do not support on-line
+shrinking. XFS does not support shrinking at all.
+
+
+When using internal meta data, make sure to consider the space
+required by the meta data. The size communicated to `drbdadm resize`
+is the net size for the file system. In the case of internal meta
+data, the gross size required by DRBD is higher (see also
+<<s-meta-data-size>>).
+
+To shrink DRBD on-line, issue the following command _after_you have
+shrunk the file system residing on top of it:
+
+[source]
+----------------------------
+drbdadm -- --size=<new-size> resize <resource>
+----------------------------
+
+You may use the usual multiplier suffixes for _<new-size>_ (K, M, G
+etc.). After you have shrunk DRBD, you may also shrink the containing
+block device (if it supports shrinking).
+
+[[s-shrinking-offline]]
+=== Shrinking off-line
+
+indexterm:[resource]If you were to shrink a backing block device while
+DRBD is inactive, DRBD would refuse to attach to this block device
+during the next attach attempt, since it is now too small (in case
+external meta data is used), or it would be unable to find its meta
+data (in case internal meta data is used). To work around these
+issues, use this procedure (if you cannot use
+<<s-shrinking-online,on-line shrinking>>):
+
+
+WARNING: This is an advanced procedure. Use at your own discretion.
+
+* Shrink the file system from one node, while DRBD is still
+  configured.
+
+* Unconfigure your DRBD resource:
+
+----------------------------
+drbdadm down <resource>
+----------------------------
+
+* Save the meta data in a text file prior to shrinking:
+
+----------------------------
+drbdadm dump-md _resource_ > +/tmp/metadata+
+----------------------------
+
+You must do this on both nodes, using a separate dump file for every
+node. _Do not_ dump the meta data on one node, and simply copy the dump
+file to the peer. This will not work.
+
+* Shrink the backing block device on both nodes.
+
+* Adjust the size information ( +la-size-sect+) in the file
+  +/tmp/metadata+accordingly, on both nodes. Remember that
+  +la-size-sect+must be specified in sectors.
+
+* _Only if you are using internal metadata_ (which at this time have
+  probably been lost due to the shrinking process), re-initialize the
+  metadata area:
+
+----------------------------
+drbdadm create-md <resource>
+----------------------------
+
+* Re-import the corrected meta data, on both nodes:
+
+----------------------------
+drbdmeta_cmd=$(drbdadm -d dump-md test-disk)
+${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata
+Valid meta-data in place, overwrite? [need to type 'yes' to confirm]
+yes
+Successfully restored meta data
+----------------------------
+
+NOTE: This example uses +bash+ parameter substitution. It may or may not
+work in other shells. Check your +SHELL+ environment variable if you
+are unsure which shell you are currently using.
+
+* Re-enable your DRBD resource:
+
+----------------------------
+drbdadm up <resource>
+----------------------------
+
+
+[[s-disable-flushes]]
+== Disabling backing device flushes
+
+CAUTION: You should only disable device flushes when running DRBD on
+devices with a battery-backed write cache (BBWC). Most storage
+controllers allow to automatically disable the write cache when the
+battery is depleted, switching to write-through mode when the battery
+dies. It is strongly recommended to enable such a feature.
+
+Disabling DRBD's flushes when running without BBWC, or on BBWC with a
+depleted battery, is _likely to cause data loss_ and should not be
+attempted.
+
+DRBD allows you to enable and disable <<s-disk-flush-support,backing
+device flushes>> separately for the replicated data set and DRBD's own
+meta data. Both of these options are enabled by default. If you wish
+to disable either (or both), you would set this in the +disk+ section
+for the DRBD configuration file, +/etc/drbd.conf+.
+
+To disable disk flushes for the replicated data set, include the
+following line in your configuration:
+
+[source]
+----------------------------
+resource <resource>
+  disk {
+    no-disk-flushes;
+    ...
+  }
+  ...
+}
+----------------------------
+
+
+To disable disk flushes on DRBD's meta data, include the following
+line:
+
+[source]
+----------------------------
+resource <resource>
+  disk {
+    no-md-flushes;
+    ...
+  }
+  ...
+}
+----------------------------
+
+After you have modified your resource configuration (and synchronized
+your +/etc/drbd.conf+between nodes, of course), you may enable these
+settings by issuing these commands on both nodes: 
+
+----------------------------
+drbdadm down <resource>
+drbdadm up <resource>
+----------------------------
+
+
+[[s-configure-split-brain-behavior]]
+== Configuring split brain behavior
+
+[[s-split-brain-notification]]
+=== Split brain notification
+
+DRBD invokes the +split-brain+ handler, if configured, at any time
+split brain is _detected_. To configure this handler, add the
+following item to your resource configuration:
+
+----------------------------
+resource <resource>
+  handlers {
+    split-brain <handler>;
+    ...
+  }
+  ...
+}
+----------------------------
+
+_<handler>_ may be any executable present on the system. 
+
+Since DRBD version 8.2.6, the DRBD distribution contains a split brain
+handler script that installs as
++/usr/lib/drbd/notify-split-brain.sh+. It simply sends a notification
+e-mail message to a specified address. To configure the handler to
+send a message to +root@localhost+ (which is expected to be an email
+address that forwards the notification to a real system
+administrator), configure the +split-brain handler+as follows:
+
+----------------------------
+resource <resource>
+  handlers {
+    split-brain "/usr/lib/drbd/notify-split-brain.sh root";
+    ...
+  }
+  ...
+}
+----------------------------
+
+After you have made this modification on a running resource (and
+synchronized the configuration file between nodes), no additional
+intervention is needed to enable the handler. DRBD will simply invoke
+the newly-configured handler on the next occurrence of split brain.
+
+[[s-automatic-split-brain-recovery-configuration]]
+=== Automatic split brain recovery policies
+
+In order to be able to enable and configure DRBD's automatic split
+brain recovery policies, you must understand that DRBD offers several
+configuration options for this purpose. DRBD applies its split brain
+recovery procedures based on the number of nodes in the Primary role
+at the time the split brain is detected. To that end, DRBD examines
+the following keywords, all found in the resource's +net+ configuration
+section:
+
+.+after-sb-0pri+
+Split brain has just been detected, but at this time the resource is
+not in the Primary role on any host. For this option, DRBD understands
+the following keywords: 
+
+* +disconnect+: Do not recover automatically, simply invoke the
+  +split-brain+handler script (if configured), drop the connection and
+  continue in disconnected mode.
+
+
+* +discard-younger-primary+: Discard and roll back the modifications
+  made on the host which assumed the Primary role last.
+
+* +discard-least-changes+: Discard and roll back the modifications on
+the host where fewer changes occurred.
+
+* .+discard-zero-changes+: If there is any host on which no changes
+  occurred at all, simply apply all modifications made on the other
+  and continue.
+
+.+after-sb-1pri+
+Split brain has just been detected, and at this time the resource is
+in the Primary role on one host. For this option, DRBD understands the
+following keywords:
+
+* +disconnect+: As with +after-sb-0pri+, simply invoke the
+  +split-brain+ handler script (if configured), drop the connection
+  and continue in disconnected mode.
+
+* +consensus+: Apply the same recovery policies as specified in
+  +after-sb-0pri+. If a split brain victim can be selected after
+  applying these policies, automatically resolve. Otherwise, behave
+  exactly as if +disconnect+ were specified.
+
+* +call-pri-lost-after-sb+: Apply the recovery policies as specified
+  in +after-sb-0pri+. If a split brain victim can be selected after
+  applying these policies, invoke the +pri-lost-after-sb+ handler on
+  the victim node. This handler must be configured in the
+  +handlers+ section and is expected to forcibly remove the node from
+  the cluster.
+
+* +discard-secondary+: Whichever host is currently in the Secondary
+  role, make that host the split brain victim.
+
++after-sb-2pri+.
+Split brain has just been detected, and at this time the resource is
+in the Primary role on both hosts. This option accepts the same
+keywords as +after-sb-1pri+ except +discard-secondary+and +consensus+.
+
+NOTE:DRBD understands additional keywords for these three options,
+which have been omitted here because they are very rarely used. Refer
+to <<re-drbdconf>> for details on split brain recovery keywords not
+discussed here. 
+
+For example, a resource which serves as the block device for a GFS or
+OCFS2 file system in dual-Primary mode may have its recovery policy
+defined as follows:
+
+----------------------------
+resource <resource> {
+  handlers {
+    split-brain "/usr/lib/drbd/notify-split-brain.sh root"
+    ...
+  }
+  net {
+    after-sb-0pri discard-zero-changes;
+    after-sb-1pri discard-secondary;
+    after-sb-2pri disconnect;
+    ...
+  }
+  ...
+}
+----------------------------
+
+
+[[s-three-nodes]]
+== Creating a three-node setup
+
+// Available in DRBD version 8.3.0 and above
+
+A three-node setup involves one DRBD device _stacked_ atop another.
+
+[[s-stacking-considerations]]
+=== Device stacking considerations
+
+The following considerations apply to this type of setup:
+
+* The stacked device is the active one. Assume you have configured one
+  DRBD device +/dev/drbd0+, and the stacked device atop it is
+  +/dev/drbd10+, then +/dev/drbd10+ will be the device that you mount
+  and use.
+
+* Device meta data will be stored twice, on the underlying DRBD device
+  _and_ the stacked DRBD device. On the stacked device, you must always
+  use <<s-internal-meta-data,internal meta data>>. This means that the
+  effectively available storage area on a stacked device is slightly
+  smaller, compared to an unstacked device.
+
+* To get the stacked upper level device running, the underlying device
+  must be in the primary role.
+
+* To be able to synchronize the backup node, the stacked device on the
+  active node must be up and in the primary role.
+
+
+[[s-three-node-config]]
+=== Configuring a stacked resource
+
+In the following example, nodes are named +alice+, +bob+, and
++charlie+, with +alice+ and +bob+ forming a two-node cluster, and
++charlie+ being the backup node. 
+
+[source]
+----------------------------
+resource r0 {
+  protocol C;
+
+  on alice {
+    device     /dev/drbd0;
+    disk       /dev/sda6;
+    address    10.0.0.1:7788;
+    meta-disk internal;
+  }
+
+  on bob {
+    device    /dev/drbd0;
+    disk      /dev/sda6;
+    address   10.0.0.2:7788;
+    meta-disk internal;
+  }
+}
+
+resource r0-U {
+  protocol A;
+
+  stacked-on-top-of r0 {
+    device     /dev/drbd10;
+    address    192.168.42.1:7788;
+  }
+
+  on charlie {
+    device     /dev/drbd10;
+    disk       /dev/hda6;
+    address    192.168.42.2:7788; # Public IP of the backup node
+    meta-disk  internal;
+  }
+}
+----------------------------
+
+As with any +drbd.conf+configuration file, this must be distributed
+across all nodes in the cluster -- in this case, three nodes. Notice
+the following extra keyword not found in an unstacked resource
+configuration:
+
+.+stacked-on-top-of+
+This option informs DRBD that the resource which contains it is a
+stacked resource. It replaces one of the +on+ sections normally found
+in any resource configuration. Do not use +stacked-on-top-of+ in an
+lower-level resource.
+
+NOTE: It is not a requirement to use <<fp-protocol-a,Protocol A>> for
+stacked resources. You may select any of DRBD's replication protocols
+depending on your application. 
+
+[[s-three-node-enable]]
+=== Enabling stacked resources
+
+To enable a stacked resource, you first enable its lower-level resource and promote it:
+----------------------------
+drbdadm up r0
+drbdadm primary r0
+----------------------------
+
+As with unstacked resources, you must create DRBD meta data on the
+stacked resources. This is done using the following command: 
+
+----------------------------
+drbdadm --stacked create-md r0-U
+----------------------------
+
+Then, you may enable the stacked resource:
+
+---------------------------
+drbdadm --stacked up r0-U
+drbdadm --stacked primary r0-U
+----------------------------
+
+After this, you may bring up the resource on the backup node, enabling three-node replication: 
+
+----------------------------
+drbdadm create-md r0-U
+drbdadm up r0-U
+----------------------------
+
+In order to automate stacked resource management, you may integrate
+stacked resources in your cluster manager configuration. See
+<<s-pacemaker-stacked-resources>> for information on doing this in a
+cluster managed by the Pacemaker cluster management framework.
+
+[[s-using-drbd-proxy]]
+== Using DRBD Proxy
+
+[[s-drbd-proxy-deployment-considerations]]
+=== DRBD Proxy deployment considerations
+
+The <<s-drbd-proxy,DRBD Proxy>> processes can either be located
+directly on the machines where DRBD is set up, or they can be placed
+on distinct dedicated servers. A DRBD Proxy instance can serve as a
+proxy for multiple DRBD devices distributed across multiple nodes.
+
+DRBD Proxy is completely transparent to DRBD. Typically you will
+expect a high number of data packets in flight, therefore the activity
+log should be reasonably large. Since this may cause longer re-sync
+runs after the crash of a primary node, it is recommended to enable
+DRBD's +csums-alg+ setting. 
+
+[[s-drbd-proxy-installation]]
+=== Installation
+
+To obtain DRBD Proxy, please contact your Linbit sales
+representative. Unless instructed otherwise, please always use the
+most recent DRBD Proxy release.
+
+To install DRBD Proxy on Debian and Debian-based systems, use the dpkg
+tool as follows (replace version with your DRBD Proxy version, and
+architecture with your target architecture):
+
+----------------------------
+dpkg -i drbd-proxy_1.0.16_i386.deb
+----------------------------
+
+To install DRBD Proxy on RPM based systems (like SLES or RHEL) use
+the rpm tool as follows (replace version with your DRBD Proxy version,
+and architecture with your target architecture):
+
+----------------------------
+rpm -i drbd-proxy-1.0.16-1.i386.rpm
+----------------------------
+
+Also install the DRBD administration program drbdadm since it is
+required to configure DRBD Proxy.
+
+This will install the DRBD proxy binaries as well as an init script
+which usually goes into +/etc/init.d+. Please always use the init
+script to start/stop DRBD proxy since it also configures DRBD Proxy
+using the +drbdadm+ tool. 
+
+[[s-drbd-proxy-license]]
+=== License file
+
+When obtaining a license from Linbit, you will be sent a DRBD Proxy
+license file which is required to run DRBD Proxy. The file is called
++drbd-proxy.license+ and must be copied into the +/etc+ directory of the
+target machines.
+
+----------------------------
+cp drbd-proxy.license /etc
+----------------------------
+
+
+[[s-drbd-proxy-configuration]]
+=== Configuration
+
+DRBD Proxy is configured in DRBD's main configuration file. It is
+configured by an additional options section called +proxy+ and
+additional +proxy on+ sections within the host sections. 
+
+Below is a DRBD configuration example for proxies running directly on
+the DRBD nodes:
+
+[source]
+----------------------------
+resource r0 {
+        protocol A;
+        device     minor 0;
+        disk       /dev/sdb1;
+        flexible-meta-disk  /dev/sdb2;
+
+	proxy {
+	      compression on;
+	      memlimit 100M;
+	}
+
+        on alice {
+                address 127.0.0.1:7789;
+                proxy on alice {
+                        inside 127.0.0.1:7788;
+                        outside 192.168.23.1:7788;
+                }
+        }
+
+        on bob {
+                address 127.0.0.1:7789;
+                proxy on bob {
+                        inside 127.0.0.1:7788;
+                        outside 192.168.23.2:7788;
+                }
+        }
+}
+----------------------------
+
+The +inside+ IP address is used for communication between DRBD and the
+DRBD Proxy, whereas the +outside+ IP address is used for communication
+between the proxies.
+
+[[s-drbd-proxy-controlling]]
+=== Controlling DRBD Proxy
+
++drbdadm+ offers the +proxy-up+ and +proxy-down+ subcommands to
+configure or delete the connection to the local DRBD Proxy process of
+the named DRBD resource(s). These commands are used by the +start+ and
++stop+ actions which +/etc/init.d/drbdproxy+ implements. 
+
+The DRBD Proxy has a low level configuration tool, called
++drbd-proxy-ctl+. When called without any option it operates in
+interactive mode. The available commands are displayed by the 'help'
+command. 
+
+[source]
+--------------------
+Help for drbd-proxy.
+--------------------
+
+add connection <name> <ip-listen1>:<port> <ip-connect1>:<port>
+   <ip-listen2>:<port> <ip-connect2>:<port>
+   Creates a communication path between two DRBD instances.
+
+set memlimit <name> <memlimit-in-bytes>
+   Sets memlimit for connection <name>
+
+del connection <name>
+   Deletes communication path named name.
+
+show
+   Shows currently configured communication paths.
+
+show memusage
+   Shows memory usage of each connection.
+
+list [h]subconnections
+   Shows currently established individual connections
+   together with some stats. With h outputs bytes in human
+   readable format.
+
+list [h]connections
+   Shows currently configured connections and their states
+   With h outputs bytes in human readable format.
+
+list details
+   Shows currently established individual connections with
+   counters for each DRBD packet type.
+
+quit
+   Exits the client program (closes control connection).
+
+shutdown
+   Shuts down the drbd-proxy program. Attention: this
+   unconditionally terminates any DRBD connections running.
+----------------------------
+
+[[s-drbd-proxy-troubleshoot]]
+=== Troubleshooting
+
+DRBD proxy logs via syslog using the +LOG_DAEMON+ facility. Usually
+you will find DRBD Proxy messages in +/var/log/daemon.log+.
+
+For example, if proxy fails to connect it will log something like
++Rejecting connection because I can't connect on the other side+. In
+that case, please check if DRBD is running (not in StandAlone mode) on
+both nodes and if both proxies are running. Also double-check your
+configuration.
+
