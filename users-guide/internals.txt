@@ -1,5 +1,5 @@
 [[ch-internals]]
-= DRBD Internals
+== DRBD Internals
 
 This chapter gives _some_ background information about some of DRBD's
 internal algorithms and structures. It is intended for interested
@@ -10,7 +10,7 @@ papers listed in <<s-publications>>, and of course to the comments in
 the DRBD source code.
 
 [[s-metadata]]
-== DRBD meta data
+=== DRBD meta data
 
 indexterm:[meta data]DRBD stores various pieces of information about
 the data it keeps in a dedicated area. This metadata includes:
@@ -24,7 +24,7 @@ This metadata may be stored _internally_and _externally_. Which method
 is used is configurable on a per-resource basis.
 
 [[s-internal-meta-data]]
-=== Internal meta data
+==== Internal meta data
 
 indexterm:[meta data]Configuring a resource to use internal meta data
 means that DRBD stores its meta data on the same physical lower-level
@@ -73,7 +73,7 @@ To estimate the amount by which you must enlarge your lower-level
 device our shrink your file system, see <<s-meta-data-size>>.
 
 [[s-external-meta-data]]
-=== External meta data
+==== External meta data
 
 indexterm:[meta data]External meta data is simply stored on a
 separate, dedicated block device distinct from that which holds your
@@ -104,7 +104,7 @@ To estimate the required size of the block device dedicated to hold
 your device meta data, see <<s-meta-data-size>>.
 
 [[s-meta-data-size]]
-=== Estimating meta data size
+==== Estimating meta data size
 
 indexterm:[meta data]You may calculate the exact space requirements
 for DRBD's meta data using the following formula:
@@ -130,7 +130,7 @@ below. Note that in this formula, the unit is megabytes, not sectors:
 image:metadata-size-approx[]
 
 [[s-gi]]
-== Generation Identifiers
+=== Generation Identifiers
 
 indexterm:[generation identifiers]DRBD uses _generation	identifiers_(
 GIs) to identify "generations"of replicated data. 
@@ -149,7 +149,7 @@ This is DRBD's internal mechanism used for
 * indexterm:[split brain]identifying split brain.
 
 [[s-data-generations]]
-=== Data generations
+==== Data generations
 
 DRBD marks the start of a new _data generation_at each of the
 following occurrences:
@@ -169,7 +169,7 @@ Every new data generation is identified by a 8-byte, universally
 unique identifier (UUID).
 
 [[s-gi-tuple]]
-=== The generation identifier tuple
+==== The generation identifier tuple
 
 DRBD keeps four pieces of information about current and historical
 data generations in the local resource meta data:
@@ -191,10 +191,10 @@ Collectively, these four items are referred to as the _generation
 identifier tuple_, or GI tuple" for short.
 
 [[s-gi-changes]]
-=== How generation identifiers change
+==== How generation identifiers change
 
 [[s-gi-changes-newgen]]
-==== Start of a new data generation
+===== Start of a new data generation
 
 When a node loses connection to its peer (either by network failure or
 manual intervention), DRBD modifies its local generation identifiers
@@ -214,7 +214,7 @@ image::gi-changes-newgen[]
 . On the secondary node, the GI tuple remains unchanged.
 
 [[s-gi-changes-syncstart]]
-==== Start of re-sychronization
+===== Start of re-sychronization
 
 Upon the initiation of re-synchronization, DRBD performs these
 modifications on the local generation identifiers:
@@ -237,7 +237,7 @@ image::gi-changes-syncstart[]
 
 
 [[s-gi-changes-synccomplete]]
-==== Completion of re-synchronization
+===== Completion of re-synchronization
 
 When re-synchronization concludes, the following changes are
 performed:
@@ -261,7 +261,7 @@ image::gi-changes-synccomplete[]
 
 
 [[s-gi-use]]
-=== How DRBD uses generation identifiers
+==== How DRBD uses generation identifiers
 
 When a connection between nodes is established, the two nodes exchange
 their currently available generation identifiers, and proceed
@@ -344,10 +344,10 @@ before.
 
 
 [[s-activity-log]]
-== The Activity Log
+=== The Activity Log
 
 [[s-al-purpose]]
-=== Purpose
+==== Purpose
 
 indexterm:[Activity Log]During a write operation DRBD forwards the
 write operation to the local backing block device, but also sends the
@@ -381,7 +381,7 @@ need to be synchronized, rather than the full device. This drastically
 reduces synchronization time after an active node crash.
 
 [[s-active-extents]]
-=== Active extents
+==== Active extents
 
 indexterm:[Activity Log]The activity log has a configurable parameter,
 the number of active extents. Every active extent adds 4MiB to the
@@ -403,7 +403,7 @@ node failure and subsequent recovery.
 
 
 [[s-suitable-al-size]]
-=== Selecting a suitable Activity Log size
+==== Selecting a suitable Activity Log size
 
 indexterm:[Activity Log]The definition of the number of extents should
 be based on the desired synchronisation time at a given
@@ -433,7 +433,7 @@ implementation of the AL works best if the number of extents is set to
 a prime number, we select 1801.
 
 [[s-quick-sync-bitmap]]
-== The quick-sync bitmap
+=== The quick-sync bitmap
 
 indexterm:[quick-sync bitmap]indexterm:[bitmap (DRBD-specific
 concept)]The quick-sync bitmap is the internal data structure which
@@ -479,7 +479,7 @@ re-synchronization leaves your secondary node's disk
 +Inconsistent+ longer than necessary.
 
 [[s-fence-peer]]
-== The peer fencing interface
+=== The peer fencing interface
 
 DRBD has a defined interface for the mechanism that fences the peer
 node in case of the replication link being interrupted. The
