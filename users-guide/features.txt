@@ -10,7 +10,7 @@ operation.
 
 [[s-single-primary-mode]]
 ===  Single-primary mode
-    
+
 In single-primary mode, any <<s-resources,resource>> is, at any given
 time, in the primary role on only one cluster member. Since it is thus
 guaranteed that only one cluster node manipulates the data at any
@@ -19,12 +19,12 @@ ext4, XFS etc.).
 
 Deploying DRBD in single-primary mode is the canonical approach for
 high availability (fail-over capable) clusters.
-    
+
 [[s-dual-primary-mode]]
 === Dual-primary mode
 
 NOTE: This feature is available in DRBD 8.0 and later.
-    
+
 In dual-primary mode, any resource is, at any given time, in the
 primary role on both cluster nodes. Since concurrent access to the
 data is thus possible, this mode requires the use of a shared cluster
@@ -38,7 +38,7 @@ explicitly in DRBD's configuration file.
 
 See <<s-enable-dual-primary>> for information on enabling dual-primary
 mode for specific resources.
-  
+
 [[s-replication-protocols]]
 === Replication modes
 
@@ -54,7 +54,7 @@ TCP send buffer. In the event of forced fail-over, data loss may
 occur. The data on the standby node is consistent after fail-over,
 however, the most recent updates performed prior to the crash could be
 lost.
-    
+
 [[fp-protocol-b]]
 .Protocol B
 Memory synchronous (semi-synchronous) replication protocol. Local
@@ -64,7 +64,7 @@ reached the peer node. Normally, no writes are lost in case of forced
 fail-over. However, in the event of simultaneous power failure on both
 nodes and concurrent, irreversible destruction of the primary's data
 store, the most recent writes completed on the primary may be lost.
-    
+
 [[fp-protocol-c]]
 .Protocol C
 Synchronous replication protocol. Local write operations on the
@@ -74,17 +74,17 @@ single node is guaranteed not to lead to any data loss. Data loss is,
 of course, inevitable even with this replication protocol if both
 nodes (or their storage subsystems) are irreversibly destroyed at the
 same time.
-    
+
 By far, the most commonly used replication protocol in DRBD setups is
 protocol C.
-    
+
 The choice of replication protocol influences two factors of your
 deployment: _protection_ and _latency_. _Throughput_, by contrast, is
 largely independent of the replication protocol selected.
 
 See <<s-configure-resource>> for an example resource configuration
 which demonstrates replication protocol configuration.
-  
+
 [[s-replication-transports]]
 === Multiple replication transports
 
@@ -92,7 +92,7 @@ NOTE: This feature is available in DRBD 8.2.7 and later.
 
 DRBD's replication and synchronization framework socket layer supports
 multiple low-level transports:
-    
+
 .TCP over IPv4
 This is the canonical implementation, and DRBD's default. It may be
 used on any system that has IPv4 enabled.
@@ -102,7 +102,7 @@ When configured to use standard TCP sockets for replication and
 synchronization, DRBD can use also IPv6 as its network protocol. This
 is equivalent in semantics and performance to IPv4, albeit using a
 different addressing scheme.
-	
+
 .SuperSockets
 SuperSockets replace the TCP/IP portions of the stack with a single,
 monolithic, highly efficient and RDMA capable socket
@@ -113,19 +113,19 @@ Solutions.
 
 [[s-resync]]
 === Efficient synchronization
-    
+
 (Re-)synchronization is distinct from device replication. While
 replication occurs on any write event to a resource in the primary
 role, synchronization is decoupled from incoming writes. Rather, it
 affects the device as a whole.
-    
+
 Synchronization is necessary if the replication link has been
 interrupted for any reason, be it due to failure of the primary node,
 failure of the secondary node, or interruption of the replication
 link. Synchronization is efficient in the sense that DRBD does not
 synchronize modified blocks in the order they were originally written,
 but in linear order, which has the following consequences:
-      
+
 * Synchronization is fast, since blocks in which several successive
   write operations occurred are only synchronized once.
 
@@ -135,7 +135,7 @@ but in linear order, which has the following consequences:
 * During synchronization, the data set on the standby node is partly
   obsolete and partly already updated. This state of data is called
   _inconsistent_.
-      
+
 A node with inconsistent data generally cannot be put into operation,
 thus it is desirable to keep the time period during which a node is
 inconsistent as short as possible. The service continues to run
@@ -144,12 +144,12 @@ in progress.
 
 You may estimate the expected sync time based on the following simple
 formula:
-      
+
 [[eq-resync-time]]
 [equation]
 .Synchronization time
 image::resync-time[\[t_{sync}=\frac{D}{R}\]]
-	
+
 _t~sync~_ is the expected sync time. _D_ is the amount of data to be
 synchronized, which you are unlikely to have any influence over (this
 is the amount of data that was modified by your application while the
@@ -172,7 +172,7 @@ contents while DRBD is in disconnected mode.
 See <<s-configure-syncer-rate>> and <xref
 linkend="s-configure-checksum-sync"/> for configuration suggestions
 with regard to synchronization.
-  
+
 [[s-online-verify]]
 === On-line device verification
 
@@ -180,12 +180,12 @@ NOTE: This feature is available in DRBD 8.2.5 and later.
 
 On-line device verification enables users to do a block-by-block data
 integrity check between nodes in a very efficient manner.
-      
+
 Note that _efficient_ refers to efficient use of network bandwidth
 here, and to the fact that verification does not break redundancy in
 any way. On-line verification is still a resource-intensive operation,
 with a noticeable impact on CPU utilization and load average.
-      
+
 It works by one node (the _verification source_) sequentially
 calculating a cryptographic digest of every block stored on the
 lower-level storage device of a particular resource. DRBD then
@@ -207,20 +207,20 @@ It is a common use case to have on-line verification managed by the
 local cron daemon, running it, for example, once a week or once a
 month.  See <<s-use-online-verify>> for information on how to enable,
 invoke, and automate on-line verification.
-  
+
 [[s-integrity-check]]
 === Replication traffic integrity checking
 
 NOTE: This feature is available in DRBD 8.2.0 and later.
-    
+
 DRBD optionally performs end-to-end message integrity checking using
 cryptographic message digest algorithms such as MD5, SHA-1 or CRC-32C.
-      
+
 These message digest algorithms are not _provided_ by DRBD. The Linux
 kernel crypto API provides these; DRBD merely uses them. Thus, DRBD is
 capable of utilizing any message digest algorithm available in a
 particular system's kernel configuration.
-      
+
 With this feature enabled, DRBD generates a message digest of every
 data block it replicates to the peer, which the peer then uses to
 verify the integrity of the replication packet. If the replicated
@@ -228,7 +228,7 @@ block can not be verified against the digest, the peer requests
 retransmission. Thus, DRBD replication is protected against several
 error sources, all of which, if unchecked, would potentially lead to
 data corruption during the replication process:
-      
+
 * Bitwise errors ("bit flips") occurring on data in transit between
   main memory and the network interface on the sending node (which
   goes undetected by TCP checksumming if it is offloaded to the
@@ -237,17 +237,17 @@ data corruption during the replication process:
 * bit flips occuring on data in transit from the network interface to
   main memory on the receiving node (the same considerations apply for
   TCP checksum offloading);
-	
+
 * any form of corruption due to a race conditions or bugs in network
   interface firmware or drivers;
-	
+
 * bit flips or random corruption injected by some reassembling network
   component between nodes (if not using direct, back-to-back
   connections).
-	
+
 See <<s-configure-integrity-check>> for information on how to enable
 replication traffic integrity checking.
-  
+
 [[s-split-brain-notification-and-recovery]]
 ===  Split brain notification and automatic recovery
 
@@ -258,7 +258,7 @@ the younger primary strategy, which was not configurable. Automatic
 split brain recovery is disabled by default from DRBD 8 onwards.
 
 NOTE: Split brain notification is available since DRBD 8.2.1.
-    
+
 Split brain is a situation where, due to temporary failure of all
 network links between cluster nodes, and possibly due to intervention
 by a cluster management software or human error, both nodes switched
@@ -267,15 +267,15 @@ state, as it implies that modifications to the data might have been
 made on either node, without having been replicated to the peer. Thus,
 it is likely in this situation that two diverging sets of data have
 been created, which cannot be trivially merged.
-      
+
 DRBD split brain is distinct from cluster split brain, which is the
 loss of all connectivity between hosts managed by a distributed
 cluster management application such as Heartbeat. To avoid confusion,
 this guide uses the following convention:
-	
+
 * _Split brain_ refers to DRBD split brain as described in the
   paragraph above.
-	    
+
 * Loss of all cluster connectivity is referred to as a _cluster
   partition_, an alternative term for cluster split brain.
 
@@ -288,12 +288,12 @@ While the recommended course of action in this scenario is to
 eliminate its root cause, it may be desirable, in some cases, to
 automate the process. DRBD has several resolution algorithms available
 for doing so:
-      
+
 * *Discarding modifications made on the younger primary.* In this
   mode, when the network connection is re-established and split brain
   is discovered, DRBD will discard modifications made, in the
   meantime, on the node which switched to the primary role _last_.
-	    
+
 * *Discarding modifications made on the older primary.* In this mode,
   DRBD will discard modifications made, in the meantime, on the node
   which switched to the primary role _first_.
@@ -320,10 +320,10 @@ database. By contrast, it may be totally unacceptable to automatically
 discard _any_ modifications made to a financial database, requiring
 manual recovery in any split brain event. Consider your application's
 requirements carefully before enabling automatic split brain recovery.
-      
+
 Refer to <<s-automatic-split-brain-recovery-configuration>> for
 details on configuring DRBD's automatic split brain recovery policies.
-  
+
 [[s-disk-flush-support]]
 === Support for disk flushes
 
@@ -361,7 +361,7 @@ writes committed to the volatile cache are actually transferred to
 stable storage. When running DRBD on top of such devices, it may be
 acceptable to disable disk flushes, thereby improving DRBD's write
 performance. See <<s-disable-flushes>> for details.
-  
+
 [[s-handling-disk-errors]]
 === Disk error handling strategies
 
@@ -378,7 +378,7 @@ layers. Thus, it is left to upper layers to deal with such errors
 (this may result in a file system being remounted read-only, for
 example). This strategy does not ensure service continuity, and is
 hence not recommended for most users.
-    
+
 [[fp-io-error-detach]]
 .Masking I/O errors
 If DRBD is configured to _detach_ on lower-level I/O error, DRBD will
@@ -390,10 +390,10 @@ and carries out all subsequent I/O operations, read and write, on the
 peer node. Performance in this mode is inevitably expected to suffer,
 but the service continues without interruption, and can be moved to
 the peer node in a deliberate fashion at a convenient time.
-    
+
 See <<s-configure-io-error-behavior>> for information on configuring
 I/O error handling strategies for DRBD.
-  
+
 [[s-outdate]]
 === Strategies for dealing with outdated data
 
@@ -432,7 +432,7 @@ synchronization>> then follows.
 See the section about <<s-heartbeat-dopd,the DRBD outdate-peer daemon
 (dopd)>> for an example DRBD/Heartbeat configuration enabling
 protection against inadvertent use of outdated data.
-  
+
 [[s-three-way-repl]]
 === Three-way replication
 
@@ -447,8 +447,8 @@ on top of the existing resource holding your production data, as seen
 in this illustration:
 
 .DRBD resource stacking
-image::drbd-resource-stacking[scaledwidth="100%"]	
-	  
+image::drbd-resource-stacking[scaledwidth="100%"]
+
 The stacked resource is replicated using asynchronous replication
 (DRBD protocol A), whereas the production data would usually make use
 of synchronous replication (DRBD protocol C).
@@ -459,7 +459,7 @@ cluster. Alternatively, it may also be employed on demand, where the
 production cluster is normally disconnected from the backup site, and
 site-to-site synchronization is performed on a regular basis, for
 example by running a nightly cron job.
-  
+
 [[s-drbd-proxy]]
 === Long-distance replication with DRBD Proxy
 
@@ -494,12 +494,12 @@ the effective bandwidth increases well justifies the use of the DRBD
 Proxy even with DRBD protocols B and C.
 
 See <<s-using-drbd-proxy>> for information on configuring DRBD Proxy.
-    
+
 NOTE: DRBD Proxy is the only part of the DRBD product family that is
       not published under an open source license. Please contact
       sales@linbit.com or sales_us@linbit.com for an evaluation
       license.
-    
+
 [[s-truck-based-replication]]
 === Truck based replication
 
@@ -510,20 +510,20 @@ for situations where
 
 * the total amount of data to be replicated is fairly
   large (more than a few hundreds of gigabytes);
-	
+
 * the expected rate of change of the data to be replicated is less
   than enormous;
 
 * the available network bandwidth between sites is
   limited.
-	
+
 In such situations, without truck based replication, DRBD would
 require a very long initial device synchronization (on the order of
 days or weeks). Truck based replication allows us to ship a data seed
 to the remote site, and drastically reduce the initial synchronization
 time.  See <<s-using-truck-based-replication>> for details on this use
 case.
-  
+
 [[s-floating-peers]]
 === Floating peers
 
@@ -538,6 +538,6 @@ host name.
 
 For more information about managing floating peer configurations, see
 <<s-pacemaker-floating-peers>>.
-  
+
 
 

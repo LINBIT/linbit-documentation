@@ -93,7 +93,7 @@ cluster. After this, you should have a block device named
 +/dev/foo/bar+ on either node.
 
 Then, you can simply enter the newly-created volumes in your resource
-configuration: 
+configuration:
 
 [source,drbd]
 ----------------------------
@@ -128,7 +128,7 @@ primary role: indexterm:[LVM]indexterm:[pvcreate (LVM command)]
 pvcreate /dev/drbdX
 ----------------------------
 
-or 
+or
 
 ----------------------------
 pvcreate /dev/drbd/by-res/resource
@@ -160,7 +160,7 @@ detects PV signatures on stacked resources, while ignoring them on the
 corresponding lower-level resources and backing devices. This example
 assumes that your lower-level DRBD resources use device minors 0
 through 9, whereas your stacked resources are using device minors from
-10 upwards: 
+10 upwards:
 
 [source,drbd]
 ----------------------------
@@ -220,7 +220,7 @@ It is possible, if slightly advanced, to both use
 indexterm:[LVM]indexterm:[Logical Volume (LVM)]Logical Volumes as
 backing devices for DRBD _and_ at the same time use a DRBD device
 itself as a indexterm:[LVM]indexterm:[Physical Volume (LVM)]Physical
-Volume. To provide an example, consider the following configuration: 
+Volume. To provide an example, consider the following configuration:
 
 * We have two partitions, named +/dev/sda1+, and +/dev/sdb1+, which we
   intend to use as Physical Volumes.
@@ -244,10 +244,10 @@ In order to enable this configuration, follow these steps:
 * Set an appropriate +filter+ option in your +/etc/lvm/lvm.conf+:
 
  indexterm:[LVM]indexterm:[filter expression (LVM)]
-[source,drbd] 
+[source,drbd]
 ----------------------------
-filter = ["a|sd.*|", "a|drbd.*|", "r|.*|"] 
----------------------------- 
+filter = ["a|sd.*|", "a|drbd.*|", "r|.*|"]
+----------------------------
 
 This filter expression accepts PV signatures found on any SCSI and
 DRBD devices, while rejecting (ignoring) all others.
@@ -259,8 +259,8 @@ signatures.
 
 * Disable the LVM cache by setting:
 [source,drbd]
----------------------------- 
-write_cache_state = 0 
+----------------------------
+write_cache_state = 0
 ----------------------------
 
 After disabling the LVM cache, make sure you remove any stale cache
@@ -269,7 +269,7 @@ entries by deleting +/etc/lvm/cache/.cache+.
 * Now, you may initialize your two SCSI partitions as PVs:
   indexterm:[LVM]indexterm:[pvcreate (LVM command)]
 
----------------------------- 
+----------------------------
 pvcreate /dev/sda1
 Physical volume "/dev/sda1" successfully created
 pvcreate /dev/sdb1
@@ -280,7 +280,7 @@ Physical volume "/dev/sdb1" successfully created
 consisting of the two PVs you just initialized:
 indexterm:[LVM]indexterm:[vgcreate (LVM command)]
 
----------------------------- 
+----------------------------
 vgcreate local /dev/sda1 /dev/sda2
 Volume group "local" successfully created
 ----------------------------
@@ -297,12 +297,12 @@ Logical volume "r0" created
 * Then, edit your +/etc/drbd.conf+to create a new resource named +r0+:
   indexterm:[drbd.conf]
 [source,drbd]
----------------------------- 
+----------------------------
 resource r0 {
   device /dev/drbd0;
   disk /dev/local/r0;
-  meta-disk internal; 
-  on _host_ { address _address_:_port_; } 
+  meta-disk internal;
+  on _host_ { address _address_:_port_; }
   on _host_ { address _address_:_port_; }
 }
 ----------------------------
@@ -313,7 +313,7 @@ copy your +drbd.conf+contents to the peer node.
 * After this, initialize your resource as described in
   <<s-first-time-up>>(on both nodes).
 
-* Then, promote your resource (on one node): indexterm:[drbdadm] 
+* Then, promote your resource (on one node): indexterm:[drbdadm]
 ----------------------------
 drbdadm primary r0
 ----------------------------
@@ -337,7 +337,7 @@ Volume group "replicated" successfully created
 ----------------------------
 
 * Finally, create your new Logical Volumes within this newly-created
-  VG: indexterm:[LVM]indexterm:[lvcreate (LVM command)] 
+  VG: indexterm:[LVM]indexterm:[lvcreate (LVM command)]
 ----------------------------
 lvcreate --name foo --size 4G replicated
 Logical volume "foo" created
