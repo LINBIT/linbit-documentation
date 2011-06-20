@@ -60,7 +60,7 @@ configuration: indexterm:[drbd.conf]
 
 [source,drbd]
 ----------------------------
-resource _resource_ {
+resource <resource> {
   startup {
     become-primary-on both;
     ...
@@ -130,12 +130,12 @@ command)]indexterm:[LVM]indexterm:[vgcreate (LVM
 command)]indexterm:[LVM]indexterm:[lvcreate (LVM command)]
 
 ----------------------------
-pvcreate /dev/drbd/by-res/_resource_
-Physical volume "/dev/drbd_num_" successfully created
-vgcreate _vg-name_ /dev/drbd/by-res/_resource_
-Volume group "_vg-name_" successfully created
-lvcreate --size _size_ --name _lv-name__vg-name_
-Logical volume "_lv-name_" created
+pvcreate /dev/drbd/by-res/<resource>
+Physical volume "/dev/drbd<num>" successfully created
+vgcreate <vg-name> /dev/drbd/by-res/<resource>
+Volume group "<vg-name>" successfully created
+lvcreate --size <size> --name <lv-name> <vg-name>
+Logical volume "<lv-name>" created
 ----------------------------
 
 CLVM will immediately notify the peer node of these changes;
@@ -146,14 +146,14 @@ volume.
 
 indexterm:[GFS]Now, you may proceed by creating the actual filesystem:
 ----------------------------
-mkfs -t gfs -p lock_dlm -j 2 /dev/_vg-name_/_lv-name_
+mkfs -t gfs -p lock_dlm -j 2 /dev/<vg-name>/<lv-name>
 ----------------------------
 
 Or, for a GFS2 filesystem:
 
 ----------------------------
-mkfs -t gfs2 -p lock_dlm -j 2 -t _cluster_:_name_
-/dev/_vg-name_/_lv-name_
+mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name>
+/dev/<vg-name>/<lv-name>
 ----------------------------
 
 The +-j+ option in this command refers to the number of journals to
@@ -162,10 +162,10 @@ cluster; since DRBD does not support more than two nodes, the value to
 set here is always 2.
 
 The +-t+ option, applicable only for GFS2 filesystems, defines the lock
-table name. This follows the format _cluster_: _name_, where _cluster_
+table name. This follows the format _<cluster>:<name>_, where _<cluster>_
 must match your cluster name as defined in
 +/etc/cluster/cluster.conf+. Thus, only members of that cluster will
-be permitted to use the filesystem. By contrast, _name_ is an
+be permitted to use the filesystem. By contrast, _<name>_ is an
 arbitrary file system name unique in the cluster.
 
 [[s-gfs-use]]
@@ -176,14 +176,14 @@ After you have created your filesystem, you may add it to
 
 [source,drbd]
 ----------------------------
-/dev/_vg-name_/_lv-name_ _mountpoint_ gfs defaults 0 0
+/dev/<vg-name>/<lv-name> <mountpoint> gfs defaults 0 0
 ----------------------------
 
 For a GFS2 filesystem, simply change the defined filesystem type to:
 
 [source,drbd]
 ----------------------------
-/dev/_vg-name_/_lv-name_ _mountpoint_ gfs2 defaults 0 0
+/dev/<vg-name>/<lv-name> <mountpoint> gfs2 defaults 0 0
 ----------------------------
 
 Do not forget to make this change on both cluster nodes.
