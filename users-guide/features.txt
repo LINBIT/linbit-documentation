@@ -143,13 +143,24 @@ but in linear order, which has the following consequences:
   obsolete and partly already updated. This state of data is called
   _inconsistent_.
 
-A node with inconsistent data generally cannot be put into operation,
-thus it is desirable to keep the time period during which a node is
-inconsistent as short as possible. The service continues to run
-uninterrupted on the active node, while background synchronization is
-in progress.
+The service continues to run uninterrupted on the active node, while
+background synchronization is in progress.
 
-You may estimate the expected sync time based on the following simple
+IMPORTANT: A node with inconsistent data generally cannot be put into
+operation, thus it is desirable to keep the time period during which a
+node is inconsistent as short as possible. DRBD does, however, ship
+with an LVM integration facility that automates the creation of LVM
+snapshots immediately before synchronization. This ensures that a
+_consistent_ copy of the data is always available on the peer, even
+while synchronization is running. See <<s-lvm-snapshots>> for details
+on using this facility.
+
+==== Fixed-rate synchronization
+
+In fixed-rate synchronization (the default), the amount of data
+shipped to the synchronizing peer per second (the _synchronization
+rate_) has a configurable, static upper limit. Based on this limit,
+you may estimate the expected sync time based on the following simple
 formula:
 
 [[eq-resync-time]]
@@ -164,6 +175,23 @@ replication link was broken).  _R_ is the rate of synchronization,
 which is configurable -- bounded by the throughput limitations of the
 replication network and I/O subsystem.
 
+See <<s-configure-syncer-rate>> for configuration suggestions with
+regard to fixed-rate synchronization.
+
+==== Variable-rate synchronization
+
+In variable-rate synchronization, DRBD detects the available bandwidth
+on the synchronization network, compares it to incoming foreground
+application I/O, and selects an appropriate synchronization rate based
+on a fully automatic control loop.
+
+See <<s-variable-rate-sync>> for configuration suggestions with
+regard to variable-rate synchronization.
+
+
+[[s-checksum-sync]]
+==== Checksum-based synchronization
+
 [[p-checksum-sync]]
 The efficiency of DRBD's synchronization algorithm may be further
 enhanced by using data digests, also known as checksums. When using
@@ -176,8 +204,9 @@ the hashes match. This can dramatically cut down synchronization times
 in situation where a filesystem re-writes a sector with identical
 contents while DRBD is in disconnected mode.
 
-See <<s-configure-syncer-rate>> and <<s-configure-checksum-sync>> for
-configuration suggestions with regard to synchronization.
+See <<s-configure-checksum-sync>> for configuration suggestions with
+regard to synchronization.
+
 
 [[s-suspended-replication]]
 === Suspended replication
