@@ -79,25 +79,38 @@ will use only very rarely.
 In DRBD, _resource_ is the collective term that refers to all aspects of
 a particular replicated storage device. These include:
 
-* *Resource name*. This can be any arbitrary, US-ASCII name not
-  containing whitespace by which the resource is referred to.
+.Resource name
+This can be any arbitrary, US-ASCII name not containing whitespace by
+which the resource is referred to.
 
-* *DRBD device*. This is the virtual block device managed by DRBD. It
-  has a device major number of 147, and its minor numbers are numbered
-  from 0 onwards, as is customary. The associated block device is
-  always named +/dev/drbdX+, where +X+ is the device minor
-  number.
+.Volumes
+Any resource is a replication group consisting of one of more
+_volumes_ that share a common replication stream. DRBD ensures write
+fidelity across all volumes in the resource. Volumes are numbered
+starting with +0+, and there may be up to 65,535 volumes in one
+resource. A volume contains the replicated data set, and a set of
+metadata for DRBD internal use.
+
+.DRBD device
+This is a virtual block device managed by DRBD. It has a device major
+number of 147, and its minor numbers are numbered from 0 onwards, as
+is customary. Each DRBD device corresponds to a volume in a
+resource. The associated block device is always usually named
++/dev/drbdX+, where +X+ is the device minor number. DRBD also allows
+for user-defined block device names which must, however, start with
++drbd_+.
 
 NOTE: Very early DRBD versions hijacked NBD's device major number
 43. This is long obsolete; 147 is the
 http://www.lanana.org/docs/device-list/[LANANA-registered] DRBD device
 major.
 
-* *Disk configuration*. This entails the local copy of the data, and
-  meta data for DRBD's internal use.
+.Connection
+A _connection_ entails all aspects of DRBD's communication with the
+peer node. Although internally distinct from a resource, as of 8.4 there is a
+one-to-one correspondence between _connections_ and _resources_, and
+as such the terms are often used interchangeably.
 
-* *Network configuration*. This entails all aspects of DRBD's
-  communication with the peer node.
 
 [[s-resource-roles]]
 === Resource roles ===
