@@ -17,7 +17,8 @@ NOTE: For the most part, the steps described here apply only if you
 run DRBD directly on top of physical hard drives. They generally do
 not apply in case you are running DRBD layered on top of
 
-* an MD software RAID set (in this case, use `mdadm` to manage drive replacement),
+* an MD software RAID set (in this case, use `mdadm` to manage drive
+  replacement),
 * device-mapper RAID (use `dmraid`),
 * a hardware RAID appliance (follow the vendor's instructions on how
   to deal with failed drives),
@@ -27,12 +28,12 @@ not apply in case you are running DRBD layered on top of
 [[s-detach-hard-drive-manual]]
 ==== Manually detaching DRBD from your hard drive
 
-indexterm:[drbdadm]If DRBD is <<fp-io-error-pass-on,configured to pass on I/O errors>>
-(not recommended), you must first detach the DRBD resource, that is,
-disassociate it from its backing storage:
+indexterm:[drbdadm]If DRBD is <<fp-io-error-pass-on,configured to pass
+on I/O errors>> (not recommended), you must first detach the DRBD
+resource, that is, disassociate it from its backing storage:
 
 ----------------------------
-`drbdadm detach <resource>`
+drbdadm detach <resource>
 ----------------------------
 
 By running the `drbdadm dstate` command, you will now be able to verify
@@ -41,7 +42,7 @@ mode]indexterm:[diskless (disk state)]indexterm:[disk state]_diskless
 mode_:
 
 ----------------------------
-`drbdadm dstate <resource>`
+drbdadm dstate <resource>
 Diskless/UpToDate
 ----------------------------
 
@@ -70,7 +71,7 @@ This process involves creating a new meta data set, then re-attaching
 the resource: indexterm:[drbdadm]
 
 ----------------------------
-`drbdadm create-md <resource>`
+drbdadm create-md <resource>
 v08 Magic number not found
 Writing meta data...
 initialising activity log
@@ -78,7 +79,7 @@ NOT initialized bitmap
 New drbd meta data block sucessfully created.
 success
 
-`drbdadm attach <resource>`
+drbdadm attach <resource>
 ----------------------------
 
 Full synchronization of the new hard disk starts instantaneously and
@@ -86,7 +87,6 @@ automatically. You will be able to monitor the synchronization's
 progress via +/proc/drbd+, as with any background synchronization.
 
 [[s-replace-disk-external-metadata]]
-
 ==== Replacing a failed disk when using external meta data
 
 When using <<s-external-meta-data,external meta data>>, the procedure
@@ -95,7 +95,7 @@ independently that the hard drive was swapped, thus an additional step
 is required.
 
 ----------------------------
-`drbdadm create-md <resource>`
+drbdadm create-md <resource>
 v08 Magic number not found
 Writing meta data...
 initialising activity log
@@ -103,8 +103,8 @@ NOT initialized bitmap
 New drbd meta data block sucessfully created.
 success
 
-`drbdadm attach <resource>`
-`drbdadm invalidate <resource>`
+drbdadm attach <resource>
+drbdadm invalidate <resource>
 ----------------------------
 
 Here, the `drbdadm invalidate` command triggers synchronization. Again,
@@ -178,8 +178,10 @@ node with one with less disk capacity is not supported, and will cause
 DRBD to refuse to connect to the replaced node.
 
 * Install the base system and applications.
-* Install DRBD and copy +/etc/drbd.conf+ from the surviving node.
-* Follow the steps outlined in <<ch-configure>>, but stop short of <<s-initial-full-sync>>.
+* Install DRBD and copy +/etc/drbd.conf+ and all of +/etc/drbd.d/+
+  from the surviving node.
+* Follow the steps outlined in <<ch-configure>>, but stop short of
+ <<s-initial-full-sync>>.
 
 Manually starting a full device synchronization is not necessary at
 this point, it will commence automatically upon connection to the
@@ -215,15 +217,15 @@ indexterm:[split brain]_split brain victim_). This intervention is
 made with the following commands:
 
 ----------------------------
-`drbdadm secondary <resource>`
-`drbdadm -- --discard-my-data connect <resource>`
+drbdadm secondary <resource>
+drbdadm --discard-my-data connect <resource>
 ----------------------------
 
 On the other node (the indexterm:[split brain]_split brain survivor_),
 if its connection state is also +StandAlone+, you would enter:
 
 ----------------------------
-`drbdadm connect <resource>`
+drbdadm connect <resource>
 ----------------------------
 
 You may omit this step if the node is already in the
