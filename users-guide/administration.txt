@@ -12,8 +12,7 @@ are covered in detail in <<ch-troubleshooting>>.
 ==== Retrieving status with +drbd-overview+
 
 The most convenient way to look at DRBD's status is the
-indexterm:[drbd-overview]+drbd-overview+ utility. It is available since
-DRBD-8.0.15 and 8.3.0. In 8.3.0 it is installed as +drbd-overview.pl+.
+indexterm:[drbd-overview]+drbd-overview+ utility.
 
 ----------------------------
 `drbd-overview`
@@ -31,6 +30,7 @@ real-time status information about all DRBD resources currently
 configured. You may interrogate this file's contents using this
 command:
 
+// FIXME: Update this for 8.4.0
 ----------------------------
 `cat /proc/drbd`
 version: 8.3.0 (api:88/proto:86-89)
@@ -55,21 +55,29 @@ The resource-specific output from +/proc/drbd+ contains various pieces
 of information about the resource:
 
 .+cs+ (connection state)
-indexterm:[connection state]Status of the network connection. See <<s-connection-states>>for details about the various connection states.
+indexterm:[connection state]Status of the network connection. See
+<<s-connection-states>>for details about the various connection
+states.
 
 .+ro+ (roles)
-indexterm:[resource]Roles of the nodes. The role of the local node is displayed first, followed by the role of the partner node shown after the slash. See <<s-roles>>for details about the possible resource roles.
-
-NOTE: Prior to DRBD 8.3, +/proc/drbd+ used the +st+ field (referring to the ambiguous term "state") when referring to resource roles.
+indexterm:[resource]Roles of the nodes. The role of the local node is
+displayed first, followed by the role of the partner node shown after
+the slash. See <<s-roles>>for details about the possible resource
+roles.
 
 .+ds+ (disk states)
-indexterm:[disk state]State of the hard disks. Prior to the slash the state of the local node is displayed, after the slash the state of the hard disk of the partner node is shown. See <<s-disk-states>>for details about the various disk states.
+indexterm:[disk state]State of the hard disks. Prior to the slash the
+state of the local node is displayed, after the slash the state of the
+hard disk of the partner node is shown. See <<s-disk-states>>for
+details about the various disk states.
 
 .+ns+ (network send)
-Volume of net data sent to the partner via the network connection; in Kibyte.
+Volume of net data sent to the partner via the network connection; in
+Kibyte.
 
 .+nr+ (network receive)
-Volume of net data received by the partner via the network connection; in Kibyte.
+Volume of net data received by the partner via the network connection;
+in Kibyte.
 
 .+dw+ (disk write)
 Net data written on local hard disk; in Kibyte.
@@ -87,22 +95,27 @@ Number of updates of the bitmap area of the meta data.
 Number of open requests to the local I/O sub-system issued by DRBD.
 
 .+pe+ (pending)
-Number of requests sent to the partner, but that have not yet been answered by the latter.
+Number of requests sent to the partner, but that have not yet been
+answered by the latter.
 
 .+ua+ (unacknowledged)
-Number of requests received by the partner via the network connection, but that have not yet been answered.
+Number of requests received by the partner via the network connection,
+but that have not yet been answered.
 
 .+ap+ (application pending)
-Number of block I/O requests forwarded to DRBD, but not yet answered by DRBD.
+Number of block I/O requests forwarded to DRBD, but not yet answered
+by DRBD.
 
 .+ep+ (epochs)
-Number of epoch objects. Usually 1. Might increase under I/O load when using either the +barrier+ or the +none+ write ordering method. Since 8.2.7.
+Number of epoch objects. Usually 1. Might increase under I/O load when
+using either the +barrier+ or the +none+ write ordering method.
 
 .+wo+ (write order)
-Currently used write ordering method: +b+(barrier), +f+(flush), +d+(drain) or +n+(none). Since 8.2.7.
+Currently used write ordering method: +b+(barrier), +f+(flush),
++d+(drain) or +n+(none). Since 8.2.7.
 
 .+oos+ (out of sync)
-Amount of storage currently out of sync; in Kibibytes. Since 8.2.6.
+Amount of storage currently out of sync; in Kibibytes.
 
 
 [[s-connection-states]]
@@ -126,55 +139,73 @@ disconnected (using `drbdadm disconnect`), or has dropped its
 connection due to failed authentication or split brain.
 
 .+Disconnecting+
-indexterm:[connection state]Temporary state during disconnection. The next state is StandAlone.
+indexterm:[connection state]Temporary state during disconnection. The
+next state is +StandAlone+.
 
 .+Unconnected+
-indexterm:[connection state]Temporary state, prior to a connection attempt. Possible next states: WFConnection and WFReportParams.
+indexterm:[connection state]Temporary state, prior to a connection
+attempt. Possible next states: +WFConnection+ and +WFReportParams+.
 
 .+Timeout+
-indexterm:[connection state]Temporary state following a timeout in the communication with the peer. Next state: Unconnected.
+indexterm:[connection state]Temporary state following a timeout in the
+communication with the peer. Next state: +Unconnected+.
 
 .+BrokenPipe+
-indexterm:[connection state]Temporary state after the connection to the peer was lost. Next state: Unconnected.
+indexterm:[connection state]Temporary state after the connection to
+the peer was lost. Next state: +Unconnected+.
 
 .+NetworkFailure+
-indexterm:[connection state]Temporary state after the connection to the partner was lost. Next state: Unconnected.
+indexterm:[connection state]Temporary state after the connection to
+the partner was lost. Next state: +Unconnected+.
 
 .+ProtocolError+
-indexterm:[connection state]Temporary state after the connection to the partner was lost. Next state: Unconnected.
+indexterm:[connection state]Temporary state after the connection to
+the partner was lost. Next state: +Unconnected+.
 
 .+TearDown+
-indexterm:[connection state]Temporary state. The peer is closing the connection. Next state: Unconnected.
+indexterm:[connection state]Temporary state. The peer is closing the
+connection. Next state: +Unconnected+.
 
 .+WFConnection+
-indexterm:[connection state]This node is waiting until the peer node becomes visible on the network.
+indexterm:[connection state]This node is waiting until the peer node
+becomes visible on the network.
 
 .+WFReportParams+
-indexterm:[connection state]TCP connection has been established, this node waits for the first network packet from the peer.
+indexterm:[connection state]TCP connection has been established, this
+node waits for the first network packet from the peer.
 
 .+Connected+
-indexterm:[connection state]A DRBD connection has been established, data mirroring is now active. This is the normal state.
+indexterm:[connection state]A DRBD connection has been established,
+data mirroring is now active. This is the normal state.
 
 .+StartingSyncS+
-indexterm:[connection state]Full synchronization, initiated by the administrator, is just starting. The next possible states are: SyncSource or PausedSyncS.
+indexterm:[connection state]Full synchronization, initiated by the
+administrator, is just starting. The next possible states are:
++SyncSource+ or +PausedSyncS+.
 
 .+StartingSyncT+
-indexterm:[connection state]Full synchronization, initiated by the administrator, is just starting. Next state: WFSyncUUID.
+indexterm:[connection state]Full synchronization, initiated by the
+administrator, is just starting. Next state: +WFSyncUUID+.
 
 .+WFBitMapS+
-indexterm:[connection state]Partial synchronization is just starting. Next possible states: SyncSource or PausedSyncS.
+indexterm:[connection state]Partial synchronization is just
+starting. Next possible states: +SyncSource+ or +PausedSyncS+.
 
 .+WFBitMapT+
-indexterm:[connection state]Partial synchronization is just starting. Next possible state: WFSyncUUID.
+indexterm:[connection state]Partial synchronization is just
+starting. Next possible state: +WFSyncUUID+.
 
 .+WFSyncUUID+
-indexterm:[connection state]Synchronization is about to begin. Next possible states: SyncTarget or PausedSyncT.
+indexterm:[connection state]Synchronization is about to begin. Next
+possible states: +SyncTarget+ or +PausedSyncT+.
 
 .+SyncSource+
-indexterm:[connection state]Synchronization is currently running, with the local node being the source of synchronization.
+indexterm:[connection state]Synchronization is currently running, with
+the local node being the source of synchronization.
 
 .+SyncTarget+
-indexterm:[connection state]Synchronization is currently running, with the local node being the target of synchronization.
+indexterm:[connection state]Synchronization is currently running, with
+the local node being the target of synchronization.
 
 .+PausedSyncS+
 indexterm:[connection state]The local node is the source of an ongoing
@@ -199,7 +230,6 @@ indexterm:[connection state]On-line device verification is currently
 running, with the local node being the target of verification.
 
 
-
 [[s-roles]]
 ==== Resource roles
 
@@ -214,12 +244,6 @@ Primary/Secondary
 
 The local resource role is always displayed first, the remote resource
 role last.
-
-NOTE: Prior to DRBD 8.3, the `drbdadm state` command provided the same
-information. Since "state" is an ambigious term, DRBD uses "role" in
-its stead from version 8.3.0 forward. `drbdadm state` is also still
-available, albeit only for compatibility reasons. You should use
-`drbdadm role`.
 
 You may see one of the following resource roles:
 
@@ -268,11 +292,11 @@ indexterm:[disk state]Transient state while reading meta data.
 
 .+Failed+
 indexterm:[disk state]Transient state following an I/O failure report
-by the local block device. Next state: Diskless.
+by the local block device. Next state: +Diskless+.
 
 .+Negotiating+
-indexterm:[disk state]Transient state when an Attach is carried out on
-an already-connected DRBD device.
+indexterm:[disk state]Transient state when an +Attach+ is carried out on
+an already-+Connected+ DRBD device.
 
 .+Inconsistent+
 indexterm:[disk state]The data is inconsistent. This status occurs
@@ -291,7 +315,7 @@ network connection is available.
 .+Consistent+
 indexterm:[disk state]Consistent data of a node without
 connection. When the connection is established, it is decided whether
-the data are UpToDate or Outdated.
+the data is +UpToDate+ or +Outdated+.
 
 .+UpToDate+
 indexterm:[disk state]Consistent, up-to-date state of the data. This
@@ -319,7 +343,7 @@ drbdadm connect <resource>
 or the shorthand version of the three commands above,
 
 ----------------------------
-drbdadm up resource
+drbdadm up <resource>
 ----------------------------
 
 As always, you may use the keyword +all+ instead of a specific
@@ -403,33 +427,17 @@ mode>> can be switched to the primary role on both nodes.
 [[s-enable-dual-primary]]
 === Enabling dual-primary mode
 
-This feature is available in DRBD 8.0 and later.
+==== Permanent dual-primary mode
 
-indexterm:[dual-primary mode]To enable dual-primary mode, add the
-+allow-two-primaries+ option to the +net+ section of your resource
-configuration:
+indexterm:[dual-primary mode]To enable dual-primary mode, set the
++allow-two-primaries+ option to +yes+ in the +net+ section of your
+resource configuration:
 
 [source,drbd]
 ----------------------------
 resource <resource>
   net {
-    allow-two-primaries;
-  }
-  ...
-}
-----------------------------
-
-When a resource is configured to support dual-primary mode, it may
-also be desirable to automatically switch the resource into the
-primary role upon system (or DRBD) startup. To do this, add the
-+become-primary-on+ option, available in DRBD 8.2.0 and above, to the
-+startup+ section of your resource configuration:
-
-[source,drbd]
-----------------------------
-resource <resource>
-  startup {
-    become-primary-on both;
+    allow-two-primaries yes;
   }
   ...
 }
@@ -447,10 +455,55 @@ follows:
   nodes, instead of on just one.
 
 
+==== Temporary dual-primary mode
+
+To temporarily enable dual-primary mode for a resource normally
+running in a single-primary configuration, issue the following
+command:
+
+----------------------------
+drbdsetup <connection> net-options --allow-two-primaries=yes
+----------------------------
+
+_+<connection>+_ should specify both endpoints of the connection,
+using the syntax +[<address{nbsp}family>]:<address>:[<port>]+, as in
+the following example:
+
+----------------------------
+drbdsetup 10.1.1.31:7788 10.1.1.32:7788 net-options --allow-two-primaries=yes
+----------------------------
+
+To end temporary dual-primary mode, run the same command as above with
++--allow-two-primaries=no+.
+
+
+==== Automating promotion on system startup
+
+When a resource is configured to support dual-primary mode, it may
+also be desirable to automatically switch the resource into the
+primary role upon system (or DRBD) startup.
+
+[source,drbd]
+----------------------------
+resource <resource>
+  startup {
+    become-primary-on both;
+  }
+  ...
+}
+----------------------------
+
+The +/etc/init.d/drbd+ system init script parses this option on
+startup and promotes resources accordingly.
+
+NOTE: The +become-primary-on+ approach is not required, nor
+recommended, in <<s-pacemaker,Pacemaker-managed>> DRBD
+configurations. In Pacemaker configuration, resource promotion and
+demotion should always be handled by the cluster manager.
+
+
 [[s-use-online-verify]]
 === Using on-line device verification
-
-This feature is available in DRBD 8.2.5 and later.
 
 [[s-online-verify-enable]]
 ==== Enabling on-line verification
@@ -463,7 +516,7 @@ enable it, add the following lines to your resource configuration in
 [source,drbd]
 ----------------------------
 resource <resource>
-  syncer {
+  net {
     verify-alg <algorithm>;
   }
   ...
@@ -566,8 +619,8 @@ for a resource. This must be included in the resource configuration's
 [source,drbd]
 ----------------------------
 resource <resource>
-  syncer {
-    rate 40M;
+  disk {
+    sync-rate 40M;
     ...
   }
   ...
@@ -639,7 +692,7 @@ lines to your resource configuration in +/etc/drbd.conf+:
 [source,drbd]
 ----------------------------
 resource <resource>
-  syncer {
+  net {
     csums-alg <algorithm>;
   }
   ...
@@ -710,17 +763,11 @@ only if you fully understand the implications of such behavior.
 You may reconfigure a running resource's I/O error handling strategy
 by following this process:
 
-* Edit the resource configuration in +/etc/drbd.conf+.
+* Edit the resource configuration in +/etc/drbd.d/<resource>.res+.
 
 * Copy the configuration to the peer node.
 
 * Issue `drbdadm adjust <resource>` on both nodes.
-
-NOTE: DRBD versions prior to 8.3.1 will incur a full resync after
-running +drbdadm adjust+ on a node that is in the Primary role. On
-such systems, the affected resource must be demoted prior to running
-+drbdadm adjust+ after its +disk+ configuration section has been
-changed.
 
 
 [[s-configure-integrity-check]]
@@ -761,7 +808,7 @@ device based on these devices during operation. To do so, two criteria
 must be fulfilled:
 
 . The affected resource's backing device must be one managed by a
-  logical volume management subsystem, such as LVM
+  logical volume management subsystem, such as LVM.
 
 . The resource must currently be in the +Connected+ connection state.
 
@@ -872,7 +919,7 @@ shrunk the file system residing on top of it:
 
 [source,drbd]
 ----------------------------
-drbdadm -- --size=<new-size> resize <resource>
+drbdadm --size=<new-size> resize <resource>
 ----------------------------
 
 You may use the usual multiplier suffixes for _<new-size>_ (K, M, G
@@ -973,7 +1020,7 @@ following line in your configuration:
 ----------------------------
 resource <resource>
   disk {
-    no-disk-flushes;
+    disk-flushes no;
     ...
   }
   ...
@@ -988,7 +1035,7 @@ line:
 ----------------------------
 resource <resource>
   disk {
-    no-md-flushes;
+    md-flushes no;
     ...
   }
   ...
@@ -1027,12 +1074,11 @@ resource <resource>
 
 _<handler>_ may be any executable present on the system.
 
-Since DRBD version 8.2.6, the DRBD distribution contains a split brain
-handler script that installs as
-+/usr/lib/drbd/notify-split-brain.sh+. It simply sends a notification
-e-mail message to a specified address. To configure the handler to
-send a message to +root@localhost+ (which is expected to be an email
-address that forwards the notification to a real system
+The DRBD distribution contains a split brain handler script that
+installs as +/usr/lib/drbd/notify-split-brain.sh+. It simply sends a
+notification e-mail message to a specified address. To configure the
+handler to send a message to +root@localhost+ (which is expected to be
+an email address that forwards the notification to a real system
 administrator), configure the +split-brain handler+as follows:
 
 ----------------------------
@@ -1139,8 +1185,6 @@ resource <resource> {
 [[s-three-nodes]]
 === Creating a three-node setup
 
-// Available in DRBD version 8.3.0 and above
-
 A three-node setup involves one DRBD device _stacked_ atop another.
 
 [[s-stacking-considerations]]
@@ -1176,7 +1220,9 @@ In the following example, nodes are named +alice+, +bob+, and
 [source,drbd]
 ----------------------------
 resource r0 {
-  protocol C;
+  net {
+    protocol C;
+  }
 
   on alice {
     device     /dev/drbd0;
@@ -1194,7 +1240,9 @@ resource r0 {
 }
 
 resource r0-U {
-  protocol A;
+  net {
+    protocol A;
+  }
 
   stacked-on-top-of r0 {
     device     /dev/drbd10;
@@ -1334,7 +1382,9 @@ the DRBD nodes:
 [source,drbd]
 ----------------------------
 resource r0 {
-        protocol A;
+        net {
+          protocol A;
+        }
         device     minor 0;
         disk       /dev/sdb1;
         flexible-meta-disk  /dev/sdb2;
