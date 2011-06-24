@@ -25,7 +25,7 @@ another. Some specific considerations apply to stacked resources;
 their configuration is covered in detail in <<s-three-nodes>>.
 
 NOTE: While it is possible to use loop devices as lower-level devices
-      for DRBD, doing so is not recommended due to deadlock issues.
+for DRBD, doing so is not recommended due to deadlock issues.
 
 It is _not_ necessary for this storage area to be empty before you
 create a DRBD resource from it. In fact it is a common use case to
@@ -135,13 +135,20 @@ For the purposes of this guide, we assume a
 minimal setup in line with the examples given in the
 previous sections:
 
+.Simple DRBD configuration (+/etc/drbd.d/global_common.conf+)
 -------------------------------------
 global {
   usage-count yes;
 }
 common {
-  protocol C;
+  net {
+    protocol C;
+  }
 }
+-------------------------------------
+
+.Simple DRBD resource configuration (+/etc/drbd.d/r0.res+)
+-------------------------------------
 resource r0 {
   on alice {
     device    /dev/drbd1;
@@ -156,7 +163,6 @@ resource r0 {
     meta-disk internal;
   }
 }
-
 -------------------------------------
 
 This example configures DRBD in the following fashion:
@@ -177,6 +183,8 @@ This example configures DRBD in the following fashion:
 * The resource uses TCP port 7789 for its network connections, and
   binds to the IP addresses 10.1.1.31 and 10.1.1.32, respectively.
 
+NOTE: The configuration above implicitly creates one volume in the
+resource, numbered zero (+0+).
 
 [[s-drbdconf-global]]
 ==== The +global+ section
@@ -211,11 +219,11 @@ Including a +common+ section is not strictly required, but strongly
 recommended if you are using more than one resource. Otherwise, the
 configuration quickly becomes convoluted by repeatedly-used options.
 
-In the example above, we included +protocol C; in the common+ section,
-so every resource configured (including +r0+) inherits this option
-unless it has another +protocol+ option configured explicitly. For
-other synchronization protocols available, see
-<<s-replication-protocols>>.
+In the example above, we included +net { protocol C; }+ in the
++common+ section, so every resource configured (including +r0+)
+inherits this option unless it has another +protocol+ option
+configured explicitly. For other synchronization protocols available,
+see <<s-replication-protocols>>.
 
 [[s-drbdconf-resource]]
 ==== The +resource+ sections
