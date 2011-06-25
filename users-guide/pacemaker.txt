@@ -6,19 +6,6 @@ cluster stack is arguably DRBD's most frequently found use
 case. Pacemaker is also one of the applications that make DRBD
 extremely powerful in a wide variety of usage scenarios.
 
-IMPORTANT: This chapter is relevant for Pacemaker versions 1.0.3 and
-above, and DRBD version 8.3.2 and above. It does not touch upon DRBD
-configuration in Pacemaker clusters of earlier versions.
-
-Pacemaker is the direct, logical successor to the Heartbeat 2 cluster
-stack, and as far as the cluster resource manager infrastructure is
-concerned, a direct continuation of the Heartbeat 2 codebase. Since
-the intial stable release of Pacemaker, Heartbeat 2 can be considered
-obsolete and Pacemaker should be used instead.
-
-For legacy configurations where the legacy Heartbeat 2 cluster manager
-must still be used, see <<ch-heartbeat>>.
-
 [[s-pacemaker-primer]]
 === Pacemaker primer
 
@@ -33,7 +20,6 @@ following documents is highly recommended:
 * http://www.clusterlabs.org/doc/crm_cli.html[CRM CLI (command line
   interface) tool], a manual for the CRM shell, a simple and intuitive
   command line interface bundled with Pacemaker;
-
 * http://www.clusterlabs.org/doc/en-US/Pacemaker/1.0/html/Pacemaker_Explained/s-intro-pacemaker.html[Pacemaker
   Configuration Explained], a reference document explaining the
   concept and design behind Pacemaker.
@@ -54,24 +40,21 @@ should disable the DRBD init script:
 chkconfig drbd off
 ----------------------------
 
-The +drbd+ OCF resource agent provides Master/Slave capability,
-allowing Pacemaker to start and monitor the DRBD resource on multiple
-nodes and promoting and demoting as needed. You must, however,
-understand that the +drbd+ RA disconnects and detaches all DRBD
-resources it manages on Pacemaker shutdown, and also upon enabling
-standby mode for a node.
+The +ocf:linbit:drbd+ OCF resource agent provides Master/Slave
+capability, allowing Pacemaker to start and monitor the DRBD resource
+on multiple nodes and promoting and demoting as needed. You must,
+however, understand that the +drbd+ RA disconnects and detaches all
+DRBD resources it manages on Pacemaker shutdown, and also upon
+enabling standby mode for a node.
 
 
 IMPORTANT: The OCF resource agent which ships with DRBD belongs to the
 +linbit+ provider, and hence installs as
-+/usr/lib/ocf/resource.d/linbit/drbd+. This resource agent was bundled
-with DRBD in version 8.3.2 as a beta feature, and became fully
-supported in 8.3.4.
-
-There is a legacy resource agent that shipped with Heartbeat 2, which
++/usr/lib/ocf/resource.d/linbit/drbd+. There is a legacy resource
+agent that ships as part of the OCF resource agents package, which
 uses the +heartbeat+ provider and installs into
-+/usr/lib/ocf/resource.d/heartbeat/drbd+. Using the legacy OCF RA is
-not recommended.
++/usr/lib/ocf/resource.d/heartbeat/drbd+. The legacy OCF RA is
+deprecated and should no longer be used.
 
 In order to enable a DRBD-backed configuration for a MySQL database in
 a Pacemaker CRM cluster with the +drbd+ OCF resource agent, you must
@@ -80,7 +63,7 @@ ensure your service only starts on a previously promoted DRBD
 resource. You may do so using the +crm+ shell, as outlined in the
 following example:
 
-
+.Pacemaker configuration for DRBD-backed MySQL service
 ----------------------------
 crm configure
 crm(live)configure# primitive drbd_mysql ocf:linbit:drbd \
@@ -108,7 +91,6 @@ selects a node on which it promotes the DRBD resource, and then starts
 the DRBD-backed resource group on that same node.
 
 [[s-pacemaker-fencing]]
-
 === Using resource-level fencing in Pacemaker clusters
 
 This section outlines the steps necessary to prevent Pacemaker from
@@ -117,13 +99,131 @@ has been interrupted. This keeps Pacemaker from starting a service
 with outdated data and causing an unwanted "time warp" in the
 process.
 
-[[s-openais-communication-channels]]
-IMPORTANT: It is absolutely vital to configure at least two
-independent <<s-openais-communication-channels,OpenAIS communication
-channels>> for this functionality to work correctly.
+In order to enable any resource-level fencing for DRBD, you must add
+the following lines to your resource configuration:
 
-Furthermore, as mentioned in <<s-pacemaker-crm-drbd-backed-service>>,
-you should make sure the DRBD init script is disabled.
+[source,drbd]
+----------------------------
+resource <resource> {
+  disk {
+    fencing resource-only;
+    ...
+  }
+}
+----------------------------
+
+You will also have to make changes to the +handlers+ section depending
+on the cluster infrastructure being used:
+
+* Heartbeat-based Pacemaker clusters can employ the configuration
+  outlined in <<s-pacemaker-fencing-dopd>>.
+* Both Corosync- and Heartbeat-based clusters can use the
+  functionality explained in <<s-pacemaker-fencing-cib>>.
+
+IMPORTANT: It is absolutely vital to configure at least two
+independent cluster communications channels for this functionality to
+work correctly. Heartbeat-based Pacemaker clusters should define at
+least two cluster communication links in their +ha.cf+ configuration
+files. Corosync clusters should list at least two redundant rings in
++corosync.conf+.
+
+[[s-pacemaker-fencing-dopd]]
+==== Resource-level fencing with +dopd+
+
+indexterm:[dopd]In Heartbeat-based Pacemaker clusters, DRBD can
+use a resources-level fencing facility named the _DRBD outdate-peer
+daemon_, or +dopd+ for short.
+
+
+[[s-dopd-heartbeat-config]]
+===== Heartbeat configuration for +dopd+
+
+To enable dopd, you must add these lines to your indexterm:[ha.cf
+(Heartbeat configuration file)]+/etc/ha.d/ha.cf+ file:
+
+[source,drbd]
+----------------------------
+respawn hacluster /usr/lib/heartbeat/dopd
+apiauth dopd gid=haclient uid=hacluster
+----------------------------
+
+You may have to adjust +dopd+'s path according to your preferred
+distribution. On some distributions and architectures, the correct
+path is +/usr/lib64/heartbeat/dopd+.
+
+After you have made this change and copied +ha.cf+ to the peer node,
+put Pacemaker in maintenance mode and run `/etc/init.d/heartbeat
+reload` to have Heartbeat re-read its configuration file. Afterwards,
+you should be able to verify that you now have a running +dopd+
+process.
+
+NOTE: You can check for this process either by running `ps ax | grep
+dopd` or by issuing `killall -0 dopd`.
+
+
+[[s-dopd-drbd-config]]
+===== DRBD Configuration for +dopd+
+
+Once +dopd+ is running, add these items to your DRBD resource
+configuration:
+
+[source,drbd]
+----------------------------
+resource <resource> {
+    handlers {
+        fence-peer "/usr/lib/heartbeat/drbd-peer-outdater -t 5";
+        ...
+    }
+    disk {
+        fencing resource-only;
+        ...
+    }
+    ...
+}
+----------------------------
+
+As with +dopd+, your distribution may place the +drbd-peer-outdater+
+binary in +/usr/lib64/heartbeat+ depending on your system
+architecture.
+
+Finally, copy your +drbd.conf+ to the peer node and issue `drbdadm
+adjust resource` to reconfigure your resource and reflect your
+changes.
+
+[[s-dopd-test]]
+===== Testing +dopd+ functionality
+
+To test whether your +dopd+ setup is working correctly, interrupt the
+replication link of a configured and connected resource while
+Heartbeat services are running normally. You may do so simply by
+physically unplugging the network link, but that is fairly
+invasive. Instead, you may insert a temporary +iptables+ rule to drop
+incoming DRBD traffic to the TCP port used by your resource.
+
+After this, you will be able to observe the resource
+<<s-connection-states,connection state>> change from
+indexterm:[connection state]indexterm:[Connected (connection state)]
++Connected+ to indexterm:[connection state]indexterm:[WFConnection
+(connection state)]+WFConnection+. Allow a few seconds to pass, and
+you should see the <<s-disk-states,disk state>>become indexterm:[disk
+state]indexterm:[Outdated (disk state)]+Outdated/DUnknown+. That is
+what +dopd+ is responsible for.
+
+Any attempt to switch the outdated resource to the primary role will
+fail after this.
+
+When re-instituting network connectivity (either by plugging the
+physical link or by removing the temporary +iptables+ rule you inserted
+previously), the connection state will change to +Connected+, and then
+promptly to +SyncTarget+ (assuming changes occurred on the primary node
+during the network interruption). Then you will be able to observe a
+brief synchronization period, and finally, the previously outdated
+resource will be marked as indexterm:[disk state]indexterm:[UpToDate
+(disk state)]+UpToDate+ again.
+
+
+[[s-pacemaker-fencing-cib]]
+==== Resource-level fencing using the Cluster Information Base (CIB)
 
 In order to enable resource-level fencing for Pacemaker, you will have
 to set two options in +drbd.conf+:
