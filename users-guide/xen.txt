@@ -54,8 +54,6 @@ with the set to +1+. To do so, create (or open) the file
 options drbd disable_sendpage=1
 ----------------------------
 
-NOTE: The parameter is available in DRBD 8.3.2 and later.
-
 [[s-xen-create-resource]]
 === Creating a DRBD resource suitable to act as a Xen VBD
 
@@ -70,7 +68,7 @@ mode]<<s-dual-primary-mode,dual-primary mode>>for this resource:
 ----------------------------
 resource <resource> {
   net {
-    allow-two-primaries;
+    allow-two-primaries yes;
     ...
   }
   ...
@@ -148,7 +146,7 @@ promoted to the primary role, and made accessible to Xen as expected.
 .Stopping the domU
 This is equally straightforward:
 ----------------------------
-`xm shutdown -w <domU>`
+xm shutdown -w <domU>
 Domain <domU> terminated.
 ----------------------------
 
@@ -159,7 +157,7 @@ secondary role after the domU is successfully shut down.
 .Migrating the domU
 This, too, is done using the usual Xen tools:
 ----------------------------
-`xm migrate --live <domU> <destination-host>`
+xm migrate --live <domU> <destination-host>
 ----------------------------
 
 In this case, several administrative steps are automatically taken in
@@ -201,26 +199,17 @@ type, named +/etc/xen/scripts/block-drbd+. This script handles the
 necessary DRBD resource state transitions as described earlier in this
 chapter.
 
-[[s-xen-heartbeat]]
-=== Integrating Xen with Heartbeat
+[[s-xen-pacemaker]]
+=== Integrating Xen with Pacemaker
 
 indexterm:[Xen]indexterm:[Heartbeat]In order to fully capitalize on
 the benefits provided by having a DRBD-backed Xen VBD's, it is
 recommended to have Heartbeat manage the associated domU's as
 Heartbeat resources.
 
-.CRM configuration mode
-If you are using the Heartbeat cluster manager (in CRM configuration
-mode), you may configure a Xen domU as a Heartbeat resource, and
-automate resource failover. To do so, use the +Xen+ OCF resource
-agent. If you are using the +drbd+ Xen device type described in this
-chapter, you will _not_ need to configure any separate +drbd+ resource
-for use by the Xen cluster resource. Instead, the +block-drbd+ helper
-script will do all the necessary resource transitions for you.
-
-.R1-compatible configuration mode
-If you are using Heartbeat in R1-compatible mode, you cannot use OCF
-resource agents. You may, however, configure Heartbeat to use the
-+xendomains+ LSB service as a cluster resource. Again, if you are
-using the +drbd+ Xen VBD type, you will not need to create separate
-+drbddisk+ resources for your Xen domains.
+You may configure a Xen domU as a Pacemaker resource, and automate
+resource failover. To do so, use the +Xen+ OCF resource agent. If you
+are using the +drbd+ Xen device type described in this chapter, you
+will _not_ need to configure any separate +drbd+ resource for use by
+the Xen cluster resource. Instead, the +block-drbd+ helper script will
+do all the necessary resource transitions for you.
