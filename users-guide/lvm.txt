@@ -430,7 +430,33 @@ vgchange -a y replicated
 After this, the block devices +/dev/replicated/foo+ and
 +/dev/replicated/bar+ will be available on the peer node.
 
-Of course, the process of transferring volume groups between peers and
-making the corresponding logical volumes available can be
-automated. The Heartbeat +LVM+ resource agent is designed for exactly
-that purpose.
+[[s-lvm-pacemaker]]
+
+=== Highly available LVM with Pacemaker
+
+The process of transferring volume groups between peers and making the
+corresponding logical volumes available can be automated. The
+Pacemaker +LVM+ resource agent is designed for exactly that purpose.
+
+In order to put an existing, DRBD-backed volume group under Pacemaker
+management, run the following commands in the +crm+ shell:
+
+.Pacemaker configuration for DRBD-backed LVM Volume Group
+----------------------------
+primitive p_drbd_r0 ocf:linbit:drbd \
+  params drbd_resource="r0" \
+  op monitor interval="15s"
+ms ms_drbd_r0 p_drbd_r0 \
+  meta master-max="1" master-node-max="1" \
+       clone-max="2" clone-node-max="1" \
+       notify="true"
+primitive p_lvm_r0 ocf:heartbeat:LVM \
+  params volgrpname="r0"
+colocation c_lvm_on_drbd inf: p_lvm_r0 ms_drbd_r0:Master
+order o_drbd_before_lvm inf: ms_drbd_r0:promote p_lvm_r0:start
+commit
+----------------------------
+
+After you have committed this configuration, Pacemaker will
+automatically make the +r0+ volume group available on whichever node
+currently has the Primary (Master) role for the DRBD resource.
