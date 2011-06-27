@@ -115,6 +115,52 @@ resource r0 {
 Now you can <<s-first-time-up,continue to bring your resource up>>,
 just as you would if you were using non-LVM block devices.
 
+[[s-lvm-snapshots]]
+=== Using automated LVM snapshots during DRBD synchronization
+
+While DRBD is synchronizing, the +SyncTarget+'s state is
++Inconsistent+ until the synchronization completes. If in this
+situation the +SyncSource+ happens to fail (beyond repair), this puts
+you in an unfortunate position: the node with good data is dead, and
+the surviving node has bad data.
+
+When serving DRBD off an LVM Logical Volume, you can mitigate this
+problem by creating an automated snapshot when synchronization starts,
+and automatically removing that same snapshot once synchronization has
+completed successfully.
+
+In order to enable automated snapshotting during resynchronization,
+add the following lines to your resource configuration:
+
+.Automating snapshots before DRBD synchronization
+----------------------------
+resource r0 {
+  handlers {
+    before-resync-target "/usr/lib/drbd/snapshot-resync-target-lvm.sh";
+    after-resync-target "/usr/lib/drbd/unsnapshot-resync-target-lvm.sh";
+  }
+}
+----------------------------
+
+The two scripts parse the +$DRBD_RESOURCE$+ environment variable which
+DRBD automatically passes to any +handler+ it invokes. The
++snapshot-resync-target-lvm.sh+ script then create an LVM snapshot for
+any volume the resource contains immediately before synchronization
+kicks off. In case the script fails, the synchronization _does not
+commence_.
+
+Once synchronization completes, the +unsnapshot-resync-target-lvm.sh+
+script removes the snapshot, which is then no longer needed. In case
+unsnapshotting fails, the snapshot continues to linger around.
+
+IMPORTANT: You should review dangling snapshots as soon as
+possible. A full snapshot causes both the snapshot itself _and its
+origin volume_ to fail.
+
+If at any time your +SyncSource+ does fail beyond repair and you
+decide to revert to your latest snapshot on the peer, you may do so by
+issuing the `lvconvert -M` command.
+
 [[s-lvm-drbd-as-pv]]
 === Configuring a DRBD resource as a Physical Volume
 
