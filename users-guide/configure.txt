@@ -183,8 +183,34 @@ This example configures DRBD in the following fashion:
 * The resource uses TCP port 7789 for its network connections, and
   binds to the IP addresses 10.1.1.31 and 10.1.1.32, respectively.
 
-NOTE: The configuration above implicitly creates one volume in the
-resource, numbered zero (+0+).
+The configuration above implicitly creates one volume in the
+resource, numbered zero (+0+). For multiple volumes in one resource,
+modify the syntax as follows:
+
+.Multi-volume DRBD resource configuration (+/etc/drbd.d/r0.res+)
+-------------------------------------
+resource r0 {
+  volume 0 {
+    device    /dev/drbd1;
+    disk      /dev/sda7;
+    meta-disk internal;
+  }
+  volume 1 {
+    device    /dev/drbd2;
+    disk      /dev/sda8;
+    meta-disk internal;
+  }
+  on alice {
+    address   10.1.1.31:7789;
+  }
+  on bob {
+    address   10.1.1.32:7789;
+  }
+}
+-------------------------------------
+
+NOTE: Volumes may also be added to existing resources on the fly. For
+an example see <<s-lvm-add-pv>>.
 
 [[s-drbdconf-global]]
 ==== The +global+ section

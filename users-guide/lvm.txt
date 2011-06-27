@@ -204,7 +204,7 @@ must, of course, be in the primary role while doing
 so. indexterm:[LVM]indexterm:[vgcreate (LVM command)]
 
 ----------------------------
-`vgcreate name /dev/drbdX`
+vgcreate <name> /dev/drbdX
 ----------------------------
 
 NOTE: While it is possible to mix DRBD and non-DRBD Physical Volumes
@@ -214,6 +214,63 @@ to be of any practical value.
 When you have created your VG, you may start carving Logical Volumes
 out of it, using the indexterm:[LVM]indexterm:[lvcreate (LVM
 command)]`lvcreate` command (as with a non-DRBD-backed Volume Group).
+
+[[s-lvm-add-as]]
+=== Adding a new DRBD volume to an existing Volume Group
+
+Occasionally, you may want to add new DRBD-backed Physical Volumes to
+a Volume Group. Whenever you do so, a new volume should be added to an
+existing resource configuration. This preserves the replication stream
+and ensures write fidelity across all PVs in the VG.
+
+IMPORTANT: if your LVM volume group is managed by Pacemaker as
+explained in <<s-lvm-pacemaker>>, it is _imperative_ to place the
+cluster in maintenance mode prior to making changes to the DRBD
+configuration.
+
+Extend your resource configuration to include an additional volume, as
+in the following example:
+
+-------------------------------------
+resource r0 {
+  volume 0 {
+    device    /dev/drbd1;
+    disk      /dev/sda7;
+    meta-disk internal;
+  }
+  volume 1 {
+    device    /dev/drbd2;
+    disk      /dev/sda8;
+    meta-disk internal;
+  }
+  on alice {
+    address   10.1.1.31:7789;
+  }
+  on bob {
+    address   10.1.1.32:7789;
+  }
+}
+-------------------------------------
+
+Make sure your DRBD configuration is identical across nodes, then
+issue:
+
+-------------------------------------
+drbdadm new-minor r0 1
+-------------------------------------
+
+This will enable the new volume +1+ in the resource +r0+. Once the new
+volume has been added to the replication stream, you may initialize
+and add it to the volume group:
+
+-------------------------------------
+pvcreate /dev/drbd/by-res/<resource>/1
+lvextend <name> /dev/drbd/by-res/<resource>/1
+-------------------------------------
+
+This will add the new PV +/dev/drbd/by-res/<resource>/1+ to the
++<name>+ VG, preserving write fidelity across the entire VG. 
+
 
 [[s-nested-lvm]]
 === Nested LVM configuration with DRBD
