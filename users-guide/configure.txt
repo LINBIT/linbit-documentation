@@ -299,7 +299,6 @@ Each of the following steps must be completed on both nodes.
 .Create device metadata
 This step must be completed only on initial device
 creation. It initializes DRBD's metadata:
-
 -------------------------------------
 drbdadm create-md resource
 v08 Magic number not found
@@ -310,40 +309,15 @@ New drbd meta data block sucessfully created.
 success
 -------------------------------------
 
-
-.Attach to backing device
-This step associates the DRBD resource with its
-backing device:
-
+.Enable the resource
+This step associates the resource with its backing device (or devices,
+in case of a multi-volume resource), sets replication parameters, and
+connects the resource to its peer:
 -------------------------------------
-drbdadm attach resource
+drbdadm up resource
 -------------------------------------
-
-
-.Set synchronization parameters
-
-This step sets synchronization parameters for the DRBD
-resource:
--------------------------------------
-drbdadm syncer resource
--------------------------------------
-
-
-.Connect to peer
-
-This step connects the DRBD resource with its
-counterpart on the peer node:
--------------------------------------
-drbdadm connect resource
--------------------------------------
-
-NOTE: You may collapse the steps drbdadm attach, +drbdadm syncer+, and
-+drbdadm connect+ into one, by using the shorthand command +drbdadm
-up+.
-
 
 .Observe +/proc/drbd+
-
 DRBD's virtual status file in the +/proc+ filesystem, +/proc/drbd+,
 should now contain information similar to the following:
 
@@ -355,9 +329,8 @@ GIT-hash: 9ba8b93e24d842f0dd3fb1f9b90e8348ddb95829 build by buildsystem@linbit, 
 ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:200768
 -------------------------------------
 
-NOTE: The Inconsistent/Inconsistent disk state is expected at this
+NOTE: The +Inconsistent/Inconsistent+ disk state is expected at this
 point.
-
 
 By now, DRBD has successfully allocated both disk and network
 resources and is ready for operation. What it does not know yet is
