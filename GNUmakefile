@@ -1,4 +1,4 @@
-all:
+makedoc-symlinks:
 ifndef MAKEDOC
 	$(error Please set the MAKEDOC variable pointing to your makedoc checkout)
 endif
@@ -6,3 +6,7 @@ endif
 	ln -s $(MAKEDOC)/configure.ac.stub
 	ln -s $(MAKEDOC)/autogen.sh
 	$(info Now run ./autogen.sh)
+
+%:
+	@$(MAKE) -f Makefile $@
+
