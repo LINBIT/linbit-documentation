@@ -5,7 +5,7 @@ This chapter discusses various useful DRBD features, and gives some
 background information about them. Some of these features will be
 important to most users, some will only be relevant in very specific
 deployment scenarios. <<ch-admin>> and <<ch-troubleshooting>> contain
-instructions on how to enable and use these features during day-to-day
+instructions on how to enable and use these features in day-to-day
 operation.
 
 [[s-single-primary-mode]]
@@ -211,7 +211,7 @@ regard to synchronization.
 [[s-suspended-replication]]
 === Suspended replication
 
-If properly configured, DRBD is capable of detecting whether the
+If properly configured, DRBD can detect if the
 replication network is congested, and _suspend_ replication in this
 case. In this mode, the primary node "pulls ahead" of the secondary --
 temporarily going out of sync, but still leaving a consistent copy on
@@ -384,7 +384,7 @@ have write caching enabled, writes to these devices are considered
 completed as soon as they have reached the volatile cache. Controller
 manufacturers typically refer to this as write-back mode, the opposite
 being write-through. If a power outage occurs on a controller in
-write-back mode, the most recent pending writes last writes are never
+write-back mode, the last writes are never
 committed to the disk, potentially causing data loss.
 
 To counteract this, DRBD makes use of disk flushes. A disk flush is a
@@ -401,14 +401,14 @@ power failure.
 It is important to understand that DRBD can use disk flushes only when
 layered on top of backing devices that support them.  Most reasonably
 recent kernels support disk flushes for most SCSI and SATA
-devices. Linux software RAID (md) supports disk flushes for RAID-1,
-provided all component devices support them too. The same is true for
+devices. Linux software RAID (md) supports disk flushes for RAID-1
+provided that all component devices support them too. The same is true for
 device-mapper devices (LVM2, dm-raid, multipath).
 
 Controllers with battery-backed write cache (BBWC) use a battery to
 back up their volatile storage. On such devices, when power is
-restored after an outage, the controller flushes the most recent
-pending writes out to disk from the battery-backed cache, ensuring all
+restored after an outage, the controller flushes all pending writes out
+to disk from the battery-backed cache, ensuring that all
 writes committed to the volatile cache are actually transferred to
 stable storage. When running DRBD on top of such devices, it may be
 acceptable to disable disk flushes, thereby improving DRBD's write
@@ -417,8 +417,8 @@ performance. See <<s-disable-flushes>> for details.
 [[s-handling-disk-errors]]
 === Disk error handling strategies
 
-If a hard drive that is used as a backing block device for DRBD on one
-of the nodes fails, DRBD may either pass on the I/O error to the upper
+If a hard drive fails which is used as a backing block device for DRBD on one
+of the nodes, DRBD may either pass on the I/O error to the upper
 layer (usually the file system) or it can mask I/O errors from upper
 layers.
 
@@ -439,7 +439,7 @@ error. The I/O error is masked from upper layers while DRBD
 transparently fetches the affected block from the peer node, over the
 network. From then onwards, DRBD is said to operate in diskless mode,
 and carries out all subsequent I/O operations, read and write, on the
-peer node. Performance in this mode is inevitably expected to suffer,
+peer node. Performance in this mode will be reduced,
 but the service continues without interruption, and can be moved to
 the peer node in a deliberate fashion at a convenient time.
 
