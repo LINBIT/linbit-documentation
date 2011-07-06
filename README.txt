@@ -44,7 +44,7 @@ from the root of the DRBD documentation tree (i.e., from the directory
 that contains the file you are reading now):
 
 -----------------------------------
-make MAKEDOC=/path/to/you/makedoc/checkout
+make MAKEDOC=/path/to/your/makedoc/checkout
 ./autogen.sh
 ./configure
 cd <subdirectory>
