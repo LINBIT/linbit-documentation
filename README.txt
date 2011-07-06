@@ -55,9 +55,10 @@ makedoc is highly configurable; check ./configure --help for supported
 options.
 
 For example, in order to build the DRBD User's Guide in PDF form, this
-is what you would do after running ./configure:
+is what you would do:
 
 -----------------------------------
+./configure --with-asciidoc-doctype=book
 cd users-guide
 make drbd-users-guide.pdf
 -----------------------------------
