@@ -714,6 +714,49 @@ If you make this change to an existing resource, as always,
 synchronize your +drbd.conf+ to the peer, and run `drbdadm adjust
 <resource>` on both nodes.
 
+[[s-configure-congestion-policy]]
+=== Configuring congestion policies and suspended replication
+
+In an environment where the replication bandwidth is highly variable
+(as would be typical in WAN replication setups), the replication link
+may occasionally become congested. In a default configuration, this
+would cause I/O on the primary node to block, which is sometimes
+undesirable.
+
+Instead, you may configure DRBD to _suspend_ the ongoing replication
+in this case, causing the Primary's data set to _pull ahead_ of the
+Secondary. In this mode, DRBD keeps the replication channel open -- it
+never switches to disconnected mode -- but does not actually replicate
+until sufficient bandwith becomes available again.
+
+The following example is for a DRBD Proxy configuration:
+
+[source,drbd]
+----------------------------
+resource <resource> {
+  net {
+    on-congestion pull-ahead;
+    congestion-fill 2G;
+    congestion-extents 2000;
+    ...
+  }
+  ...
+}
+----------------------------
+
+It is usually wise to set both +congestion-fill+ and
++congestion-extents+ together with the +pull-ahead+ option.
+
+A good value for +congestion-fill+ is 90%
+
+* of the allocated DRBD proxy buffer memory, when replicating over
+  DRBD Proxy, or
+* of the TCP network send buffer, in non-DRBD Proxy setups.
+
+A good value for +congestion-extents+ is 90% of your configured
++al-extents+ for the affected resources.
+
+
 [[s-configure-io-error-behavior]]
 === Configuring I/O error handling strategies
 
