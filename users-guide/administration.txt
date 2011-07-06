@@ -582,7 +582,7 @@ synchronization rate that is higher than the bandwidth available on
 the replication network.
 
 [[s-configure-sync-rate-permanent]]
-==== Permanent sync rate configuration
+==== Permanent fixed sync rate configuration
 
 The maximum bandwidth a resource uses for background
 re-synchronization is determined by the +rate+ option
@@ -626,7 +626,7 @@ In this case, the recommended value for the +rate+ option would be
 +24M+.
 
 [[s-configure-sync-rate-temporary]]
-==== Temporary sync rate configuration
+==== Temporary fixed sync rate configuration
 
 It is sometimes desirable to temporarily adjust the sync rate. For
 example, you might want to speed up background re-synchronization
@@ -651,6 +651,41 @@ rate set in +/etc/drbd.conf+, issue this command:
 ----------------------------
 drbdadm adjust <resource>
 ----------------------------
+
+[[s-configure-sync-rate-variable]]
+==== Variable sync rate configuration
+
+Specifically in configurations where multiple DRBD resources share a
+single replication/synchronization network, fixed-rate synchronization
+may not be an optimal approach. In this case, you should configure
+variable-rate synchronization. In this mode, DRBD uses an automated
+control loop algorithm to determine, and permanently adjust, the
+synchronization rate. This algorithm ensures that there is always
+sufficient bandwidth available for foreground replication, greatly
+mitigating the impact that background synchronization has on
+foreground I/O.
+
+The optimal configuration for variable-rate synchronization may vary
+greatly depending on the available network bandwidth, application I/O
+pattern and link congestion. Ideal configuration settings also depend
+on whether <<s-drbd-proxy,DRBD Proxy>> is in use or not. It may be
+wise to engage professional consultancy in order to optimally
+configure this DRBD feature. An _example_ configuration (which assumes
+a deployment in conjunction with DRBD Proxy) is provided below:
+
+[source,drbd]
+----------------------------
+resource <resource> {
+  net {
+    c-plan-ahead 200;
+    c-max-rate 10M;
+    c-fill-target 15M;
+  }
+}
+----------------------------
+
+TIP: A good starting value for +c-fill-target+ is _BDP&times;3_, where
+BDP is your bandwidth delay product on the replication link.
 
 
 [[s-configure-checksum-sync]]
