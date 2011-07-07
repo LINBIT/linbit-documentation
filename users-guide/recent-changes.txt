@@ -2,4 +2,49 @@
 [appendix]
 = Recent changes
 
-TODO
+This appendix is for users who upgrade from earlier DRBD versions to
+DRBD 8.4. It highlights some important changes to DRBD's configuration
+and behavior.
+
+[[ch-recent-changes-volumes]]
+== Volumes
+
+Volumes are a new concept in DRBD 8.4. Prior to 8.4, every resource
+had only one block device associated with it, thus there was a
+one-to-one relationship between DRBD devices and resources. Since 8.4,
+multiple volumes (each corresponding to one block device) may share a
+single replication connection, which in turn corresponds to a single
+resource.
+
+[[s-recent-changes-volumes-udev]]
+=== Changes to udev symlinks
+
+The DRBD udev integration scripts manage symlinks pointing to
+individual block device nodes. These exist in the +/dev/drbd/by-res+
+and +/dev/drbd/by-disk+ directories.
+
+In DRBD 8.3 and earlier, links in +/dev/drbd/by-disk+ point to single
+block devices:
+
+.udev managed DRBD symlinks in DRBD 8.3 and earlier
+----------------------------
+lrwxrwxrwx 1 root root 11 2011-05-19 11:46 /dev/drbd/by-res/home -> ../../drbd0
+lrwxrwxrwx 1 root root 11 2011-05-19 11:46 /dev/drbd/by-res/data -> ../../drbd1
+lrwxrwxrwx 1 root root 11 2011-05-19 11:46 /dev/drbd/by-res/nfs-root -> ../../drbd2
+----------------------------
+
+In DRBD 8.4, since a single resource may correspond to multiple
+volumes, +/dev/drbd/by-res/<resource>+ becomes a _directory_,
+containing symlinks pointing to individual volumes:
+
+.udev managed DRBD symlinks in DRBD 8.4
+----------------------------
+lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/home/0 -> ../../drbd0
+lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/data/0 -> ../../drbd1
+lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/nfs-root/0 -> ../../drbd2
+lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/nfs-root/1 -> ../../drbd3
+----------------------------
+
+Configurations where filesystems are referred to by symlink must be
+updated when moving to DRBD 8.4, usually by simply appending +/0+ to
+the symlink path.
