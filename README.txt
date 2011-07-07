@@ -63,6 +63,17 @@ cd users-guide
 make drbd-users-guide.pdf
 -----------------------------------
 
+Some subdirectories also contain convenience targets building a
+document format including all of its dependencies. In order to build
+the User's Guide in HTML and PDF formats including all graphics, run
+the following commands:
+
+-----------------------------------
+./configure --with-asciidoc-doctype=book
+cd users-guide
+make html pdf
+-----------------------------------
+
 
 Modifying and maintaining the documentation
 -------------------------------------------
