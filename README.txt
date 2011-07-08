@@ -63,6 +63,20 @@ cd users-guide
 make drbd-users-guide.pdf
 -----------------------------------
 
+For the User's Guide, specifically, you can also pull in the DRBD man
+pages. To do so, you will have to have a DRBD git checkout somewhere
+on your system (you may clone this from +git.linbit.com+). You also
+need to have done +make doc+ in that DRBD checkout to build the man
+pages. Then, to build the User's Guide with man pages included, you
+would do:
+
+-----------------------------------
+./configure --with-asciidoc-doctype=book
+cd users-guide
+make DRBD=/path/to/your/drbd-checkout
+make drbd-users-guide.pdf
+-----------------------------------
+
 Some subdirectories also contain convenience targets building a
 document format including all of its dependencies. In order to build
 the User's Guide in HTML and PDF formats including all graphics, run
@@ -73,7 +87,6 @@ the following commands:
 cd users-guide
 make html pdf
 -----------------------------------
-
 
 Modifying and maintaining the documentation
 -------------------------------------------
