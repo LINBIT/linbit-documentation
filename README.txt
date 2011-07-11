@@ -109,6 +109,7 @@ them to the repository:
 
 -----------------------------------
 git pull
+# Now edit and issue "git commit -a" for each. When done:
 git format-patch origin
 git send-email --to=drbd-dev@lists.linbit.com *.patch
 -----------------------------------
