@@ -48,3 +48,54 @@ lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/nfs-root/1 -> ../../
 Configurations where filesystems are referred to by symlink must be
 updated when moving to DRBD 8.4, usually by simply appending +/0+ to
 the symlink path.
+
+[[ch-recent-changes-booleans]]
+== Boolean configuration options
+
++drbd.conf+ supports a variety of boolean configuration options. In
+pre DRBD 8.4 syntax, these boolean options would be set as follows:
+
+.Pre-DRBD 8.4 configuration example with boolean options
+[source,drbd]
+----------------------------
+resource test {
+  disk {
+    no-md-flushes;
+  }
+}
+----------------------------
+
+This led to configuration issues if you wanted to set a boolean
+variable in the +common+ configuration section, and then override it
+for individual resources:
+
+.Pre-DRBD 8.4 configuration example with boolean options in +common+ section
+[source,drbd]
+----------------------------
+common {
+  no-md-flushes;
+}
+resource test {
+  disk {
+    # No facility to enable disk flushes previously disabled in
+    # "common"
+  }
+}
+----------------------------
+
+In DRBD 8.4, all boolean options take a value of +yes+ or +no+, making
+them easily configurable both from +common+ and from individual
++resource+ sections:
+
+.DRBD 8.4 configuration example with boolean options in +common+ section
+[source,drbd]
+----------------------------
+common {
+  md-flushes no;
+}
+resource test {
+  disk {
+    md-flushes yes;
+  }
+}
+----------------------------
