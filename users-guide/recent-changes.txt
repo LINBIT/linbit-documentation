@@ -99,3 +99,42 @@ resource test {
   }
 }
 ----------------------------
+
+[[ch-recent-changes-net]]
+== On-line changes to network communications
+
+[[s-recent-changes-change-protocol]]
+=== Changing the replication protocol
+
+Prior to DRBD 8.4, changes to the replication protocol were impossible
+while the resource was on-line and active. You would have to change
+the +protocol+ option in your resource configuration file, then issue
++drbdadm disconnect+ and finally +drbdadm connect+ on both nodes.
+
+In DRBD 8.4, the replication protocol can be changed on the fly. You
+may, for example, temporarily switch a connection to asynchronous
+replication from its normal, synchronous replication mode.
+
+.Changing replication protocol while connection is established
+----------------------------
+drbdadm net-options --protocol=A <resource>
+----------------------------
+
+[[s-recent-changes-switch-dual-primary]]
+=== Changing from single-Primary to dual-Primary replication
+
+Prior to DRBD 8.4, it was impossible to switch between single-Primary
+to dual-Primary or back while the resource was on-line and active. You
+would have to change the +allow-two-primaries+ option in your resource
+configuration file, then issue +drbdadm disconnect+ and finally
++drbdadm connect+ on both nodes.
+
+In DRBD 8.4, it is possible to switch modes on-line.
+
+CAUTION: It is _required_ for an application using DRBD dual-Primary
+mode to use a clustered file system or some other distributed locking
+mechanism. This applies regardless of whether dual-Primary mode is
+enabled on a temporary or permanent basis.
+
+Refer to <<s-enable-dual-primary-temporary>> for switching to
+dual-Primary mode while the resource is on-line.
