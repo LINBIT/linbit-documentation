@@ -269,3 +269,54 @@ enabled on a temporary or permanent basis.
 
 Refer to <<s-enable-dual-primary-temporary>> for switching to
 dual-Primary mode while the resource is on-line.
+
+
+[[s-recent-changes-drbdadm]]
+== Changes to the +drbdadm+ command
+
+[[s-recent-changes-drbdadm-passthrough-options]]
+=== Changes to pass-through options
+
+Prior to DRBD 8.4, if you wanted to pass non-standard options to
++drbdadm+, you had to use the arcane +--{nbsp}--<option>+ syntax, as
+in the following example:
+
+.Pre-DRBD 8.4 +drbdadm+ pass-through options
+----------------------------
+drbdadm -- --discard-my-data connect <resource>
+----------------------------
+
+Under the covers, +drbdadm+ would take the options given with
++--{nbsp}--<option>+, and pass them to the underlying +drbdsetup+
+invocation. This awkward syntax is no longer present in DRBD
+8.4. Instead, you may specify additional options as follows:
+
+.DRBD 8.4 +drbdadm+ pass-through options
+----------------------------
+drbdadm connect --discard-my-data <resource>
+----------------------------
+
+NOTE: The old syntax is still supported, as well. However if you
+choose to use the new, more straightforward syntax, you must specify
+the option (+--discard-my-data+) _after_ the subcommand (+connect+)
+and _before_ the resource identifier.
+
+[[s-recent-changes-drbdadm-force]]
+=== +--force+ option replaces +--overwrite-data-of-peer+
+
+The poorly named +--overwrite-data-of-peer+ option is no longer
+present in DRBD 8.4. It has been replaced by the simpler
++--force+. Thus, to kick off an initial resource synchronization, you
+no longer use the following command:
+
+.Pre-DRBD 8.4 initial sync +drbdadm+ commands
+----------------------------
+drbdadm -- --overwrite-data-of-peer primary <resource>
+----------------------------
+
+Use the command below instead:
+
+.DRBD 8.4 initial sync +drbdadm+ commands
+----------------------------
+drbdadm primary --force <resource>
+----------------------------
