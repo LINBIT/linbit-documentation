@@ -49,8 +49,23 @@ Configurations where filesystems are referred to by symlink must be
 updated when moving to DRBD 8.4, usually by simply appending +/0+ to
 the symlink path.
 
+[[s-recent-changes-config]]
+=== Changes to the configuration syntax
+
+This section highlights changes to the configuration syntax. It
+affects the DRBD configuration files in +/etc/drbd.d+, and
++/etc/drbd.conf+.
+
+IMPORTANT: The +drbdadm+ parser still accepts pre-8.4 configuration
+syntax and automatically translates, internally, into the current
+syntax. Unless you are planning to use new features not present in
+prior DRBD releases, there is no requirement to modify your
+configuration to the current syntax. It is, however, recommended that
+you eventually adopt the new syntax, as the old format will no longer
+be supported in DRBD 9.
+
 [[s-recent-changes-booleans]]
-=== Boolean configuration options
+==== Boolean configuration options
 
 +drbd.conf+ supports a variety of boolean configuration options. In
 pre DRBD 8.4 syntax, these boolean options would be set as follows:
@@ -97,6 +112,41 @@ resource test {
   disk {
     md-flushes yes;
   }
+}
+----------------------------
+
+[[s-recent-changes-syncer]]
+==== +syncer+ section no longer exists
+
+Prior to DRBD 8.4, the configuration syntax allowed for a +syncer+
+section which has become obsolete in 8.4. All previously existing
++syncer+ options have now moved into the +net+ or +disk+ sections of
+resources.
+
+.Pre-DRBD 8.4 configuration example with +syncer+ section
+[source,drbd]
+----------------------------
+resource test {
+  syncer {
+    al-extents 3389;
+    verify-alg md5;
+  }
+  ...
+}
+----------------------------
+
+The above example is expressed, in DRBD 8.4 syntax, as follows:
+.DRBD 8.4 configuration example with +syncer+ section replaced
+[source,drbd]
+----------------------------
+resource test {
+  disk {
+    al-extents 3389;
+  }
+  net {
+    verify-alg md5;
+  }
+  ...
 }
 ----------------------------
 
