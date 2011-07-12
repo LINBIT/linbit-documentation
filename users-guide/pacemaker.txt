@@ -74,13 +74,16 @@ crm(live)configure# ms ms_drbd_mysql drbd_mysql \
                          clone-max="2" clone-node-max="1" \
                          notify="true"
 crm(live)configure# primitive fs_mysql ocf:heartbeat:Filesystem \
-                    params device="/dev/drbd/by-res/mysql" directory="/var/lib/mysql" fstype="ext3"
+                    params device="/dev/drbd/by-res/mysql" \
+                      directory="/var/lib/mysql" fstype="ext3"
 crm(live)configure# primitive ip_mysql ocf:heartbeat:IPaddr2 \
                     params ip="10.9.42.1" nic="eth0"
 crm(live)configure# primitive mysqld lsb:mysqld
 crm(live)configure# group mysql fs_mysql ip_mysql mysqld
-crm(live)configure# colocation mysql_on_drbd inf: mysql ms_drbd_mysql:Master
-crm(live)configure# order mysql_after_drbd inf: ms_drbd_mysql:promote mysql:start
+crm(live)configure# colocation mysql_on_drbd \
+                      inf: mysql ms_drbd_mysql:Master
+crm(live)configure# order mysql_after_drbd \
+                      inf: ms_drbd_mysql:promote mysql:start
 crm(live)configure# commit
 crm(live)configure# exit
 bye
@@ -575,8 +578,10 @@ crm(live)configure# ms ms_drbd_mysql drbd_mysql \
                     meta master-max="1" master-node-max="1" \
                          clone-max="1" clone-node-max="1" \
                          notify="true" target-role="Master"
-crm(live)configure# order drbd_after_left inf: p_ip_float_left ms_drbd_mysql
-crm(live)configure# colocation drbd_on_left inf: ms_drbd_mysql p_ip_float_left
+crm(live)configure# order drbd_after_left \
+                      inf: p_ip_float_left ms_drbd_mysql
+crm(live)configure# colocation drbd_on_left \
+                      inf: ms_drbd_mysql p_ip_float_left
 crm(live)configure# commit
 bye
 ----------------------------
@@ -602,8 +607,10 @@ crm(live)configure# ms ms_drbd_mysql drbd_mysql \
                     meta master-max="1" master-node-max="1" \
                          clone-max="1" clone-node-max="1" \
                          notify="true" target-role="Slave"
-crm(live)configure# order drbd_after_right inf: p_ip_float_right ms_drbd_mysql
-crm(live)configure# colocation drbd_on_right inf: ms_drbd_mysql p_ip_float_right
+crm(live)configure# order drbd_after_right \
+                      inf: p_ip_float_right ms_drbd_mysql
+crm(live)configure# colocation drbd_on_right
+                      inf: ms_drbd_mysql p_ip_float_right
 crm(live)configure# commit
 bye
 ----------------------------
