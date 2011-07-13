@@ -320,3 +320,64 @@ Use the command below instead:
 ----------------------------
 drbdadm primary --force <resource>
 ----------------------------
+
+
+[[s-recent-changes-defaults]]
+=== Changed default values
+
+In DRBD 8.4, several +drbd.conf+ default values have been updated to
+match improvements in the Linux kernel and available server hardware.
+
+[[s-recent-changes-defaults-al-extents]]
+==== Number of concurrently active Activity Log extents (+al-extents+)
+
++al-extents+' previous default of 127 has changed to 1237, allowing
+for better performance by reducing the amount of metadata disk write
+operations. The associated extended resynchronization time after a
+primary node crash, which this change introduces, is marginal given
+the ubiquity of Gigabit Ethernet and higher-bandwidth replication
+links.
+
+[[s-recent-changes-defaults-use-rle]]
+==== Run-length encoding (+use-rle+)
+
+Run-length encoding (RLE) for bitmap transfers is enabled by default
+in DRBD 8.4; the default for the +use-rle+ option is +yes+. RLE
+greatly reduces the amount of data transferred during the
+<<s-quick-sync-bitmap,quick-sync bitmap>> exchange (which occurs any
+time two disconnected nodes reconnect).
+
+[[s-recent-changes-on-io-error]]
+==== I/O error handling strategy (+on-io-error+)
+
+DRBD 8.4 defaults to <<fp-io-error-detach,masking I/O errors>>, which
+replaces the earlier behavior of <<fp-io-error-pass-on,passing them on>>
+to upper layers in the I/O stack. This means that a DRBD volume
+operating on a faulty drive automatically switches to the +Diskless+
+disk state and continues to serve data from its peer node.
+
+[[s-recent-changes-defaults-variable-rate-sync]]
+==== Variable-rate synchronization
+
+<<s-variable-rate-sync,Variable-rate synchronization>> is on by
+default in DRBD 8.4. The default settings are equivalent to the
+following configuration options:
+
+.DRBD 8.4 default options for variable-rate synchronization
+[source,drbd]
+----------------------------
+resource test {
+  net {
+    c-plan-ahead 20;
+    c-fill-target 50k;
+    c-min-rate 250k;
+  }
+  ...
+----------------------------
+
+[[s-recent-changes-defaults-minor-count]]
+==== Number of configurable DRBD devices (+minor-count+)
+
+The maximum number of configurable DRBD devices (previously 255) is
+1,048,576 (2^20^) in DRBD 8.4. This is more of a theoretical limit
+that is unlikely to be reached in production systems.
