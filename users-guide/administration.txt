@@ -78,6 +78,10 @@ details about the various disk states.
 Replication protocol used by the resource. Either +A+, +B+ or +C+. See
 <<s-replication-protocols>> for details.
 
+.I/O Flags
+Six state flags reflecting the I/O status of this resource. See
+<<s-io-flags>> for a detailed explanation of these flags.
+
 .+ns+ (network send)
 Volume of net data sent to the partner via the network connection; in
 Kibyte.
@@ -328,6 +332,40 @@ the data is +UpToDate+ or +Outdated+.
 indexterm:[disk state]Consistent, up-to-date state of the data. This
 is the normal state.
 
+[[s-io-flags]]
+==== I/O state flags
+
+The I/O state flag field in +/proc/drbd+ contains information about
+the current state of I/O operations associated with the
+resource. There are six such flags in total, with the following
+possible values:
+
+. I/O suspension. Either +r+ for _running_ or +s+ for _suspended_
+  I/O. Normally +r+.
+
+. Serial resynchronization. When a resource is awaiting
+  resynchronization, but has deferred this because of a +resync-after+
+  dependency, this flag becomes +a+. Normally +-+.
+
+. Peer-initiated sync suspension. When resource is awaiting
+  resynchronization, but the peer node has suspended it for any
+  reason, this flag becomes +p+. Normally +-+.
+
+. Locally initiated sync suspension. When resource is awaiting
+  resynchronization, but a user on the local node has suspended it,
+  this flag becomes +u+. Normally +-+.
+
+. Locally blocked I/O. Normally +-+. May be one of the following
+  flags:
+
+** +d+: I/O blocked for a reason internal to DRBD, such as a
+   transient disk state.
+** +b+: Backing device I/O is blocking.
+** +n+: Congestion on the network socket.
+** +a+: Simultaneous combination of blocking device I/O and network congestion.
+
+. Activity Log update suspension. When updates to the Activity Log are
+  suspended, this flag becomes +s+. Normally +-+.
 
 [[s-enable-disable]]
 === Enabling and disabling resources
