@@ -1448,7 +1448,7 @@ tool as follows (replace version with your DRBD Proxy version, and
 architecture with your target architecture):
 
 ----------------------------
-dpkg -i drbd-proxy_1.0.16_i386.deb
+dpkg -i drbd-proxy_3.0.0_amd64.deb
 ----------------------------
 
 To install DRBD Proxy on RPM based systems (like SLES or RHEL) use
@@ -1456,7 +1456,7 @@ the rpm tool as follows (replace version with your DRBD Proxy version,
 and architecture with your target architecture):
 
 ----------------------------
-rpm -i drbd-proxy-1.0.16-1.i386.rpm
+rpm -i drbd-proxy-3.0-3.0.0-1.x86_64.rpm
 ----------------------------
 
 Also install the DRBD administration program drbdadm since it is
@@ -1476,7 +1476,7 @@ license file which is required to run DRBD Proxy. The file is called
 target machines, and be owned by the user/group +drbdpxy+.
 
 ----------------------------
-cp drbd-proxy.license /etc
+cp drbd-proxy.license /etc/
 ----------------------------
 
 
@@ -1500,10 +1500,12 @@ resource r0 {
         disk       /dev/sdb1;
         meta-disk  /dev/sdb2;
 
-	proxy {
-	      compression on;
-	      memlimit 100M;
-	}
+        proxy {
+                memlimit 100M;
+                plugin {
+                        zlib level 9;
+                }
+        }
 
         on alice {
                 address 127.0.0.1:7789;
@@ -1552,8 +1554,8 @@ Note the double quotes around the command being passed.
 
 [source,drbd]
 ----------------------------
-add connection <name> <ip-listen1>:<port> <ip-connect1>:<port>
-   <ip-listen2>:<port> <ip-connect2>:<port>
+add connection <name> <listen-lan-ip>:<port> <remote-proxy-ip>:<port>
+   <local-proxy-wan-ip>:<port> <local-drbd-ip>:<port>
    Creates a communication path between two DRBD instances.
 
 set memlimit <name> <memlimit-in-bytes>
@@ -1568,21 +1570,14 @@ show
 show memusage
    Shows memory usage of each connection.
 
-list [h]subconnections
+show [h]subconnections
    Shows currently established individual connections
    together with some stats. With h outputs bytes in human
    readable format.
 
-list [h]connections
+show [h]connections
    Shows currently configured connections and their states
    With h outputs bytes in human readable format.
-
-list details
-   Shows currently established individual connections with
-   counters for each DRBD packet type.
-
-quit
-   Exits the client program (closes control connection).
 
 shutdown
    Shuts down the drbd-proxy program. Attention: this
@@ -1601,6 +1596,50 @@ Examples:
              Note that the quotes are required as listed above.
 
 ----------------------------
+
+While the commands above are only accepted from UID 0 (ie., the +root+ user),
+there's one (information gathering) command that can be used by any user
+(provided that unix permissions allow access on the proxy socket at
++/var/run/drbd-proxy/drbd-proxy-ctl.socket+); see the init script at
++/etc/init.d/drbdproxy+ about setting the rights.
+
+----------------------------
+print details
+   This prints detailed statistics for the currently active connections.
+   Can be used for monitoring, as this is the only command that may be sent by a user with UID
+
+quit
+   Exits the client program (closes control connection).
+----------------------------
+
+
+[[s-drbd-proxy-plugins]]
+==== About DRBD Proxy plugins
+
+Since DRBD proxy 3.0 the proxy allows to enable a few specific
+plugins for the WAN connection. +
+The currently available plugins are +zlib+ and
++lzma+.
+
+The +zlib+ plugin uses the GZIP algorithm for compression.
+The advantage is fairly low CPU usage.
+
+The +lzma+ plugin uses the liblzma2 library. It can
+use dictionaries of several hundred MiB; these allow for very
+efficient delta-compression of repeated data, even for small changes.
++lzma+ needs much more CPU and memory, but results in much better
+compression than +zlib+. The +lzma+ plugin has to be enabled in your license.
+
+Please contact LinBit to find the best settings for your environment - it
+depends on the CPU (speed, threading count), memory, the input and
+the available output bandwidth.
+
+Please note that the older +compression on+ in the
++proxy+ section is deprecated, and will be removed in
+a future release. +
+Currently it is treated as +zlib level 9+.
+
+
 
 [[s-drbd-proxy-troubleshoot]]
 ==== Troubleshooting
