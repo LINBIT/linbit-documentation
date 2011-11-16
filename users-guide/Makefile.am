@@ -1,7 +1,7 @@
 # Some useful wildcard expansions
 TXT_FILES ?= $(wildcard *.txt)
-MML_FILES ?= $(wildcard *.mml)
-SVG_FILES ?= $(wildcard *.svg)
+MML_FILES ?= $(wildcard *.mml images/*.mml)
+SVG_FILES ?= $(wildcard *.svg images/*.svg)
 
 all: html pdf
 
