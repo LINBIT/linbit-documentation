@@ -524,7 +524,7 @@ Before you begin make sure your resources are in sync. The output of
 'cat /proc/drbd' should show UpToDate/UpToDate.
 
 ----------------------------
-# cat /proc/drbd
+bob# cat /proc/drbd
 
 version: 8.3.12 (api:88/proto:86-96)
 GIT-hash: e2a8ef4656be026bbae540305fcb998a5991090f build by buildsystem@linbit, 2011-10-28 10:20:38
@@ -532,14 +532,14 @@ GIT-hash: e2a8ef4656be026bbae540305fcb998a5991090f build by buildsystem@linbit, 
     ns:0 nr:33300 dw:33300 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
 ----------------------------
 
-Now that you know the resources are in sync, stop DRBD. This can be done
-manually or if you're using Pacemaker put the node in standby mode. Both
-processes are covered below.  If you're running Pacemaker do not
-use the manual method.
+Now that you know the resources are in sync, start by upgrading the
+secondary node. This can be done manually or if you're using
+Pacemaker put the node in standby mode. Both processes are covered
+below.  If you're running Pacemaker do not use the manual method.
 
 * Manual Method
 ----------------------------
-# /etc/init.d/drbd stop
+bob# /etc/init.d/drbd stop
 ----------------------------
 
 * Pacemaker
@@ -547,7 +547,7 @@ use the manual method.
 Put the secondary node into standby mode. In this example bob is secondary.
 
 ----------------------------
-# crm node standby bob
+bob# crm node standby bob
 ----------------------------
 
 NOTE: You can watch the status of your cluster using 'crm_mon -rf' or watch
@@ -556,11 +556,11 @@ NOTE: You can watch the status of your cluster using 'crm_mon -rf' or watch
 Now update your packages with either yum or apt.
 
 ----------------------------
-# yum upgrade
+bob# yum upgrade
 ----------------------------
 
 ----------------------------
-# apt-get upgrade
+bob# apt-get upgrade
 ----------------------------
 
 Once the upgrade is finished will now have the latest DRBD 8.4 kernel
@@ -568,7 +568,7 @@ module and drbd-utils on your secondary node, bob. Start DRBD.
 
 * Manually
 ----------------------------
-# /etc/init.d/drbd start
+bob# /etc/init.d/drbd start
 ----------------------------
 
 * Pacemaker 
@@ -590,16 +590,19 @@ NOTE: On the primary node, alice, 'cat /proc/drbd' will still show the
 prior version, until you upgrade it.
 
 At this point the cluster has two different versions of DRBD. Stop
-any service using DRBD and DRBD on the primary node, alice, then promote
+any service using DRBD and then DRBD on the primary node, alice, and promote
 bob. Again this can be done either manually or via the Pacemaker shell.
 
 * Manually
 ----------------------------
 alice # umount /dev/drbd/by-res/r0
 alice # /etc/init.d/drbd stop
-bob # drbdadm primary
-bob # mount /dev/drbd/by-res/r0 /mnt/drbd
+bob # drbdadm primary r0
+bob # mount /dev/drbd/by-res/r0/0 /mnt/drbd
 ----------------------------
+Please note that the mount command now references '/0' which defines
+the volume number of a resource. See <<s-recent-changes-volumes>> for
+more information on the new volumes feature.
 
 * Pacemaker
 ----------------------------
@@ -612,11 +615,11 @@ migrating them to the secondary server, bob.
 At this point you can safely upgrade DRBD by using yum or apt.
 
 ----------------------------
-# yum upgrade
+alice# yum upgrade
 ----------------------------
 
 ----------------------------
-# apt-get upgrade
+alice# apt-get upgrade
 ----------------------------
 
 Once the upgrade is complete you will now have the latest version
@@ -624,12 +627,12 @@ of DRBD on alice and can start DRBD.
 
 * Manually
 ----------------------------
-# /etc/init.d/drbd start
+alice# /etc/init.d/drbd start
 ----------------------------
 
 * Pacemaker
 ----------------------------
-# crm node online alice
+alice# crm node online alice
 ----------------------------
 
 NOTE: Services will still be located on bob and will remain there
@@ -644,6 +647,16 @@ GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 
  0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
     ns:0 nr:12 dw:12 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
 ----------------------------
+
+==== Migrating your configs
+
+DRBD 8.4 is backward compatible with the 8.3 configs however some
+syntax has changed. See <<s-recent-changes-config>> for
+a full list of changes. In the meantime you can port your old
+configs fairly easily by using 'drbdadm dump all' command. This
+will output both a new global config followed by the
+new resource config files. Take this output and make changes
+accordingly.
 
 [[s-enable-dual-primary]]
 === Enabling dual-primary mode
