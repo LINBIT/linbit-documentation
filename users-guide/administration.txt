@@ -462,6 +462,202 @@ result in an error.
 A resource configured to allow <<s-dual-primary-mode,dual-primary
 mode>> can be switched to the primary role on both nodes.
 
+[[s-upgrading-drbd]]
+=== Upgrading DRBD
+
+Upgrading DRBD is a fairly simple process. This section will cover
+the process of upgrading from 8.3.x to 8.4.x, however this process
+should work for all upgrades.
+
+[[s-updating-your-repo]]
+==== Updating your repository
+
+Due to the number of changes between the 8.3 and 8.4 branches we
+have created separate repositories for each. Perform this repository
+update on both servers.
+
+[[s-RHEL-systems]]
+===== RHEL/CentOS systems
+
+Edit your /etc/yum.repos.d/linbit.repo file to reflect the following
+changes.
+
+----------------------------
+[drbd-8.4]
+name=DRBD 8.4
+baseurl=http://packages.linbit.com/<hash>/8.4/rhel6/<arch>
+gpgcheck=0
+----------------------------
+
+NOTE: You will have to populate the <hash> and <arch> variables. The
+<hash> is provided by LINBIT support services.
+
+[[s-Debian-Systems]]
+===== Debian/Ubuntu systems
+
+Edit /etc/apt/sources.list to reflect the following changes.
+
+----------------------------
+deb http://packages.linbit.com/<hash>/8.4/debian squeeze main
+----------------------------
+
+NOTE: You will have to populate the <hash> variable. The
+<hash> is provided by LINBIT support services.
+
+Next you will want to add the DRBD signing key to your trusted keys.
+
+----------------------------
+# gpg --keyserver subkeys.pgp.net --recv-keys  0x282B6E23
+# gpg --export -a 282B6E23 | apt-key add -
+----------------------------
+
+Lastly perform an apt-get update so Debian recognizes the updated repo.
+
+----------------------------
+apt-get update
+----------------------------
+
+[[s-Upgrading-the-packages]]
+==== Upgrading the packages
+
+Before you begin make sure your resources are in sync. The output of
+'cat /proc/drbd' should show UpToDate/UpToDate.
+
+----------------------------
+bob# cat /proc/drbd
+
+version: 8.3.12 (api:88/proto:86-96)
+GIT-hash: e2a8ef4656be026bbae540305fcb998a5991090f build by buildsystem@linbit, 2011-10-28 10:20:38
+ 0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
+    ns:0 nr:33300 dw:33300 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+----------------------------
+
+Now that you know the resources are in sync, start by upgrading the
+secondary node. This can be done manually or if you're using
+Pacemaker put the node in standby mode. Both processes are covered
+below.  If you're running Pacemaker do not use the manual method.
+
+* Manual Method
+----------------------------
+bob# /etc/init.d/drbd stop
+----------------------------
+
+* Pacemaker
+
+Put the secondary node into standby mode. In this example bob is secondary.
+
+----------------------------
+bob# crm node standby bob
+----------------------------
+
+NOTE: You can watch the status of your cluster using 'crm_mon -rf' or watch
+'cat /proc/drbd' until it shows "Unconfigured" for your resources.
+
+Now update your packages with either yum or apt.
+
+----------------------------
+bob# yum upgrade
+----------------------------
+
+----------------------------
+bob# apt-get upgrade
+----------------------------
+
+Once the upgrade is finished will now have the latest DRBD 8.4 kernel
+module and drbd-utils on your secondary node, bob. Start DRBD.
+
+* Manually
+----------------------------
+bob# /etc/init.d/drbd start
+----------------------------
+
+* Pacemaker 
+----------------------------
+# crm node online bob
+----------------------------
+
+The output of 'cat /proc/drbd' on bob should show 8.4.x and look similar
+to this.
+
+----------------------------
+version: 8.4.1 (api:1/proto:86-100)
+GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 2011-12-20 12:58:48
+ 0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
+    ns:0 nr:12 dw:12 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+----------------------------
+
+NOTE: On the primary node, alice, 'cat /proc/drbd' will still show the
+prior version, until you upgrade it.
+
+At this point the cluster has two different versions of DRBD. Stop
+any service using DRBD and then DRBD on the primary node, alice, and promote
+bob. Again this can be done either manually or via the Pacemaker shell.
+
+* Manually
+----------------------------
+alice # umount /dev/drbd/by-res/r0
+alice # /etc/init.d/drbd stop
+bob # drbdadm primary r0
+bob # mount /dev/drbd/by-res/r0/0 /mnt/drbd
+----------------------------
+Please note that the mount command now references '/0' which defines
+the volume number of a resource. See <<s-recent-changes-volumes>> for
+more information on the new volumes feature.
+
+* Pacemaker
+----------------------------
+# crm node standby alice
+----------------------------
+
+WARNING: This will interrupt running services by stopping them and
+migrating them to the secondary server, bob.
+
+At this point you can safely upgrade DRBD by using yum or apt.
+
+----------------------------
+alice# yum upgrade
+----------------------------
+
+----------------------------
+alice# apt-get upgrade
+----------------------------
+
+Once the upgrade is complete you will now have the latest version
+of DRBD on alice and can start DRBD.
+
+* Manually
+----------------------------
+alice# /etc/init.d/drbd start
+----------------------------
+
+* Pacemaker
+----------------------------
+alice# crm node online alice
+----------------------------
+
+NOTE: Services will still be located on bob and will remain there
+until you migrate them back.
+
+Both servers should now show the latest version of DRBD in a connected
+state.
+
+----------------------------
+version: 8.4.1 (api:1/proto:86-100)
+GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 2011-12-20 12:58:48
+ 0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
+    ns:0 nr:12 dw:12 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+----------------------------
+
+==== Migrating your configs
+
+DRBD 8.4 is backward compatible with the 8.3 configs however some
+syntax has changed. See <<s-recent-changes-config>> for
+a full list of changes. In the meantime you can port your old
+configs fairly easily by using 'drbdadm dump all' command. This
+will output both a new global config followed by the
+new resource config files. Take this output and make changes
+accordingly.
+
 [[s-enable-dual-primary]]
 === Enabling dual-primary mode
 
@@ -629,7 +825,7 @@ synchronization target temporarily inconsistent) completes as quickly
 as possible. However, it is also necessary to keep background
 synchronization from hogging all bandwidth otherwise available for
 foreground replication, which would be detrimental to application
-performance. Thus, you must configure the sychronization bandwidth to
+performance. Thus, you must configure the synchronization bandwidth to
 match your hardware -- which you may do in a permanent fashion or
 on-the-fly.
 
@@ -1636,8 +1832,8 @@ efficient delta-compression of repeated data, even for small changes.
 +lzma+ needs much more CPU and memory, but results in much better
 compression than +zlib+. The +lzma+ plugin has to be enabled in your license.
 
-Please contact LinBit to find the best settings for your environment - it
-depends on the CPU (speed, threading count), memory, the input and
+Please contact Linbit to find the best settings for your environment - it
+depends on the CPU (speed, threading count), memory, input and
 the available output bandwidth.
 
 Please note that the older +compression on+ in the
@@ -1652,6 +1848,12 @@ Currently it is treated as +zlib level 9+.
 
 DRBD proxy logs via syslog using the +LOG_DAEMON+ facility. Usually
 you will find DRBD Proxy messages in +/var/log/daemon.log+.
+
+Enabling debug mode in DRBD Proxy can be done with the following command.
+
+--------------------------
+# drbd-proxy-ctl -c 'set loglevel debug'
+--------------------------
 
 For example, if proxy fails to connect it will log something like
 +Rejecting connection because I can't connect on the other side+. In

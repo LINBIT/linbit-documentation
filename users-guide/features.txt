@@ -280,7 +280,7 @@ data corruption during the replication process:
   goes undetected by TCP checksumming if it is offloaded to the
   network card, as is common in recent implementations);
 
-* bit flips occuring on data in transit from the network interface to
+* bit flips occurring on data in transit from the network interface to
   main memory on the receiving node (the same considerations apply for
   TCP checksum offloading);
 
@@ -410,7 +410,7 @@ layers.
 
 [[fp-io-error-pass-on]]
 .Passing on I/O errors
-If DRBD is configured to pass on I/O errors, any such errors occuring
+If DRBD is configured to pass on I/O errors, any such errors occurring
 on the lower-level device are transparently passed to upper I/O
 layers. Thus, it is left to upper layers to deal with such errors
 (this may result in a file system being remounted read-only, for
@@ -478,7 +478,8 @@ NOTE: Available in DRBD version 8.3.0 and above
 
 When using three-way replication, DRBD adds a third node to an
 existing 2-node cluster and replicates data to that node, where it can
-be used for backup and disaster recovery purposes.
+be used for backup and disaster recovery purposes. This type of
+configuration generally involves <<s-drbd-proxy>>.
 
 Three-way replication works by adding another, _stacked_ DRBD resource
 on top of the existing resource holding your production data, as seen
@@ -492,7 +493,7 @@ The stacked resource is replicated using asynchronous replication
 of synchronous replication (DRBD protocol C).
 
 Three-way replication can be used permanently, where the third node is
-continously updated with data from the production
+continuously updated with data from the production
 cluster. Alternatively, it may also be employed on demand, where the
 production cluster is normally disconnected from the backup site, and
 site-to-site synchronization is performed on a regular basis, for
@@ -507,22 +508,22 @@ DRBD's <<s-replication-protocols,protocol A>> is asynchronous, but the
 writing application will block as soon as the socket output buffer is
 full (see the sndbuf-size option in <<re-drbdconf>>). In that event,
 the writing application has to wait until some of the data written
-runs off through a possibly small bandwith network link.
+runs off through a possibly small bandwidth network link.
 
-The average write bandwith is limited by available bandwith of the
+The average write bandwidth is limited by available bandwidth of the
 network link. Write bursts can only be handled gracefully if they fit
 into the limited socket output buffer.
 
 You can mitigate this by DRBD Proxy's buffering mechanism.  DRBD Proxy
-will suck up all available data from the DRBD on the primary node into
+will place changed data from the DRBD device on the primary node into
 its buffers. DRBD Proxy's buffer size is freely configurable, only
 limited by the address room size and available physical RAM.
 
 Optionally DRBD Proxy can be configured to compress and decompress the
 data it forwards. Compression and decompression of DRBD's data packets
-might slightly increase latency. But when the bandwidth of the network
+might slightly increase latency. However, when the bandwidth of the network
 link is the limiting factor, the gain in shortening transmit time
-outweighs the compression and decompression overhead by far.
+outweighs the compression and decompression overhead.
 
 Compression and decompression were implemented with multi core SMP
 systems in mind, and can utilize multiple CPU cores.
