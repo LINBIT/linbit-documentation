@@ -171,13 +171,13 @@ following commands on the node where the resource is currently in the
 primary role: indexterm:[LVM]indexterm:[pvcreate (LVM command)]
 
 ----------------------------
-pvcreate /dev/drbdX
+# pvcreate /dev/drbdX
 ----------------------------
 
 or
 
 ----------------------------
-pvcreate /dev/drbd/by-res/<resource>/0
+# pvcreate /dev/drbd/by-res/<resource>/0
 ----------------------------
 
 NOTE: This example assumes a single-volume resource.
@@ -258,7 +258,7 @@ must, of course, be in the primary role while doing
 so. indexterm:[LVM]indexterm:[vgcreate (LVM command)]
 
 ----------------------------
-vgcreate <name> /dev/drbdX
+# vgcreate <name> /dev/drbdX
 ----------------------------
 
 NOTE: While it is possible to mix DRBD and non-DRBD Physical Volumes
@@ -310,7 +310,7 @@ Make sure your DRBD configuration is identical across nodes, then
 issue:
 
 -------------------------------------
-drbdadm new-minor r0 1
+# drbdadm new-minor r0 1
 -------------------------------------
 
 This will enable the new volume +1+ in the resource +r0+. Once the new
@@ -318,7 +318,7 @@ volume has been added to the replication stream, you may initialize
 and add it to the volume group:
 
 -------------------------------------
-pvcreate /dev/drbd/by-res/<resource>/1
+# pvcreate /dev/drbd/by-res/<resource>/1
 lvextend <name> /dev/drbd/by-res/<resource>/1
 -------------------------------------
 
@@ -355,7 +355,8 @@ Volume. To provide an example, consider the following configuration:
 In order to enable this configuration, follow these steps:
 
 * Set an appropriate +filter+ option in your +/etc/lvm/lvm.conf+:
-
++
+--
 indexterm:[LVM]indexterm:[filter expression (LVM)]
 [source,drbd]
 ----------------------------
@@ -369,8 +370,12 @@ After modifying the +lvm.conf+ file, you must run the
 indexterm:[LVM]indexterm:[vgscan (LVM command)]`vgscan` command so LVM
 discards its configuration cache and re-scans devices for PV
 signatures.
+--
+
 
 * Disable the LVM cache by setting:
++
+--
 [source,drbd]
 ----------------------------
 write_cache_state = 0
@@ -378,30 +383,32 @@ write_cache_state = 0
 
 After disabling the LVM cache, make sure you remove any stale cache
 entries by deleting +/etc/lvm/cache/.cache+.
+--
 
 * Now, you may initialize your two SCSI partitions as PVs:
   indexterm:[LVM]indexterm:[pvcreate (LVM command)]
-
++
 ----------------------------
-pvcreate /dev/sda1
+# pvcreate /dev/sda1
 Physical volume "/dev/sda1" successfully created
-pvcreate /dev/sdb1
+# pvcreate /dev/sdb1
 Physical volume "/dev/sdb1" successfully created
 ----------------------------
 
 * The next step is creating your low-level VG named +local+,
 consisting of the two PVs you just initialized:
 indexterm:[LVM]indexterm:[vgcreate (LVM command)]
-
++
 ----------------------------
-vgcreate local /dev/sda1 /dev/sda2
+# vgcreate local /dev/sda1 /dev/sda2
 Volume group "local" successfully created
 ----------------------------
 
 * Now you may create your Logical Volume to be used as DRBD's backing
   device: indexterm:[LVM]indexterm:[lvcreate (LVM command)]
++
 ----------------------------
-lvcreate --name r0 --size 10G local
+# lvcreate --name r0 --size 10G local
 Logical volume "r0" created
 ----------------------------
 
@@ -409,6 +416,8 @@ Logical volume "r0" created
 
 * Then, edit your +/etc/drbd.conf+ to create a new resource named +r0+:
   indexterm:[drbd.conf]
++
+--
 [source,drbd]
 ----------------------------
 resource r0 {
@@ -422,67 +431,76 @@ resource r0 {
 
 After you have created your new resource configuration, be sure to
 copy your +drbd.conf+ contents to the peer node.
+--
 
 * After this, initialize your resource as described in
   <<s-first-time-up>>(on both nodes).
 
 * Then, promote your resource (on one node): indexterm:[drbdadm]
++
 ----------------------------
-drbdadm primary r0
+# drbdadm primary r0
 ----------------------------
 
 * Now, on the node where you just promoted your resource, initialize
   your DRBD device as a new Physical Volume:
-  indexterm:[LVM]indexterm:[pvcreate (LVM command)]
-
++
+--
+indexterm:[LVM]indexterm:[pvcreate (LVM command)]
 ----------------------------
-pvcreate /dev/drbd0
+# pvcreate /dev/drbd0
 Physical volume "/dev/drbd0" successfully created
 ----------------------------
+--
 
 * Create your VG named +replicated+, using the PV you just
   initialized, on the same node: indexterm:[LVM]indexterm:[vgcreate
   (LVM command)]
-
++
 ----------------------------
-vgcreate replicated /dev/drbd0
+# vgcreate replicated /dev/drbd0
 Volume group "replicated" successfully created
 ----------------------------
 
 * Finally, create your new Logical Volumes within this newly-created
-  VG: indexterm:[LVM]indexterm:[lvcreate (LVM command)]
++
+--
+VG: indexterm:[LVM]indexterm:[lvcreate (LVM command)]
 ----------------------------
-lvcreate --name foo --size 4G replicated
+# lvcreate --name foo --size 4G replicated
 Logical volume "foo" created
-lvcreate --name bar --size 6G replicated
+# lvcreate --name bar --size 6G replicated
 Logical volume "bar" created
 ----------------------------
+--
 
 The Logical Volumes +foo+ and +bar+ will now be available as
 +/dev/replicated/foo+ and +/dev/replicated/bar+ on the local node.
 
-To make them available on the peer node, first issue the following
-sequence of commands on the local node:
+===== Switching the VG to the other node =====
+
+To make them available on the other node, first issue the following
+sequence of commands on the primary node:
 indexterm:[LVM]indexterm:[vgchange (LVM command)]
 
 ----------------------------
-vgchange -a n replicated
+# vgchange -a n replicated
 0 logical volume(s) in volume group "replicated" now active
-drbdadm secondary r0
+# drbdadm secondary r0
 ----------------------------
 
 
-Then, issue these commands on the peer node:
+Then, issue these commands on the other (still secondary) node:
 indexterm:[drbdadm]indexterm:[LVM]indexterm:[vgchange (LVM command)]
 
 ----------------------------
-drbdadm primary r0
-vgchange -a y replicated
+# drbdadm primary r0
+# vgchange -a y replicated
 2 logical volume(s) in volume group "replicated" now active
 ----------------------------
 
 After this, the block devices +/dev/replicated/foo+ and
-+/dev/replicated/bar+ will be available on the peer node.
++/dev/replicated/bar+ will be available on the other (now primary) node.
 
 [[s-lvm-pacemaker]]
 
