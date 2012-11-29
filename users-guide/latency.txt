@@ -19,6 +19,7 @@ disk rotation speed. Thus, using fast-spinning disks is a valid
 approach for reducing I/O subsystem latency.
 
 Likewise, the use of a indexterm:[battery-backed write cache]
+indexterm:[BBU]
 battery-backed write cache (BBWC) reduces write completion times, also
 reducing write latency. Most reasonable storage subsystems come with
 some form of battery-backed cache, and allow the administrator to
@@ -29,7 +30,8 @@ cache.
 
 .Network latency
 indexterm:[latency]Network latency is, in essence, the packet
-round-trip time ( ) between hosts. It is influenced by a number of
+indexterm:[round-trip-time]indexterm:[RTT]
+round-trip time (RTT) between hosts. It is influenced by a number of
 factors, most of which are irrelevant on the dedicated, back-to-back
 network connections recommended for use as DRBD replication
 links. Thus, it is sufficient to accept that a certain amount of
@@ -38,7 +40,9 @@ the order of 100 to 200 microseconds (μs) packet RTT.
 
 Network latency may typically be pushed below this limit only by using
 lower-latency network protocols, such as running DRBD over Dolphin
-Express using Dolphin SuperSockets.
+Express using Dolphin SuperSockets, or a 10GBe direct connection; these are 
+typically in the 50µs range.
+
 
 [[s-latency-overhead-expectations]]
 === Latency overhead expectations
@@ -50,7 +54,7 @@ with DRBD, there are some important natural limitations to consider:
 * DRBD latency is bound by the available network latency.
 
 The _sum_ of the two establishes the theoretical latency _minimum_
-incurred to DRBD. DRBD then adds to that latency a slight additional
+incurred to DRBDfootnote:[for protocol C, because the other node(s) have to write to stable storage, too]. DRBD then adds to that latency a slight additional
 latency overhead, which can be expected to be less than 1 percent.
 
 * Consider the example of a local disk subsystem with a write latency
@@ -79,6 +83,7 @@ it must not. Thus, for example, a CPU mask of 1 (+00000001+) means
 DRBD may use the first CPU only. A mask of 12 (+00001100+) implies
 DRBD may use the third and fourth CPU.
 
+
 An example CPU mask configuration for a resource may look like this:
 
 [source,drbd]
@@ -100,6 +105,12 @@ Some applications may provide for this via an entry in a configuration
 file, just like DRBD itself. Others include an invocation of the
 `taskset` command in an application init script.
 
+NOTE: it makes sense to keep the DRBD threads running on the same L2/L3 caches.
++
+But: the numbering of CPUs doesn't have to correlate with the physical partitioning. 
+You can try the +lstopo+ (or +hwloc-ls+) program for X11 or `hwloc-info -v -p` 
+for console output to get an overview of the topology.
+
 
 [[s-latency-tuning-mtu-size]]
 ==== Modifying the network MTU
@@ -110,18 +121,13 @@ maximum transmission unit (MTU) size to a value higher than the
 default of 1500 bytes. Colloquially, this is referred to as
 indexterm:[Jumbo frames] "enabling Jumbo frames".
 
-NOTE: Block-based file systems include ext3, ReiserFS (version 3), and
-GFS. Extent-based file systems, in contrast, include XFS, Lustre and
-OCFS2. Extent-based file systems are expected to benefit from enabling
-Jumbo frames only if they hold few and large files.
-
 The MTU may be changed using the following commands:
 ----------------------------
-ifconfig <interface> mtu <size>
+# ifconfig <interface> mtu <size>
 ----------------------------
 or
 ----------------------------
-ip link set <interface> mtu <size>
+# ip link set <interface> mtu <size>
 ----------------------------
 
 _<interface>_ refers to the network interface used for DRBD
@@ -130,6 +136,7 @@ replication. A typical value for _<size>_ would be 9000 (bytes).
 [[s-latency-tuning-deadline-scheduler]]
 ==== Enabling the +deadline+ I/O scheduler
 
+indexterm:[io scheduler]
 When used in conjunction with high-performance, write back enabled
 hardware RAID controllers, DRBD latency may benefit greatly from using
 the simple +deadline+ I/O scheduler, rather than the CFQ scheduler. The
@@ -138,12 +145,12 @@ configurations (post-2.6.18 for most distributions).
 
 Modifications to the I/O scheduler configuration may be performed via
 the +sysfs+ virtual file system, mounted at +/sys+. The scheduler
-configuration is in +/sys/block/<device>+, where <device> is the
+configuration is in +/sys/block/__device__+, where <device> is the
 backing device DRBD uses.
 
 Enabling the +deadline+ scheduler works via the following command:
 ----------------------------
-`echo deadline > /sys/block/<device>/queue/scheduler`
+# echo deadline > /sys/block/<device>/queue/scheduler
 ----------------------------
 
 You may then also set the following values, which may provide
@@ -151,18 +158,18 @@ additional latency benefits:
 
 * Disable front merges:
 ----------------------------
-echo 0 > /sys/block/<device>/queue/iosched/front_merges
+# echo 0 > /sys/block/<device>/queue/iosched/front_merges
 ----------------------------
 
 * Reduce read I/O deadline to 150 milliseconds (the default is 500ms):
 ----------------------------
-echo 150 > /sys/block/<device>/queue/iosched/read_expire
+# echo 150 > /sys/block/<device>/queue/iosched/read_expire
 ----------------------------
 
 * Reduce write I/O deadline to 1500 milliseconds (the default is
   3000ms):
 ----------------------------
- echo 1500 > /sys/block/<device>/queue/iosched/write_expire
+# echo 1500 > /sys/block/<device>/queue/iosched/write_expire
 ----------------------------
 
 If these values effect a significant latency improvement, you may want

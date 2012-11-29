@@ -6,6 +6,19 @@ cluster stack is arguably DRBD's most frequently found use
 case. Pacemaker is also one of the applications that make DRBD
 extremely powerful in a wide variety of usage scenarios.
 
+DRBD can be used in Pacemaker clusters in two ways:
+* DRBD running as a background-service, used like a SAN; or
+* DRBD completely managed by Pacemaker.
+
+Both have a few advantages and disadvantages, these will be discussed below.
+
+NOTE: It's recommended to have some fencing configured.
+If your cluster has communication issues (eg. network switch loses 
+power) and gets split, the parts might start the services (failover)
+and cause a *Split-Brain* when the communication resumes again.
+
+
+
 [[s-pacemaker-primer]]
 === Pacemaker primer
 
@@ -25,8 +38,54 @@ following documents is highly recommended:
   concept and design behind Pacemaker.
 
 
+[[s-pacemaker-drbd-background]]
+=== Using DRBD as a background service in a pacemaker cluster
+
+In this section you will see that using autonomous DRBD storage can look 
+like local storage; so integrating in a Pacemaker cluster is done by 
+pointing your mount points at DRBD.
+
+First of all, we will use the +auto-promote+ feature of DRBD, so that 
+DRBD automatically sets itself +primary+ when needed. This will probably 
+apply to all of your resources, so setting that a default in the 
++common+ section makes sense:
+
+[source,drbd]
+----------------------------
+common {
+  options {
+    auto-promote yes;
+    ...
+  }
+}
+----------------------------
+
+Now you just need to use your storage, eg. via a filesystem:
+
+.Pacemaker configuration for DRBD-backed MySQL service, using +auto-promote+
+----------------------------
+crm configure
+crm(live)configure# primitive fs_mysql ocf:heartbeat:Filesystem \
+                    params device="/dev/drbd/by-res/mysql" \
+                      directory="/var/lib/mysql" fstype="ext3"
+crm(live)configure# primitive ip_mysql ocf:heartbeat:IPaddr2 \
+                    params ip="10.9.42.1" nic="eth0"
+crm(live)configure# primitive mysqld lsb:mysqld
+crm(live)configure# group mysql fs_mysql ip_mysql mysqld
+crm(live)configure# commit
+crm(live)configure# exit
+bye
+----------------------------
+
+Essentially all that is needed is a mountpoint (+/var/lib/mysql+ in this 
+example) where the DRBD resource gets mounted.
+
+As long as Pacemaker has control, it will only allow a single instance 
+of that mount across your cluster.
+
+
 [[s-pacemaker-crm-drbd-backed-service]]
-=== Adding a DRBD-backed service to the cluster configuration
+=== Adding a DRBD-backed service to the cluster configuration, including a master-slave resource
 
 This section explains how to enable a DRBD-backed service in a
 Pacemaker cluster.
@@ -63,7 +122,7 @@ ensure your service only starts on a previously promoted DRBD
 resource. You may do so using the +crm+ shell, as outlined in the
 following example:
 
-.Pacemaker configuration for DRBD-backed MySQL service
+.Pacemaker configuration for DRBD-backed MySQL service, using a +master-slave+ resource
 ----------------------------
 crm configure
 crm(live)configure# primitive drbd_mysql ocf:linbit:drbd \
@@ -257,13 +316,19 @@ connection is re-established and DRBD completes its synchronization
 process, then that constraint is removed and the cluster manager is
 free to promote the resource on any node again.
 
+
 [[s-pacemaker-stacked-resources]]
 === Using stacked DRBD resources in Pacemaker clusters
+
+NOTE: Stacking is deprecated in DRBD version 
+9.x, as more nodes can be implemented on a single level. See 
+<<s-drbdconf-conns>> for details.
 
 Stacked resources allow DRBD to be used for multi-level redundancy in
 multiple-node clusters, or to establish off-site disaster recovery
 capability. This section describes how to configure DRBD and Pacemaker
 in such configurations.
+
 
 [[s-pacemaker-stacked-dr]]
 ==== Adding off-site disaster recovery to Pacemaker clusters
@@ -499,6 +564,7 @@ following actions:
 . Leave the stacked DRBD resource in the Secondary role (due to
   +target-role="Slave"+).
 
+
 [[s-pacemaker-floating-peers]]
 === Configuring DRBD to replicate between two SAN-backed Pacemaker clusters
 
@@ -520,11 +586,12 @@ virtual IP addresses not tied to a specific physical machine.
 
 
 NOTE: This type of setup is usually deployed together with
-<<s-drbd-proxy,DRBD Proxy>>and/or <<s-truck-based-replication,truck
+<<s-drbd-proxy,DRBD Proxy>> and/or <<s-truck-based-replication,truck
 based replication>>.
 
 Since this type of setup deals with shared storage, configuring and
 testing STONITH is absolutely vital for it to work properly.
+
 
 [[s-pacemaker-floating-peers-drbd-config]]
 ==== DRBD resource configuration
@@ -553,6 +620,7 @@ function properly. As shown in the example, in split-site
 configurations the two floating addresses can be expected to belong to
 two separate IP networks -- it is thus vital for routers and firewalls
 to properly allow DRBD replication traffic between the nodes.
+
 
 [[s-pacemaker-floating-peers-crm-config]]
 ==== Pacemaker resource configuration
@@ -627,6 +695,7 @@ following actions:
 . Bring up the DRBD resource according to the IP address configured.
 . Leave the DRBD resource in the Secondary role (due to
   +target-role="Slave"+).
+
 
 [[s-pacemaker-floating-peers-site-fail-over]]
 ==== Site fail-over

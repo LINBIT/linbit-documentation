@@ -16,7 +16,7 @@ configured (see <<s-metadata>>).
 NOTE: For the most part, the steps described here apply only if you
 run DRBD directly on top of physical hard drives. They generally do
 not apply in case you are running DRBD layered on top of
-
++
 * an MD software RAID set (in this case, use `mdadm` to manage drive
   replacement),
 * device-mapper RAID (use `dmraid`),
@@ -33,7 +33,7 @@ on I/O errors>> (not recommended), you must first detach the DRBD
 resource, that is, disassociate it from its backing storage:
 
 ----------------------------
-drbdadm detach <resource>
+# drbdadm detach <resource>
 ----------------------------
 
 By running the `drbdadm dstate` command, you will now be able to verify
@@ -42,7 +42,7 @@ mode]indexterm:[diskless (disk state)]indexterm:[disk state]_diskless
 mode_:
 
 ----------------------------
-drbdadm dstate <resource>
+# drbdadm dstate <resource>
 Diskless/UpToDate
 ----------------------------
 
@@ -71,19 +71,19 @@ This process involves creating a new meta data set, then re-attaching
 the resource: indexterm:[drbdadm]
 
 ----------------------------
-drbdadm create-md <resource>
+# drbdadm create-md <resource>
 v08 Magic number not found
 Writing meta data...
 initialising activity log
 NOT initializing bitmap
 New drbd meta data block sucessfully created.
 
-drbdadm attach <resource>
+# drbdadm attach <resource>
 ----------------------------
 
 Full synchronization of the new hard disk starts instantaneously and
 automatically. You will be able to monitor the synchronization's
-progress via +/proc/drbd+, as with any background synchronization.
+progress via `drbdadm status --verbose`, as with any background synchronization.
 
 [[s-replace-disk-external-metadata]]
 ==== Replacing a failed disk when using external meta data
@@ -94,19 +94,19 @@ independently that the hard drive was swapped, thus an additional step
 is required.
 
 ----------------------------
-drbdadm create-md <resource>
+# drbdadm create-md <resource>
 v08 Magic number not found
 Writing meta data...
 initialising activity log
 NOT initializing bitmap
 New drbd meta data block sucessfully created.
 
-drbdadm attach <resource>
-drbdadm invalidate <resource>
+# drbdadm attach <resource>
+# drbdadm invalidate <resource>
 ----------------------------
 
 Here, the `drbdadm invalidate` command triggers synchronization. Again,
-sync progress may be observed via +/proc/drbd+.
+sync progress may be observed via `drbdadm status --verbose`.
 
 [[s-node-failure]]
 === Dealing with node failure
@@ -119,7 +119,7 @@ in _disconnected mode_. In disconnected mode, the resource and its
 associated block device are fully usable, and may be promoted and
 demoted as necessary, but no block modifications are being replicated
 to the peer node. Instead, DRBD stores internal information on which
-blocks are being modified while disconnected.
+blocks are being modified while disconnected, on a per-peer basis.
 
 [[s-temp-node-failure-secondary]]
 ==== Dealing with temporary secondary node failure
@@ -128,7 +128,7 @@ indexterm:[node failure]If a node that currently has a resource in the
 secondary role fails temporarily (due to, for example, a memory
 problem that is subsequently rectified by replacing RAM), no further
 intervention is necessary — besides the obvious necessity to repair
-the failed node and bring it back on line. When that happens, the two
+the failed node and bring it back online. When that happens, the two
 nodes will simply re-establish connectivity upon system
 start-up. After this, DRBD replicates all modifications made on the
 primary node in the meantime, to the secondary node.
@@ -140,6 +140,10 @@ can not switch to the Primary role if the peer is unavailable. Thus,
 the period in which your cluster is not redundant consists of the
 actual secondary node down time, plus the subsequent
 re-synchronization.
+
+Please note that with DRBD 9 more than two nodes can be connected for each 
+resource, so for eg. 4 nodes a single failing secondary still leaves two other 
+secondaries available for failover.
 
 [[s-temp-node-failure-primary]]
 ==== Dealing with temporary primary node failure
@@ -169,7 +173,7 @@ permanent destruction, you must follow the following steps:
 
 * Replace the failed hardware with one with similar performance and
   disk capacity.
-
++
 NOTE: Replacing a failed node with one with worse performance
 characteristics is possible, but not recommended. Replacing a failed
 node with one with less disk capacity is not supported, and will cause
@@ -177,7 +181,7 @@ DRBD to refuse to connect to the replaced node.
 
 * Install the base system and applications.
 * Install DRBD and copy +/etc/drbd.conf+ and all of +/etc/drbd.d/+
-  from the surviving node.
+  from one of the surviving nodes.
 * Follow the steps outlined in <<ch-configure>>, but stop short of
  <<s-initial-full-sync>>.
 
@@ -214,6 +218,14 @@ whose modifications will be discarded (this node is referred to as the
 indexterm:[split brain]_split brain victim_). This intervention is
 made with the following commands:
 
+[WARNING]
+================
+For the DRBD 9.0.x pre-release this is still __work in progress__.
+
+Expect rough edges and changes for the final release.
+================
+
+/////////////////
 [NOTE]
 ===========================
 The split brain victim needs to be in the connection state of
@@ -221,24 +233,46 @@ The split brain victim needs to be in the connection state of
 You can ensure it is standalone by issuing:
 
 ----------
-drbdadm disconnect <resource>
+# drbdadm disconnect <resource>
 ----------
 ===========================
+/////////////////
 
-----------------------------
-drbdadm secondary <resource>
-drbdadm connect --discard-my-data <resource>
+
+----------
+# drbdadm disconnect <resource>
+# drbdadm secondary <resource>
+# drbdadm connect --discard-my-data <resource>
 ----------------------------
 
 On the other node (the indexterm:[split brain]_split brain survivor_),
 if its connection state is also +StandAlone+, you would enter:
 
 ----------------------------
-drbdadm connect <resource>
+# drbdadm disconnect <resource>
+# drbdadm connect <resource>
 ----------------------------
 
 You may omit this step if the node is already in the
 +WFConnection+ state; it will then reconnect automatically.
+
+
+[IMPORTANT]
+================
+
+With the DRBD 9 pre-release you might get a slightly misleading error message
+
+---------
+Failure: (102) Local address(port) already in use.
+---------
+
+when in +StandAlone+ and trying to reconnect, because the kernel module still 
+has active connection data.
+
+In this case just drop the network setup with `drbdadm disconnect`, and 
+continue with a `drbdadm connect` as usual.
+================
+
 
 If the resource affected by the split brain is a
 <<s-three-nodes,stacked resource>>, use `drbdadm --stacked` instead

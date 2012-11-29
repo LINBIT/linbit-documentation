@@ -25,9 +25,9 @@ RAID-1+0 configuration with three stripes, or 200MB/s with five
 stripes.
 
 NOTE: Disk _mirroring_(RAID-1) in hardware typically has little, if
-any effect on throughput. Disk _striping with parity_(RAID-5) does
+any, effect on throughput. Disk _striping with parity_(RAID-5) does
 have an effect on throughput, usually an adverse one when compared to
-striping.
+striping; RAID-5 in software even more so.
 
 .Network throughput
 indexterm:[throughput]Network throughput is usually determined by the
@@ -81,7 +81,7 @@ bottlenecks.
 ==== Setting +max-buffers+ and +max-epoch-size+
 
 These options affect write performance on the secondary
-node. +max-buffers+ is the maximum number of buffers DRBD allocates for
+nodes. +max-buffers+ is the maximum number of buffers DRBD allocates for
 writing data to disk while +max-epoch-size+ is the maximum number of
 write requests permitted between two write barriers. Under most
 circumstances, these two options should be set in parallel, and to
@@ -131,8 +131,8 @@ resource <resource> {
 The TCP send buffer is a memory buffer for outgoing TCP traffic. By
 default, it is set to a size of 128 KiB. For use in high-throughput
 networks (such as dedicated Gigabit Ethernet or load-balanced bonded
-connections), it may make sense to increase this to a size of 512 KiB,
-or perhaps even more. Send buffer sizes of more than 2 MiB are
+connections), it may make sense to increase this to a size of 2 MiB,
+or perhaps even more. Send buffer sizes of more than 64 MiB are
 generally not recommended (and are also unlikely to produce any
 throughput improvement).
 
@@ -140,7 +140,7 @@ throughput improvement).
 ----------------------------
 resource <resource> {
   net {
-    sndbuf-size 512k;
+    sndbuf-size 2MiB;
     ...
   }
   ...
@@ -175,7 +175,7 @@ frequent metadata updates may be detrimental to write performance.
 ----------------------------
 resource <resource> {
   disk {
-    al-extents 3389;
+    al-extents 65536; FIXME create-md [--peer-max-bio-size {val}] [--al-stripes {val}] [--al-stripe-size-kB {val}]  
     ...
   }
   ...

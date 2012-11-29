@@ -73,17 +73,17 @@ connected and in the secondary role on both nodes:
 # TEST_DEVICE=$(drbdadm sh-dev $TEST_RESOURCE)
 # TEST_LL_DEVICE=$(drbdadm sh-ll-dev $TEST_RESOURCE)
 # drbdadm primary $TEST_RESOURCE
-# dd if=/dev/zero of=$TEST_DEVICE bs=512 count=1000 oflag=direct
+# dd if=/dev/zero of=$TEST_DEVICE bs=4k count=1000 oflag=direct
 # drbdadm down $TEST_RESOURCE
-# dd if=/dev/zero of=$TEST_LL_DEVICE bs=512 count=1000 oflag=direct
+# dd if=/dev/zero of=$TEST_LL_DEVICE bs=4k count=1000 oflag=direct
 ----------------------------
 
-This test writes 1,000 512-byte chunks of data to your DRBD device,
-and then to its backing device for comparison. 512 bytes is the
-smallest block size a Linux system (on all architectures except s390)
-is expected to handle.
+This test writes 1,000 chunks with 4kiByte each to your DRBD device,
+and then to its backing device for comparison. 4096 bytes is the
+smallest block size a Linux system (on all architectures except s390),
+modern hard disks, and SSDs, are expected to handle.
 
 It is important to understand that throughput measurements generated
 by +dd+ are completely irrelevant for this test; what is important is
 the _time_ elapsed during the completion of said 1,000 writes. Dividing
-this time by 1,000 gives the average latency of a single sector write.
+this time by 1,000 gives the average latency of a single block write.

@@ -79,18 +79,13 @@ be used for storing a OCFS2 filesystem must be configured in
 <<s-dual-primary-mode,dual-primary mode>>. Also, it is recommended to
 use some of DRBD's
 <<s-automatic-split-brain-recovery-configuration,features for
-automatic recovery from split brain>>. And, it is necessary for the
-resource to switch to the primary role immediately after startup. To
+automatic recovery from split brain>>. To
 do all this, include the following lines in the resource
 configuration: indexterm:[drbd.conf]
 
 [source,drbd]
 ----------------------------
 resource <resource> {
-  startup {
-    become-primary-on both;
-    ...
-  }
   net {
     # allow-two-primaries yes;
     after-sb-0pri discard-zero-changes;
@@ -113,12 +108,17 @@ indexterm:[drbd.conf]+allow-two-primaries+ option to +yes+ for this
 resource, you will be able to <<s-switch-resource-roles,promote the
 resource>>to the primary role on both nodes.
 
+NOTE: With DRBD 9.1 it will be possible to have more than two nodes in the 
++Primary+ role; with DRBD 9.0 you can only use two primaries, but more nodes
+can be in +Secondary+ role to provide more redundancy.
+
+
 [[s-ocfs2-create]]
 === Creating an OCFS2 filesystem
 
 Now, use OCFS2's +mkfs+ implementation to create the file system:
 ----------------------------
-mkfs -t ocfs2 -N 2 -L ocfs2_drbd0 /dev/drbd0
+# mkfs -t ocfs2 -N 2 -L ocfs2_drbd0 /dev/drbd0
 mkfs.ocfs2 1.4.0
 Filesystem label=ocfs2_drbd0
 Block size=1024 (bits=10)
@@ -289,7 +289,7 @@ On SLES, you may utilize the +configure+ option of the +o2cb+ init
 script:
 
 ----------------------------
-/etc/init.d/o2cb configure
+# /etc/init.d/o2cb configure
 Configuring the O2CB driver.
 
 This will configure the on-boot properties of the O2CB driver.
@@ -321,7 +321,7 @@ available. Instead, reconfigure the +ocfs2-tools+ package to enable the
 driver:
 
 ----------------------------
-dpkg-reconfigure -p medium -f readline ocfs2-tools
+# dpkg-reconfigure -p medium -f readline ocfs2-tools
 Configuring ocfs2-tools
 Would you like to start an OCFS2 cluster (O2CB) at boot time? yes
 Name of the cluster to start at boot time: ocfs2
@@ -353,7 +353,7 @@ Starting O2CB cluster ocfs2: OK
 When you have completed cluster configuration and created your file
 system, you may mount it as any other file system:
 ----------------------------
-mount -t ocfs2 /dev/drbd0 /shared
+# mount -t ocfs2 /dev/drbd0 /shared
 ----------------------------
 
 Your kernel log (accessible by issuing the command +dmesg+) should

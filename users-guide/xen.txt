@@ -21,7 +21,7 @@ and guest virtual machines — with selected guest operating systems for
 improved performance in comparison to conventional virtualization
 solutions (which are typically based on hardware
 emulation). indexterm:[Xen]Xen also supports full hardware emulation
-on CPUs that support the appropriate virtualization extensions, in Xen
+on CPUs that support the appropriate virtualization extensions; in Xen
 parlance, this is known as HVM ( "hardware-assisted virtual machine").
 
 NOTE: At the time of writing, CPU extensions supported by Xen for HVM
@@ -46,7 +46,7 @@ system available on 32- or 64-bit Intel compatible architectures.
 === Setting DRBD module parameters for use with Xen
 
 For Xen Domain-0 kernels, it is recommended to load the DRBD module
-with the set to +1+. To do so, create (or open) the file
+with the parameter +disable_sendpage+ set to +1+. To do so, create (or open) the file
 +/etc/modprobe.d/drbd.conf+ and enter the following line:
 
 [source,drbd]
@@ -93,7 +93,7 @@ disk = [ 'drbd:<resource>,xvda,w' ]
 ----------------------------
 
 This example configuration makes the DRBD resource named _resource_
-available to the domU as +/dev/xvda+ in read/write mode ( +w+).
+available to the domU as +/dev/xvda+ in read/write mode (+w+).
 
 Of course, you may use multiple DRBD resources with a single domU. In
 that case, simply add more entries like the one provided in the
@@ -114,9 +114,9 @@ this approach:
   pseudo-bootloader does not support the +drbd:+ syntax.
 
 ** pygrub+ (prior to Xen 3.3) and +domUloader.py+ (shipped with Xen on
-SUSE Linux Enterprise Server 10) are two examples of
-pseudo-bootloaders that do not support the +drbd:+ virtual block device
-configuration syntax.
+   SUSE Linux Enterprise Server 10) are two examples of
+   pseudo-bootloaders that do not support the +drbd:+ virtual block device
+   configuration syntax.
 
 ** +pygrub+ from Xen 3.3 forward, and the +domUloader.py+ version that
    ships with SLES 11 _do_ support this syntax.
@@ -134,7 +134,7 @@ that provided by the +drbd+ resource type.
 Once you have configured your DRBD-backed domU, you may start it as
 you would any other domU:
 ----------------------------
-xm create <domU>
+# xm create <domU>
 Using config file "+/etc/xen/<domU>+".
 Started domain <domU>
 ----------------------------
@@ -146,7 +146,7 @@ promoted to the primary role, and made accessible to Xen as expected.
 .Stopping the domU
 This is equally straightforward:
 ----------------------------
-xm shutdown -w <domU>
+# xm shutdown -w <domU>
 Domain <domU> terminated.
 ----------------------------
 
@@ -157,7 +157,7 @@ secondary role after the domU is successfully shut down.
 .Migrating the domU
 This, too, is done using the usual Xen tools:
 ----------------------------
-xm migrate --live <domU> <destination-host>
+# xm migrate --live <domU> <destination-host>
 ----------------------------
 
 In this case, several administrative steps are automatically taken in
@@ -191,7 +191,7 @@ to the domU in much the same fashion as the +phy+ device type does.
 If a Virtual Block Device configured in the +disk+ option of a domU
 configuration uses any prefix other than +phy:+, +file:+, or no prefix
 at all (in which case Xen defaults to using the +phy+ device type),
-Xen expects to find a helper script named +block+-_prefix_ in the Xen
+Xen expects to find a helper script named +block-+_prefix_ in the Xen
 scripts directory, commonly +/etc/xen/scripts+.
 
 The DRBD distribution provides such a script for the +drbd+ device

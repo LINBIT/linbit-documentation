@@ -24,18 +24,22 @@ high availability (fail-over capable) clusters.
 === Dual-primary mode
 
 In dual-primary mode, a resource is, at any given time, in the
-primary role on both cluster nodes. Since concurrent access to the
+primary role on two cluster nodes. Since concurrent access to the
 data is thus possible, this mode requires the use of a shared cluster
 file system that utilizes a distributed lock manager. Examples include
 <<ch-gfs,GFS>> and <<ch-ocfs2,OCFS2>>.
 
 Deploying DRBD in dual-primary mode is the preferred approach for
 load-balancing clusters which require concurrent data access from two
-nodes. This mode is disabled by default, and must be enabled
+nodes, eg. virtualization environments with a need for live-migration.
+This mode is disabled by default, and must be enabled
 explicitly in DRBD's configuration file.
 
 See <<s-enable-dual-primary>> for information on enabling dual-primary
 mode for specific resources.
+
+NOTE: With DRBD-9.1 it will be possible to have more than two primaries at the 
+same time.
 
 [[s-replication-protocols]]
 === Replication modes
@@ -63,7 +67,7 @@ write operations on the primary node are considered completed as soon
 as the local disk write has occurred, and the replication packet has
 reached the peer node. Normally, no writes are lost in case of forced
 fail-over. However, in the event of simultaneous power failure on both
-nodes and concurrent, irreversible destruction of the primary's data
+nodes *and* concurrent, irreversible destruction of the primary's data
 store, the most recent writes completed on the primary may be lost.
 
 [[fp-protocol-c]]
@@ -73,7 +77,7 @@ primary node are considered completed only after both the local and
 the remote disk write have been confirmed. As a result, loss of a
 single node is guaranteed not to lead to any data loss. Data loss is,
 of course, inevitable even with this replication protocol if both
-nodes (or their storage subsystems) are irreversibly destroyed at the
+nodes (resp. their storage subsystems) are irreversibly destroyed at the
 same time.
 
 By far, the most commonly used replication protocol in DRBD setups is
@@ -85,6 +89,20 @@ largely independent of the replication protocol selected.
 
 See <<s-configure-resource>> for an example resource configuration
 which demonstrates replication protocol configuration.
+
+[[s-multi-node]]
+=== More than 2-way redundancy
+
+With DRBD 9 it's possible to have the data stored simultaneously on more than 
+two cluster nodes.
+
+While this has been possible before via <<s-three-way-repl,stacking>>, in 
+DRBD 9 this is supported out-of-the-box for (currently) up to 16 nodes.
+(In practice, using 3-, 4- or perhaps 5-way duplication via DRBD
+will make other things the leading cause of downtime.) FIXME
+
+// Eg. if availability for a single node is 99%, for two nodes it might 
+// be 99.99%, for three nodes 99.999%
 
 [[s-replication-transports]]
 === Multiple replication transports
@@ -105,7 +123,7 @@ different addressing scheme.
 .SDP
 SDP is an implementation of BSD-style sockets for RDMA capable
 transports such as InfiniBand. SDP is available as part of the OFED
-stack for most current distributions. SDP uses and IPv4-style
+stack for most current distributions. SDP uses an IPv4-style
 addressing scheme. Employed over an InfiniBand interconnect, SDP
 provides a high-throughput, low-latency replication network to DRBD.
 
@@ -157,7 +175,7 @@ on using this facility.
 [[s-variable-rate-sync]]
 ==== Variable-rate synchronization
 
-In variable-rate synchronization (the default), DRBD detects the
+In variable-rate synchronization (the default since 8.4), DRBD detects the
 available bandwidth on the synchronization network, compares it to
 incoming foreground application I/O, and selects an appropriate
 synchronization rate based on a fully automatic control loop.
@@ -173,9 +191,10 @@ configurable, static upper limit. Based on this limit, you may
 estimate the expected sync time based on the following simple formula:
 
 [[eq-resync-time]]
-[equation]
+//[equation]
 .Synchronization time
 image::resync-time[\[t_{sync}=\frac{D}{R}\]]
+
 
 _t~sync~_ is the expected sync time. _D_ is the amount of data to be
 synchronized, which you are unlikely to have any influence over (this
@@ -270,7 +289,8 @@ particular system's kernel configuration.
 With this feature enabled, DRBD generates a message digest of every
 data block it replicates to the peer, which the peer then uses to
 verify the integrity of the replication packet. If the replicated
-block can not be verified against the digest, the peer requests
+block can not be verified against the digest, the connection is dropped
+and immediately re-established; because of the bitmap the typical result is a
 retransmission. Thus, DRBD replication is protected against several
 error sources, all of which, if unchecked, would potentially lead to
 data corruption during the replication process:
@@ -300,7 +320,7 @@ replication traffic integrity checking.
 Split brain is a situation where, due to temporary failure of all
 network links between cluster nodes, and possibly due to intervention
 by a cluster management software or human error, both nodes switched
-to the primary role while disconnected. This is a potentially harmful
+to the +Primary+ role while disconnected. This is a potentially harmful
 state, as it implies that modifications to the data might have been
 made on either node, without having been replicated to the peer. Thus,
 it is likely in this situation that two diverging sets of data have
@@ -472,9 +492,11 @@ daemon (dopd)>> for an example DRBD/Heartbeat/Pacemaker configuration
 enabling protection against inadvertent use of outdated data.
 
 [[s-three-way-repl]]
-=== Three-way replication
+=== Three-way replication via stacking
 
-NOTE: Available in DRBD version 8.3.0 and above
+NOTE: Available in DRBD version 8.3.0 and above; deprecated in DRBD version 
+9.x, as more nodes can be implemented on a single level. See 
+<<s-drbdconf-conns>> for details.
 
 When using three-way replication, DRBD adds a third node to an
 existing 2-node cluster and replicates data to that node, where it can
@@ -506,7 +528,7 @@ NOTE: DRBD Proxy requires DRBD version 8.2.7 or above.
 
 DRBD's <<s-replication-protocols,protocol A>> is asynchronous, but the
 writing application will block as soon as the socket output buffer is
-full (see the sndbuf-size option in <<re-drbdconf>>). In that event,
+full (see the +sndbuf-size+ option in <<re-drbdconf>>). In that event,
 the writing application has to wait until some of the data written
 runs off through a possibly small bandwidth network link.
 
@@ -576,3 +598,133 @@ host name.
 
 For more information about managing floating peer configurations, see
 <<s-pacemaker-floating-peers>>.
+
+[[s-rebalance]]
+=== Data rebalancing (horizontal storage scaling)
+
+If your company's policy says that 3-way redundancy is needed, you need 
+at least 3 servers for your setup.
+
+Now, as your storage demands grow, you will encounter the need for 
+additional servers. Rather than having to buy 3 more servers at the same 
+time, you can _rebalance_ your data across a single additional node.
+
+.DRBD data rebalancing
+image::rebalance[]
+
+In the figure above you can see the _before_ and _after_ states: from 
+3 nodes with three 25TiB volumes each (for a net 75TiB), to 4 nodes, 
+with net 100TiB.
+
+By doing a live, online migration of the data you can achieve horizontal 
+scaling, and still keep control about your data's location.
+
+All that is needed is to have a free <<s-quick-sync-bitmap,bitmap slot>> for 
+temporary use; you can either allocate one more at
+<<s-first-time-up,`drbdadm create-md` time>>, or simply put a placeholder in 
+your configuration, so that +drbdadm+ sees that it should reserve one more slot:
+
+---------
+resource r0 {
+  ...
+  on for-later-rebalancing {
+    address   10.254.254.254:65533;
+    node-id   3;
+  }
+}
+--------
+
+This placeholder can later on be filled with the correct host name and 
+address, then copied to the other nodes, and finally activated by 
+`drbdadm adjust` or `drbdadm connect _peer_@_resource_`; then, when the 
+synchronization has finished, and the new host is +UpToDate+, one of the
+other nodes in the configuration can be renamed to +for-later-rebalancing+, and
+kept for another migration.
+
+
+[[s-drbd-client]]
+=== DRBD client
+
+With the multiple-peer feature of DRBD a number of interesting use-cases have 
+been added, for example the _DRBD client_.
+
+The basic idea is that the DRBD _backend_ can consist of 3, 4, or more nodes 
+(depending on the policy of needed duplicity); but, as DRBD 9 can connect more 
+nodes than that, one bitmap slotfootnote:[This might be optimized away some 
+time, perhaps even with DRBD 9.0.0.] gets reserved for a +Diskless Primary+, 
+ie. a _DRBD Client_.
+
+So, with a policy of having 3-way data redundancy, and reserving one 
+bitmap slot for <<s-rebalance,re-balancing>>, you might define your 
+DRBD resources like this:
+
+-------------------------------------
+resource kvm-mail {
+  device      /dev/drbd6;
+  disk        /dev/vg/kvm-mail;
+  meta-disk   internal;
+
+  on store1 {
+    address   10.1.10.1:7006;
+    node-id   0;
+  }
+  on store2 {
+    address   10.1.10.2:7006;
+    node-id   1;
+  }
+  on store3 {
+    address   10.1.10.3:7006;
+    node-id   2;
+  }
+
+  on for-later-rebalancing {
+    address   10.1.10.4:7006;
+    node-id   3;
+  }
+
+  # DRBD "client"
+  floating 10.1.11.6:8006 {
+    disk      /dev/does-not-exist;
+    node-id   4;
+  }
+
+  # rest omitted for brevity
+  ...
+}
+--------------------- 
+
+On the __client__ you would get an error when trying to attach to the 
+local storage, so you should skip these commands; an easy way is to use 
+the debug output of +drbdadm+ (but see the planned enhancements below, too):
+
+---------
+# drbdadm up kvm-mail -d  | grep -v /dev/does-not-exist | /bin/sh
+---------
+
+
+Additionally to the horizontal scaling via adding storage nodes and doing 
+a <<s-rebalance,_live_\, online_ rebalancing of storage>>
+this kind of setup allows a cluster of VM frontend servers, managed eg. 
+via Pacemaker, to access the data via a service IP address without 
+needing local storage.
+
+While not fully optimized in the DRBD-9 pre-release, it's something to 
+keep in mind. Possible enhancements include
+
+* not needing a bitmap slot, as the _client_ node won't store any
+  persistent data anyway
+* Having a cleaner way to specify the client (eg. `disk none;`), to
+  have +drbdadm+ already notice that no +attach+ and similar commands
+  are needed.
+* More granular specification of +read-balancing+.
+
+
+[NOTE]
+====================
+This _DRBD client_ is an easy way to get data over the wire, but it 
+doesn't have any of the advanced iSCSI features like _Persistent Reservations_.
+
+If your setup has only basic I/O needs, like _read_, _write_, and 
+perhaps _resize_ (eg. for a virtual machine), you should be fine.
+====================
+

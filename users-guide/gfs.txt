@@ -50,7 +50,7 @@ from. Also, of course, DRBD adds an additional physical copy to every
 GFS filesystem, thus adding redundancy to the concept.
 
 GFS makes use of a cluster-aware variant of LVM, indexterm:[LVM]termed
-Cluster Logical Volume Manager or CLVM. As such, some parallelism
+Cluster Logical Volume Manager or indexterm:[CLVM]CLVM. As such, some parallelism
 exists between using DRBD as the data storage for GFS, and using
 <<s-lvm-drbd-as-pv,DRBD as a Physical Volume for conventional LVM>>.
 
@@ -74,18 +74,13 @@ be used for storing a GFS filesystem must be configured in
 <<s-dual-primary-mode,dual-primary mode>>. Also, it is recommended to
 use some of DRBD's
 <<s-automatic-split-brain-recovery-configuration,features for
-automatic recovery from split brain>>. And, it is necessary for the
-resource to switch to the primary role immediately after startup. To
+automatic recovery from split brain>>. To
 do all this, include the following lines in the resource
 configuration: indexterm:[drbd.conf]
 
 [source,drbd]
 ----------------------------
 resource <resource> {
-  startup {
-    become-primary-on both;
-    ...
-  }
   net {
     allow-two-primaries yes;
     after-sb-0pri discard-zero-changes;
@@ -102,7 +97,7 @@ freshly-configured resource>>, you may <<s-first-time-up,initialize
 your resource as you normally would>>. Since the
 indexterm:[drbd.conf]+allow-two-primaries+ option is set to +yes+ for
 this resource, you will be able to <<s-switch-resource-roles,promote
-the resource>>to the primary role on both nodes.
+the resource>>to the primary role on two nodes.
 
 [[s-gfs-configure-lvm]]
 === Configuring LVM to recognize the DRBD resource
@@ -113,7 +108,7 @@ your LVM configuration
 
 * uses clustered locking. To do this, set the following option in
   +/etc/lvm/lvm.conf+:
-
++
 [source,drbd]
 ----------------------------
 locking_type = 3
@@ -131,7 +126,7 @@ After you have created your new DRBD resource and
 must enable and start the following system services on both nodes of
 your GFS cluster:
 
-* +cman+(this also starts +ccsd+ and +fenced+),
+* +cman+ (this also starts +ccsd+ and +fenced+),
 
 * +clvmd+.
 
@@ -151,11 +146,11 @@ command)]indexterm:[LVM]indexterm:[vgcreate (LVM
 command)]indexterm:[LVM]indexterm:[lvcreate (LVM command)]
 
 ----------------------------
-pvcreate /dev/drbd/by-res/<resource>/0
+# pvcreate /dev/drbd/by-res/<resource>/0
 Physical volume "/dev/drbd<num>" successfully created
-vgcreate <vg-name> /dev/drbd/by-res/<resource>/0
+# vgcreate <vg-name> /dev/drbd/by-res/<resource>/0
 Volume group "<vg-name>" successfully created
-lvcreate --size <size> --name <lv-name> <vg-name>
+# lvcreate --size <size> --name <lv-name> <vg-name>
 Logical volume "<lv-name>" created
 ----------------------------
 
@@ -169,19 +164,19 @@ volume.
 
 indexterm:[GFS]Now, you may proceed by creating the actual filesystem:
 ----------------------------
-mkfs -t gfs -p lock_dlm -j 2 /dev/<vg-name>/<lv-name>
+# mkfs -t gfs -p lock_dlm -j 2 /dev/<vg-name>/<lv-name>
 ----------------------------
 
 Or, for a GFS2 filesystem:
 
 ----------------------------
-mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name>
-/dev/<vg-name>/<lv-name>
+# mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name>
+	/dev/<vg-name>/<lv-name>
 ----------------------------
 
 The +-j+ option in this command refers to the number of journals to
-keep for GFS. This must be identical to the number of nodes in the GFS
-cluster; since DRBD does not support more than two nodes, the value to
+keep for GFS. This must be identical to the number of nodes with concurrent +Primary+ role in the GFS
+cluster; since DRBD does not support more than two +Primary+ nodes until DRBD 9.1, the value to
 set here is always 2.
 
 The +-t+ option, applicable only for GFS2 filesystems, defines the lock
@@ -202,20 +197,20 @@ After you have created your filesystem, you may add it to
 /dev/<vg-name>/<lv-name> <mountpoint> gfs defaults 0 0
 ----------------------------
 
-For a GFS2 filesystem, simply change the defined filesystem type to:
+For a GFS2 filesystem, simply change the filesystem type:
 
 [source,fstab]
 ----------------------------
 /dev/<vg-name>/<lv-name> <mountpoint> gfs2 defaults 0 0
 ----------------------------
 
-Do not forget to make this change on both cluster nodes.
+Do not forget to make this change on both (or, with DRBD 9.1, all) cluster nodes.
 
 After this, you may mount your new filesystem by starting the
 +gfs+ service (on both nodes): indexterm:[GFS]
 
 ----------------------------
-service gfs start
+# service gfs start
 ----------------------------
 
 From then onwards, as long as you have DRBD configured to start

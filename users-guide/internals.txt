@@ -16,11 +16,11 @@ indexterm:[meta data]DRBD stores various pieces of information about
 the data it keeps in a dedicated area. This metadata includes:
 
 * the size of the DRBD device,
-* the Generation Identifier ( GI, described in detail in <<s-gi>>),
-* the Activity Log ( AL, described in detail in <<s-activity-log>>).
+* the Generation Identifier (GI, described in detail in <<s-gi>>),
+* the Activity Log (AL, described in detail in <<s-activity-log>>).
 * the quick-sync bitmap (described in detail in <<s-quick-sync-bitmap>>),
 
-This metadata may be stored _internally_ and _externally_. Which method
+This metadata may be stored _internally_ or _externally_. Which method
 is used is configurable on a per-resource basis.
 
 [[s-internal-meta-data]]
@@ -59,7 +59,7 @@ one of the following things:
 
 * Enlarge your lower-level device. This is possible with any logical
   volume management facility (such as indexterm:[LVM]LVM) as long as
-  you have free space available in the corresponding volume groupIt
+  you have free space available in the corresponding volume group. It
   may also be supported by hardware storage solutions.
 
 * Shrink your existing file system on your lower-level device. This
@@ -69,7 +69,7 @@ one of the following things:
   <<s-external-meta-data,external meta data>> instead.
 
 To estimate the amount by which you must enlarge your lower-level
-device our shrink your file system, see <<s-meta-data-size>>.
+device or shrink your file system, see <<s-meta-data-size>>.
 
 [[s-external-meta-data]]
 ==== External meta data
@@ -114,13 +114,9 @@ image::metadata-size-exact[]
 
 _C~s~_ is the data device size in sectors.
 
-NOTE: You may retrieve the device size by issuing `blockdev --getsz
-<device>`.
-
-The result, _M~s~_, is also expressed in sectors. To convert to MB,
-divide by 2048 (for a 512-byte sector size, which is the default on
-all Linux platforms except s390).
-
+NOTE: You may retrieve the device size (in bytes) by issuing `blockdev --getsize64
+<device>`; to convert to MB, divide by 1048576 (= 2^20^ or 1024^2^).
+ 
 In practice, you may use a reasonably good approximation, given
 below. Note that in this formula, the unit is megabytes, not sectors:
 
@@ -170,7 +166,7 @@ unique identifier (UUID).
 [[s-gi-tuple]]
 ==== The generation identifier tuple
 
-DRBD keeps four pieces of information about current and historical
+DRBD keeps some pieces of information about current and historical
 data generations in the local resource meta data:
 
 .Current UUID
@@ -179,17 +175,17 @@ seen from the local node's perspective. When a resource is
 +Connected+ and fully synchronized, the current UUID is identical
 between nodes.
 
-.Bitmap UUID
-This is the UUID of the generation against which the on-disk sync
-bitmap is tracking changes. As the on-disk sync bitmap itself, this
-identifier is only relevant while in disconnected mode. If the
+.Bitmap UUIDs
+This is the UUID of the generation against which this on-disk 
+bitmap is tracking changes (per remote host). As the on-disk sync bitmap itself, this
+identifier is only relevant while the remote host is disconnected. If the
 resource is +Connected+, this UUID is always empty (zero).
 
-.Two Historical UUIDs
-These are the identifiers of the two data generations preceding the
-current one.
+.Historical UUIDs
+These are the identifiers of data generations preceding the
+current one, sized to have one slot per (possible) remote host.
 
-Collectively, these four items are referred to as the _generation
+Collectively, these items are referred to as the _generation
 identifier tuple_, or GI tuple" for short.
 
 [[s-gi-changes]]
@@ -198,7 +194,7 @@ identifier tuple_, or GI tuple" for short.
 [[s-gi-changes-newgen]]
 ===== Start of a new data generation
 
-When a node loses connection to its peer (either by network failure or
+When a node in +Primary+ role loses connection to its peer (either by network failure or
 manual intervention), DRBD modifies its local generation identifiers
 in the following manner:
 
@@ -206,61 +202,23 @@ in the following manner:
 .GI tuple changes at start of a new data generation
 image::gi-changes-newgen[]
 
-. A new UUID is created for the new data generation. This becomes the
-  new current UUID for the primary node.
+. The primary creates a new UUID for the new data generation. This becomes the
+  _new_ current UUID for the primary node.
 
-. The previous UUID now refers to the generation the bitmap is
+. The _previous_ current UUID now refers to the generation the bitmap is
   tracking changes against, so it becomes the new bitmap UUID for the
   primary node.
 
-. On the secondary node, the GI tuple remains unchanged.
-
-[[s-gi-changes-syncstart]]
-===== Start of re-synchronization
-
-Upon the initiation of re-synchronization, DRBD performs these
-modifications on the local generation identifiers:
-
-[[f-gi-changes-syncstart]]
-.GI tuple changes at start of re-synchronization
-image::gi-changes-syncstart[]
-
-. The current UUID on the synchronization source remains unchanged.
-
-. The bitmap UUID on the synchronization source is rotated out to the
-  first historical UUID.
-
-. A new bitmap UUID is generated on the synchronization source.
-
-. This UUID becomes the new current UUID on the synchronization
-  target.
-
-. The bitmap and historical UUID's on the synchronization target
-  remain unchanged.
+. On the secondary node(s), the GI tuple remains unchanged.
 
 
 [[s-gi-changes-synccomplete]]
 ===== Completion of re-synchronization
 
-When re-synchronization concludes, the following changes are
-performed:
+When re-synchronization concludes, the synchronization target adopts the entire 
+GI tuple from the synchronization source.
 
-[[f-gi-changes-synccomplete]]
-.GI tuple changes at completion of re-synchronization
-image::gi-changes-synccomplete[]
-
-. The current UUID on the synchronization source remains unchanged.
-
-. The bitmap UUID on the synchronization source is rotated out to the
-  first historical UUID, with that UUID moving to the second
-  historical entry (any existing second historical entry is
-  discarded).
-
-. The bitmap UUID on the synchronization source is then emptied
-  (zeroed).
-
-. The synchronization target adopts the entire GI tuple from the
-  synchronization source.
+The synchronization source keeps the same set, and doesn't generate new UUIDs.
 
 
 [[s-gi-use]]
@@ -323,6 +281,8 @@ historical UUID matches the peer's current UUID), DRBD performs the
 same steps, except that the local node becomes the synchronization
 target.
 
+ERROR: FIXME
+
 .Bitmap UUIDs match, current UUIDs do not
 indexterm:[split brain]The local node detects that its current UUID
 differs from the peer's current UUID, and that the bitmap UUID's
@@ -357,13 +317,13 @@ write operation to the local backing block device, but also sends the
 data block over the network. These two actions occur, for all
 practical purposes, simultaneously. Random timing behavior may cause a
 situation where the write operation has been completed, but the
-transmission via the network has not yet taken place.
+transmission via the network has not yet taken place, or vice versa.
 
 If, at this moment, the active node fails and fail-over is being
 initiated, then this data block is out of sync between nodes -- it has
 been written on the failed node prior to the crash, but replication
 has not yet completed. Thus, when the node eventually recovers, this
-block must be removed from the data set of during subsequent
+block must be removed from the data set during subsequent
 synchronization. Otherwise, the crashed node would be "one write
 ahead" of the surviving node, which would violate the "all or
 nothing" principle of replicated storage. This is an issue that is not
@@ -380,7 +340,7 @@ referred to as _hot extents_.
 
 If a temporarily failed node that was in active mode at the time of
 failure is synchronized, only those hot extents highlighted in the AL
-need to be synchronized, rather than the full device. This drastically
+need to be synchronized (plus any blocks marked in the bitmap), rather than the full device. This drastically
 reduces synchronization time after an active node crash.
 
 [[s-active-extents]]
@@ -431,16 +391,13 @@ target synchronization time at 4 minutes or 240 seconds
 .Active extents calculation based on sync rate and target sync time (example)
 image::al-extents-example[]
 
-The exact result is 1800, but since DRBD's hash function for the
-implementation of the AL works best if the number of extents is set to
-a prime number, we select 1801.
 
 [[s-quick-sync-bitmap]]
 === The quick-sync bitmap
 
 indexterm:[quick-sync bitmap]indexterm:[bitmap (DRBD-specific
 concept)]The quick-sync bitmap is the internal data structure which
-DRBD uses, on a per-resource basis, to keep track of blocks being in
+DRBD uses, on a per-resource per-peer basis, to keep track of blocks being in
 sync (identical on both nodes) or out-of sync. It is only relevant
 when a resource is in disconnected mode.
 
@@ -489,6 +446,8 @@ node in case of the replication link being interrupted. The
 +drbd-peer-outdater+ helper, bundled with Heartbeat, is the reference
 implementation for this interface. However, you may easily implement
 your own peer fencing helper program.
+
+FIXME: still valid? called once per peer?
 
 The fencing helper is invoked only in case
 
