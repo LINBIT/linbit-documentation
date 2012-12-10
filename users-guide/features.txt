@@ -616,30 +616,9 @@ In the figure above you can see the _before_ and _after_ states: from
 3 nodes with three 25TiB volumes each (for a net 75TiB), to 4 nodes, 
 with net 100TiB.
 
-By doing a live, online migration of the data you can achieve horizontal 
-scaling, and still keep control about your data's location.
+DRBD 9 makes it possible to do an online, live migration of the data; please see 
+<<s-rebalance-workflow>> for the exact steps needed.
 
-All that is needed is to have a free <<s-quick-sync-bitmap,bitmap slot>> for 
-temporary use; you can either allocate one more at
-<<s-first-time-up,`drbdadm create-md` time>>, or simply put a placeholder in 
-your configuration, so that +drbdadm+ sees that it should reserve one more slot:
-
----------
-resource r0 {
-  ...
-  on for-later-rebalancing {
-    address   10.254.254.254:65533;
-    node-id   3;
-  }
-}
---------
-
-This placeholder can later on be filled with the correct host name and 
-address, then copied to the other nodes, and finally activated by 
-`drbdadm adjust` or `drbdadm connect _peer_@_resource_`; then, when the 
-synchronization has finished, and the new host is +UpToDate+, one of the
-other nodes in the configuration can be renamed to +for-later-rebalancing+, and
-kept for another migration.
 
 
 [[s-drbd-client]]

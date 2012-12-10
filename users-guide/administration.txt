@@ -1956,3 +1956,147 @@ For example, if proxy fails to connect it will log something like
 that case, please check if DRBD is running (not in StandAlone mode) on
 both nodes and if both proxies are running. Also double-check your
 configuration.
+
+
+[[s-rebalance-workflow]]
+=== Data rebalancing
+
+Given the (example) policy that data needs to be available on 3 nodes,
+you need at least 3 servers for your setup.
+
+Now, as your storage demands grow, you will encounter the need for 
+additional servers. Rather than having to buy 3 more servers at the same 
+time, you can _rebalance_ your data across a single additional node.
+
+
+.DRBD data rebalancing
+image::rebalance[]
+
+In the figure above you can see the _before_ and _after_ states: from 
+3 nodes with three 25TiB volumes each (for a net 75TiB), to 4 nodes, 
+with net 100TiB.
+
+To redistribute the data across your cluster you have to choose a _new_ node, 
+and one where you want to remove this DRBD resource. +
+Please note that removing the resource from a currently _active_ node (ie. 
+where DRBD is +Primary+) will involve migrating the service; it's easier to
+choose a node in +Secondary+ role. (Of course, that might not always be possible.)
+
+
+==== Prepare a bitmap slot
+
+You will need to have a free <<s-quick-sync-bitmap,bitmap slot>> for 
+temporary use, on each of the nodes that have the resource that is to be moved.
+
+* You can allocate one more at
+<<s-first-time-up,`drbdadm create-md` time>>, or simply put a placeholder in 
+your configuration, so that +drbdadm+ sees that it should reserve one more slot:
++
+---------
+resource r0 {
+  ...
+  on for-later-rebalancing {
+    address   10.254.254.254:65533;
+    node-id   3;
+  }
+}
+--------
+
+* Alternatively, if you need to make that slot available during live use,
+  you will have to
+  * dump the metadata,
+  * enlarge the metadata space,
+  * edit the dumpfile,
+  * load the changed metadata.
+  This is not described here in detail, as it's a bit cumbersome.
+
+
+==== Preparing and activating the new node
+
+First of all you have to
+create the underlying storage volume on the new node (using eg. +lvcreate+).
+Then the placeholder in the configuration can be filled with the correct host 
+name, address, and storage path. Now copy the resource configuration to all 
+relevant nodes.
+
+
+On the new node initialize the meta-data (once) by doing
+
+-------------
+# drbdadm create-md <resource>
+v09 Magic number not found
+Writing meta data...
+initialising activity log
+NOT initializing bitmap
+New drbd meta data block sucessfully created.
+-------------
+
+
+==== Starting the initial sync
+
+Now the new node needs to get the data.
+
+This is done by defining the network connection on the existing nodes via
+
+-------------------------------------
+# drbdadm adjust <resource>
+-------------------------------------
+
+and starting the DRBD device on the new node via
+
+-------------------------------------
+# drbdadm up <resource>
+-------------------------------------
+
+
+==== Check connectivity
+
+At this time please do a
+------------
+# drbdadm status <resource>
+------------
+
+on the new node, and check that _all_ other nodes are connected.
+
+==== After the initial sync
+
+As soon as the new host is +UpToDate+, one of the
+other nodes in the configuration can be renamed to +for-later-rebalancing+, and
+kept for another migration.
+
+NOTE: Perhaps you want to comment the section; although that has the risk that 
+doing a `drbdadm create-md` for a new node has too few bitmap slots for the 
+next rebalancing. +
+It might be easier to use a reserved (unused) IP address and host name.
+
+Copy the changed configuration around again, and use it by running
+
+-------------------------------------
+# drbdadm adjust <resource>
+-------------------------------------
+
+on all nodes.
+
+
+==== Cleaning up
+
+On the one node that had the data up to now, but isn't used anymore for this 
+resource, you can now take the DRBD device down by starting
+
+-------------------
+# drbdadm down <resource>
+-------------------
+
+Now the lower level storage device isn't used anymore, and can either be 
+re-used for other purposes or, if it is a logical volume, its space can be 
+returned to the volume group via +lvremove+.
+
+==== Conclusion and further steps
+
+One of the resources has been migrated to the new node. The same could be done 
+for one or more other resources, to free space on two or three nodes in the
+existing cluster.
+
+Then new resources can be configured, as there're enough nodes with free space
+to achieve 3-way redundancy again.
+
