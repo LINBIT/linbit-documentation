@@ -3,32 +3,20 @@
 
 indexterm:[GFS]indexterm:[Global File System]This chapter outlines the
 steps necessary to set up a DRBD resource as a block device holding a
-shared Global File System (GFS). It covers both GFS and GFS2.
+shared Global File System (GFS) in a nutshell. The steps consider GFS version 2, but can be adapted for version 1.
 
-In order to use GFS on top of DRBD, you must configure DRBD in
-indexterm:[dual-primary mode]<<s-dual-primary-mode,dual-primary
-mode>>.
+For a more detailed howto please consult our tech-guide on http://www.linbit.com/en/downloads/tech-guides[GFS in dual-primary setups].
 
-[IMPORTANT]
+[WARNING]
 ===============================
-All cluster file systems _require_ fencing - not only via the DRBD 
-resource, but STONITH! A faulty member _must_ be killed.
+This guide describes a dual-primary setup with DRBD. Dual-primary setups *can easily cause destroy of data* if not configured properly! +
 
-You'll want these settings:
+Please always read our tech-guide http://www.linbit.com/en/downloads/tech-guides?download=15:dual-primary-think-twice["Dual primary: think twice"], in advance, if you are planning
+to configure a DRBD dual-primary resource. +
 
-	disk {
-		fencing resource-and-stonith;
-	}
-	handlers {
-		# Make sure the other node is confirmed
-		# dead after this!
-		outdate-peer "/sbin/kill-other-node.sh";
-	}
-
-There must be _no_ volatile caches!
-Please see https://fedorahosted.org/cluster/wiki/DRBD_Cookbook for some more information.
+If you are not clear or uncertain of anything within this document you may want to consult with
+the friendly experts at LINBIT beforehand.
 ===============================
-
 
 [[s-gfs-primer]]
 === GFS primer
@@ -49,17 +37,13 @@ opposed to the SAN devices GFS is normally configured to run
 from. Also, of course, DRBD adds an additional physical copy to every
 GFS filesystem, thus adding redundancy to the concept.
 
-GFS makes use of a cluster-aware variant of LVM, indexterm:[LVM]termed
-Cluster Logical Volume Manager or CLVM. As such, some parallelism
-exists between using DRBD as the data storage for GFS, and using
-<<s-lvm-drbd-as-pv,DRBD as a Physical Volume for conventional LVM>>.
-
 GFS file systems are usually tightly integrated with Red Hat's own
 cluster management framework, the indexterm:[Red Hat Cluster
 Suite]<<ch-rhcs,Red Hat Cluster>>. This chapter explains
 the use of DRBD in conjunction with GFS in the Red Hat Cluster context.
+Additionally the connection to the Pacemaker cluster manager is explained, which will take care of resource management und STONITH.
 
-GFS, CLVM, and Red Hat Cluster are available in Red Hat
+GFS, Pacemaker and Red Hat Cluster are available in Red Hat
 Enterprise Linux (RHEL) and distributions derived from it, such as
 indexterm:[CentOS]CentOS. Packages built from the same sources are
 also available in indexterm:[Debian GNU/Linux]Debian GNU/Linux. This
@@ -74,20 +58,15 @@ be used for storing a GFS filesystem must be configured in
 <<s-dual-primary-mode,dual-primary mode>>. Also, it is recommended to
 use some of DRBD's
 <<s-automatic-split-brain-recovery-configuration,features for
-automatic recovery from split brain>>. And, it is necessary for the
-resource to switch to the primary role immediately after startup. To
-do all this, include the following lines in the resource
+automatic recovery from split brain>>. Promoting the resource on both nodes and starting the GFS filesystem will be handled by Pacemaker.
+To prepare your DRBD resource, include the following lines in the resource
 configuration: indexterm:[drbd.conf]
 
 [source,drbd]
 ----------------------------
 resource <resource> {
-  startup {
-    become-primary-on both;
-    ...
-  }
   net {
-    allow-two-primaries yes;
+    allow-two-primaries;
     after-sb-0pri discard-zero-changes;
     after-sb-1pri discard-secondary;
     after-sb-2pri disconnect;
@@ -102,87 +81,120 @@ freshly-configured resource>>, you may <<s-first-time-up,initialize
 your resource as you normally would>>. Since the
 indexterm:[drbd.conf]+allow-two-primaries+ option is set to +yes+ for
 this resource, you will be able to <<s-switch-resource-roles,promote
-the resource>>to the primary role on both nodes.
+the resource>> to the primary role on both nodes.
 
-[[s-gfs-configure-lvm]]
-=== Configuring LVM to recognize the DRBD resource
+[IMPORTANT]
+===============================
+*Again*: Be aware to configure fencing/STONITH and test the setup extensively to cover all possible use cases, especially in dual-primary setups, *before* going into production.
+===============================
 
-GFS uses CLVM, the cluster-aware version of LVM, to manage block
-devices to be used by GFS. In order to use CLVM with DRBD, ensure that
-your LVM configuration
+==== Enable resource fencing for dual-primary resource
 
-* uses clustered locking. To do this, set the following option in
-  +/etc/lvm/lvm.conf+:
+In order to enable Resource fencing in DRBD you will need the sections indexterm:[drbd.conf]
 
 [source,drbd]
 ----------------------------
-locking_type = 3
+  disk {
+	fencing resource-and-stonith;
+  }
+
+  handlers {
+	fence-peer		"/usr/lib/drbd/crm-fence-peer.sh";
+	after-resync-target	"/usr/lib/drbd/crm-unfence-peer.sh";
+  }
 ----------------------------
 
-* scans your DRBD devices to recognize DRBD-based Physical Volumes
-  (PVs). This applies as to conventional (non-clustered) LVM; see
-  <<s-lvm-drbd-as-pv>> for details.
+in your DRBD configuration. These scripts should come with your DRBD installation.
 
-[[s-gfs-enable]]
-=== Configuring your cluster to support GFS
+[WARNING]
+===============================
+Don't be misled by the shortness of the section <<ch-rhcs.html,9.1.1. Fencing>> in the DRBD users
+guide - with all dual primary setups you have to have fencing in your cluster. See
+chapters http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_Linux/6/html/Cluster_Administration/s1-config-fence-devices-ccs-CA.html[5.5. Configuring Fence Devices] 
+and http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_Linux/6/html/Cluster_Administration/s1-config-member-ccs-CA.html[5.6. Configuring Fencing for Cluster Members] 
+in the Red Hat Cluster documentation for more details.
+===============================
 
-After you have created your new DRBD resource and
-<<s-rhcs-config,completed your initial cluster configuration>>, you
-must enable and start the following system services on both nodes of
-your GFS cluster:
+[[s-gfs-configure-cman]]
+=== Configuring CMAN
 
-* +cman+(this also starts +ccsd+ and +fenced+),
+GFS needs +cman+, the Red Hat cluster manager, to work. Since +cman+ is not as flexible and 
+easy to configure we will put +pacemaker+ on top of it in the next steps.
 
-* +clvmd+.
+[NOTE]
+===============================
+If you don't want to use +pacemaker+, please consult the corresponding 
+https://access.redhat.com/knowledge/docs/en-US/Red_Hat_Enterprise_Linux/6/html/Cluster_Administration/ch-config-cli-CA.html[manuals] 
+for +cman+.
+===============================
 
+Before we start making a GFS filesystem we will configure +cman+.
 
+[NOTE]
+===============================
+If you are configuring a two node cluster, you can not expect it to have a quorum. You will need tell cman to ignore it. 
+This is done by setting
+
+  # sed -i.orig "s/.*CMAN_QUORUM_TIMEOUT=.*/CMAN_QUORUM_TIMEOUT=0/g" /etc/sysconfig/cman
+
+===============================
+
+Next create a +cman+ cluster configuration in +/etc/cluster/cluster.conf+:
+
+[source,drbd]
+----------------------------
+<?xml version="1.0"?>
+<cluster name="my-cluster" config_version="1">
+	<logging debug="off"/>
+	<clusternodes>
+		<clusternode name="gfs-machine1" nodeid="1">
+			<fence>
+				<method name="pcmk-redirect">
+					<device name="pcmk" port="gfs-machine1"/>
+				</method>
+			</fence>
+		</clusternode>
+		<clusternode name="gfs-machine2" nodeid="2">
+			<fence>
+				<method name="pcmk-redirect">
+					<device name="pcmk" port="gfs-machine2"/>
+				</method>
+			</fence>
+		</clusternode>
+	</clusternodes>
+	<fencedevices>
+		<fencedevice name="pcmk" agent="fence_pcmk"/>
+	</fencedevices>
+</cluster>
+----------------------------
+
+This tells +cman+ that the clustername is +my-cluster+, the cluster node names are +gfs-machine1+ and
++gfs-machine2+, and that fencing will be done by +pacemaker+.
+
+After you have made the configuration start +cman+.
 
 [[s-gfs-create]]
 === Creating a GFS filesystem
 
 In order to create a GFS filesystem on your dual-primary DRBD
-resource, you must first initialize it as a <<s-lvm-primer,Logical
-Volume for LVM>>.
+resource, issue this command on (only) *one* (!) node (which must be +Primary+):
 
-Contrary to conventional, non-cluster-aware LVM configurations, the
-following steps must be completed on only one node due to the
-cluster-aware nature of CLVM: indexterm:[LVM]indexterm:[pvcreate (LVM
-command)]indexterm:[LVM]indexterm:[vgcreate (LVM
-command)]indexterm:[LVM]indexterm:[lvcreate (LVM command)]
-
+indexterm:[GFS]
 ----------------------------
-pvcreate /dev/drbd/by-res/<resource>/0
-Physical volume "/dev/drbd<num>" successfully created
-vgcreate <vg-name> /dev/drbd/by-res/<resource>/0
-Volume group "<vg-name>" successfully created
-lvcreate --size <size> --name <lv-name> <vg-name>
-Logical volume "<lv-name>" created
-----------------------------
-
-NOTE: This example assumes a single-volume resource.
-
-CLVM will immediately notify the peer node of these changes;
-indexterm:[LVM]indexterm:[lvdisplay (LVM
-command)]indexterm:[LVM]indexterm:[lvs (LVM command)] issuing `lvs`
-(or `lvdisplay`) on the peer node will list the newly created logical
-volume.
-
-indexterm:[GFS]Now, you may proceed by creating the actual filesystem:
-----------------------------
-mkfs -t gfs -p lock_dlm -j 2 /dev/<vg-name>/<lv-name>
-----------------------------
-
-Or, for a GFS2 filesystem:
-
-----------------------------
-mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name>
-/dev/<vg-name>/<lv-name>
+mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name> /dev/<drbd-resource>
 ----------------------------
 
 The +-j+ option in this command refers to the number of journals to
 keep for GFS. This must be identical to the number of nodes in the GFS
 cluster; since DRBD does not support more than two nodes, the value to
 set here is always 2.
+
+[TIP]
+===============================
+With DRBD 9 it is possible to share the same disk among more than two nodes;
+if you want to do that, you’ll either have to specify a higher number of journals or 
+create the journals in the live file system.
+===============================
 
 The +-t+ option, applicable only for GFS2 filesystems, defines the lock
 table name. This follows the format _<cluster>:<name>_, where _<cluster>_
@@ -192,21 +204,14 @@ be permitted to use the filesystem. By contrast, _<name>_ is an
 arbitrary file system name unique in the cluster.
 
 [[s-gfs-use]]
-=== Using your GFS filesystem
+=== Using your GFS filesystem without cluster manager
 
 After you have created your filesystem, you may add it to
 +/etc/fstab+:
 
 [source,fstab]
 ----------------------------
-/dev/<vg-name>/<lv-name> <mountpoint> gfs defaults 0 0
-----------------------------
-
-For a GFS2 filesystem, simply change the defined filesystem type to:
-
-[source,fstab]
-----------------------------
-/dev/<vg-name>/<lv-name> <mountpoint> gfs2 defaults 0 0
+/dev/<drbd-resource> <mountpoint> gfs2 defaults 0 0
 ----------------------------
 
 Do not forget to make this change on both cluster nodes.
@@ -222,3 +227,36 @@ From then onwards, as long as you have DRBD configured to start
 automatically on system startup, before the RHCS services and the
 +gfs+ service, you will be able to use this GFS file system as you
 would use one that is configured on traditional shared storage.
+
+
+=== Using your GFS filesystem with Pacemaker
+
+If you want to use Pacemaker as the cluster resource manager, you will have to set up your current 
+configuration and tell Pacemaker to manage your resources.
+
+[IMPORTANT]
+===============================
+Make sure to configure Pacemaker also to take care of all the fencing/STONITH actions 
+(see our tech-guide on http://www.linbit.com/en/downloads/tech-guides[GFS in dual-primary setups] 
+for further details).
+===============================
+
+For Pacemaker configuration make a setup as described in 
+<<s-pacemaker-crm-drbd-backed-service,8.2. Adding a DRBD-backed service to the cluster configuration>>.
+
+Since it is a dual-primary setup consider the following changes to the Master-Slave set:
+
+----------------------------
+crm(live)configure# ms ms_drbd_xyz drbd_xyz \
+                    meta master-max="2" master-node-max="1" \
+                         clone-max="2" clone-node-max="1" \
+                         notify="true"
+----------------------------
+
+Notice that +master-max+ ist set to *2*, which will cause the DRBD resource to be promoted on both cluster nodes.
+
+Furthermore we want the GFS filesystem also to be started on both nodes, so we simply add a clone of the filesystem primitive:
+
+----------------------------
+crm(live)configure# clone cl_fs_xyz p_fs_xyz meta interleave="true"
+----------------------------
