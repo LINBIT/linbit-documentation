@@ -1,9 +1,9 @@
 [[ch-gfs]]
-== Using GFS with DRBD
+== Using GFS2 with DRBD
 
 indexterm:[GFS]indexterm:[Global File System]This chapter outlines the
 steps necessary to set up a DRBD resource as a block device holding a
-shared Global File System (GFS) in a nutshell. The steps consider GFS version 2, but can be adapted for version 1.
+shared Global File System (GFS) version 2 in a nutshell.
 
 For a more detailed howto please consult our tech-guide on http://www.linbit.com/en/downloads/tech-guides[GFS in dual-primary setups].
 
@@ -50,7 +50,7 @@ also available in indexterm:[Debian GNU/Linux]Debian GNU/Linux. This
 chapter assumes running GFS on a Red Hat Enterprise Linux system.
 
 [[s-gfs-create-resource]]
-=== Creating a DRBD resource suitable for GFS
+=== Creating a DRBD resource suitable for GFS2
 
 Since GFS is a shared cluster file system expecting concurrent
 read/write storage access from all cluster nodes, any DRBD resource to
@@ -174,7 +174,7 @@ This tells +cman+ that the clustername is +my-cluster+, the cluster node names a
 After you have made the configuration start +cman+.
 
 [[s-gfs-create]]
-=== Creating a GFS filesystem
+=== Creating a GFS2 filesystem
 
 In order to create a GFS filesystem on your dual-primary DRBD
 resource, issue this command on (only) *one* (!) node (which must be +Primary+):
@@ -196,40 +196,41 @@ if you want to do that, you’ll either have to specify a higher number of journ
 create the journals in the live file system.
 ===============================
 
-The +-t+ option, applicable only for GFS2 filesystems, defines the lock
+The +-t+ option, defines the lock
 table name. This follows the format _<cluster>:<name>_, where _<cluster>_
 must match your cluster name as defined in
 +/etc/cluster/cluster.conf+. Thus, only members of that cluster will
 be permitted to use the filesystem. By contrast, _<name>_ is an
 arbitrary file system name unique in the cluster.
 
-[[s-gfs-use]]
-=== Using your GFS filesystem without cluster manager
+// this is dangerous -> NO FENCING ENABLED//
+//[[s-gfs-use]]
+//=== Using your GFS2 filesystem without cluster manager
+//
+//After you have created your filesystem, you may add it to
+//+/etc/fstab+:
+//
+//[source,fstab]
+//----------------------------
+// /dev/<drbd-resource> <mountpoint> gfs2 defaults 0 0
+//----------------------------
+//
+//Do not forget to make this change on both cluster nodes.
+//
+//After this, you may mount your new filesystem by starting the
+//+gfs+ service (on both nodes): indexterm:[GFS]
+//
+//----------------------------
+//service gfs start
+//----------------------------
+//
+//From then onwards, as long as you have DRBD configured to start
+//automatically on system startup, before the RHCS services and the
+//+gfs+ service, you will be able to use this GFS file system as you
+//would use one that is configured on traditional shared storage.
 
-After you have created your filesystem, you may add it to
-+/etc/fstab+:
 
-[source,fstab]
-----------------------------
-/dev/<drbd-resource> <mountpoint> gfs2 defaults 0 0
-----------------------------
-
-Do not forget to make this change on both cluster nodes.
-
-After this, you may mount your new filesystem by starting the
-+gfs+ service (on both nodes): indexterm:[GFS]
-
-----------------------------
-service gfs start
-----------------------------
-
-From then onwards, as long as you have DRBD configured to start
-automatically on system startup, before the RHCS services and the
-+gfs+ service, you will be able to use this GFS file system as you
-would use one that is configured on traditional shared storage.
-
-
-=== Using your GFS filesystem with Pacemaker
+=== Using your GFS2 filesystem with Pacemaker
 
 If you want to use Pacemaker as the cluster resource manager, you will have to set up your current 
 configuration and tell Pacemaker to manage your resources.
