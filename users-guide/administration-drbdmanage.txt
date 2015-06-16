@@ -1,0 +1,162 @@
+[[ch-admin-drbdmanage]]
+== Common administrative tasks - drbdmanage
+
+Drbdmanage is an abstraction layer which takes over management of logical
+volumes (LVM) and management of configuration files for DRBD. Features of
+drbdmanage include creating, resizing, and removing of replicated volumes.
+Additionally, drbdmanage handles taking snapshots and creating volumes in
+consistency groups.
+
+This chapter outlines typical administrative tasks encountered during
+day-to-day operations. It does not cover troubleshooting tasks, these
+are covered in detail in <<ch-troubleshooting>>.
+
+
+[[s-dm-init-cluster]]
+=== Initializing your cluster
+We assume that the following steps are accomplished on *all* cluster nodes:
+
+. The DRBD9 kernel module is installed and loaded
+. +drbd-utils+ are installed
+. +LVM+ tools are installed
+. +drbdmanage+ and its dependencies are installed
+
+The first step is to review the configuration files of +drbdmanage+ and to
+create an +LVM+ volume group with the name specified in the configuration. In
+the following we use the default name, which is +drbdpool+, and assume that
+the volume group consists of +/dev/sda6+ and +/dev/sda7+ Creating the volume
+group is a step that has to be executed on *every* cluster node:
+
+----------------------------
+lvcreate drbdpool /dev/sda6 /dev/sda7
+----------------------------
+
+The second step is to initialize the so called control volume, which is then
+used to distribute your cluster configuration among all cluster nodes. If the
+node has multiple interfaces, you have to specify the IP address of the
+network interface that DRBD should use to communicate with other nodes in the
+cluster. It is sufficient to execute this step on only one cluster node.
+
+----------------------------
+drbdmanage init 10.43.70.2
+----------------------------
+
+[[s-dm-add-node]]
+=== Adding nodes to your cluster
+Adding nodes to your cluster is easy and requires a single command with two parameters:
+. A node name which *must* match the output of `uname -n`
+. The IP address of the node. Hint: If DNS is configured properly, the
+tab-completion of +drbdmanage+ is able to complete the IP of the given node
+name.
+
+----------------------------
+drbdmanage add-node bravo 10.43.70.3
+----------------------------
+
+Here we assume that the command was executed on node 'alpha'. If the 'root'
+user is allowed to execute commands as 'root' on 'bravo' via +ssh+, then the
+node 'bravo' will automatically join your cluster.
+
+If +ssh+ access with public-key authentication is not possible, +drbdmanage+
+will print a join command that has to be executed on node 'bravo'. You can
+always query +drbdmanage+ to output the join command for a specific node:
+
+----------------------------
+drbdmanage howto-join bravo
+drbdmanage join -p 6999 10.43.70.3 1 alpha 10.43.70.2 0 cOQutgNMrinBXb09A3io
+----------------------------
+
+[[s-dm-new-volume]]
+=== Creating and deploying resources/volumes
+In the following scenario we assume that the goal is to create a resource
+'backups' with a size of '500 GB' that is replicated among 3 cluster nodes.
+First we show how to achieve the goal in individual steps, and then show a
+short-cut how to achieve it in a single step:
+
+First, we create a new resource:
+
+----------------------------
+drbdmanage add-resource backups
+----------------------------
+
+Second, we create a new volume within that resource:
+
+----------------------------
+drbdmanage add-volume backups 500GB
+----------------------------
+In case we would not have used 'add-resource' in the first step, +drbdmanage+
+would have known that the resource did not exist and it would have created it.
+
+The third step is to deploy the resource to 3 cluster nodes:
+
+----------------------------
+drbdmanage deploy-resource backups 3
+----------------------------
+
+In this case +drbdmanage+ chooses 3 nodes that fit all requirements best,
+which is by default the set of nodes with the most free space in the
++drbdpool+ volume group. We will see how to manually assign resources to
+specific nodes in a moment.
+
+As deploying a new resource/volume to a set of nodes is a very common task,
++drbdmanage+ provides the following short-cut:
+----------------------------
+drbdmanage add-volume backups 500GB --deploy 3
+----------------------------
+
+Manual deployment can be achieved by *assigning* a resource to specific nodes.
+For example if you decide to assign the 'backups' resource to 'bravo' and
+'charlie', you should execute the following steps:
+
+----------------------------
+drbdmanage add-volume backups 500GB
+drbdmanage assign-resource backups bravo
+drbdmanage assign-resource backups charlie
+----------------------------
+
+
+[[s-dm-status]]
+=== Checking the state of your cluster
++Drbdmanage+ provides various commands to check the state of your cluster.
+These commands start with a 'list-' prefix and provide various filtering and
+sorting options. The '--groupby' option can be used to group and sort the
+output in multiple dimensions. Additional output can be turned on by using the
+'--show' option. In the following we show some typical examples:
+
+----------------------------
+drbdmanage list-nodes
+drbdmanage list-volumes --groupby Size
+drbdmanage list-volumes --groupby Size --groupby Minor
+drbdmanage list-volumes --groupby Size --show Port
+----------------------------
+
+[[s-dm-setupopts]]
+=== Setting options for resources
+Currently, it is possible to set the following +drbdsetup+ options:
+
+. net-options
+. disk-options
+. resource-options
+
+As for example net-options are allowed in the 'common' section as well as per
+resource, these commands then provide the according switches.
+
+Setting +max-buffers+ for a resource 'backups' looks like this:
+
+----------------------------
+drbdmanage net-options --max-buffers 2048 --resource backups
+----------------------------
+
+Setting this option in the common section looks like this:
+
+----------------------------
+drbdmanage net-options --max-buffers 2048 --common
+----------------------------
+
+Additionally, there is always an '--unset-' option for every option that can
+be specified. So, unsetting +max-buffers+ for a resource 'backups' looks like
+this:
+
+----------------------------
+drbdmanage net-options --unset-max-buffers --resource backups
+----------------------------

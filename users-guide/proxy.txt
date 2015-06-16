@@ -1,0 +1,240 @@
+[[s-using-drbd-proxy]]
+== Using DRBD Proxy
+
+[[s-drbd-proxy-deployment-considerations]]
+=== DRBD Proxy deployment considerations
+
+The <<s-drbd-proxy,DRBD Proxy>> processes can either be located
+directly on the machines where DRBD is set up, or they can be placed
+on distinct dedicated servers. A DRBD Proxy instance can serve as a
+proxy for multiple DRBD devices distributed across multiple nodes.
+
+DRBD Proxy is completely transparent to DRBD. Typically you will
+expect a high number of data packets in flight, therefore the activity
+log should be reasonably large. Since this may cause longer re-sync
+runs after the crash of a primary node, it is recommended to enable
+DRBD's +csums-alg+ setting.
+
+[[s-drbd-proxy-installation]]
+=== Installation
+
+To obtain DRBD Proxy, please contact your Linbit sales
+representative. Unless instructed otherwise, please always use the
+most recent DRBD Proxy release.
+
+To install DRBD Proxy on Debian and Debian-based systems, use the dpkg
+tool as follows (replace version with your DRBD Proxy version, and
+architecture with your target architecture):
+
+----------------------------
+# dpkg -i drbd-proxy_3.0.0_amd64.deb
+----------------------------
+
+To install DRBD Proxy on RPM based systems (like SLES or RHEL) use
+the rpm tool as follows (replace version with your DRBD Proxy version,
+and architecture with your target architecture):
+
+----------------------------
+# rpm -i drbd-proxy-3.0-3.0.0-1.x86_64.rpm
+----------------------------
+
+Also install the DRBD administration program drbdadm since it is
+required to configure DRBD Proxy.
+
+This will install the DRBD proxy binaries as well as an init script
+which usually goes into +/etc/init.d+. Please always use the init
+script to start/stop DRBD proxy since it also configures DRBD Proxy
+using the +drbdadm+ tool.
+
+[[s-drbd-proxy-license]]
+=== License file
+
+When obtaining a license from Linbit, you will be sent a DRBD Proxy
+license file which is required to run DRBD Proxy. The file is called
++drbd-proxy.license+, it  must be copied into the +/etc+ directory of the
+target machines, and be owned by the user/group +drbdpxy+.
+
+----------------------------
+# cp drbd-proxy.license /etc/
+----------------------------
+
+
+[[s-drbd-proxy-configuration]]
+=== Configuration
+
+DRBD Proxy is configured in DRBD's main configuration file. It is
+configured by an additional options section called +proxy+ and
+additional +proxy on+ sections within the host sections.
+
+Below is a DRBD configuration example for proxies running directly on
+the DRBD nodes:
+
+[source,drbd]
+----------------------------
+resource r0 {
+        net {
+          protocol A;
+        }
+        device     minor 0;
+        disk       /dev/sdb1;
+        meta-disk  /dev/sdb2;
+
+        proxy {
+                memlimit 100M;
+                plugin {
+                        zlib level 9;
+                }
+        }
+
+        on alice {
+                address 127.0.0.1:7789;
+                proxy on alice {
+                        inside 127.0.0.1:7788;
+                        outside 192.168.23.1:7788;
+                }
+        }
+
+        on bob {
+                address 127.0.0.1:7789;
+                proxy on bob {
+                        inside 127.0.0.1:7788;
+                        outside 192.168.23.2:7788;
+                }
+        }
+}
+----------------------------
+
+The +inside+ IP address is used for communication between DRBD and the
+DRBD Proxy, whereas the +outside+ IP address is used for communication
+between the proxies.
+
+[[s-drbd-proxy-controlling]]
+=== Controlling DRBD Proxy
+
++drbdadm+ offers the +proxy-up+ and +proxy-down+ subcommands to
+configure or delete the connection to the local DRBD Proxy process of
+the named DRBD resource(s). These commands are used by the +start+ and
++stop+ actions which +/etc/init.d/drbdproxy+ implements.
+
+The DRBD Proxy has a low level configuration tool, called
++drbd-proxy-ctl+. When called without any option it operates in
+interactive mode.
+
+To pass a command directly, avoiding interactive mode, use
+the '-c' parameter followed by the command.
+
+To display the available commands use:
+----------------------------
+# drbd-proxy-ctl -c "help"
+----------------------------
+
+Note the double quotes around the command being passed.
+
+
+[source,drbd]
+----------------------------
+add connection <name> <listen-lan-ip>:<port> <remote-proxy-ip>:<port>
+   <local-proxy-wan-ip>:<port> <local-drbd-ip>:<port>
+   Creates a communication path between two DRBD instances.
+
+set memlimit <name> <memlimit-in-bytes>
+   Sets memlimit for connection <name>
+
+del connection <name>
+   Deletes communication path named name.
+
+show
+   Shows currently configured communication paths.
+
+show memusage
+   Shows memory usage of each connection.
+
+show [h]subconnections
+   Shows currently established individual connections
+   together with some stats. With h outputs bytes in human
+   readable format.
+
+show [h]connections
+   Shows currently configured connections and their states
+   With h outputs bytes in human readable format.
+
+shutdown
+   Shuts down the drbd-proxy program. Attention: this
+   unconditionally terminates any DRBD connections running.
+
+Examples:
+	drbd-proxy-ctl -c "list hconnections"
+		prints configured connections and their status to stdout
+             Note that the quotes are required.
+
+	drbd-proxy-ctl -c "list subconnections" | cut -f 2,9,13
+		prints some more detailed info about the individual connections
+
+	watch -n 1 'drbd-proxy-ctl -c "show memusage"'
+		monitors memory usage.
+             Note that the quotes are required as listed above.
+
+----------------------------
+
+While the commands above are only accepted from UID 0 (ie., the +root+ user),
+there's one (information gathering) command that can be used by any user
+(provided that unix permissions allow access on the proxy socket at
++/var/run/drbd-proxy/drbd-proxy-ctl.socket+); see the init script at
++/etc/init.d/drbdproxy+ about setting the rights.
+
+----------------------------
+print details
+   This prints detailed statistics for the currently active connections.
+   Can be used for monitoring, as this is the only command that may be sent by a user with UID
+
+quit
+   Exits the client program (closes control connection).
+----------------------------
+
+
+[[s-drbd-proxy-plugins]]
+=== About DRBD Proxy plugins
+
+Since DRBD proxy 3.0 the proxy allows to enable a few specific
+plugins for the WAN connection. +
+The currently available plugins are +zlib+ and
++lzma+.
+
+The +zlib+ plugin uses the GZIP algorithm for compression.
+The advantage is fairly low CPU usage.
+
+The +lzma+ plugin uses the liblzma2 library. It can
+use dictionaries of several hundred MiB; these allow for very
+efficient delta-compression of repeated data, even for small changes.
++lzma+ needs much more CPU and memory, but results in much better
+compression than +zlib+. The +lzma+ plugin has to be enabled in your license.
+
+Please contact Linbit to find the best settings for your environment - it
+depends on the CPU (speed, threading count), memory, input and
+the available output bandwidth.
+
+Please note that the older +compression on+ in the
++proxy+ section is deprecated, and will be removed in
+a future release. +
+Currently it is treated as +zlib level 9+.
+
+
+
+[[s-drbd-proxy-troubleshoot]]
+=== Troubleshooting
+
+DRBD proxy logs via syslog using the +LOG_DAEMON+ facility. Usually
+you will find DRBD Proxy messages in +/var/log/daemon.log+.
+
+Enabling debug mode in DRBD Proxy can be done with the following command.
+
+--------------------------
+# drbd-proxy-ctl -c 'set loglevel debug'
+--------------------------
+
+For example, if proxy fails to connect it will log something like
++Rejecting connection because I can't connect on the other side+. In
+that case, please check if DRBD is running (not in StandAlone mode) on
+both nodes and if both proxies are running. Also double-check your
+configuration.
+
