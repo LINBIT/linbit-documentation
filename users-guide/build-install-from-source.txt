@@ -29,41 +29,16 @@ examples in this guide assume +/usr/src+.
 === Checking out sources from the public DRBD source repository
 
 DRBD's source code is kept in a public http://git.or.cz[Git]
-repository, which may be browsed on-line at http://git.drbd.org/. To
-check out a specific DRBD release from the repository, you must first
-_clone_ your preferred DRBD branch. In this example, you would clone
-from the DRBD 9.0 branch:
+repository, which may be browsed on-line at http://git.drbd.org/. The DRBD
+software consists of 3 projects:
 
--------------------------------------
-$ git clone git://git.drbd.org/drbd-9.0.git
--------------------------------------
+. The DRBD kernel module
+. The DRBD utilities
+. Drbdmanage (optional)
 
-If your firewall does not permit TCP connections to port 9418, you may
-also check out via HTTP (please note that using Git via HTTP is much
-slower than its native protocol, so native Git is usually preferred
-whenever possible):
-
--------------------------------------
-$ git clone http://git.drbd.org/drbd-9.0.git
--------------------------------------
-
-Either command will create a Git checkout subdirectory, named
-+drbd-9.0+. To now move to a source code state equivalent to a
-specific DRBD release, issue the following commands:
-
--------------------------------------
-$ cd drbd-9.0
-$ git checkout drbd-9.0.<x>
--------------------------------------
-
-... where _<x>_ refers to the DRBD point release you wish to build.
-
-The checkout directory will now contain the equivalent of an unpacked
-DRBD source tarball of a that specific version, enabling you to build
-DRBD from source.
-
-There are actually two minor differences between an unpacked source
-tarball and a Git checkout of the same release:
+Source code can be optained by ether cloning +git+ repositories or downloading
+release tarballs. There are actually two minor differences between an unpacked
+source tarball and a Git checkout of the same release:
 
 * The Git checkout contains a +debian/+ subdirectoy, while the source
   tarball does not. This is due to a request from Debian maintainers,
@@ -74,6 +49,52 @@ tarball and a Git checkout of the same release:
   does not. Thus, building DRBD from a Git checkout requires a
   complete Docbook toolchain for building the man pages, while this is
   not a requirement for building from a source tarball.
+
+==== DRBD kernel module
+To check out a specific DRBD release from the repository, you must first
+_clone_ your preferred DRBD branch. In this example, you would clone from the
+DRBD 9.0 branch:
+
+-------------------------------------
+$ git clone --recursive git://git.drbd.org/drbd-9.0.git
+-------------------------------------
+
+If your firewall does not permit TCP connections to port 9418, you may
+also check out via HTTP (please note that using Git via HTTP is much
+slower than its native protocol, so native Git is usually preferred
+whenever possible):
+
+-------------------------------------
+$ git clone --recursive http://git.drbd.org/drbd-9.0.git
+-------------------------------------
+
+Either command will create a Git checkout subdirectory, named
++drbd-9.0+. To now move to a source code state equivalent to a
+specific DRBD release, issue the following commands:
+
+-------------------------------------
+$ cd drbd-9.0
+$ git checkout drbd-9.0.<x>
+$ git submodule update
+-------------------------------------
+
+... where _<x>_ refers to the DRBD point release you wish to build.
+
+==== DRBD utilities
+To check out +drbd-utils+ issue the following command:
+
+-------------------------------------
+$ git clone --recursive http://git.drbd.org/drbd-utils.git
+-------------------------------------
+
++Drbd-utils+ support DRBD kernel modules versions 8.3, 8.4, and 9.0.
+
+==== Drbdmanage
+To check out +drbdmanage+ issue the following command:
+
+-------------------------------------
+$ git clone --recursive http://git.drbd.org/drbdmanage.git
+-------------------------------------
 
 
 [[s-build-from-source]]
@@ -177,7 +198,7 @@ $ cp /boot/config-`uname -r` .config
   kernel.
 
 [[s-build-prepare-checkout]]
-==== Preparing the DRBD build tree
+==== Preparing the DRBD userspace utilities build tree
 
 Any DRBD compilation requires that you first configure your DRBD
 source tree with the included +configure+ script.
@@ -198,21 +219,20 @@ Option;Description;Default;Remarks
 +--prefix+;Installation directory prefix;+/usr/local+;This is the default to maintain Filesystem Hierarchy Standard compatibility for locally installed, unpackaged software. In packaging, this is typically overridden with /usr+.
 +--localstatedir+;Local state directory;+/usr/local/var+;Even with a default +prefix+, most users will want to override this with +/var+.
 +--sysconfdir+;System configuration directory;+/usr/local/etc+;Even with a default +prefix+, most users will want to override this with	+/etc+.
-+--with-km+;Build the DRBD kernel module;no;Enable this option when you are building a DRBD kernel module.
 +--with-udev+;Copy a rules file into your +udev(7)+ configuration, to get symlinks named like the resources.;yes;Disable for non-+udev+ installations.
-+--with-utils+;Build the DRBD userland utilities;yes;Disable this option when you are building a DRBD kernel module against a new kernel version, and not upgrading DRBD at the same time.
 +--with-heartbeat+;Build DRBD Heartbeat integration;yes;You may disable this option unless you are planning to use DRBD's Heartbeat v1 resource agent or +dopd+.
 +--with-pacemaker+;Build DRBD Pacemaker integration;yes;You may disable this option if you are not planning to use the Pacemaker cluster resource manager.
 +--with-rgmanager+;Build DRBD Red Hat Cluster Suite integration;no;You should enable this option if you are planning to use DRBD with rgmanager, the Red Hat Cluster Suite cluster resource manager.
 +--with-xen+;Build DRBD Xen integration;yes (on x86 architectures);You may disable this option if you are not planning to use the +block-drbd+ helper script for Xen integration.
 +--with-bashcompletion+;Installs bash completion for +drbdadm+;yes;You may disable this option if you are using a shell other than bash, or if you do not want to utilize programmable completion for the +drbdadm+ command.
++--with-initscripttype+;Type of your init system;auto;Type of init script to install (sysv, systemd, or both).
 +--enable-spec+;Create a distribution specific RPM spec file;no;For package builders only: you may use this option if you want to create an RPM spec file adapted to your distribution. See also <<s-build-rpm>>.
 |===================================
 
 Most users will want the following configuration options:
 
 -------------------------------------
-$ ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc --with-km --with-udev
+$ ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc
 -------------------------------------
 
 
@@ -231,12 +251,8 @@ viewed or downloaded.
 [[s-build-userland]]
 ==== Building DRBD userspace utilities
 
-Building userspace utilities requires that you
-<<s-build-prepare-checkout,configured DRBD with the +--with-utils+
-option>>, which is enabled by default.
-
 To build DRBD's userspace utilities, invoke the following commands
-from the top of your DRBD checkout or expanded tarball:
+from the top of your git checkout or expanded tarball:
 
 -------------------------------------
 $ make
@@ -251,22 +267,18 @@ scripts to integrate DRBD with other applications.
 
 
 [[s-build-compile-kernel-module]]
-==== Compiling DRBD as a kernel module
-
-Building the DRBD kernel module requires that you
-<<s-build-prepare-checkout,configured DRBD with the +--with-km+
-option>>, which is disabled by default.
-
+==== Compiling the DRBD  kernel module
+The kernel module does not use +GNU+ +autotools+, therefore building and
+installing the kernel module is usually a simple two step process.
 
 [[s-build-against-running-kernel]]
-===== Building DRBD for the currently-running kernel
+===== Building the DRBD kernel module for the currently-running kernel
 
-After changing into your unpacked DRBD sources directory, you should
-now change into the kernel module subdirectory, simply named +drbd+,
-and build the module there:
+After changing into your unpacked DRBD kernel module sources directory, you
+can now build the module:
 
 -------------------------------------
-$ cd drbd
+$ cd drbd-9.0
 $ make clean all
 -------------------------------------
 
@@ -291,7 +303,7 @@ packages commonly include.
 To build against precompiled kernel headers, issue, for example:
 
 -------------------------------------
-$ cd drbd
+$ cd drbd-9.0
 $ make clean
 $ make KDIR=/usr/src/linux-headers-3.2.0-4-amd64/
 -------------------------------------
@@ -307,7 +319,7 @@ target kernel source tree. To do so, set the KDIR variable to point to
 the kernel sources directory:
 
 -------------------------------------
-$ cd drbd
+$ cd drbd-9.0
 $ make clean
 $ make KDIR=/root/linux-3.6.6/
 -------------------------------------
@@ -321,7 +333,7 @@ variable. This is known to be necessary on some Fedora versions, for
 example:
 
 -------------------------------------
-$ cd drbd
+$ cd drbd-9.0
 $ make clean
 $ make CC=gcc32
 -------------------------------------
@@ -339,15 +351,22 @@ are so inclined.
 [[s-kabi-warning]]
 ===== kABI warning for some distributions
 
-Please note that some distributions (like RHEL 6 and derivatives) claim 
-to have a stable kABI, ie. the kernel API should stay consistent during minor 
+Please note that some distributions (like RHEL 6 and derivatives) claim
+to have a stable kABI, ie. the kernel API should stay consistent during minor
 releases (ie., for kernels published in the RHEL 6.3 series).
 
-In practice this is not working all of the time; there are some known cases 
-(even within a minor release) where things got changed incompatibly. In these 
-cases external modules (like DRBD) can cause a kernel panic, and need to be 
+In practice this is not working all of the time; there are some known cases
+(even within a minor release) where things got changed incompatibly. In these
+cases external modules (like DRBD) can cause a kernel panic, and need to be
 rebuilt against the _matching_ kernel headers.
 
+[[s-build-drbdmange]]
+==== Building Drbdmanage
+
+-------------------------------------
+$ cd drbdmanage
+$ make
+-------------------------------------
 
 [[s-build-install]]
 === Installing DRBD
@@ -356,7 +375,9 @@ Provided your DRBD build completed successfully, you will be able to
 install DRBD by issuing the command:
 
 -------------------------------------
-$ sudo make install
+$ cd drbd-9.0 && sudo make install && cd ..
+$ cd drbd-utils && sudo make install && cd ..
+$ cd drbdmanage && sudo make install && cd ..
 -------------------------------------
 
 The DRBD userspace management tools (+drbdadm, drbdsetup+, and
@@ -366,7 +387,7 @@ Note that any kernel upgrade will require you to rebuild and reinstall
 the DRBD kernel module to match the new kernel.
 
 Some distributions allow to register kernel module source directories, so that 
-rebuilds are done as necessary. See eg. +dkms(8)+ on debian.
+rebuilds are done as necessary. See e.g., +dkms(8)+ on Debian.
 
 The DRBD userspace tools, in contrast, need only to be rebuilt
 and reinstalled when upgrading to a new DRBD version. If at any
@@ -461,7 +482,8 @@ directly out of the DRBD source tree. For building Debian packages,
 and installing with +make+, except that you of course also need the
 +dpkg-dev+ package containing the Debian packaging tools, and
 +fakeroot+ if you want to build DRBD as a non-+root+ user (highly
-recommended).
+recommended). All three DRBD sub-projects (kernel module, drbd-utils, and
+drbdmanage) support Debian package building.
 
 Also, see <<s-build-prepare-kernel-tree>> if you are not building
 against a running kernel with precompiled headers available.
@@ -485,39 +507,49 @@ disabling cryptographic signature for the changes file (+-uc+). Of
 course, you may prefer other build options, see the
 +dpkg-buildpackage+ man page for details.
 
-This build process will create two Debian packages:
+This build process will create the following Debian packages:
 
 * A package containing the DRBD userspace tools, named
-  +drbd8-utils_x.y.z-BUILD_ARCH.deb+;
+  +drbd-utils_x.y.z-BUILD_ARCH.deb+;
 
 * A module source package suitable for +module-assistant+ named
-  +drbd8-module-source_x.y.z-BUILD_all.deb+.
+  +drbd-module-source_x.y.z-BUILD_all.deb+.
+
+* A dkms package suitable for +dkms+ named
+  +drbd-dkms_x.y.z-BUILD_all.deb+.
+
+* A drbdmanage package named
+  +python-drbdmanage_x.y.z-BUILD_all.deb+.
 
 After you have created these packages, you can install, upgrade, and
 uninstall them as you would any other Debian package in your system.
+
+The drbd-utils packages supports Debian's +dpkg-reconfigure+ facility, which
+can be used to switch which versions of the man-pages are shown by default
+(8.3, 8.4, or 9.0).
 
 Building and installing the actual kernel module from the installed
 module source package is easily accomplished via Debian's
 +module-assistant+ facility:
 
 -------------------------------------
-# module-assistant auto-install drbd8
+# module-assistant auto-install drbd-module
 -------------------------------------
 
 You may also use the shorthand form of
 the above command:
 
 -------------------------------------
-# m-a a-i drbd8
+# m-a a-i drbd-module
 -------------------------------------
 
 Note that any kernel upgrade will require you to rebuild the kernel
 module (with +module-assistant+, as just described) to match the new
-kernel. The +drbd8-utils+ and +drbd8-module-source+ packages, in
+kernel. The +drbd-utils+ and +drbd-module-source+ packages, in
 contrast, only need to be recreated when upgrading to a new DRBD
 version.  If at any time you upgrade to a new kernel _and_ new DRBD
 version, you will need to upgrade both packages.
 
-.NOTE:
-With newer debian releases you might want to take a look at +dkms(8)+; this 
-allows to re-build kernel modules automatically.
+Starting from DRBD9, automatic updates of the DRBD kernel module are possible
+with the help of +dkms(8)+. All that is needed is to install the +drbd-dkms+
+Debian package.
