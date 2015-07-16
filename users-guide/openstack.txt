@@ -1,0 +1,70 @@
+[[ch-openstack]]
+== DRBD volumes in Openstack
+
+indexterm:[Openstack]indexterm:[Cinder]indexterm:[Nova]In this chapter you will
+learn how to use DRBD in Openstack for persistent, replicated, high-performance
+block storage.
+
+[[s-openstack-overview]]
+=== Openstack Overview
+
+Openstack itself consists of a big range of individual services; the two that are mostly concerned with DRBD are Cinder and Nova: *Cinder* is the block storage service, while *Nova* is the compute node service that's responsible to make the volumes available for the VMs.
+
+DRBD can now be configured in two ways: using the iSCSI protocol (for maximum compatibility), and using DRBD client functionality (in development). Discussion of these two modes and their differences happens in later chapters.
+
+[[s-openstack-install]]
+=== DRBD for Openstack Installation
+
+The //drbdmanage// driver is upstream in Openstack; so it should be included by default in installations from /Liberty/ on up. It is used (mostly) in the ''c-vol'' service, so you'll need drbdmanage and DRBD 9 installed on the node(s) running that.
+
+Depending on the specific Openstack variant being used there are a few differences for paths, user names, etc.:
+
+.Distribution dependent settings
+[format="csv",separator="^",options="header"]
+^   what   ^   rdostack   ^   devstack   ^
+^ Cinder/DRBDmanager driver ^ ''/usr/lib/python2.6/site-packages/cinder/volume/drivers/drbdmanagedrv.py'' ^ ''/opt/stack/cinder/cinder/volume/drivers/drbdmanagedrv.py'' ^
+^ Cinder config ^ ''/usr/share/cinder/cinder-dist.conf'' ^ ''/etc/cinder/cinder.conf'' ^
+^ Admin env. def. ^ ''/etc/nagios/keystonerc_admin'' ^ ''~stack/devstack/accrc/admin/admin'' ^
+^ User running services ^ ''cinder'' ^ ''stack '' ^
+
+
+The generalized installations steps are these:
+
+  * In the ''cinder.conf'' you'll need something like that; the ''volume_driver'' consists of the class name (last part), and the file path:
+
+       [DEFAULT]
+       enabled_backends=drbdmanage
+       [drbdmanage]
+       volume_driver=cinder.volume.drivers.drbdmanagedrv.DrbdManageDriver
+       volume_backend_name=DRBD-Manage
+
+  * Register the backend: (you might need to fetch the authentication environment variables via ''. <admin-env>'')
+
+       # cinder type-create drbdmanage
+
+  * Allow the user to access the drbdmanage service. For that you need to extend the file ''/etc/dbus-1/system.d/org.drbd.drbdmanaged.conf'' by an additional stanza like this (replace //USER// by the username as per the above table):
+
+	  <policy user="USER">
+		<allow own="org.drbd.drbdmanaged"/>
+		<allow send_interface="org.drbd.drbdmanaged"/>
+		<allow send_destination="org.drbd.drbdmanaged"/>
+	  </policy>
+
+
+That's it; after a restart of the ''c-vol'' service you should be able to create your DRBD volumes.
+
+TODO: redundancy definition
+
+
+[[s-openstack-iSCSI-vs-DRBD]]
+=== Choosing the Transport Protocol
+
+The default way to export Cinder volumes is via iSCSI. This brings the advantage of maximum compatibility - iSCSI can be used with every hypervisor, be it VMWare, Xen, HyperV, or KVM.
+
+The drawback is that all data has to be channeled via TCP to the Cinder storage node and does multiple Kernel/Userspace transitions before reaching stable storage; this means some performance loss.
+
+The other way to get the data to the VMs is by using DRBD as transport protocol. This means that DRBD 9 (kernel module and userspace) needs to be installed on the Nova nodes, too, and so restricts them to Linux with KVM at the moment.
+
+The advantage is that the storage access requests of the VMs can be sent via the DRBD kernel module to the storage nodes, which can then directly access the allocated LVs; this means much fewer Kernel/Userspace transitions, and consequently better performance. Combined with RDMA capable hardware you should get about the same performance as with VMs accessing a FC backend.
+
+TODO: some performance numbers
