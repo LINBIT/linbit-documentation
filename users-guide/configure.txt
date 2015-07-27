@@ -414,6 +414,61 @@ The examples below will still be using two servers only; please see
 <<s-4node-example>> for a four-node example.
 
 
+[[s-configuring-transports]]
+==== Configuring transport implementations
+DRBD supports multiple network transports. A transport implementation can be
+configured for each connection of a resource.
+
+===== TCP/IP
+---------------------
+resource <resource> {
+  net {
+    transport "tcp";
+  }
+  ...
+}
+---------------------
++tcp+ is the default transport. I.e. each connection that lacks a transport
+option uses the +tcp+ transport.
+
+The +tcp+ transport can be configured with the net options: +sndbuf-size+, +rcvbuf-size+,
++connect-int+, +sock-check-timeo+, +ping-timeo+, +timeout+.
+
+===== RDMA
+---------------------
+resource <resource> {
+  net {
+    transport "rdma";
+  }
+  ...
+}
+---------------------
+The +rdma+ transport can be configured with the net options: +sndbuf-size+, +rcvbuf-size+,
++max_buffers+, +connect-int+, +sock-check-timeo+, +ping-timeo+, +timeout+.
+
+The +rdma+ transport is a zero-copy-receive transport. One implication of that is that
+the +max_buffers+ configuration options must be set to a value big enough to hold all
++rcvbuf-size+.
+
+NOTE: +rcvbuf-size+ is configured in bytes, while +max_buffers+ is configured in pages. For
+optimal performance +max_buffers+ should be big enough to hold all of +rcvbuf-size+ and
+the amount of data that might be in flight to the backend device at any point in time.
+
+TIP: In case you are using InfiniBand HCAs with the +rdma+ transport, you need to
+configure IPoIB as well. The IP address is not used for data transfer, but it is used
+to find the right adapters and ports while establishing the connection.
+
+CAUTION: The configuration options +sndbuf-size+, +rcvbuf-size+ are only considered at
+the time a connection is established. I.e. you can change them while the connection is
+established. They will take effect in the moment the connection is re-established.
+
+===== Performance considerations for RDMA
+
+By looking at the pseudo file _/sys/kernel/debug/drbd/<resource>/connections/<peer>/transport_,
+the counts of available receive descriptors (rx_desc) and transmit descriptors (tx_desc)
+can be monitored. In case one of the descriptor kinds becomes depleted you should increase
++sndbuf-size+ or +rcvbuf-size+.
+
 [[s-first-time-up]]
 ==== Enabling your resource for the first time
 
