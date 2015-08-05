@@ -22,7 +22,7 @@ Depending on the specific Openstack variant being used there are a few differenc
 .Distribution dependent settings
 [format="csv",separator="^",options="header"]
 ^   what   ^   rdostack   ^   devstack   ^
-^ Cinder/DRBDmanager driver ^ ''/usr/lib/python2.6/site-packages/cinder/volume/drivers/drbdmanagedrv.py'' ^ ''/opt/stack/cinder/cinder/volume/drivers/drbdmanagedrv.py'' ^
+^ Cinder/DRBDmanage driver ^ ''/usr/lib/python2.6/site-packages/cinder/volume/drivers/drbdmanagedrv.py'' ^ ''/opt/stack/cinder/cinder/volume/drivers/drbdmanagedrv.py'' ^
 ^ Cinder config ^ ''/usr/share/cinder/cinder-dist.conf'' ^ ''/etc/cinder/cinder.conf'' ^
 ^ Admin env. def. ^ ''/etc/nagios/keystonerc_admin'' ^ ''~stack/devstack/accrc/admin/admin'' ^
 ^ User running services ^ ''cinder'' ^ ''stack '' ^
@@ -53,7 +53,26 @@ The generalized installations steps are these:
 
 That's it; after a restart of the ''c-vol'' service you should be able to create your DRBD volumes.
 
-TODO: redundancy definition
+
+[[s-openstack-addtl-conf]]
+==== Additional Configuration
+
+The ''drbdmanage'' stanza in ''cinder.conf'' can contain a few additional settings that modify the exact behaviour.
+
+  * ''drbdmanage_redundancy = 2'' eg. would declare that each volume needs to have 2 storage locations, ie. be replicated once. This means that two times the storage will be used, and that the reported free space is limited some more. \\ You can request more than two copies of the data; the limit is given by DRBD 9 and the number of storage hosts you have defined.
+
+
+[[s-openstack-notes]]
+=== Some further notes
+
+
+==== Free space reporting
+
+The free space that the cinder driver reports is fetched from DRBDmanage, using the defined ''drbdmanage_redundancy'' setting.
+
+This will return the size for the single largest volume that can be created with this replication count; so, with 10 storage nodes each having 1TiB free space, the value returned will be 1TiB, and allocating such a volume will not change the free space value. For storage nodes with 20GiB, 15GiB, 10GiB, and 5GiB, the free space for ''drbdmanage_redundancy'' being 3 will be 10GiB, and 15GiB for 2.
+
+This issue is further muddled a bit by thin LVM pools (one or multiple, depending on storage backend in DRBDmanage), and snapshots.
 
 
 [[s-openstack-iSCSI-vs-DRBD]]
