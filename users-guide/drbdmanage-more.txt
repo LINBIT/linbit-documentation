@@ -1,0 +1,53 @@
+[[ch-drbdmanage-more]]
+== More Information about DRBDmanage
+
+Here you will file some more information about DRBDmanage internals, techniques, and strategies.
+
+
+[[s-drbdmanage-free-space]]
+=== Free Space reporting
+
+DRBDmanage can report free space in two ways:
+
+  * Per node, via ''drbdmanage nodes''; this will tell the "physical" space available, which might not mean much if using Thin LVs for storing data.
+
+  * A DBus call, which is used eg. by the OpenStack Cinder driver; this will return the size for the single largest volume that can be created with the defined replication count.
++
+--
+So, with 10 storage nodes each having 1TiB free space, the value returned will be 1TiB, and allocating such a volume will not change the free space value.
+
+For storage nodes with 20GiB, 15GiB, 10GiB, and 5GiB, the free space for 3-way-redundancy will be 10GiB, and 15GiB for 2-way.
+--
+
+The free space issue is further muddled a bit by thin LVM pools (one or multiple, depending on storage backend in DRBDmanage - please see <<s-drbdmanage-storage-plugins>> for more details), and snapshots.
+
+
+[[s-drbdmanage-storage-plugins]]
+=== Discussion of the storage plugins
+
+indexterm:[drbdmanage storage plugins]
+
+DRBDmanage has three supported storage plugins as of this writing:
+
+  * Thick LVM (++drbdmanage.storage.lvm.Lvm++);
+
+  * Thin LVM with a single thin pool (++drbdmanage.storage.lvm_thinlv.LvmThinLv++)
+
+  * Thin LVM with thin pools for each volume (++drbdmanage.storage.lvm_thinpool.LvmThinPool++)
+
+Here's a short discussion of the relative advantages and disadvantages of these plugins.
+
+
+[[t-drbdmanage-storage-plugins]]
+.DRBDmanage storage plugins, comparison
+[cols="^e,^,^,^", options="header"]
+|===================================
+|Topic | ++lvm.Lvm++ | ++lvm_thinlv.LvmThinLv++ | ++lvm_thinpool.LvmThinPool++
+|Pools | the VG is the pool | a single Thin pool | one thin pool for each volume
+|Free Space reporting | Exact | Each pool carves some space out of the VG, but still needs to be monitored if snapshots are used | Free space goes down as per written data
+|Allocation | Fully pre-allocated   2+| thinly allocated, needs nearly zero space initially
+|Snapshots | -- not supported --  2+| Fast, efficient (copy-on-write)
+|Stability | Well established, known code, very stable  2+| Some kernel versions have bugs re Thin LVs, destroying data
+|Recovery | Easiest - text editor, and/or lvm configuration archives in ++/etc/lvm++, in the worst case ++dd++ with offset/length | All data in one pool, might incur running ++thin_check++ across *everything* (needs CPU, memory, time) | Independent Pools, so only some volumes damaged, faster ++thin_check++ (less CPU, memory, time)
+|===================================
+
