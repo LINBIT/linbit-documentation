@@ -45,7 +45,8 @@ drbdmanage init 10.43.70.2
 We recommend using 'drbdpool' as the name of your LVM volume group as it is
 the default value and makes your administration life easier. If, for whatever
 reasion, you decide to use a different name, make sure that the option
-*drbdctrl-vg* is set accordingly in +/etc/drbdmanaged.cfg+.
+*drbdctrl-vg* is set accordingly in +/etc/drbdmanaged.cfg+. Configuration will
+be discussed in <<s-dm-set-config>>.
 
 [[s-dm-add-node]]
 === Adding nodes to your cluster
@@ -75,7 +76,7 @@ drbdmanage join -p 6999 10.43.70.3 1 alpha 10.43.70.2 0 cOQutgNMrinBXb09A3io
 [[s-dm-set-config]]
 === Cluster configuration
 Drbdmange knows many configuration settings like the log-level or the storage
-plugin that should be used (i.g., LVM, ThinLV, or ThinPool). Executing
+plugin that should be used (i.e., LVM, ThinLV, or ThinPool). Executing
 +drbdmanage modify-config+ starts an editor that is used to specify theses
 settings. The configuration is split in several sections. If an option is
 specified in the +[GLOBAL]+ section, this setting is used in the entire
@@ -133,8 +134,8 @@ pool-name = mythinpool
 
 CAUTION: Currently it is not supported to switch storage plugins on the fly.
 The workflow is: Add a new node, modify the configuration for that node, make
-use of the node. Changing other settings (like the log-level) is perfectly
-fine.
+use of the node. Changing other settings (like the log-level) on the fly is
+perfectly fine.
 
 [[s-dm-new-volume]]
 === Creating and deploying resources/volumes
@@ -182,6 +183,41 @@ For example if you decide to assign the 'backups' resource to 'bravo' and
 drbdmanage add-volume backups 500GB
 drbdmanage assign-resource backups bravo
 drbdmanage assign-resource backups charlie
+----------------------------
+
+[[s-dm-snapshots]]
+=== Managing snapshots
+In the following we assume that the +ThinLV+ plugin is used on all nodes that
+have deployed resources from which snapshots should be taken. For further
+information on how to configure the storage plugin, please refer to
+<<s-dm-set-config>>.
+
+==== Creating a snapshot
+Here we continue the example presented in the previous sections, namely nodes
+'alpha', 'bravo', 'charlie', and 'delta' with a resource 'backups' deployed on
+the first three nodes. The name of the snapshot will be 'snap_backups', and we
+want the snapshot to be taken on nodes 'bravo' and 'charlie'.
+
+----------------------------
+drbdmanage create-snapshot snap_backups backups bravo charlie
+----------------------------
+
+==== Restoring a snapshot
+In the following we want to restore the content of the snapshot 'snap_backups'
+to a new resource named 'res_backup_from_snap'.
+
+----------------------------
+drbdmanage restore-snapshot res_backup_from_snap backups snap_backups
+----------------------------
+
+This will create a new resource with the name 'res_backup_from_snap'. This
+resource then gets automatically deployed to these nodes where currently the
+resource 'backups' is deployed.
+
+==== Removing a snapshot
+An existing snapshot can be removed as follows:
+----------------------------
+drbdmanage remove-snapshot backups snap_backups
 ----------------------------
 
 
@@ -264,3 +300,41 @@ $ drbdmanage net-options --protocol A --sites 'first:second'
 The '--sites' parameter follows a 'from:to' syntax, where currently 'from' and
 'to' have a symetric semantic. Setting an option from 'first:second' also sets this
 option from 'second:first'.
+
+[[s-dm-getting-help]]
+=== Getting help
+The easiest way to get an overview about drbdmanage's subcommands is to read
+the main man-page (+man drbdmanage+).
+
+A quick way to list available commands on the command line is to type
++drbdmanage list+.
+
+Further information on subcommands (e.g., list-nodes) can be retrieved in
+three ways:
+----------------------------
+man drbdmanage-list-nodes
+drbdmanage list-nodes -h
+drbdmange help list-nodes
+----------------------------
+
+Using the 'help' subcommand is especially helpful when drbdmanage is executed
+in interactive mode (+drbdmanage interactive+).
+
+One of the most helpful features of drbdmanage is its rich tab-completion,
+which can be used to complete basically every object drbdmanage knows about
+(e.g., node names, IP addresses, resource names, ...).
+In the following we show some possible completions, and their results:
+
+----------------------------
+drbdmanage add-node alpha 1<tab> # completes the IP address if hostname can be resolved
+drbdmanage assign-resource b<tab> c<tab> # drbdmanage assign-resource backups charlie
+----------------------------
+
+If tab-completion does not work out of the box, please try to source the
+according file:
+
+----------------------------
+source /etc/bash_completion.d/drbdmanage
+----------------------------
+
+
