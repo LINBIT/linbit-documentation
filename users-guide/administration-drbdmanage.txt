@@ -29,17 +29,17 @@ and +/dev/sda7+ Creating the volume group is a step that has to be executed on
 *every* cluster node:
 
 ----------------------------
-vgcreate drbdpool /dev/sda6 /dev/sda7
+# vgcreate drbdpool /dev/sda6 /dev/sda7
 ----------------------------
 
 The second step is to initialize the so called control volume, which is then
 used to distribute your cluster configuration among all cluster nodes. If the
 node has multiple interfaces, you have to specify the IP address of the
 network interface that DRBD should use to communicate with other nodes in the
-cluster. It is sufficient to execute this step on only one cluster node.
+cluster, otherwise the IP is optional. It is sufficient to execute this step on only one cluster node.
 
 ----------------------------
-drbdmanage init 10.43.70.2
+# drbdmanage init 10.43.70.2
 ----------------------------
 
 We recommend using 'drbdpool' as the name of your LVM volume group as it is
@@ -57,7 +57,7 @@ tab-completion of +drbdmanage+ is able to complete the IP of the given node
 name.
 
 ----------------------------
-drbdmanage add-node bravo 10.43.70.3
+# drbdmanage add-node bravo 10.43.70.3
 ----------------------------
 
 Here we assume that the command was executed on node 'alpha'. If the 'root'
@@ -69,8 +69,8 @@ will print a join command that has to be executed on node 'bravo'. You can
 always query +drbdmanage+ to output the join command for a specific node:
 
 ----------------------------
-drbdmanage howto-join bravo
-drbdmanage join -p 6999 10.43.70.3 1 alpha 10.43.70.2 0 cOQutgNMrinBXb09A3io
+# drbdmanage howto-join bravo
+# drbdmanage join -p 6999 10.43.70.3 1 alpha 10.43.70.2 0 cOQutgNMrinBXb09A3io
 ----------------------------
 
 [[s-dm-set-config]]
@@ -89,7 +89,7 @@ part of site 'mysite', you have to specify the 'site' option in alpha's node
 section:
 
 ----------------------------
-$ drbdmanage modify-config
+# drbdmanage modify-config
 [Node:alpha]
 site = mysite
 ----------------------------
@@ -101,7 +101,7 @@ part of site 'mysite' to DEBUG. This would result in the following
 configuration:
 
 ----------------------------
-$ drbdmanage modify-config
+# drbdmanage modify-config
 [GLOBAL]
 loglevel = INFO
 
@@ -121,7 +121,7 @@ assume you want to use the 'ThinLV' plugin for node 'bravo', where you want to
 set the 'pool-name' option to 'mythinpool':
 
 ----------------------------
-$ drbdmanage modify-config --node bravo
+# drbdmanage modify-config --node bravo
 [GLOBAL]
 loglevel = INFO
 
@@ -147,13 +147,13 @@ short-cut how to achieve it in a single step:
 First, we create a new resource:
 
 ----------------------------
-drbdmanage add-resource backups
+# drbdmanage add-resource backups
 ----------------------------
 
 Second, we create a new volume within that resource:
 
 ----------------------------
-drbdmanage add-volume backups 500GB
+# drbdmanage add-volume backups 500GB
 ----------------------------
 In case we would not have used 'add-resource' in the first step, +drbdmanage+
 would have known that the resource did not exist and it would have created it.
@@ -161,7 +161,7 @@ would have known that the resource did not exist and it would have created it.
 The third step is to deploy the resource to 3 cluster nodes:
 
 ----------------------------
-drbdmanage deploy-resource backups 3
+# drbdmanage deploy-resource backups 3
 ----------------------------
 
 In this case +drbdmanage+ chooses 3 nodes that fit all requirements best,
@@ -172,7 +172,7 @@ specific nodes in a moment.
 As deploying a new resource/volume to a set of nodes is a very common task,
 +drbdmanage+ provides the following short-cut:
 ----------------------------
-drbdmanage add-volume backups 500GB --deploy 3
+# drbdmanage add-volume backups 500GB --deploy 3
 ----------------------------
 
 Manual deployment can be achieved by *assigning* a resource to specific nodes.
@@ -180,9 +180,9 @@ For example if you decide to assign the 'backups' resource to 'bravo' and
 'charlie', you should execute the following steps:
 
 ----------------------------
-drbdmanage add-volume backups 500GB
-drbdmanage assign-resource backups bravo
-drbdmanage assign-resource backups charlie
+# drbdmanage add-volume backups 500GB
+# drbdmanage assign-resource backups bravo
+# drbdmanage assign-resource backups charlie
 ----------------------------
 
 [[s-dm-snapshots]]
@@ -199,7 +199,7 @@ the first three nodes. The name of the snapshot will be 'snap_backups', and we
 want the snapshot to be taken on nodes 'bravo' and 'charlie'.
 
 ----------------------------
-drbdmanage create-snapshot snap_backups backups bravo charlie
+# drbdmanage create-snapshot snap_backups backups bravo charlie
 ----------------------------
 
 ==== Restoring a snapshot
@@ -207,7 +207,7 @@ In the following we want to restore the content of the snapshot 'snap_backups'
 to a new resource named 'res_backup_from_snap'.
 
 ----------------------------
-drbdmanage restore-snapshot res_backup_from_snap backups snap_backups
+# drbdmanage restore-snapshot res_backup_from_snap backups snap_backups
 ----------------------------
 
 This will create a new resource with the name 'res_backup_from_snap'. This
@@ -217,7 +217,7 @@ resource 'backups' is deployed.
 ==== Removing a snapshot
 An existing snapshot can be removed as follows:
 ----------------------------
-drbdmanage remove-snapshot backups snap_backups
+# drbdmanage remove-snapshot backups snap_backups
 ----------------------------
 
 
@@ -230,10 +230,10 @@ output in multiple dimensions. Additional output can be turned on by using the
 '--show' option. In the following we show some typical examples:
 
 ----------------------------
-drbdmanage list-nodes
-drbdmanage list-volumes --groupby Size
-drbdmanage list-volumes --groupby Size --groupby Minor
-drbdmanage list-volumes --groupby Size --show Port
+# drbdmanage list-nodes
+# drbdmanage list-volumes --groupby Size
+# drbdmanage list-volumes --groupby Size --groupby Minor
+# drbdmanage list-volumes --groupby Size --show Port
 ----------------------------
 
 [[s-dm-setupopts]]
@@ -251,13 +251,13 @@ resource, these commands then provide the according switches.
 Setting +max-buffers+ for a resource 'backups' looks like this:
 
 ----------------------------
-drbdmanage net-options --max-buffers 2048 --resource backups
+# drbdmanage net-options --max-buffers 2048 --resource backups
 ----------------------------
 
 Setting this option in the common section looks like this:
 
 ----------------------------
-drbdmanage net-options --max-buffers 2048 --common
+# drbdmanage net-options --max-buffers 2048 --common
 ----------------------------
 
 Additionally, there is always an '--unset-' option for every option that can
@@ -265,7 +265,7 @@ be specified. So, unsetting +max-buffers+ for a resource 'backups' looks like
 this:
 
 ----------------------------
-drbdmanage net-options --unset-max-buffers --resource backups
+# drbdmanage net-options --unset-max-buffers --resource backups
 ----------------------------
 
 It is possible to visualize currently set options with the 'show-options'
@@ -277,7 +277,7 @@ site 'second'. Further, we want to use DRBD protocol 'C' within the two sites, a
 protocol 'A' between the sites 'first' and 'second'. This would be set up as follows:
 
 ----------------------------
-$ drbdmanage modify-config
+# drbdmanage modify-config
 [Node:alpha]
 site = first
 
@@ -292,9 +292,9 @@ site = second
 ----------------------------
 
 ----------------------------
-$ drbdmanage net-options --protocol C --sites 'first:first'
-$ drbdmanage net-options --protocol C --sites 'second:second'
-$ drbdmanage net-options --protocol A --sites 'first:second'
+# drbdmanage net-options --protocol C --sites 'first:first'
+# drbdmanage net-options --protocol C --sites 'second:second'
+# drbdmanage net-options --protocol A --sites 'first:second'
 ----------------------------
 
 The '--sites' parameter follows a 'from:to' syntax, where currently 'from' and
@@ -312,9 +312,9 @@ A quick way to list available commands on the command line is to type
 Further information on subcommands (e.g., list-nodes) can be retrieved in
 three ways:
 ----------------------------
-man drbdmanage-list-nodes
-drbdmanage list-nodes -h
-drbdmange help list-nodes
+# man drbdmanage-list-nodes
+# drbdmanage list-nodes -h
+# drbdmange help list-nodes
 ----------------------------
 
 Using the 'help' subcommand is especially helpful when drbdmanage is executed
@@ -326,15 +326,15 @@ which can be used to complete basically every object drbdmanage knows about
 In the following we show some possible completions, and their results:
 
 ----------------------------
-drbdmanage add-node alpha 1<tab> # completes the IP address if hostname can be resolved
-drbdmanage assign-resource b<tab> c<tab> # drbdmanage assign-resource backups charlie
+# drbdmanage add-node alpha 1<tab> # completes the IP address if hostname can be resolved
+# drbdmanage assign-resource b<tab> c<tab> # drbdmanage assign-resource backups charlie
 ----------------------------
 
 If tab-completion does not work out of the box, please try to source the
 according file:
 
 ----------------------------
-source /etc/bash_completion.d/drbdmanage
+# source /etc/bash_completion.d/drbdmanage
 ----------------------------
 
 
