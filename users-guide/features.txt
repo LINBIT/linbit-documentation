@@ -18,7 +18,7 @@ moment, this mode can be used with any conventional file system (ext3,
 ext4, XFS etc.).
 
 Deploying DRBD in single-primary mode is the canonical approach for
-high availability (fail-over capable) clusters.
+High-Availability (fail-over capable) clusters.
 
 [[s-dual-primary-mode]]
 === Dual-primary mode
@@ -38,7 +38,9 @@ explicitly in DRBD's configuration file.
 See <<s-enable-dual-primary>> for information on enabling dual-primary
 mode for specific resources.
 
-NOTE: With DRBD-9.1 it will be possible to have more than two primaries at the
+NOTE: With current DRBD-9.0 version running in Dual-Primary mode is not 
+recommended (because of lack of testing). +
+In DRBD-9.1 it will be possible to have more than two primaries at the
 same time.
 
 [[s-replication-protocols]]
@@ -53,11 +55,11 @@ Asynchronous replication protocol. Local write operations on the
 primary node are considered completed as soon as the local disk write
 has finished, and the replication packet has been placed in the local
 TCP send buffer. In the event of forced fail-over, data loss may
-occur. The data on the standby node is consistent after fail-over,
+occur. The data on the standby node is consistent after fail-over;
 however, the most recent updates performed prior to the crash could be
 lost. Protocol A is most often used in long distance replication scenarios.
 When used in combination with DRBD Proxy it makes an effective
-disaster recovery solution. See <<s-drbd-proxy>> for more information.
+disaster recovery solution. See <<s-drbd-proxy>>, for more information.
 
 
 [[fp-protocol-b]]
@@ -74,9 +76,9 @@ store, the most recent writes completed on the primary may be lost.
 .Protocol C
 Synchronous replication protocol. Local write operations on the
 primary node are considered completed only after both the local and
-the remote disk write have been confirmed. As a result, loss of a
+the remote disk write(s) have been confirmed. As a result, loss of a
 single node is guaranteed not to lead to any data loss. Data loss is,
-of course, inevitable even with this replication protocol if both
+of course, inevitable even with this replication protocol if all
 nodes (resp. their storage subsystems) are irreversibly destroyed at the
 same time.
 
@@ -98,8 +100,11 @@ two cluster nodes.
 
 While this has been possible before via <<s-three-way-repl,stacking>>, in
 DRBD 9 this is supported out-of-the-box for (currently) up to 16 nodes.
-(In practice, using 3-, 4- or perhaps 5-way duplication via DRBD
-will make other things the leading cause of downtime.) FIXME
+(In practice, using 3-, 4- or perhaps 5-way redundancy via DRBD
+will make other things the leading cause of downtime.)
+
+The major difference to the stacking solution is that there's less performance 
+loss, because only one level of data replication is being used.
 
 // Eg. if availability for a single node is 99%, for two nodes it might
 // be 99.99%, for three nodes 99.999%
@@ -107,13 +112,14 @@ will make other things the leading cause of downtime.) FIXME
 [[s-automatic-promotion]]
 === Automatic Promotion of Resources
 
-Prior to DRBD 9, promoting a resource would be done with "drbdadm primary". With DRBD
-9, DRBD will automatically promote a resource to primary role when one of its devices is
-mounted or opened for writing. As soon as all devices are unmounted or closed, the role
+Prior to DRBD 9, promoting a resource would be done with the +drbdadm primary+ command. With DRBD
+9, DRBD will automatically promote a resource to primary role when the +auto-promote+ 
+option is enabled, and one of its volumes is
+mounted or opened for writing. As soon as all volumes are unmounted or closed, the role
 of the resource changes back to secondary.
 
 Automatic promotion will only succeed if the cluster state allows it (that is, if an
-explicit drbdadm primary command would succeed). Otherwise, mounting or opening
+explicit +drbdadm primary+ command would succeed). Otherwise, mounting or opening
 the device fails as it did prior to DRBD 9.
 
 
@@ -121,12 +127,14 @@ the device fails as it did prior to DRBD 9.
 === Multiple replication transports
 DRBD supports multiple network transports. As of now two transport
 implementations are available: TCP and RDMA. Each transport implementation
-comes as its own kernel module. The drbd_trasport_tcp.ko transport
-implementation comes with the distribution files of drbd itself.
+comes as its own kernel module.
+
+==== TCP Transport
+The +drbd_trasport_tcp.ko+ transport
+implementation is included with the distribution files of drbd itself.
 As the name implies, this transport implementation uses the TCP/IP
 protocol to move data between machines.
 
-==== TCP Transport
 DRBD's replication and synchronization framework socket layer supports
 multiple low-level transports:
 
@@ -143,7 +151,7 @@ different addressing scheme.
 .SDP
 SDP is an implementation of BSD-style sockets for RDMA capable
 transports such as InfiniBand. SDP was available as part of the OFED
-stack of most distributions but is now *considered* *deprecated*. SDP uses an IPv4-style
+stack of most distributions but is now *considered deprecated*. SDP uses an IPv4-style
 addressing scheme. Employed over an InfiniBand interconnect, SDP
 provides a high-throughput, low-latency replication network to DRBD.
 
@@ -156,11 +164,13 @@ currently available from a single vendor, Dolphin Interconnect
 Solutions.
 
 ==== RDMA Transport
-Alternatively the ''drbd_transport_rdma.ko'' is available from LINBIT. This
+Alternatively the +drbd_transport_rdma.ko+ kernel module is available from LINBIT. This
 transport uses the verbs/RDMA API to move data over InfiniBand HCAs,
 iWARP capable NICs or RoCE capable NICs. In contrast to the BSD sockets
-API (used by TCP/IP) allows the verbs/RDMA API data movement with very
+API (used by TCP/IP) the verbs/RDMA API allows data movement with very
 little CPU involvement.
+
+==== Conclusion
 
 At high transfer rates it might be possible that the CPU load/memory
 bandwidth of the tcp transport becomes the limiting factor. You can
@@ -226,7 +236,7 @@ configurable, static upper limit. Based on this limit, you may
 estimate the expected sync time based on the following simple formula:
 
 [[eq-resync-time]]
-//[equation]
+[equation]
 .Synchronization time
 image::resync-time[\[t_{sync}=\frac{D}{R}\]]
 
@@ -291,7 +301,7 @@ with a noticeable impact on CPU utilization and load average.
 It works by one node (the _verification source_) sequentially
 calculating a cryptographic digest of every block stored on the
 lower-level storage device of a particular resource. DRBD then
-transmits that digest to the peer node (the _verification target_),
+transmits that digest to the peer node(s) (the _verification target(s)_),
 where it is checked against a digest of the local copy of the affected
 block. If the digests do not match, the block is marked out-of-sync
 and may later be synchronized. Because DRBD transmits just the
@@ -314,10 +324,10 @@ invoke, and automate on-line verification.
 === Replication traffic integrity checking
 
 DRBD optionally performs end-to-end message integrity checking using
-cryptographic message digest algorithms such as MD5, SHA-1 or CRC-32C.
+cryptographic message digest algorithms such as MD5, SHA-1, or CRC-32C.
 
-These message digest algorithms are not _provided_ by DRBD. The Linux
-kernel crypto API provides these; DRBD merely uses them. Thus, DRBD is
+These message digest algorithms are *not* provided by DRBD, but by the Linux
+kernel crypto API; DRBD merely uses them. Thus, DRBD is
 capable of utilizing any message digest algorithm available in a
 particular system's kernel configuration.
 
@@ -402,7 +412,8 @@ for doing so:
   gracefully and declare the split brain resolved. Note that this is a
   fairly unlikely scenario. Even if both hosts only mounted the file
   system on the DRBD block device (even read-only), the device
-  contents would be modified, ruling out the possibility of automatic
+  contents typically would be modified (eg. by filesystem journal
+  replay), ruling out the possibility of automatic
   recovery.
 
 Whether or not automatic split brain recovery is acceptable depends
@@ -477,10 +488,10 @@ hence not recommended for most users.
 If DRBD is configured to _detach_ on lower-level I/O error, DRBD will
 do so, automatically, upon occurrence of the first lower-level I/O
 error. The I/O error is masked from upper layers while DRBD
-transparently fetches the affected block from the peer node, over the
+transparently fetches the affected block from a peer node, over the
 network. From then onwards, DRBD is said to operate in diskless mode,
 and carries out all subsequent I/O operations, read and write, on the
-peer node. Performance in this mode will be reduced,
+peer node(s) only. Performance in this mode will be reduced,
 but the service continues without interruption, and can be moved to
 the peer node in a deliberate fashion at a convenient time.
 
@@ -591,7 +602,7 @@ Proxy even with DRBD protocols B and C.
 
 See <<s-using-drbd-proxy>> for information on configuring DRBD Proxy.
 
-NOTE: DRBD Proxy is the only part of the DRBD product family that is
+NOTE: DRBD Proxy is one of the few parts of the DRBD product family that is
 not published under an open source license. Please contact
 sales@linbit.com or sales_us@linbit.com for an evaluation license.
 
@@ -614,8 +625,8 @@ for situations where
 
 In such situations, without truck based replication, DRBD would
 require a very long initial device synchronization (on the order of
-days or weeks). Truck based replication allows us to ship a data seed
-to the remote site, and drastically reduce the initial synchronization
+weeks, months, or years). Truck based replication allows to ship a data seed
+to the remote site, and so drastically reduces the initial synchronization
 time.  See <<s-using-truck-based-replication>> for details on this use
 case.
 
@@ -698,47 +709,44 @@ resource kvm-mail {
 
   # DRBD "client"
   floating 10.1.11.6:8006 {
-    disk      /dev/does-not-exist;
+    disk      none;
     node-id   4;
   }
 
-  # rest omitted for brevity
+  __# rest omitted for brevity__
   ...
 }
---------------------- 
+-------------------------------------
 
-On the __client__ you would get an error when trying to attach to the 
-local storage, so you should skip these commands; an easy way is to use 
-the debug output of +drbdadm+ (but see the planned enhancements below, too):
+Of course you can have more than one DRBD client defined, too; you just
+need to remember to allocate an unique +node-id+ for each one.
 
----------
-# drbdadm up kvm-mail -d  | grep -v /dev/does-not-exist | /bin/sh
----------
+.NOTE
+DRBDmanage (which is the recommended configuration method, see its
+<<ch-admin-drbdmanage,documentation>>) allows to configure hosts
+as clients, too.
+
 
 
 Additionally to the horizontal scaling via adding storage nodes and doing 
 a <<s-rebalance,_live_\, online_ rebalancing of storage>>
 this kind of setup allows a cluster of VM frontend servers, managed eg. 
-via Pacemaker, to access the data via a service IP address without 
+via Pacemaker, to access the data without 
 needing local storage.
-
-While not fully optimized in the DRBD-9 pre-release, it's something to 
-keep in mind. Possible enhancements include
-
-* not needing a bitmap slot, as the _client_ node won't store any
-  persistent data anyway
-* Having a cleaner way to specify the client (eg. `disk none;`), to
-  have +drbdadm+ already notice that no +attach+ and similar commands
-  are needed.
-* More granular specification of +read-balancing+.
 
 
 [NOTE]
 ====================
 This _DRBD client_ is an easy way to get data over the wire, but it 
-doesn't have any of the advanced iSCSI features like _Persistent Reservations_.
-
-If your setup has only basic I/O needs, like _read_, _write_, and 
+doesn't have any of the advanced iSCSI features like _Persistent Reservations_. +
+If your setup has only basic I/O needs, like _read_, _write_, _trim_/_discard_ and 
 perhaps _resize_ (eg. for a virtual machine), you should be fine.
+
+
+Furthermore, this kind of setup is not fully optimized in the DRBD-9.0.0 release.
+Planned enhancements include
+
+* not needing a bitmap slot for client nodes
+* More granular specification of +read-balancing+.
 ====================
 

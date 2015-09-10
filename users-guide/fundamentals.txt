@@ -16,7 +16,7 @@ DRBD mirrors data
 
 * *synchronously* or *asynchronously*. With synchronous mirroring, applications
   are notified of write completions after the writes have been carried out on
-  all hosts. With asynchronous mirroring, applications are notified of write
+  all (connected) hosts. With asynchronous mirroring, applications are notified of write
   completions when the writes have completed locally, which usually is before
   they have propagated to the other hosts.
 
@@ -46,17 +46,28 @@ image::drbd-in-kernel[scaledwidth="100%"]
 === User space administration tools ===
 
 DRBD comes with a set of administration tools which communicate with the
-kernel module in order to configure and administer DRBD resources.
+kernel module in order to configure and administer DRBD resources. From
+top-level to bottom-most these are:
+
+.+drbdmanage+
+Provided as a separate project, this is the recommended way to orchestrate
+DRBD resources in a multi-node cluster. DRBDmanage uses one DRBD 9 resource
+to store its cluster-wide configuration data, and offers a quick and easy
+way to perform the most often needed administrative tasks, by calling
+external programs like +lvcreate+ and +drbdadm+.
+
+Please see <<ch-admin-drbdmanage,the DRBDmanage entry>> in this documentation 
+for more details.
 
 .+drbdadm+
-The high-level administration tool of the DRBD program suite.  Obtains all DRBD
+The high-level administration tool of the DRBD-utils program suite.  Obtains all DRBD
 configuration parameters from the configuration file +/etc/drbd.conf+ and acts
 as a front-end for +drbdsetup+ and +drbdmeta+.  +drbdadm+ has a _dry-run_ mode,
 invoked with the +-d+ option, that shows which +drbdsetup+ and +drbdmeta+ calls
 +drbdadm+ would issue without actually calling those commands.
 
 .+drbdsetup+
-Configures the DRBD module loaded into the kernel. All parameters to
+Configures the DRBD module that was loaded into the kernel. All parameters to
 +drbdsetup+ must be passed on the command line. The separation between
 +drbdadm+ and +drbdsetup+ allows for maximum flexibility.  Most users will
 rarely need to use +drbdsetup+ directly, if at all.
@@ -84,7 +95,7 @@ resource. A volume contains the replicated data set, and a set of
 metadata for DRBD internal use.
 
 At the +drbdadm+ level, a volume within a resource can be addressed by the
-resource name and volume number as <resource>/<volume>.
+resource name and volume number as +__resource__/__volume>__+.
 
 // At the +drbdsetup+ level, a volume is addressed by its device minor number.
 // At the +drbdmeta+ level, a volume is addressed by the name of the underlying
@@ -100,9 +111,9 @@ This is a virtual block device managed by DRBD. It has a device major
 number of 147, and its minor numbers are numbered from 0 onwards, as
 is customary. Each DRBD device corresponds to a volume in a
 resource. The associated block device is usually named
-+/dev/drbdX+, where +X+ is the device minor number. DRBD also allows
-for user-defined block device names which must, however, start with
-+drbd_+.
++/dev/drbd__X__+, where +__X__+ is the device minor number. +udev+ will typically
+also create symlinks containing the resource name and volume number, as in
+++#/dev/drbd/by-res/#__resource__/__vol-nr__++.
 
 NOTE: Very early DRBD versions hijacked NBD's device major number
 43. This is long obsolete; 147 is the
@@ -111,10 +122,13 @@ major.
 
 .Connection
 A _connection_ is a communication link between two hosts that share a
-replicated data set.  As of DRBD 9 each resource can be defined on
-multiple hosts, with a full-meshed connection setup between these hosts,
+replicated data set.  With DRBD 9 each resource can be defined on
+multiple hosts; with the current versions this requires
+a full-meshed connection setup between these hosts (ie. each host connected to 
+every other for that resource)
 
-At the +drbdadm+ level, a connection is addressed by the resource name.
+At the +drbdadm+ level, a connection is addressed by the resource and the 
+connection name (the latter defaulting to the peer hostname).
 
 // At the +drbdsetup+ level, a connection is addressed by its two replication
 // endpoints identified by address family (optional), address (required), and
@@ -129,16 +143,16 @@ _Primary_ or _Secondary_.
 NOTE: The choice of terms here is not arbitrary. These roles were
 deliberately not named "Active" and "Passive" by DRBD's
 creators. _Primary_ vs. _secondary_ refers to a concept related to
-availability of _storage_, whereas active vs. passive refers to the
-availability of an _application_. It is usually the case in a
-high-availability environment that the primary node is also the active
+availability of *storage*, whereas _active_ vs. _passive_ refers to the
+availability of an *application*. It is usually the case in a
+high-availability environment that the _primary_ node is also the _active_
 one, but this is by no means necessary.
 
-* A DRBD device in the primary role can be used unrestrictedly for
+* A DRBD device in the _primary_ role can be used unrestrictedly for
   read and write operations. It may be used for creating and mounting
   file systems, raw or direct I/O to the block device, etc.
 
-* A DRBD device in the secondary role receives all updates from the
+* A DRBD device in the _secondary_ role receives all updates from the
   peer node's device, but otherwise disallows access completely. It
   can not be used by applications, neither for read nor write
   access. The reason for disallowing even read-only access to the
@@ -146,12 +160,7 @@ one, but this is by no means necessary.
   impossible if a secondary resource were made accessible in any way.
 
 The resource's role can, of course, be changed, either by
-<<s-switch-resource-roles,manual intervention>> or by way of some
-automated algorithm by a cluster management application. Changing the
+<<s-switch-resource-roles,manual intervention>>, by way of some
+automated algorithm by a cluster management application, or <<s-automatic-promotion,automatically>>. Changing the
 resource role from secondary to primary is referred to as _promotion_,
 whereas the reverse operation is termed _demotion_.
-
-NOTE: Since DRBD-9 you can also activate the +auto-promote+ feature in
-your configuration; but most of the DRBD Users' Guide will use the
-traditional manual role switching, to emphasize the need for read/write 
-access at certain times.
