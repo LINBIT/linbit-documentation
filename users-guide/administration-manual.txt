@@ -1563,7 +1563,7 @@ keywords as +after-sb-1pri+ except +discard-secondary+ and +consensus+.
 
 NOTE: DRBD understands additional keywords for these three options,
 which have been omitted here because they are very rarely used. Refer
-to <<re-drbdconf>> for details on split brain recovery keywords not
+to <<after-sb-0pri>> for details on split brain recovery keywords not
 discussed here.
 
 For example, a resource which serves as the block device for a GFS or
@@ -1629,39 +1629,32 @@ In the following example, nodes are named +alice+, +bob+, and
 [source,drbd]
 ----------------------------
 resource r0 {
-  net {
-    protocol C;
-  }
+  protocol C;
+  device    /dev/drbd0;
+  disk      /dev/sda6;
+  meta-disk internal;
 
   on alice {
-    device     /dev/drbd0;
-    disk       /dev/sda6;
     address    10.0.0.1:7788;
-    meta-disk internal;
   }
 
   on bob {
-    device    /dev/drbd0;
-    disk      /dev/sda6;
     address   10.0.0.2:7788;
-    meta-disk internal;
   }
 }
 
 resource r0-U {
-  net {
-    protocol A;
-  }
+  protocol A;
 
   stacked-on-top-of r0 {
     device     /dev/drbd10;
-    address    192.168.42.1:7788;
+    address    192.168.42.1:7789;
   }
 
   on charlie {
     device     /dev/drbd10;
     disk       /dev/hda6;
-    address    192.168.42.2:7788; # Public IP of the backup node
+    address    192.168.42.2:7789; # Public IP of the backup node
     meta-disk  internal;
   }
 }
@@ -1678,9 +1671,15 @@ stacked resource. It replaces one of the +on+ sections normally found
 in any resource configuration. Do not use +stacked-on-top-of+ in an
 lower-level resource.
 
+
 NOTE: It is not a requirement to use <<fp-protocol-a,Protocol A>> for
 stacked resources. You may select any of DRBD's replication protocols
 depending on your application.
+
+[[f-single-stacked]]
+.Single stacked setup
+image::single-stacked[]
+
 
 [[s-three-node-enable]]
 ==== Enabling stacked resources
