@@ -466,6 +466,38 @@ stable storage. When running DRBD on top of such devices, it may be
 acceptable to disable disk flushes, thereby improving DRBD's write
 performance. See <<s-disable-flushes>> for details.
 
+[[s-trim-discard]]
+=== Trim/Discard support
+
+_Trim_/_Discard_ are two names for the same feature: a request to a storage
+system, telling it that some data range is being used anymorefootnote:[For 
+example, a deleted file's data.] and can get recycled. +
+This call originates in Flash-based storages (SSDs, FusionIO cards, etc.),
+which cannot easily _rewrite_ a sector but instead have to _erase_ and write 
+the (new) data again (incurring some latency cost). For more details, see eg. 
+the [[https://en.wikipedia.org/wiki/Trim_%28computing%29,wikipedia page]].
+
+
+Since 8.4.3 DRBD includes support for _Trim_/_Discard_. You don't need to configure 
+or enable anything; if DRBD detects that the local (underlying) storage system 
+allows using these commands, it will transparently enable them and pass such 
+requests through.
+
+The effect is that eg. a recent-enough +mkfs.ext4+ on a multi-TB volume can 
+shorten the initial sync time to a few seconds to minutes - just by telling 
+DRBD (which will relay that information to all connected nodes) that most/all 
+of the storage is now to be seen as invalidated.
+
+Nodes that connect to that resource later on will not have seen the 
+_Trim_/_Discard_ requests, and will therefore start a full resync; depending on 
+kernel version and file system a call to +fstrim+ might give the wanted result, 
+though.
+
+NOTE: even if you don't have storage with _Trim_/_Discard_ support, some 
+virtual block devices will provide you with the same feature, for example
+Thin LVM.
+
+
 [[s-handling-disk-errors]]
 === Disk error handling strategies
 

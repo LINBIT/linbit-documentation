@@ -47,15 +47,19 @@ stored on the same magnetic disk of a hard disk, the write operation
 may result in two additional movements of the write/read head of the
 hard disk.
 
-CAUTION: If you are planning to use internal meta data in conjunction
+[CAUTION]
+============
+If you are planning to use internal meta data in conjunction
 with an existing lower-level device that already has data which you
 wish to preserve, you _must_ account for the space required by DRBD's
 meta data.
 
 Otherwise, upon DRBD resource creation, the newly created metadata
 would overwrite data at the end of the lower-level device, potentially
-destroying existing files in the process. To avoid that, you must do
-one of the following things:
+destroying existing files in the process.
+============
+
+To avoid that, you must do one of the following things:
 
 * Enlarge your lower-level device. This is possible with any logical
   volume management facility (such as indexterm:[LVM]LVM) as long as
@@ -112,7 +116,13 @@ for DRBD's meta data using the following formula:
 .Calculating DRBD meta data size (exactly)
 image::metadata-size-exact[]
 
-_C~s~_ is the data device size in sectors.
+_C~s~_ is the data device size in sectors, and _N_ is the number of peers. 
+
+////
+If 
+you are using the <<al-stripe,al-stripes>> setting, additional space of size 
+_al-stripes_ times _al-strip-size_ is required.
+////
 
 NOTE: You may retrieve the device size (in bytes) by issuing `blockdev --getsize64
 <device>`; to convert to MB, divide by 1048576 (= 2^20^ or 1024^2^).
@@ -128,7 +138,7 @@ image::metadata-size-approx[]
 === Generation Identifiers
 
 indexterm:[generation identifiers]DRBD uses _generation identifiers_
-(GIs) to identify "generations"of replicated data.
+(GIs) to identify "generations" of replicated data.
 
 This is DRBD's internal mechanism used for
 
@@ -149,6 +159,8 @@ This is DRBD's internal mechanism used for
 DRBD marks the start of a new _data generation_ at each of the
 following occurrences:
 
+// FIXME
+
 * The initial device full sync,
 
 * a disconnected resource switching to the primary role,
@@ -160,7 +172,7 @@ connection state, and both nodes' disk state is +UpToDate+, the
 current data generation on both nodes is the same. The inverse is also
 true.
 
-Every new data generation is identified by a 8-byte, universally
+Every new data generation is identified by an 8-byte, universally
 unique identifier (UUID).
 
 [[s-gi-tuple]]
@@ -177,16 +189,17 @@ between nodes.
 
 .Bitmap UUIDs
 This is the UUID of the generation against which this on-disk 
-bitmap is tracking changes (per remote host). As the on-disk sync bitmap itself, this
-identifier is only relevant while the remote host is disconnected. If the
-resource is +Connected+, this UUID is always empty (zero).
+bitmap is tracking changes (per remote host). Like the on-disk sync bitmap itself, this
+identifier is only relevant while the remote host is disconnected. 
+
+// If the resource is +Connected+, this UUID is always empty (zero). FIXME
 
 .Historical UUIDs
 These are the identifiers of data generations preceding the
 current one, sized to have one slot per (possible) remote host.
 
 Collectively, these items are referred to as the _generation
-identifier tuple_, or GI tuple" for short.
+identifier tuple_, or "__GI tuple__" for short.
 
 [[s-gi-changes]]
 ==== How generation identifiers change
@@ -281,7 +294,7 @@ historical UUID matches the peer's current UUID), DRBD performs the
 same steps, except that the local node becomes the synchronization
 target.
 
-ERROR: FIXME
+// ERROR: FIXME
 
 .Bitmap UUIDs match, current UUIDs do not
 indexterm:[split brain]The local node detects that its current UUID
@@ -330,7 +343,7 @@ nothing" principle of replicated storage. This is an issue that is not
 limited to DRBD, in fact, this issue exists in practically all
 replicated storage configurations. Many other storage solutions (just
 as DRBD itself, prior to version 0.7) thus require that after a
-failure of the active, that node must be fully synchronized anew after
+failure of the active node the data must be fully synchronized after
 its recovery.
 
 DRBD's approach, since version 0.7, is a different one. The _activity
@@ -340,7 +353,8 @@ referred to as _hot extents_.
 
 If a temporarily failed node that was in active mode at the time of
 failure is synchronized, only those hot extents highlighted in the AL
-need to be synchronized (plus any blocks marked in the bitmap), rather than the full device. This drastically
+need to be synchronized (plus any blocks marked in the bitmap on the now-active peer),
+rather than the full device. This drastically
 reduces synchronization time after an active node crash.
 
 [[s-active-extents]]
@@ -368,7 +382,7 @@ node failure and subsequent recovery.
 [[s-suitable-al-size]]
 ==== Selecting a suitable Activity Log size
 
-indexterm:[Activity Log]The definition of the number of extents should
+indexterm:[Activity Log]Consideration of the number of extents should
 be based on the desired synchronization time at a given
 synchronization rate. The number of active extents can be calculated
 as follows:
@@ -377,19 +391,21 @@ as follows:
 .Active extents calculation based on sync rate and target sync time
 image::al-extents[]
 
-_R_ is the synchronization rate, given in MB/s. _t~sync~_ is the target
+_R_ is the synchronization rate, given in MiB/s. _t~sync~_ is the target
 synchronization time, in seconds. _E_ is the resulting number of active
 extents.
 
-To provide an example, suppose our cluster has an I/O subsystem with a
-throughput rate of 90 MiByte/s that was configured to a
-synchronization rate of 30 MiByte/s (_R_=30), and we want to keep our
-target synchronization time at 4 minutes or 240 seconds
-(_t~sync~_=240):
+To provide an example, suppose the cluster has an I/O subsystem with a
+throughput rate of 200 MiByte/s that was configured to a
+synchronization rate (_R_) of 60 MiByte/s, and we want to keep the
+target synchronization time (_t~sync~_) at 4 minutes or 240 seconds:
 
 [[eq-al-extents-example]]
 .Active extents calculation based on sync rate and target sync time (example)
 image::al-extents-example[]
+
+On a final note, DRBD 9 needs to keep an AL even on the Secondary nodes, as 
+their data might be used to synchronize other Secondary nodes.
 
 
 [[s-quick-sync-bitmap]]
@@ -439,25 +455,29 @@ re-synchronization leaves your secondary node's disk
 +Inconsistent+ longer than necessary.
 
 [[s-fence-peer]]
-=== The peer fencing interface
+=== The Peer-Fencing interface
 
-DRBD has a defined interface for the mechanism that fences the peer
+DRBD has an interface defined for fencingfootnote:[For a discussion about 
+Fencing and STONITH, please see the corresponding Pacemaker page 
+http://clusterlabs.org/doc/crm_fencing.html.] the peer
 node in case of the replication link being interrupted. The
 +drbd-peer-outdater+ helper, bundled with Heartbeat, is the reference
 implementation for this interface. However, you may easily implement
 your own peer fencing helper program.
 
-FIXME: still valid? called once per peer?
+// FIXME: still valid? called once per peer?
 
 The fencing helper is invoked only in case
 
-. a +fence-peer+ handler has been defined in the resource's (or common)
+. a +fence-peer+ handler has been defined in the resource's (or +common+)
   +handlers+ section, _and_
 
 . the +fencing+ option for the resource is set to either
-  +resource-only+ or +resource-and-stonith+ , _and_
+  +resource-only+ or +resource-and-stonith+, _and_
 
-. the replication link is interrupted long enough for DRBD to detect a
+. the replication link is interrupted long enough for DRBDfootnote:[That means 
+  eg. a TCP timeout, the +ping-timeout+, or the kernel
+  triggers a connection abort eg. because the network link goes down.] to detect a
   network failure.
 
 The program or script specified as the +fence-peer+ handler, when it is

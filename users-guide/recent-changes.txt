@@ -3,7 +3,7 @@
 == Recent changes
 
 This appendix is for users who upgrade from earlier DRBD versions to
-DRBD 8.4. It highlights some important changes to DRBD's configuration
+DRBD 9.0. It highlights some important changes to DRBD's configuration
 and behavior.
 
 [[s-recent-changes-connections]]
@@ -16,15 +16,21 @@ possible); and that using DRBD as a network-blockdevice (a
 <<s-drbd-client,__DRBD client__>>) now makes sense.
 
 Associated with this change are
-. Metadata size changes (one bitmap per peer)
-. +/proc/drbd+ now only gives minimal information, see
+
+* Metadata size changes (one bitmap per peer)
+
+* +/proc/drbd+ now only gives minimal information, see
     <<s-drbdadm-status, +drbdadm status+>>
-. Resynchronization from/to <<s-multi-node,multiple peers>>
+
+* Resynchronization from/to <<s-multi-node,multiple peers>>
+
+* The <<s-activity-log,activity log>> is used even when in 
+  <<s-resource-roles,Secondary>> role
 
 [[s-recent-changes-auto-promote]]
 === +Auto-Promote+ Feature
 
-DRBD 9 can be configured to do the +Primary+/+Secondary+ role switch 
+DRBD 9 can be configured to do the +Primary+/+Secondary+ <<s-resource-roles,role switch>>
 automatically, on demand.
 
 This feature replaces both the +become-primary-on+ configuration value, as well 
@@ -33,15 +39,17 @@ as the old Heartbeat v1 +drbddisk+ script.
 Please see <<s-automatic-promotion>> for more details.
 
 [[s-recent-changes-performance]]
-=== Performance
+=== Increased Performance
 
 DRBD 9 has seen noticeable performance improvements, depending on your specific 
 hardware it's up to two magnitudes faster (measuring number of I/O 
 operations/second for random writes).
 
+//FIXME: same as 8.4?
+
 
 [[s-recent-changes-volumes]]
-=== Volumes
+=== Multiple Volumes in one Resource
 
 Volumes are a new concept in DRBD 8.4. Prior to 8.4, every resource
 had only one block device associated with it, thus there was a
@@ -50,45 +58,32 @@ multiple volumes (each corresponding to one block device) may share a
 single replication connection, which in turn corresponds to a single
 resource.
 
+This results in a few other necessary changes in behaviour:
+
 [[s-recent-changes-volumes-udev]]
 ==== Changes to udev symlinks
 
 The DRBD udev integration scripts manage symlinks pointing to
-individual block device nodes. These exist in the +/dev/drbd/by-res+
-and +/dev/drbd/by-disk+ directories.
-
-In DRBD 8.3 and earlier, links in +/dev/drbd/by-disk+ point to single
-block devices:
-
-.udev managed DRBD symlinks in DRBD 8.3 and earlier
-----------------------------
-lrwxrwxrwx 1 root root 11 2011-05-19 11:46 /dev/drbd/by-res/home ->
-  ../../drbd0
-lrwxrwxrwx 1 root root 11 2011-05-19 11:46 /dev/drbd/by-res/data ->
-  ../../drbd1
-lrwxrwxrwx 1 root root 11 2011-05-19 11:46 /dev/drbd/by-res/nfs-root ->
-  ../../drbd2
-----------------------------
+individual block device nodes. These exist in the +/dev/drbd/by-res/+
+and +/dev/drbd/by-disk/+ directories.
 
 In DRBD 8.4, since a single resource may correspond to multiple
-volumes, +/dev/drbd/by-res/<resource>+ becomes a _directory_,
+volumes, +/dev/drbd/by-res/__<resource>__+ is a _directory_,
 containing symlinks pointing to individual volumes:
 
 .udev managed DRBD symlinks in DRBD 8.4
 ----------------------------
-lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/home/0 ->
-  ../../drbd0
-lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/data/0 ->
-  ../../drbd1
-lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/nfs-root/0 ->
-  ../../drbd2
-lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/nfs-root/1 ->
-   ../../drbd3
+lrwxrwxrwx 1 root root 11 2015-08-09 19:32 /dev/drbd/by-res/home/0 -> ../../drbd0
+lrwxrwxrwx 1 root root 11 2015-08-09 19:32 /dev/drbd/by-res/data/0 -> ../../drbd1
+lrwxrwxrwx 1 root root 11 2015-08-09 19:33 /dev/drbd/by-res/nfs-root/0 -> ../../drbd2
+lrwxrwxrwx 1 root root 11 2015-08-09 19:33 /dev/drbd/by-res/nfs-root/1 -> ../../drbd3
 ----------------------------
 
-Configurations where filesystems are referred to by symlink must be
+Configurations where filesystems are referred to by such a symlink must be
 updated when moving to DRBD 8.4, usually by simply appending +/0+ to
-the symlink path.
+the symlink path. If the filesystem was referenced via +UUID=+ or 
++/dev/drbd__X__+ in +/etc/fstab+, no change is necessary.
+
 
 [[s-recent-changes-config]]
 === Changes to the configuration syntax
@@ -99,8 +94,8 @@ affects the DRBD configuration files in +/etc/drbd.d+, and
 
 IMPORTANT: The +drbdadm+ parser still accepts pre-8.4 configuration
 syntax and automatically translates, internally, into the current
-syntax. Unless you are planning to use new features not present in
-prior DRBD releases, there is no requirement to modify your
+syntax. Unless you are planning to use new features from DRBD 9,
+there is no requirement to modify your
 configuration to the current syntax. It is, however, recommended that
 you eventually adopt the new syntax, as the old format will no longer
 be supported in DRBD 9.
@@ -115,9 +110,9 @@ pre DRBD 8.4 syntax, these boolean options would be set as follows:
 [source,drbd]
 ----------------------------
 resource test {
-  disk {
-    no-md-flushes;
-  }
+	disk {
+		no-md-flushes;
+	}
 }
 ----------------------------
 
@@ -129,13 +124,15 @@ for individual resources:
 [source,drbd]
 ----------------------------
 common {
-  no-md-flushes;
+	disk {
+		no-md-flushes;
+	}
 }
 resource test {
-  disk {
-    # No facility to enable disk flushes previously disabled in
-    # "common"
-  }
+	disk {
+		# No facility to enable disk flushes previously disabled in
+		# "common"
+	}
 }
 ----------------------------
 

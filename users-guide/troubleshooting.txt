@@ -13,10 +13,12 @@ drive failure depends on the way DRBD is configured to handle disk I/O
 errors (see <<s-handling-disk-errors>>), and on the type of meta data
 configured (see <<s-metadata>>).
 
-NOTE: For the most part, the steps described here apply only if you
+[NOTE]
+==================
+For the most part, the steps described here apply only if you
 run DRBD directly on top of physical hard drives. They generally do
-not apply in case you are running DRBD layered on top of
-+
+not apply in case you are running DRBD layered on top of 
+
 * an MD software RAID set (in this case, use `mdadm` to manage drive
   replacement),
 * device-mapper RAID (use `dmraid`),
@@ -24,6 +26,7 @@ not apply in case you are running DRBD layered on top of
   to deal with failed drives),
 * some non-standard device-mapper virtual block devices (see the
   device mapper documentation).
+==================
 
 [[s-detach-hard-drive-manual]]
 ==== Manually detaching DRBD from your hard drive
@@ -36,14 +39,19 @@ resource, that is, disassociate it from its backing storage:
 # drbdadm detach <resource>
 ----------------------------
 
-By running the `drbdadm dstate` command, you will now be able to verify
+By running the `drbdadm status`footnote:[Previously we recommended `drbdadm dstate` command, you will now be able to verify
 that the resource is now in indexterm:[diskless
 mode]indexterm:[diskless (disk state)]indexterm:[disk state]_diskless
 mode_:
 
+FIXME dstate?
+
 ----------------------------
-# drbdadm dstate <resource>
-Diskless/UpToDate
+# drbdadm status <resource>
+<resource> role:Primary
+  volume:0 disk:Diskless
+  <peer> role:Secondary
+    volume:0 peer-disk:UpToDate
 ----------------------------
 
 If the disk failure has occured on your primary node, you may combine
@@ -55,7 +63,7 @@ this step with a switch-over operation.
 If DRBD is <<fp-io-error-detach,configured to automatically detach
 upon I/O error>> (the recommended option), DRBD should have
 automatically detached the resource from its backing storage already,
-without manual intervention. You may still use the `drbdadm dstate`
+without manual intervention. You may still use the `drbdadm status`
 command to verify that the resource is in fact running in diskless
 mode.
 
@@ -65,7 +73,7 @@ mode.
 If using <<s-internal-meta-data,internal meta data>>, it is sufficient
 to bind the DRBD device to the new hard disk. If the new hard disk has
 to be addressed by another Linux device name than the defective disk,
-this has to be modified accordingly in the DRBD configuration file.
+the DRBD configuration file has to be modified accordingly.
 
 This process involves creating a new meta data set, then re-attaching
 the resource: indexterm:[drbdadm]
@@ -105,6 +113,10 @@ New drbd meta data block sucessfully created.
 # drbdadm invalidate <resource>
 ----------------------------
 
+WARNING: Make sure to run `drbdadm invalidate` on the node __*without*__ good data; 
+this command will cause the local contents to be overwritten with data from the 
+peers, so running this command on the wrong node might lose data!
+
 Here, the `drbdadm invalidate` command triggers synchronization. Again,
 sync progress may be observed via `drbdadm status --verbose`.
 
@@ -118,7 +130,7 @@ the peer node to re-appear. The DRBD resource is then said to operate
 in _disconnected mode_. In disconnected mode, the resource and its
 associated block device are fully usable, and may be promoted and
 demoted as necessary, but no block modifications are being replicated
-to the peer node. Instead, DRBD stores internal information on which
+to the peer node. Instead, DRBD stores which
 blocks are being modified while disconnected, on a per-peer basis.
 
 [[s-temp-node-failure-secondary]]
@@ -130,8 +142,8 @@ problem that is subsequently rectified by replacing RAM), no further
 intervention is necessary — besides the obvious necessity to repair
 the failed node and bring it back online. When that happens, the two
 nodes will simply re-establish connectivity upon system
-start-up. After this, DRBD replicates all modifications made on the
-primary node in the meantime, to the secondary node.
+start-up. After this, DRBD synchronizes all modifications made on the
+primary node in the meantime to the secondary node.
 
 IMPORTANT: At this point, due to the nature of DRBD's
 re-synchronization algorithm, the resource is briefly inconsistent on
@@ -177,7 +189,8 @@ permanent destruction, you must follow the following steps:
 NOTE: Replacing a failed node with one with worse performance
 characteristics is possible, but not recommended. Replacing a failed
 node with one with less disk capacity is not supported, and will cause
-DRBD to refuse to connect to the replaced node.
+DRBD to refuse to connect to the replaced nodefootnote:[It couldn't replicate 
+the data, anyway!].
 
 * Install the base system and applications.
 * Install DRBD and copy +/etc/drbd.conf+ and all of +/etc/drbd.d/+
@@ -187,7 +200,7 @@ DRBD to refuse to connect to the replaced node.
 
 Manually starting a full device synchronization is not necessary at
 this point, it will commence automatically upon connection to the
-surviving primary node.
+surviving primary and/or secondary node(s).
 
 [[s-resolve-split-brain]]
 === Manual split brain recovery
@@ -220,9 +233,9 @@ made with the following commands:
 
 [WARNING]
 ================
-For the DRBD 9.0.x pre-release this is still __work in progress__.
+This is still __work in progress__.
 
-Expect rough edges and changes for the final release.
+Expect rough edges and changes.
 ================
 
 /////////////////
@@ -279,14 +292,14 @@ If the resource affected by the split brain is a
 of just `drbdadm`.
 
 Upon connection, your split brain victim immediately changes its
-connection state to +SyncTarget+, and has its modifications
-overwritten by the remaining primary node.
+connection state to +SyncTarget+, and gets its modifications
+overwritten by the other node(s).
 
 NOTE: The split brain victim is not subjected to a full device
 synchronization. Instead, it has its local modifications rolled back,
-and any modifications made on the split brain survivor propagate to
+and any modifications made on the split brain survivor(s) propagate to
 the victim.
 
 After re-synchronization has completed, the split brain is considered
-resolved and the two nodes form a fully consistent, redundant
+resolved and the nodes form a fully consistent, redundant
 replicated storage system again.

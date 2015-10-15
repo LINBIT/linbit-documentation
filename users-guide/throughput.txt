@@ -14,20 +14,28 @@ bandwidth of the replication network.
 
 .I/O subsystem throughput
 indexterm:[throughput]I/O subsystem throughput is determined, largely,
-by the number of disks that can be written to in parallel. A single,
+by the number and type of storage units (disks, SSDs, other Flash storage [like 
+FusionIO], ...) that can be written to in parallel. A single,
 reasonably recent, SCSI or SAS disk will typically allow streaming
-writes of roughly 40MB/s to the single disk. When deployed in a
+writes of roughly 40MiB/s to the single disk; an SSD will do 300MiB/s;
+one of the recent Flash storages (NVMe) will be at 1GiB/s. When deployed in a
 striping configuration, the I/O subsystem will parallelize writes
 across disks, effectively multiplying a single disk's throughput by
 the number of stripes in the configuration. Thus the same, 40MB/s
 disks will allow effective throughput of 120MB/s in a RAID-0 or
 RAID-1+0 configuration with three stripes, or 200MB/s with five
-stripes.
+stripes; with SSDs and/or NVMe you can easily get to 1GiB/sec.
 
-NOTE: Disk _mirroring_(RAID-1) in hardware typically has little, if
-any, effect on throughput. Disk _striping with parity_(RAID-5) does
+A RAID-controller with RAM and a <<s-hardware-bbu,BBU>> can speed up short 
+spikes (by buffering them), and so too-short benchmark tests might show speeds
+like 1GiB/s too; for sustained writes its buffers will just run full,
+and then not be of much help, though.
+
+
+NOTE: Disk _mirroring_ (RAID-1) in hardware typically has little, if
+any, effect on throughput. Disk _striping with parity_ (RAID-5) does
 have an effect on throughput, usually an adverse one when compared to
-striping; RAID-5 in software even more so.
+striping; RAID-5 and RAID-6 in software even more so.
 
 .Network throughput
 indexterm:[throughput]Network throughput is usually determined by the
@@ -35,8 +43,8 @@ amount of traffic present on the network, and on the throughput of any
 routing/switching infrastructure present. These concerns are, however,
 largely irrelevant in DRBD replication links which are normally
 dedicated, back-to-back network connections. Thus, network throughput
-may be improved either by switching to a higher-throughput protocol
-(such as 10 Gigabit Ethernet), or by using link aggregation over
+may be improved either by switching to a higher-throughput hardware
+(such as 10 Gigabit Ethernet, or 56GiB Infiniband), or by using link aggregation over
 several network links, as one may do using the Linux
 indexterm:[bonding driver]+bonding+ network driver.
 
@@ -49,21 +57,22 @@ important to consider the following natural limitations:
 * DRBD throughput is limited by that of the raw I/O subsystem.
 * DRBD throughput is limited by the available network bandwidth.
 
-The _minimum_ between the two establishes the theoretical throughput
-_maximum_ available to DRBD. DRBD then reduces that throughput maximum
-by its additional throughput overhead, which can be expected to be
+The _lower_ of these two establishes the theoretical throughput
+_maximum_ available to DRBD. DRBD then reduces that throughput number
+by its additional overhead, which can be expected to be
 less than 3 percent.
 
 * Consider the example of two cluster nodes containing I/O subsystems
-  capable of 200 MB/s throughput, with a Gigabit Ethernet link
+  capable of 600 MB/s throughput, with a Gigabit Ethernet link
   available between them. Gigabit Ethernet can be expected to produce
   110 MB/s throughput for TCP connections, thus the network connection
   would be the bottleneck in this configuration and one would
-  expect about 107 MB/s maximum DRBD throughput.
+  expect about 110 MB/s maximum DRBD throughput.
 
-* By contrast, if the I/O subsystem is capable of only 100 MB/s for
-  sustained writes, then it constitutes the bottleneck, and you would
-  be able to expect only 97 MB/s maximum DRBD throughput.
+* By contrast, if the I/O subsystem is capable of only 80 MB/s for
+  sustained writes, then it constitutes the bottleneck, and you should
+  expect only about 77 MB/s maximum DRBD throughput.
+
 
 [[s-throughput-tuning]]
 === Tuning recommendations
@@ -93,7 +102,7 @@ controllers.
 ----------------------------
 resource <resource> {
   net {
-    max-buffers 8000;
+    max-buffers    8000;
     max-epoch-size 8000;
     ...
   }
@@ -131,8 +140,8 @@ resource <resource> {
 The TCP send buffer is a memory buffer for outgoing TCP traffic. By
 default, it is set to a size of 128 KiB. For use in high-throughput
 networks (such as dedicated Gigabit Ethernet or load-balanced bonded
-connections), it may make sense to increase this to a size of 2 MiB,
-or perhaps even more. Send buffer sizes of more than 64 MiB are
+connections), it may make sense to increase this to a size of 2MiB,
+or perhaps even more. Send buffer sizes of more than 16MiB are
 generally not recommended (and are also unlikely to produce any
 throughput improvement).
 
@@ -163,6 +172,15 @@ resource <resource> {
 }
 ----------------------------
 
+Please note that your ++sysctl++'s settings +net.ipv4.tcp_rmem+ and
++net.ipv4.tcp_wmem+ will still influence the behaviour; you should check
+these settings, and perhaps set them similar to ++131072	1048576	16777216++ 
+(minimum 128kiB, default 1MiB, max 16MiB).
+
+WARNING: +net.ipv4.tcp_mem+ is a different beast, with a different unit -
+do not touch, wrong values can easily push your machine into out-of-memory 
+situations!
+
 [[s-tune-al-extents]]
 ==== Tuning the Activity Log size
 
@@ -175,12 +193,17 @@ frequent metadata updates may be detrimental to write performance.
 ----------------------------
 resource <resource> {
   disk {
-    al-extents 65536; FIXME create-md [--peer-max-bio-size {val}] [--al-stripes {val}] [--al-stripe-size-kB {val}]  
+    al-extents 6007;
     ...
   }
   ...
 }
 ----------------------------
+
+////
+For tuning on striped RAID setups, please see the <<al-stripes,al-stripes>> and 
+<<al-stripe-size,al-stripe-size>> settings, too.
+////
 
 [[s-tune-disable-barriers]]
 ==== Disabling barriers and disk flushes

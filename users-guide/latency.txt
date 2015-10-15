@@ -14,10 +14,20 @@ subsystem (disks, controllers, and corresponding caches), and the
 latency of the replication network.
 
 .I/O subsystem latency
-indexterm:[latency]I/O subsystem latency is primarily a function of
+indexterm:[latency]For _rotating media_ the I/O subsystem latency is primarily a function of
 disk rotation speed. Thus, using fast-spinning disks is a valid
 approach for reducing I/O subsystem latency.
 
+For _solid state media_ (like SSDs) the Flash storage controller is the 
+determining factor; the next most important thing is the amount of unused 
+capacity. Using DRBD's <<s-trim-discard>> will help you provide the controller 
+with the needed information which blocks it can recycle. That way, when a write 
+requests comes in, it can use a block that got cleaned ahead-of-time and 
+doesn't have to wait *now* until there's space availablefootnote:[On low-end 
+hardware you can help that a bit by reserving some space - just keep 
+10% to 20% of the total space unpartitioned.].
+
+[[s-hardware-bbu]]
 Likewise, the use of a indexterm:[battery-backed write cache]
 indexterm:[BBU]
 battery-backed write cache (BBWC) reduces write completion times, also
@@ -25,7 +35,7 @@ reducing write latency. Most reasonable storage subsystems come with
 some form of battery-backed cache, and allow the administrator to
 configure which portion of this cache is used for read and write
 operations. The recommended approach is to disable the disk read cache
-completely and use all cache memory available for the disk write
+completely and use all available cache memory for the disk write
 cache.
 
 .Network latency
@@ -35,13 +45,14 @@ round-trip time (RTT) between hosts. It is influenced by a number of
 factors, most of which are irrelevant on the dedicated, back-to-back
 network connections recommended for use as DRBD replication
 links. Thus, it is sufficient to accept that a certain amount of
-latency always exists in Gigabit Ethernet links, which typically is on
-the order of 100 to 200 microseconds (μs) packet RTT.
+latency always exists in network links, which typically is on
+the order of 100 to 200 microseconds (μs) packet RTT for Gigabit Ethernet.
 
 Network latency may typically be pushed below this limit only by using
 lower-latency network protocols, such as running DRBD over Dolphin
 Express using Dolphin SuperSockets, or a 10GBe direct connection; these are 
-typically in the 50µs range.
+typically in the 50µs range. Even better is InfiniBand, which provides
+even lower latencies.
 
 
 [[s-latency-overhead-expectations]]
@@ -54,8 +65,9 @@ with DRBD, there are some important natural limitations to consider:
 * DRBD latency is bound by the available network latency.
 
 The _sum_ of the two establishes the theoretical latency _minimum_
-incurred to DRBDfootnote:[for protocol C, because the other node(s) have to write to stable storage, too]. DRBD then adds to that latency a slight additional
-latency overhead, which can be expected to be less than 1 percent.
+incurred to DRBDfootnote:[for protocol C, because the other node(s) have to 
+write to stable storage, too]. DRBD then adds to that latency a slight 
+additional latency overhead, which can be expected to be less than 1 percent.
 
 * Consider the example of a local disk subsystem with a write latency
   of 3ms and a network link with one of 0.2ms. Then the expected DRBD
@@ -64,6 +76,35 @@ latency overhead, which can be expected to be less than 1 percent.
 
 NOTE: Latency may be influenced by a number of other factors,
 including CPU cache misses, context switches, and others.
+
+
+[[s-latency-iops]]
+=== Latency vs. IOPs
+
+indexterm:[latency]indexterm:[IOPs]_IOPs_ is the abbreviation of "__I/O 
+operations per second__".
+
+Marketing typically doesn't like numbers that get smaller; press releases 
+aren't written with "__Latency reduced by 10µs, from 50µs to 40µs now!__" in 
+mind, they like "__Performance increased by 25%, from 20000 to now 25000 
+IOPs__" much more. Therefore IOPs were invented - to get a number that says 
+"higher is better".
+
+So, in other words, IOPs are the reciprocal of latency. What you'll have to 
+keep in mind is that the method given in <<s-measure-latency>> gives you
+the latency resp. the number of IOPs for a purely sequential, single-threaded 
+IO load, while most other documentation will give numbers for some highly 
+parallel loadfootnote:[Like in "__16 threads, IO-depth of 32__" - this means that 512 
+I/O-requests are being done in parallel!], because this gives much "prettier"
+numbers. With that kind of trick DRBD does offer you 100000 IOPs, too!
+
+So, please don't shy away from measuring serialized, single-threaded latency. 
+If you want lots of IOPs, run the +fio+ utility with +threads=8+ and an 
++io-depth=16+, or some similar settings... But please keep in mind that these
+number will not have any meaning to your setup, unless you're driving 
+a database with many tens or hundreds of client connections active at the same 
+time.
+
 
 [[s-latency-tuning]]
 === Tuning recommendations
@@ -105,18 +146,21 @@ Some applications may provide for this via an entry in a configuration
 file, just like DRBD itself. Others include an invocation of the
 `taskset` command in an application init script.
 
-NOTE: it makes sense to keep the DRBD threads running on the same L2/L3 caches.
-+
+[NOTE]
+====================
+
+It makes sense to keep the DRBD threads running on the same L2/L3 caches.
+
 But: the numbering of CPUs doesn't have to correlate with the physical partitioning. 
 You can try the +lstopo+ (or +hwloc-ls+) program for X11 or `hwloc-info -v -p` 
 for console output to get an overview of the topology.
+====================
 
 
 [[s-latency-tuning-mtu-size]]
 ==== Modifying the network MTU
 
-When a block-based (as opposed to extent-based) filesystem is layered
-above DRBD, it may be beneficial to change the replication network's
+It may be beneficial to change the replication network's
 maximum transmission unit (MTU) size to a value higher than the
 default of 1500 bytes. Colloquially, this is referred to as
 indexterm:[Jumbo frames] "enabling Jumbo frames".
@@ -140,8 +184,7 @@ indexterm:[io scheduler]
 When used in conjunction with high-performance, write back enabled
 hardware RAID controllers, DRBD latency may benefit greatly from using
 the simple +deadline+ I/O scheduler, rather than the CFQ scheduler. The
-latter is typically enabled by default in reasonably recent kernel
-configurations (post-2.6.18 for most distributions).
+latter is typically enabled by default.
 
 Modifications to the I/O scheduler configuration may be performed via
 the +sysfs+ virtual file system, mounted at +/sys+. The scheduler
@@ -157,17 +200,20 @@ You may then also set the following values, which may provide
 additional latency benefits:
 
 * Disable front merges:
++
 ----------------------------
 # echo 0 > /sys/block/<device>/queue/iosched/front_merges
 ----------------------------
 
 * Reduce read I/O deadline to 150 milliseconds (the default is 500ms):
++
 ----------------------------
 # echo 150 > /sys/block/<device>/queue/iosched/read_expire
 ----------------------------
 
 * Reduce write I/O deadline to 1500 milliseconds (the default is
   3000ms):
++
 ----------------------------
 # echo 1500 > /sys/block/<device>/queue/iosched/write_expire
 ----------------------------
@@ -180,6 +226,6 @@ Linux]Ubuntu systems provide this functionality via the
 
 You may also make a global I/O scheduler selection by passing the
 +elevator+ option via your kernel command line. To do so, edit your
-boot loader configuration (normally found in +/boot/grub/menu.lst+ if
+boot loader configuration (normally found in +/etc/default/grub+ if
 you are using the GRUB bootloader) and add +elevator=deadline+ to your
 list of kernel boot options.
