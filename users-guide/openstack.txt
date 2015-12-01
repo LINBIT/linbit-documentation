@@ -17,6 +17,7 @@ DRBD can now be configured in two ways: using the iSCSI protocol (for maximum co
 
 The //drbdmanage// driver is upstream in Openstack; so it should be included by default in installations from /Liberty/ on up. It is used (mostly) in the ++c-vol++ service, so you'll need drbdmanage and DRBD 9 installed on the node(s) running that.
 
+
 Depending on the specific Openstack variant being used there are a few differences for paths, user names, etc.:
 
 .Distribution dependent settings
@@ -33,24 +34,39 @@ User running services ; ++cinder++ ; ++stack ++
 The generalized installations steps are these:
 
   * In the ++cinder.conf++ you'll need something like that; the ++volume_driver++ consists of the class name (last part), and the file path:
++
+--
 
-       [DEFAULT]
-       enabled_backends=drbdmanage
-       [drbdmanage]
-       volume_driver=cinder.volume.drivers.drbdmanagedrv.DrbdManageDriver
-       volume_backend_name=DRBD-Manage
+-------
+[DEFAULT]
+enabled_backends=drbdmanage
+[drbdmanage]
+volume_driver=cinder.volume.drivers.drbdmanagedrv.DrbdManageDriver
+volume_backend_name=DRBD-Manage
+-------
+--
 
   * Register the backend: (you might need to fetch the authentication environment variables via ++source __<admin-env>__++)
++
+--
 
-       # cinder type-create drbdmanage
+-------
+# cinder type-create drbdmanage
+-------
+--
 
   * Allow the user to access the drbdmanage service. For that you need to extend the file ++/etc/dbus-1/system.d/org.drbd.drbdmanaged.conf++ by an additional stanza like this (replace //USER// by the username as per the above table):
++
+--
 
-	  <policy user="USER">
-		<allow own="org.drbd.drbdmanaged"/>
-		<allow send_interface="org.drbd.drbdmanaged"/>
-		<allow send_destination="org.drbd.drbdmanaged"/>
-	  </policy>
+-------
+<policy user="USER">
+  <allow own="org.drbd.drbdmanaged"/>
+  <allow send_interface="org.drbd.drbdmanaged"/>
+  <allow send_destination="org.drbd.drbdmanaged"/>
+</policy>
+-------
+--
 
 
 That's it; after a restart of the ++c-vol++ service you should be able to create your DRBD volumes.
@@ -61,7 +77,15 @@ That's it; after a restart of the ++c-vol++ service you should be able to create
 
 The ++drbdmanage++ backend configuration in ++cinder.conf++ can contain a few additional settings that modify the exact behaviour.
 
-  * ++drbdmanage_redundancy = 2++ eg. would declare that each volume needs to have 2 storage locations, ie. be replicated once. This means that two times the storage will be used, and that the reported free space is limited some more. \\ You can request more than two copies of the data; the limit is given by DRBD 9 and the number of storage hosts you have defined.
+  * indexterm:[redundancy in Cinder]++drbdmanage_redundancy = 2++ eg. would declare that each volume needs to have 2 storage locations, ie. be replicated once. This means that two times the storage will be used, and that the reported free space is limited some more. \\ You can request more than two copies of the data; the limit is given by DRBD 9 and the number of storage hosts you have defined.
+
+
+indexterm:[iSCSI, in Cinder]indexterm:[Openstack Cinder iSCSI transport]In case you need to choose a different iSCSI backend, you can provide an additional configuration to define it, like
+
+-------
+iscsi_helper=lioadm
+-------
+
 
 
 [[s-openstack-notes]]
