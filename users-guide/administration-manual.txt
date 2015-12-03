@@ -13,7 +13,7 @@ include::configure.txt[]
 [[s-drbd-overview]]
 ==== Retrieving status with +drbd-overview+
 
-The most convenient way to look at DRBD's status is the
+One convenient way to look at DRBD's status is the
 indexterm:[drbd-overview]+drbd-overview+ utility (lines broken here for readability).
 
 ----------------------------
@@ -42,6 +42,10 @@ easier to read `drbdsetup status` directly.
 [[s-proc-drbd]]
 ==== Status information in +/proc/drbd+
 
+NOTE: ''/proc/drbd'' is deprecated. While it won't be removed in the 8.4 
+series, we recommend to switch to other means, like <<s-drbdadm-status>>; or, 
+for monitoring even more convenient, <<s-drbdsetup-events2>>.
+
 indexterm:[/proc/drbd]+/proc/drbd+ is a virtual file displaying
 basic information about the DRBD module.
 It was used extensively up to DRBD 8.4, but couldn't keep up
@@ -59,12 +63,13 @@ specific build.
 
 
 [[s-drbdadm-status]]
+==== Status information via +drbdadm+
 
 indexterm:[drbdadm status]In its simplest invocation, we just ask for the
 status of a single resource.
 
 ----------------------------
-# drbdsetup status home
+# drbdadm status home
 home role:Secondary
   disk:UpToDate
   nina role:Secondary
@@ -138,6 +143,63 @@ of information about the resource:
 .Replication protocol FIXME
 Replication protocol used by the resource. Either +A+, +B+ or +C+. See
 <<s-replication-protocols>> for details.
+
+[[s-drbdsetup-events2]]
+==== One-shot or realtime monitoring via +drbdsetup events2+
+
+.NOTE: This is available only with userspace versions 8.9.3 and up.
+// and 8.4.6 
+
+This is a low-level mechanism to get information out of DRBD, suitable for use 
+in automated tools, like monitoring.
+
+In its simplest invocation, showing only the current status, the output looks 
+like this (but, when running on a terminal, will include colors):
+
+.'drbdsetup' example output (lines broken for readability)
+-----------------
+# drbdsetup events2 --now r0
+exists resource name:r0 role:Secondary suspended:no
+exists connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connected role:Secondary
+exists device name:r0 volume:0 minor:7 disk:UpToDate
+exists device name:r0 volume:1 minor:8 disk:UpToDate
+exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:0
+	replication:Established peer-disk:UpToDate resync-suspended:no
+exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:1
+	replication:Established peer-disk:UpToDate resync-suspended:no
+exists -
+-----------------
+
+Without the ''--now'', the process will keep running, and send continuous updates like this:
+
+-----------------
+# drbdsetup events2 r0
+...
+change connection name:r0 peer-node-id:1 conn-name:remote-host connection:StandAlone
+change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Unconnected
+change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connecting
+-----------------
+
+Then, for monitoring purposes, there's another argument ''--statistics'', that 
+will produce some performance counters and other facts:
+
+.'drbdsetup' verbose output (lines broken for readability)
+-----------------
+# drbdsetup events2 --statistics --now r0
+exists resource name:r0 role:Secondary suspended:no write-ordering:drain
+exists connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connected role:Secondary congested:no
+exists device name:r0 volume:0 minor:7 disk:UpToDate size:6291228 read:6397188 written:131844
+	al-writes:34 bm-writes:0 upper-pending:0 lower-pending:0 al-suspended:no blocked:no
+exists device name:r0 volume:1 minor:8 disk:UpToDate size:104854364 read:5910680 written:6634548
+	al-writes:417 bm-writes:0 upper-pending:0 lower-pending:0 al-suspended:no blocked:no
+exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:0 replication:Established
+	peer-disk:UpToDate resync-suspended:no received:0 sent:131844 out-of-sync:0 pending:0 unacked:0
+exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:1 replication:Established
+	peer-disk:UpToDate resync-suspended:no received:0 sent:6634548 out-of-sync:0 pending:0 unacked:0
+exists -
+-----------------
+
+You might also like the ''--timestamp'' parameter.
 
 
 [[s-connection-states]]
