@@ -84,28 +84,42 @@ That's it; after a restart of the ++c-vol++ service you should be able to create
 The ++drbdmanage++ backend configuration in ++cinder.conf++ can contain a few 
 additional settings that modify the exact behaviour.
 
-  * indexterm:[redundancy in Cinder]++drbdmanage_redundancy = 2++ eg. would 
+  * (((OpenStack,Redundancy)))++drbdmanage_redundancy = 2++ eg. would 
     declare that each volume needs to have 2 storage locations, ie. be 
     replicated once. This means that two times the storage will be used, and 
     that the reported free space <<s-openstack-free-space,looks limited>>.
-	+
-	You can request more 
-    than two copies of the data; the limit is given by DRBD 9 and the number of 
-    storage hosts you have defined.
++
+--
+You can request more 
+than two copies of the data; the limit is given by DRBD 9 and the number of 
+storage hosts you have defined.
+--
 
   * ++drbdmanage_devs_on_controller = True++: By default each volume will get 
     a DRBD client mapped on the Cinder controller node; apart from being used 
     for iSCSI exports, this might prove helpful for debugging, too.
 
-  * indexterm:[iSCSI, in Cinder]indexterm:[Openstack Cinder iSCSI transport]In 
+  * indexterm:[iSCSI,OpenStack Cinder]indexterm:[Openstack, Cinder iSCSI transport]In 
     case you need to choose a different iSCSI backend, you can provide an 
-    additional configuration to set it, like
+    additional configuration to set it, like ++iscsi_helper=lioadm++.
+
+  * (((OpenStack,resize policy)))++drbdmanage_resize_policy++,
+    (((OpenStack,resource policy)))++drbdmanage_resource_policy++, and
+    (((OpenStack,snapshot policy)))++drbdmanage_snapshot_policy++ configure
+	the behaviour when resizing volumes, resp. creating snapshots or new 
+	resources (freshly create or from a snapshot, etc.)
 +
 --
+These are strings that have to be parseable as JSON blobs, for example
 
--------
-iscsi_helper=lioadm
--------
+	drbdmanage_snapshot_policy={'count': '1', 'timeout': '60'}
+
+See <<s-drbdmanage-deployment-policy>> for details about the available policies and
+their configuration items.
+
+In case you want to call different plugins for this purpose, the 
+++drbdmanage_resize_plugin++, ++drbdmanage_resource_plugin++, and
+++drbdmanage_snapshot_plugin++ configuration items exist as well.
 --
 
 These configuration settings can be different from one backend to another.
