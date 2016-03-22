@@ -47,3 +47,23 @@ Instructions for installing and configuring the DRBD Manage addon for OpenNebula
 can be found in the README.md file of the addon. Or by visiting the
 [GitHub page](https://github.com/OpenNebula/addon-drbdmanage)
 for the driver.
+
+[[s-opennebula-free-space]]
+
+Free space is calculated differently depending on whether resources are deployed
+according to `DRBD_REDUNDANCY` or `DRBD_DEPLOYMENT_NODES`.
+
+For datastores using `DRBD_DEPLOYMENT_NODES`, free space is reported based on
+the most restrictive nodes. For example, the capacity of the node with the
+smallest amount of total storage space is used to determine the total size of
+the datastore and the node with the least free space is used to determine the
+remaining space in the datastore.
+
+For a datastore which uses `DRBD_REDUNDANCY`, size and remaining space are
+determined based on the aggregate storage of the cluster divided by the level
+of redundancy. It is possible that the free space reported will be larger than
+any single DRBD volume can actually grow to. For example, a freshly installed
+cluster with two storage nodes that both have a capacity of 100Gb and a
+redundancy level of 1 will report 200Gb of free space, although no single node
+can store a 200Gb volume. The driver is able to determine this at the time a
+new image is created and will alert the user.
