@@ -60,6 +60,18 @@ deployed. These policies can be used through the template for the datastore and
 through the configuration file found under `datastore/drbdmanage.conf`. Policies
 set in the template will override the ones found in the configuration file.
 
+[[s-opennebula-live-migration]]
+=== Live Migration
+
+Live migration, if enabled, is supported by attaching images to all nodes
+that do not contain a local copy via DRBD Transport. This makes them available
+to all nodes in the cluster without consuming additional storage space.
+
+Please note that images that were created before live migration is enabled may
+need to be assigned to any node they are expected to live migrate to using DRBD
+Manage directly. This can also be achieved by cold migrating a to any VM where
+it is expected to migrate to after enabling live migration support.
+
 [[s-opennebula-free-space]]
 === Free Space Reporting
 
@@ -67,10 +79,11 @@ Free space is calculated differently depending on whether resources are deployed
 according to `DRBD_REDUNDANCY` or `DRBD_DEPLOYMENT_NODES`.
 
 For datastores using `DRBD_DEPLOYMENT_NODES`, free space is reported based on
-the most restrictive nodes. For example, the capacity of the node with the
-smallest amount of total storage space is used to determine the total size of
-the datastore and the node with the least free space is used to determine the
-remaining space in the datastore.
+the most restrictive resources pools from all nodes where resources are being
+deployed. For example, the capacity of the node with the smallest amount of
+total storage space is used to determine the total size of the datastore and
+the node with the least free space is used to determine the remaining space in
+the datastore.
 
 For a datastore which uses `DRBD_REDUNDANCY`, size and remaining space are
 determined based on the aggregate storage of the cluster divided by the level
