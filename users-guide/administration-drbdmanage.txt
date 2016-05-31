@@ -197,9 +197,15 @@ loglevel = DEBUG
 By executing +drbdmanage modify-config+ without any options, you can edit
 global, per site and per node settings. It is also possible to execute
 'modify-config' for a specific node. In this per-node view, it is possible to
-set further per-node specific settings like storage plugin settings. Lets
-assume you want to use the 'ThinLV' plugin for node 'bravo', where you want to
-set the 'pool-name' option to 'mythinpool':
+set further per-node specific settings like the storage plugin discussed in
+<<s-drbdmanage-storage-plugins>>.
+
+[[s-drbdmanage-storage-plugins]]
+=== Configuring storage plugins
+Storage plugins are *per* *node* settings that are set with the help of the 'modify-config' sub command.
+
+Lets assume you want to use the 'ThinLV' plugin for node 'bravo', where you want to set the 'pool-name' option
+to 'mythinpool':
 
 ----------------------------
 # drbdmanage modify-config --node bravo
@@ -213,10 +219,57 @@ storage-plugin = drbdmanage.storage.lvm_thinlv.LvmThinLv
 pool-name = mythinpool
 ----------------------------
 
+==== Configuring ZFS
+For ZFS the same configuration steps apply, like setting the 'storage-plugin' for the node that should make
+use of ZFS volumes. Please note that we don't make use of ZFS as a file system, but of ZFS as a logical volume
+manager. The admin is then free to create any file system she/he desires on top of the DRBD device backed by a
+ZFS volume. It is also important to note that if you make use of the ZFS plugin, all DRBD resources are
+created on ZFS, but in case this node is a control node, it still needs LVM for it's control volume.
+
+In the most common case the following steps are all that need to be done:
+
+----------------------------
+# zpool create drbdpool /dev/sdX /dev/sdY
+# drbdmanage modify-config --node bravo
+[Node:bravo]
+storage-plugin = drbdmanage.storage.zvol.Zvol
+----------------------------
+
 CAUTION: Currently it is not supported to switch storage plugins on the fly.
 The workflow is: Add a new node, modify the configuration for that node, make
 use of the node. Changing other settings (like the log-level) on the fly is
 perfectly fine.
+
+==== Discussion of the storage plugins
+
+indexterm:[drbdmanage storage plugins]
+
+DRBD Manage has four supported storage plugins as of this writing:
+
+  * Thick LVM (++drbdmanage.storage.lvm.Lvm++);
+
+  * Thin LVM with a single thin pool (++drbdmanage.storage.lvm_thinlv.LvmThinLv++)
+
+  * Thin LVM with thin pools for each volume (++drbdmanage.storage.lvm_thinpool.LvmThinPool++)
+
+  * Thick ZFS (++drbdmanage.storage.zvol.Zvol++)
+
+Here's a short discussion of the relative advantages and disadvantages of these plugins.
+
+
+[[t-drbdmanage-storage-plugins]]
+.DRBD Manage storage plugins, comparison
+[cols="^e,^,^,^", options="header"]
+|===================================
+|Topic | ++lvm.Lvm++ | ++lvm_thinlv.LvmThinLv++ | ++lvm_thinpool.LvmThinPool++
+|Pools | the VG is the pool | a single Thin pool | one Thin pool for each volume
+|Free Space reporting | Exact | Free space goes down as per written data and snapshots, needs monitoring | Each pool carves some space out of the VG, but still needs to be monitored if snapshots are used 
+|Allocation | Fully pre-allocated   2+| thinly allocated, needs nearly zero space initially
+|Snapshots | -- not supported --  2+| Fast, efficient (copy-on-write)
+|Stability | Well established, known code, very stable  2+| Some kernel versions have bugs re Thin LVs, destroying data
+|Recovery | Easiest - text editor, and/or lvm configuration archives in ++/etc/lvm/++, in the worst case ++dd++ with offset/length | All data in one pool, might incur running ++thin_check++ across *everything* (needs CPU, memory, time) | Independent Pools, so not all volumes damaged at the same time, faster ++thin_check++ (less CPU, memory, time)
+|===================================
+
 
 [[s-dm-new-volume]]
 === Creating and deploying resources/volumes
