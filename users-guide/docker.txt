@@ -1,0 +1,70 @@
+[[ch-docker]]
+== DRBD Volumes in Docker
+
+indexterm:[Docker]This chapter describes DRBD in Docker via the usage
+of the http://www.drbd.org/en/supported-projects/docker[DRBD Manage Docker Volume Plugin].
+
+[[s-docker-overview]]
+=== Docker Overview
+
+https://www.docker.com/[Docker] is a flexible and open source platform to build, ship, and run distributed
+applications (a.k.a Linux Containers) for developers and sysadmins.
+
+'drbdmange-docker-volume' is a daemon that is usually socket-activated by
+'systemd'. It reads http commands from a local socket and manages
+DRBD Manage resources that are replicated via DRBD.
+
+[[s-docker-install]]
+=== Docker Plugin Installation
+
+There are essentially three different ways to install the DRBD Manage Docker Volume plugin:
+
+- Via LINBIT's https://launchpad.net/~linbit/+archive/ubuntu/linbit-drbd9-stack[PPA]
+- From http://www.drbd.org/en/supported-projects/docker[Source] via 'make && sudo make install'
+- By building propper packages ('make deb' or 'make rpm').
+
+If you use the PPA or build propper packages, these packages contain a dependency on DRBD Manage in the
+correct version. If you install from Source, make sure that DRBD Manage itself, and of course Docker, are installed.
+
+The plugin is not enabled by default, to do so, execute  the following commands:
+
+----------------------------
+# systemctl enable docker-drbdmanage-plugin.socket
+# systemctl start docker-drbdmanage-plugin.socket
+----------------------------
+
+Before you can make use of the plugin, make sure you configured a DRBD Manage cluster as described in
+<<ch-admin-drbdmanage>>.
+
+=== Some examples
+Here we show a typical example how Docker volumes backed by DRBD are used:
+
+On node alpha:
+
+----------------------------
+# docker volume create -d drbdmanage --name=dmvol \
+                       --opt fs=xfs --opt size=200
+# docker run -ti --name=cont \
+  		 -v dmvol:/data --volume-driver=drbdmanage busybox sh
+# root@cont: echo "foo" > /data/test.txt
+# root@cont: exit
+# docker rm cont
+----------------------------
+
+And then on node bravo:
+
+----------------------------
+# docker run -ti --name=cont \
+  		 -v dmvol:/data --volume-driver=drbdmanage busybox sh
+# root@cont: cat /data/test.txt
+  foo
+# root@cont: exit
+# docker rm cont
+# docker volume rm dmvol
+----------------------------
+
+There is also a
+https://blogs.linbit.com/p/1176/persistent-and-replicated-docker-volumes-with-drbd9-and-drbd-manage/[BLOG Article]
+on how to use the plugin to deploy a highly-available Wordpress blog.
+
+For further information please read the man page of 'drbdmanage-docker-volume'.
