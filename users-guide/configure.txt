@@ -583,9 +583,15 @@ nodes, and you have issued the commands for
 
 * On the local node, issue the following command:
 +
+--
 -------------------------------------
-# drbdadm new-current-uuid --clear-bitmap <resource>
+# drbdadm new-current-uuid --clear-bitmap <resource>/<volume>
 -------------------------------------
+or
+-------------------------------------
+# drbdsetup new-current-uuid --clear-bitmap <minor>
+-------------------------------------
+--
 
 * Create a consistent, verbatim copy of the resource's data _and its
   metadata_. You may do so, for example, by removing a hot-swappable
@@ -599,13 +605,15 @@ nodes, and you have issued the commands for
 
 * On the local node, issue:
 +
+--
 -------------------------------------
 # drbdadm new-current-uuid <resource>
 -------------------------------------
-
+or the matching ++drbdsetup++ command.
 
 Note the absence of the +--clear-bitmap+ option in this second
 invocation.
+--
 
 * Physically transport the copies to the remote peer location.
 
@@ -614,6 +622,35 @@ invocation.
   data onto existing storage on the remote node.  Be sure to restore
   or copy not only your replicated data, but also the associated DRBD
   metadata. If you fail to do so, the disk shipping process is moot.
+
+* On the new node we need to fix the node ID in the meta data, and exchange 
+  the peer-node info for the two nodes. Please see the following lines as 
+  example for changing node id from 2 to 1 on a resource _r0_ volume _0_.
++
+--
+
+This must be done while the volume is not in use.
+
+-----------
+V=r0/0
+NODE_FROM=2
+NODE_TO=1
+
+drbdadm -- --force dump-md $V > /tmp/md_orig.txt
+sed -e "s/node-id $NODE_FROM/node-id $NODE_TO/" \
+	-e "s/^peer.$NODE_FROM. /peer-NEW /" \
+	-e "s/^peer.$NODE_TO. /peer[$NODE_FROM] /" \
+	-e "s/^peer-NEW /peer[$NODE_TO] /" \
+	< /tmp/md_orig.txt > /tmp/md.txt
+
+drbdmeta --force $(drbdadm sh-minor $V) v09 $(drbdadm sh-ll-dev $V) internal restore-md /tmp/md.txt
+-----------
+
+.NOTE
++drbdmeta+ before 8.9.7 cannot cope with out-of-order +peer+ sections; you'll 
+need to exchange the blocks via an editor.
+
+--
 
 * Bring up the resource on the remote node:
 +
