@@ -10,7 +10,10 @@ all: html pdf
 html: $(TXT_FILES) $(MML_FILES:.mml=.svg) $(SVG_FILES:.svg=.png) drbd-users-guide.html
 	perl -i.bak -pe 's/(<a id=")_(\d)/$$1$$2/g' output/re-drbdconf.html
 
-pdf: $(TXT_FILES) $(MML_FILES:.mml=.svg) drbd-users-guide.pdf
+pdf: $(TXT_FILES) $(MML_FILES:.mml=.svg) drbd-users-guide.pdf drbd9-users-guide.pdf
 
 %:
 	@$(MAKE) -f $(top_srcdir)/Makefile $@
+
+drbd9-users-guide.pdf: drbd-users-guide.pdf 
+	ln -f $< $@
