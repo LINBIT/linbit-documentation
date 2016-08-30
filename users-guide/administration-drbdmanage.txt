@@ -28,7 +28,7 @@ The first step is to review the configuration file of +drbdmanage+
 (+/etc/drbdmanaged.cfg+) and to create an +LVM+ volume group with the name
 specified in the configuration. In the following we use the default name,
 which is +drbdpool+, and assume that the volume group consists of +/dev/sda6+
-and +/dev/sda7+ Creating the volume group is a step that has to be executed on
+and +/dev/sda7+. Creating the volume group is a step that has to be executed on
 *every* cluster node:
 
 ----------------------------
@@ -39,7 +39,7 @@ The second step is to initialize the so called control volume, which is then
 used to distribute your cluster configuration among all cluster nodes. If the
 node has multiple interfaces, you have to specify the IP address of the
 network interface that DRBD should use to communicate with other nodes in the
-cluster, otherwise the IP is optional. It is sufficient to execute this step on only one cluster node.
+cluster, otherwise the IP is optional. This step must only be done on exactly one cluster node.
 
 ----------------------------
 # drbdmanage init 10.43.70.2
@@ -47,17 +47,23 @@ cluster, otherwise the IP is optional. It is sufficient to execute this step on 
 
 We recommend using 'drbdpool' as the name of your LVM volume group as it is
 the default value and makes your administration life easier. If, for whatever
-reasion, you decide to use a different name, make sure that the option
+reason, you decide to use a different name, make sure that the option
 *drbdctrl-vg* is set accordingly in +/etc/drbdmanaged.cfg+. Configuration will
 be discussed in <<s-dm-set-config>>.
 
 [[s-dm-add-node]]
 === Adding nodes to your cluster
 Adding nodes to your cluster is easy and requires a single command with two parameters:
+
 . A node name which *must* match the output of `uname -n`
-. The IP address of the node. Hint: If DNS is configured properly, the
-tab-completion of +drbdmanage+ is able to complete the IP of the given node
-name.
+. The IP address of the node.
++
+--
+
+.Note
+If DNS is configured properly, the tab-completion of +drbdmanage+ is able to 
+complete the IP of the given node name.
+--
 
 ----------------------------
 # drbdmanage add-node bravo 10.43.70.3
