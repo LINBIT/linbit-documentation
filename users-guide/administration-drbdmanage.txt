@@ -36,7 +36,7 @@ and +/dev/sda7+. Creating the volume group is a step that has to be executed on
 ----------------------------
 
 The second step is to initialize the so called control volume, which is then
-used to distribute your cluster configuration among all cluster nodes. If the
+used to redundantly store your cluster configuration. If the
 node has multiple interfaces, you have to specify the IP address of the
 network interface that DRBD should use to communicate with other nodes in the
 cluster, otherwise the IP is optional. This step must only be done on exactly one cluster node.
@@ -100,13 +100,16 @@ The satellites concept relaxes that limit by splitting the cluster into:
 * Satellite nodes: Nodes that are not directly connected to to the control volume, but are able to receive the
 content of the control volume via a control node.
 
-One control node can be responsible for multiple satellite nodes, one satellite
-node is assigned to exactly one control node. Satellite nodes are of
-course allowed to share DRBD9 resources.
+In a cluster there is one special node, which we call the "leader". The leader is selected from the set of
+control nodes and it is the only node that writes data to the control volume (i.e., it has the control volume
+in DRBD Primary role). All the other control nodes in the cluster automatically switch their role to a
+"satellite node" and receive their cluster information via TCP/IP, like ordinary satellite nodes. If the
+current leader node fails, the cluster automatically selects a new leader node among the control nodes.
 
 *Control nodes* have:
 
 * Direct access to the control volume
+* One of them is in the leader role, the rest act like satellite nodes.
 * Local storage if it is a normal control node
 * No local storage if it is a pure controller
 
@@ -139,18 +142,16 @@ image::satellitecluster[]
 
 ==== Adding a satellite node
 Here we assume that the node charlie was not added to the cluster so far. The following command adds charlie
-as a satellite node and defines alpha as its control node.
+as a satellite node.
 
 ----------------------------
-# drbdmanage add-node --satellite --control-node alpha charlie 10.43.70.4
+# drbdmanage add-node --satellite charlie 10.43.70.4
 ----------------------------
-
-If the `--control-node` is not given, the node the command is executed on is assumed as the control node.
 
 ==== Adding a pure client node
 
 ----------------------------
-# drbdmanage add-node --satellite --no-storage --control-node alpha charlie 10.43.70.4
+# drbdmanage add-node --satellite --no-storage charlie 10.43.70.4
 ----------------------------
 
 ==== Adding an external node
@@ -163,7 +164,7 @@ If the `--control-node` is not given, the node the command is executed on is ass
 [[s-dm-set-config]]
 === Cluster configuration
 Drbdmanage knows many configuration settings like the log-level or the storage
-plugin that should be used (i.e., LVM, ThinLV, or ThinPool). Executing
+plugin that should be used (i.e., LVM, ThinLV, ThinPool, ZPool, or ThinZpool). Executing
 +drbdmanage modify-config+ starts an editor that is used to specify theses
 settings. The configuration is split in several sections. If an option is
 specified in the +[GLOBAL]+ section, this setting is used in the entire
@@ -232,7 +233,7 @@ manager. The admin is then free to create any file system she/he desires on top 
 ZFS volume. It is also important to note that if you make use of the ZFS plugin, all DRBD resources are
 created on ZFS, but in case this node is a control node, it still needs LVM for it's control volume.
 
-In the most common case the following steps are all that need to be done:
+In the most common case only the following steps are necessary.
 
 ----------------------------
 # zpool create drbdpool /dev/sdX /dev/sdY
@@ -387,7 +388,7 @@ Currently, it is possible to set the following +drbdsetup+ options:
 
 Additionally, it is possible to set DRBD event handler.
 
-As for example net-options are allowed in the 'common' section as well as per
+As for example +net-options+ are allowed in the 'common' section as well as per
 resource, these commands then provide the according switches.
 
 Setting +max-buffers+ for a resource 'backups' looks like this:
@@ -539,7 +540,8 @@ If tab-completion does not work out of the box, please try to source the
 according file:
 
 ----------------------------
-# source /etc/bash_completion.d/drbdmanage
+# source /etc/bash_completion.d/drbdmanage # or
+# source /usr/share/bash_completion/completions/drbdmanage
 ----------------------------
 
 
