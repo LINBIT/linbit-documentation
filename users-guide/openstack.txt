@@ -84,6 +84,7 @@ That's it; after a restart of the ++c-vol++ service you should be able to create
 The ++drbdmanage++ backend configuration in ++cinder.conf++ can contain a few 
 additional settings that modify the exact behaviour.
 
+[[s-openstack-redundancy]]
   * (((OpenStack,Redundancy)))++drbdmanage_redundancy = 2++ eg. would 
     declare that each volume needs to have 2 storage locations, ie. be 
     replicated once. This means that two times the storage will be used, and 
@@ -139,6 +140,12 @@ Again, these strings get parsed as JSON blobs. The defaults are
     drbdmanage_resource_options = {'auto-promote-timeout': '300'}
 
 --
+
+  * ++drbdmanage_late_local_assign++ and 
+    ++drbdmanage_late_local_assign_exclude++ is a performance optimization for 
+    hyperconverged setups; this needs a bit of discussion, so please look at 
+    the dedicated chapter <<s-openstack-late-local-assign>>.
+
 
 These configuration settings can be different from one backend to another.
 
@@ -263,4 +270,77 @@ and the
 https://github.com/openstack/cinder-specs/blob/master/specs/kilo/over-subscription-in-thin-provisioning.rst[text].
 
 
-// TODO: some performance numbers
+[[s-openstack-late-local-assign]]
+==== Hyperconverged Setups
+
+The configuration item ++drbdmanage_late_local_assign++ (available in the DRBD 
+Manage Cinder driver from 1.2.0 on, requiring DRBD Manage 0.98.3 or better) is
+a performance optimization for hyperconverged setups. +
+With that feature, the driver tries to get a local copy of the data assigned to
+the hypervisor; that in turn will speed up read IOs, as these won't have to go 
+across the network.
+
+At the time of writing, Nova doesn't pass enough information to Cinder; 
+Cinder isn't told which hypervisor will be used. +
+So the DRBD Manage driver assigns all but one 
+copies at +create_volume+ time; the last one is done in the +attach_volume+ 
+step, when the hypervisor is known. If this hypervisor is out of space, defined 
+as a storage-less node in DRBD Manage, or otherwise not eligible to receive 
+a copy, any other storage node is used instead, and the target node will 
+receive a __client__ assignment only.
+
+
+Because an image might be copied to the volume before it gets attached to a VM, 
+the "local" assignment can't simply be done on the first accessfootnote:[If it 
+assigned on first access, the image copy node (Glance) would receive the copy of 
+the data]. The Cinder driver must be told which nodes are not eligible for 
+local copies; this can be done via +drbdmanage_late_local_assign_exclude+.
+
+
+For volumes that get cloned from an image stored within Cinder (via a DRBD 
+Manage snapshot), the new resource will be empty until the +attach_volume+ 
+call; at that time the Cinder driver can decide on which nodes the volumes will 
+be deployed, and can actually clone the volume on these.
+
+
+.Free Space Misreported
+[WARNING]
+--
+Late allocation invariably means that the free space numbers are wrong. You 
+might prepare 300 VMs, only to find out that you're running out of disk space 
+when their volumes are in the middle of synchronizing.
+
+But that is a common problem with all thin allocation schemes, so we won't 
+discuss that in more details here.
+--
+
+
+To summarize:
+
+	* You'll need the DRBD Manage Cinder driver 1.2.0 or later, and DRBD Manage 0.98.3 or later.
+
+	* The <<s-openstack-drbd,DRBD transport protocol>> must be used; iSCSI won't offer any locality benefits.
+
+	* The <<s-openstack-redundancy,+drbdmanage_redundancy+ setting>> must be set to at least two copies.
+
+	* To generally enable this feature, set ++drbdmanage_late_local_assign++ to +True+.
+	
+	* To specify which hosts should *not* get a local copy, set ++drbdmanage_late_local_assign_exclude++ to a comma-separated list of hostnames; this should typically include Glance and the Cinder-controller nodes (but not the Cinder-storage nodes!).
+	
+	* Take care to not run out of disk space.
+
+//There is a performance comparison in preparion, showing iSCSI/local/DRBD hyperconverged 
+
+
+[[s-openstack-performance]]
+
+Here are a few links that show you collected performance data.
+
+  * https://www.3ware.co.jp[Thirdware Inc.] did a Ceph vs. DRBD9 comparison, 
+    too; the japanese original can be found in their
+    https://www.3ware.co.jp/download/technical-docs[technical documentation] area.
+	A translated (English) version is available on request at sales@linbit.com.
+
+  * http://links.linbit.com/Ceph-DRBD9["__Ceph vs. DRBD9 Performance 
+	Comparison__"] discusses IOPs, bandwidth, and IO latency; this one needs 
+	a free registration on the LINBIT site.
