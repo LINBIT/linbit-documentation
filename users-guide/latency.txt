@@ -99,8 +99,8 @@ I/O-requests are being done in parallel!], because this gives much "prettier"
 numbers. With that kind of trick DRBD does offer you 100000 IOPs, too!
 
 So, please don't shy away from measuring serialized, single-threaded latency. 
-If you want lots of IOPs, run the +fio+ utility with +threads=8+ and an 
-+io-depth=16+, or some similar settings... But please keep in mind that these
+If you want lots of IOPs, run the `fio` utility with `threads=8` and an 
+`io-depth=16`, or some similar settings... But please keep in mind that these
 number will not have any meaning to your setup, unless you're driving 
 a database with many tens or hundreds of client connections active at the same 
 time.
@@ -120,8 +120,8 @@ The CPU mask is a number in whose binary representation the least
 significant bit represents the first CPU, the second-least significant
 bit the second, and so forth. A set bit in the bitmask implies that
 the corresponding CPU may be used by DRBD, whereas a cleared bit means
-it must not. Thus, for example, a CPU mask of 1 (+00000001+) means
-DRBD may use the first CPU only. A mask of 12 (+00001100+) implies
+it must not. Thus, for example, a CPU mask of 1 (`00000001`) means
+DRBD may use the first CPU only. A mask of 12 (`00001100`) implies
 DRBD may use the third and fourth CPU.
 
 
@@ -152,7 +152,7 @@ file, just like DRBD itself. Others include an invocation of the
 It makes sense to keep the DRBD threads running on the same L2/L3 caches.
 
 But: the numbering of CPUs doesn't have to correlate with the physical partitioning. 
-You can try the +lstopo+ (or +hwloc-ls+) program for X11 or `hwloc-info -v -p` 
+You can try the `lstopo` (or `hwloc-ls`) program for X11 or `hwloc-info -v -p` 
 for console output to get an overview of the topology.
 ====================
 
@@ -178,20 +178,20 @@ _<interface>_ refers to the network interface used for DRBD
 replication. A typical value for _<size>_ would be 9000 (bytes).
 
 [[s-latency-tuning-deadline-scheduler]]
-==== Enabling the +deadline+ I/O scheduler
+==== Enabling the deadline I/O scheduler
 
 indexterm:[io scheduler]
 When used in conjunction with high-performance, write back enabled
 hardware RAID controllers, DRBD latency may benefit greatly from using
-the simple +deadline+ I/O scheduler, rather than the CFQ scheduler. The
+the simple deadline I/O scheduler, rather than the CFQ scheduler. The
 latter is typically enabled by default.
 
 Modifications to the I/O scheduler configuration may be performed via
-the +sysfs+ virtual file system, mounted at +/sys+. The scheduler
-configuration is in +/sys/block/__device__+, where <device> is the
+the `sysfs` virtual file system, mounted at `/sys`. The scheduler
+configuration is in `/sys/block/__device__`, where _<device>_ is the
 backing device DRBD uses.
 
-Enabling the +deadline+ scheduler works via the following command:
+Enabling the deadline scheduler works via the following command:
 ----------------------------
 # echo deadline > /sys/block/<device>/queue/scheduler
 ----------------------------
@@ -222,10 +222,10 @@ If these values effect a significant latency improvement, you may want
 to make them permanent so they are automatically set at system
 startup. indexterm:[Debian GNU/Linux]Debian and indexterm:[Ubuntu
 Linux]Ubuntu systems provide this functionality via the
-+sysfsutils+ package and the +/etc/sysfs.conf+ configuration file.
+`sysfsutils` package and the `/etc/sysfs.conf` configuration file.
 
 You may also make a global I/O scheduler selection by passing the
-+elevator+ option via your kernel command line. To do so, edit your
-boot loader configuration (normally found in +/etc/default/grub+ if
-you are using the GRUB bootloader) and add +elevator=deadline+ to your
+`elevator` option via your kernel command line. To do so, edit your
+boot loader configuration (normally found in `/etc/default/grub` if
+you are using the GRUB bootloader) and add `elevator=deadline` to your
 list of kernel boot options.

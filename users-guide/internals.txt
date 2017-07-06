@@ -167,8 +167,8 @@ following occurrences:
 
 * a resource in the primary role disconnecting.
 
-Thus, we can summarize that whenever a resource is in the +Connected+
-connection state, and both nodes' disk state is +UpToDate+, the
+Thus, we can summarize that whenever a resource is in the _Connected_
+connection state, and both nodes' disk state is _UpToDate_, the
 current data generation on both nodes is the same. The inverse is also
 true. Note that the current implementation uses the lowest bit to encode the
 role of the node (Primary/Secondary). Therefore, the lowest bit might be
@@ -187,7 +187,7 @@ data generations in the local resource meta data:
 .Current UUID
 This is the generation identifier for the current data generation, as
 seen from the local node's perspective. When a resource is
-+Connected+ and fully synchronized, the current UUID is identical
+_Connected_ and fully synchronized, the current UUID is identical
 between nodes.
 
 .Bitmap UUIDs
@@ -195,7 +195,7 @@ This is the UUID of the generation against which this on-disk
 bitmap is tracking changes (per remote host). Like the on-disk sync bitmap itself, this
 identifier is only relevant while the remote host is disconnected. 
 
-// If the resource is +Connected+, this UUID is always empty (zero). FIXME
+// If the resource is _Connected_, this UUID is always empty (zero). FIXME
 
 .Historical UUIDs
 These are the identifiers of data generations preceding the
@@ -210,7 +210,7 @@ identifier tuple_, or "__GI tuple__" for short.
 [[s-gi-changes-newgen]]
 ===== Start of a new data generation
 
-When a node in +Primary+ role loses connection to its peer (either by network failure or
+When a node in _Primary_ role loses connection to its peer (either by network failure or
 manual intervention), DRBD modifies its local generation identifiers
 in the following manner:
 
@@ -456,7 +456,7 @@ with the indexterm:[drbdadm, pause-sync]`drbdadm pause-sync` and
 indexterm:[drbdadm, resume-sync]`drbdadm resume-sync` commands. You
 should, however, not do so light-heartedly -- interrupting
 re-synchronization leaves your secondary node's disk
-+Inconsistent+ longer than necessary.
+_Inconsistent_ longer than necessary.
 
 [[s-fence-peer]]
 === The Peer-Fencing interface
@@ -465,38 +465,38 @@ DRBD has an interface defined for fencingfootnote:[For a discussion about
 Fencing and STONITH, please see the corresponding Pacemaker page 
 http://clusterlabs.org/doc/crm_fencing.html.] the peer
 node in case of the replication link being interrupted. The
-+drbd-peer-outdater+ helper, bundled with Heartbeat, is the reference
+`drbd-peer-outdater` helper, bundled with Heartbeat, is the reference
 implementation for this interface. However, you may easily implement
 your own peer fencing helper program.
 
 The fencing helper is invoked only in case
 
-. a +fence-peer+ handler has been defined in the resource's (or +common+)
-  +handlers+ section, _and_
+. a `fence-peer` handler has been defined in the resource's (or `common`)
+  `handlers` section, _and_
 
-. the +fencing+ option for the resource is set to either
-  +resource-only+ or +resource-and-stonith+, _and_
+. the `fencing` option for the resource is set to either
+  `resource-only` or `resource-and-stonith`, _and_
 
 . the replication link is interrupted long enough for DRBDfootnote:[That means 
-  eg. a TCP timeout, the +ping-timeout+, or the kernel
+  eg. a TCP timeout, the `ping-timeout`, or the kernel
   triggers a connection abort eg. because the network link goes down.] to detect a
   network failure.
 
-The program or script specified as the +fence-peer+ handler, when it is
-invoked, has the +DRBD_RESOURCE+ and +DRBD_PEER+ environment variables
+The program or script specified as the `fence-peer` handler, when it is
+invoked, has the `DRBD_RESOURCE` and `DRBD_PEER` environment variables
 available. They contain the name of the affected DRBD resource and the
 peer's hostname, respectively.
 
 Any peer fencing helper program (or script) must return one of the
 following exit codes:
 
-.+fence-peer+ handler exit codes
+.`fence-peer` handler exit codes
 [format="csv",separator=";",options="header"]
 |=======================================
 Exit code;Implication
-3;Peer's disk state was already +Inconsistent+.
-4;Peer's disk state was successfully set to +Outdated+ (or was +Outdated+ to begin with).
+3;Peer's disk state was already _Inconsistent_.
+4;Peer's disk state was successfully set to _Outdated_ (or was _Outdated_ to begin with).
 5;Connection to the peer node failed, peer could not be reached.
 6;Peer refused to be outdated because the affected resource was in the primary role.
-7;Peer node was successfully fenced off the cluster. This should never occur unless +fencing+ is set to +resource-and-stonith+ for the affected resource.
+7;Peer node was successfully fenced off the cluster. This should never occur unless `fencing` is set to `resource-and-stonith` for the affected resource.
 |=======================================

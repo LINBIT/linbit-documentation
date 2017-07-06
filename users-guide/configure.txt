@@ -36,7 +36,7 @@ single-server system using DRBD (some caveats apply -- please refer to
 For the purposes of this guide, we assume a very simple setup:
 
 * Both hosts have a free (currently unused) partition named
-  +/dev/sda7+.
+  `/dev/sda7`.
 
 * We are using <<s-internal-meta-data,internal meta data>>.
 
@@ -47,8 +47,8 @@ It is recommended, though not strictly required, that you run your
 DRBD replication over a dedicated connection. At the time of this
 writing, the most reasonable choice for this is a direct,
 back-to-back, Gigabit Ethernet connection. When DRBD is run
-over switches, use of redundant components and the +bonding+ driver
-(in +active-backup+ mode) is recommended.
+over switches, use of redundant components and the _bonding_ driver
+(in _active-backup_ mode) is recommended.
 
 It is generally not recommended to run DRBD replication via routers,
 for reasons of fairly obvious performance drawbacks (adversely
@@ -72,13 +72,13 @@ for DRBD are not already used by another application.
 It is not (yet) possible to configure a DRBD resource to support more than
 one TCP connection pair. If you want to provide for DRBD connection
 load-balancing or redundancy, you can easily do so at the Ethernet
-level (again, using the +bonding+ driver).
+level (again, using the _bonding_ driver).
 
 For the purposes of this guide, we assume a
 very simple setup:
 
 * Our two DRBD hosts each have a currently unused network interface,
-  +eth1+, with IP addresses +10.1.1.31+ and +10.1.1.32+ assigned to it,
+  `eth1`, with IP addresses `10.1.1.31` and `10.1.1.32` assigned to it,
   respectively.
 
 * No other services are using TCP ports 7788 through 7799 on either
@@ -92,7 +92,7 @@ very simple setup:
 ==== Configuring your resource
 
 All aspects of DRBD are controlled in its configuration file,
-+/etc/drbd.conf+. Normally, this configuration file is just a skeleton
+`/etc/drbd.conf`. Normally, this configuration file is just a skeleton
 with the following contents:
 
 -------------------------------------
@@ -100,25 +100,25 @@ include "/etc/drbd.d/global_common.conf";
 include "/etc/drbd.d/*.res";
 -------------------------------------
 
-By convention, +/etc/drbd.d/global_common.conf+ contains the
-<<s-drbdconf-global,+global+>> and <<s-drbdconf-common,+common+>>
-sections of the DRBD configuration, whereas the +.res+ files contain
-one <<s-drbdconf-resource,+resource+>> section each.
+By convention, `/etc/drbd.d/global_common.conf` contains the
+<<s-drbdconf-global,`global`>> and <<s-drbdconf-common,`common`>>
+sections of the DRBD configuration, whereas the `.res` files contain
+one <<s-drbdconf-resource,`resource`>> section each.
 
-It is also possible to use +drbd.conf+ as a flat configuration file
-without any +include+ statements at all. Such a configuration,
+It is also possible to use `drbd.conf` as a flat configuration file
+without any `include` statements at all. Such a configuration,
 however, quickly becomes cluttered and hard to manage, which is why
 the multiple-file approach is the preferred one.
 
 Regardless of which approach you employ, you should always make sure
-that +drbd.conf+, and any other files it includes, are _exactly
+that `drbd.conf`, and any other files it includes, are _exactly
 identical_ on all participating cluster nodes.
 
 The DRBD source tarball contains an example configuration file in the
-+scripts+ subdirectory. Binary installation packages will either
-install this example configuration directly in +/etc+, or in a
+`scripts` subdirectory. Binary installation packages will either
+install this example configuration directly in `/etc`, or in a
 package-specific documentation directory such as
-+/usr/share/doc/packages/drbd+.
+`/usr/share/doc/packages/drbd`.
 
 This section describes only those few aspects of the configuration
 file which are absolutely necessary to understand in order to get DRBD
@@ -133,7 +133,7 @@ For the purposes of this guide, we assume a
 minimal setup in line with the examples given in the
 previous sections:
 
-.Simple DRBD configuration (+/etc/drbd.d/global_common.conf+)
+.Simple DRBD configuration (`/etc/drbd.d/global_common.conf`)
 -------------------------------------
 global {
   usage-count yes;
@@ -145,7 +145,7 @@ common {
 }
 -------------------------------------
 
-.Simple DRBD resource configuration (+/etc/drbd.d/r0.res+)
+.Simple DRBD resource configuration (`/etc/drbd.d/r0.res`)
 -------------------------------------
 resource r0 {
   on alice {
@@ -172,9 +172,9 @@ This example configures DRBD in the following fashion:
   (<<s-replication-protocols,Protocol C>>) unless explicitly specified
   otherwise.
 
-* Our cluster consists of two nodes, +alice+ and +bob+.
+* Our cluster consists of two nodes, 'alice' and 'bob'.
 
-* We have a resource arbitrarily named +r0+ which uses +/dev/sda7+ as
+* We have a resource arbitrarily named `r0` which uses `/dev/sda7` as
   the lower-level device, and is configured with
   <<s-internal-meta-data,internal meta data>>.
 
@@ -183,11 +183,11 @@ This example configures DRBD in the following fashion:
   (This implicitly defines the network connections that are used.)
 
 The configuration above implicitly creates one volume in the
-resource, numbered zero (+0+). For multiple volumes in one resource,
+resource, numbered zero (`0`). For multiple volumes in one resource,
 modify the syntax as follows (assuming that the same lower-level storage block 
 devices are used on both nodes):
 
-.Multi-volume DRBD resource configuration (+/etc/drbd.d/r0.res+)
+.Multi-volume DRBD resource configuration (`/etc/drbd.d/r0.res`)
 -------------------------------------
 resource r0 {
   volume 0 {
@@ -213,20 +213,20 @@ NOTE: Volumes may also be added to existing resources on the fly. For
 an example see <<s-lvm-add-pv>>.
 
 [[s-drbdconf-global]]
-===== The +global+ section
+===== The `global` section
 
 This section is allowed only once in the configuration. It is normally
-in the +/etc/drbd.d/global_common.conf+ file. In a single-file
+in the `/etc/drbd.d/global_common.conf` file. In a single-file
 configuration, it should go to the very top of the configuration
 file. Of the few options available in this section, only one is of
 relevance to most users:
 
 [[fp-usage-count]]
-.+usage-count+
+.`usage-count`
 The DRBD project keeps statistics about the usage of various DRBD
 versions. This is done by contacting an HTTP server every time a new
 DRBD version is installed on a system. This can be disabled by setting
-+usage-count no;+.  The default is +usage-count ask;+ which will
+`usage-count no;`.  The default is `usage-count ask;` which will
 prompt you every time you upgrade DRBD.
 
 DRBD's usage statistics are, of course, publicly available: see
@@ -234,40 +234,40 @@ http://usage.drbd.org.
 
 
 [[s-drbdconf-common]]
-===== The +common+ section
+===== The `common` section
 
 This section provides a shorthand method to define configuration
 settings inherited by every resource. It is normally found in
-+/etc/drbd.d/global_common.conf+. You may define any option you can
+`/etc/drbd.d/global_common.conf`. You may define any option you can
 also define on a per-resource basis.
 
-Including a +common+ section is not strictly required, but strongly
+Including a `common` section is not strictly required, but strongly
 recommended if you are using more than one resource. Otherwise, the
 configuration quickly becomes convoluted by repeatedly-used options.
 
-In the example above, we included +net { protocol C; }+ in the
-+common+ section, so every resource configured (including +r0+)
-inherits this option unless it has another +protocol+ option
+In the example above, we included `net { protocol C; }` in the
+`common` section, so every resource configured (including `r0`)
+inherits this option unless it has another `protocol` option
 configured explicitly. For other synchronization protocols available,
 see <<s-replication-protocols>>.
 
 [[s-drbdconf-resource]]
-===== The +resource+ sections
+===== The `resource` sections
 
 A per-resource configuration file is usually named
-+/etc/drbd.d/__resource__.res+.  Any DRBD resource you define must be
+`/etc/drbd.d/__resource__.res`.  Any DRBD resource you define must be
 named by specifying a resource name in the configuration. The convention
 is to use only letters, digits, and the underscore; while it is technically 
 possible to use other characters as well, you won't like the result if you ever 
-happen stumble to need the more specific +__peer__@__resource__/__volume__+ syntax.
+happen stumble to need the more specific `__peer__@__resource__/__volume__` syntax.
 
-Every resource configuration must also have at least two +on __host__+ sub-sections,
+Every resource configuration must also have at least two `on _host_` sub-sections,
 one for every cluster node. All other configuration settings are
-either inherited from the +common+ section (if it exists), or derived
+either inherited from the `common` section (if it exists), or derived
 from DRBD's default settings.
 
 In addition, options with equal values on all hosts
-can be specified directly in the +resource+ section. Thus, we can
+can be specified directly in the `resource` section. Thus, we can
 further condense our example configuration as follows:
 
 -------------------------------------
@@ -292,7 +292,7 @@ Currently the communication links in DRBD 9 must build a full mesh, ie. in
 every resource every node must have a direct connection to every other node 
 (excluding itself, of course).
 
-For the simple case of two hosts +drbdadm+ will insert the (single) network 
+For the simple case of two hosts `drbdadm` will insert the (single) network 
 connection by itself, for ease of use and backwards compatibility.
 
 The net effect of this is a quadratic number of network connections over 
@@ -339,8 +339,8 @@ resource r0 {
 }
 -------------------------------------
 
-The port for the +address+ value within 
-the +on __host__+ sections is optional; but then you have to specify 
+The port for the `address` value within 
+the `on _host_` sections is optional; but then you have to specify 
 distinct port numbers for each connection.
 
 [NOTE]
@@ -352,7 +352,7 @@ port, and DRBD will figure out during the handshake which peer node it
 is talking to.
 ==================
 
-Alternatively, using the +connection-mesh+ option, the same three node configuration:
+Alternatively, using the `connection-mesh` option, the same three node configuration:
 -------------------------------------
 resource r0 {
   device    /dev/drbd1;
@@ -408,7 +408,7 @@ resource r0 {
 --------------------------------
 
 For easier maintenance and debugging it's recommend to have different ports for 
-each endpoint - looking at a +tcpdump+ trace the packets can be associated easily.
+each endpoint - looking at a `tcpdump` trace the packets can be associated easily.
 
 The examples below will still be using two servers only; please see 
 <<s-4node-example>> for a four-node example.
@@ -428,11 +428,11 @@ resource <resource> {
   ...
 }
 ---------------------
-+tcp+ is the default transport. I.e. each connection that lacks a transport
-option uses the +tcp+ transport.
+`tcp` is the default transport. I.e. each connection that lacks a transport
+option uses the `tcp` transport.
 
-The +tcp+ transport can be configured with the net options: +sndbuf-size+, +rcvbuf-size+,
-+connect-int+, +sock-check-timeo+, +ping-timeo+, +timeout+.
+The `tcp` transport can be configured with the net options: `sndbuf-size`, `rcvbuf-size`,
+`connect-int`, `sock-check-timeo`, `ping-timeo`, `timeout`.
 
 ===== RDMA
 ---------------------
@@ -443,22 +443,22 @@ resource <resource> {
   ...
 }
 ---------------------
-The +rdma+ transport can be configured with the net options: +sndbuf-size+, +rcvbuf-size+,
-+max_buffers+, +connect-int+, +sock-check-timeo+, +ping-timeo+, +timeout+.
+The `rdma` transport can be configured with the net options: `sndbuf-size`, `rcvbuf-size`,
+`max_buffers`, `connect-int`, `sock-check-timeo`, `ping-timeo`, `timeout`.
 
-The +rdma+ transport is a zero-copy-receive transport. One implication of that is that
-the +max_buffers+ configuration options must be set to a value big enough to hold all
-+rcvbuf-size+.
+The `rdma` transport is a zero-copy-receive transport. One implication of that is that
+the `max_buffers` configuration options must be set to a value big enough to hold all
+`rcvbuf-size`.
 
-NOTE: +rcvbuf-size+ is configured in bytes, while +max_buffers+ is configured in pages. For
-optimal performance +max_buffers+ should be big enough to hold all of +rcvbuf-size+ and
+NOTE: `rcvbuf-size` is configured in bytes, while `max_buffers` is configured in pages. For
+optimal performance `max_buffers` should be big enough to hold all of `rcvbuf-size` and
 the amount of data that might be in flight to the backend device at any point in time.
 
-TIP: In case you are using InfiniBand HCAs with the +rdma+ transport, you need to
+TIP: In case you are using InfiniBand HCAs with the `rdma` transport, you need to
 configure IPoIB as well. The IP address is not used for data transfer, but it is used
 to find the right adapters and ports while establishing the connection.
 
-CAUTION: The configuration options +sndbuf-size+, +rcvbuf-size+ are only considered at
+CAUTION: The configuration options `sndbuf-size`, `rcvbuf-size` are only considered at
 the time a connection is established. I.e. you can change them while the connection is
 established. They will take effect in the moment the connection is re-established.
 
@@ -467,7 +467,7 @@ established. They will take effect in the moment the connection is re-establishe
 By looking at the pseudo file _/sys/kernel/debug/drbd/<resource>/connections/<peer>/transport_,
 the counts of available receive descriptors (rx_desc) and transmit descriptors (tx_desc)
 can be monitored. In case one of the descriptor kinds becomes depleted you should increase
-+sndbuf-size+ or +rcvbuf-size+.
+`sndbuf-size` or `rcvbuf-size`.
 
 [[s-first-time-up]]
 ==== Enabling your resource for the first time
@@ -477,7 +477,7 @@ the previous sections, you can bring up your resource.
 
 Each of the following steps must be completed on both nodes.
 
-Please note that with our example config snippets (+resource r0 { ... }+), +<resource>+ would be +r0+.
+Please note that with our example config snippets (`resource r0 { ... }`), `<resource>` would be `r0`.
 
 .Create device metadata
 This step must be completed only on initial device
@@ -507,8 +507,8 @@ connects the resource to its peer:
 # drbdadm up <resource>
 -------------------------------------
 
-.Observe the status via +drbdadm status+
-+drbdsetup+'s status output
+.Observe the status via `drbdadm status`
+``drbdsetup``'s status output
 should now contain information similar to the following:
 
 -------------------------------------
@@ -519,7 +519,7 @@ r0 role:Secondary
     disk:Inconsistent
 -------------------------------------
 
-NOTE: The +Inconsistent/Inconsistent+ disk state is expected at this
+NOTE: The _Inconsistent/Inconsistent_ disk state is expected at this
 point.
 
 By now, DRBD has successfully allocated both disk and network
@@ -553,7 +553,7 @@ synchronization source. To perform this step, issue this command:
 
 After issuing this command, the initial full synchronization will
 commence. You will be able to monitor its progress via
-+drbdadm status+. It may take some time depending on the size of the
+`drbdadm status`. It may take some time depending on the size of the
 device.
 
 By now, your DRBD device is fully operational, even before the initial
@@ -574,8 +574,8 @@ synchronized, and to skip the initial full device synchronization, follow
 these steps.
 
 This assumes that your local node has a configured, but disconnected
-DRBD resource in the +Primary+ role.  That is to say, device
-configuration is completed, identical +drbd.conf+ copies exist on both
+DRBD resource in the _Primary_ role.  That is to say, device
+configuration is completed, identical `drbd.conf` copies exist on both
 nodes, and you have issued the commands for
 <<s-initial-full-sync,initial resource promotion>> on your local node
 -- but the remote node is not connected yet.
@@ -600,7 +600,7 @@ or
   redundancy. But the removed drive is a verbatim copy that can now be
   shipped off site.  If your local block device supports snapshot
   copies (such as when using DRBD on top of LVM), you may also create
-  a bitwise copy of that snapshot using +dd+.
+  a bitwise copy of that snapshot using `dd`.
 
 
 * On the local node, issue:
@@ -609,9 +609,9 @@ or
 -------------------------------------
 # drbdadm new-current-uuid <resource>
 -------------------------------------
-or the matching ++drbdsetup++ command.
+or the matching `drbdsetup` command.
 
-Note the absence of the +--clear-bitmap+ option in this second
+Note the absence of the `--clear-bitmap` option in this second
 invocation.
 --
 
@@ -625,7 +625,7 @@ invocation.
 
 * On the new node we need to fix the node ID in the meta data, and exchange 
   the peer-node info for the two nodes. Please see the following lines as 
-  example for changing node id from 2 to 1 on a resource _r0_ volume _0_.
+  example for changing node id from 2 to 1 on a resource `r0` volume `0`.
 +
 --
 
@@ -647,7 +647,7 @@ drbdmeta --force $(drbdadm sh-minor $V) v09 $(drbdadm sh-ll-dev $V) internal res
 -----------
 
 .NOTE
-+drbdmeta+ before 8.9.7 cannot cope with out-of-order +peer+ sections; you'll 
+`drbdmeta` before 8.9.7 cannot cope with out-of-order `peer` sections; you'll 
 need to exchange the blocks via an editor.
 
 --
@@ -661,7 +661,7 @@ need to exchange the blocks via an editor.
 After the two peers connect, they will not initiate a full device
 synchronization. Instead, the automatic synchronization that now
 commences only covers those blocks that changed since the invocation
-of +drbdadm{nbsp}--clear-bitmap{nbsp}new-current-uuid+.
+of `drbdadm{nbsp}--clear-bitmap{nbsp}new-current-uuid`.
 
 Even if there were _no_ changes whatsoever since then, there may still
 be a brief synchronization period due to areas covered by the
@@ -671,7 +671,7 @@ Secondary. This may be mitigated by the use of
 
 You may use this same procedure regardless of whether the resource is
 a regular DRBD resource, or a stacked resource. For stacked resources,
-simply add the +-S+ or +--stacked+ option to +drbdadm+.
+simply add the `-S` or `--stacked` option to `drbdadm`.
 
 
 [[s-4node-example]]
@@ -679,7 +679,7 @@ simply add the +-S+ or +--stacked+ option to +drbdadm+.
 
 Here is an example for a four-node cluster.
 
-Please note that the +connection+ sections (and distinct ports)
+Please note that the `connection` sections (and distinct ports)
 won't be necessary for the DRBD 9.0.0 release; we will find some nice 
 short-hand syntax.
 // the second example.
@@ -773,7 +773,7 @@ resource r0 {
 }
 ----------------------
 
-In case you want to see the +connection-mesh+ configuration expanded, try +drbdadm dump __<resource>__ -v+.
+In case you want to see the `connection-mesh` configuration expanded, try `drbdadm dump _<resource>_ -v`.
 
 
 [[s-connection-mesh-distinct-interfaces]]
@@ -819,5 +819,5 @@ resource r0 {
 ---------------------------
 
 Please note the numbering scheme used for the IP addresses and ports. Another 
-resource could use the same IP addresses, but ports +71__xy__+, the next one 
-+72__xy__+, and so on.
+resource could use the same IP addresses, but ports `71__xy__`, the next one 
+`72__xy__`, and so on.

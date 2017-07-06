@@ -8,14 +8,19 @@ block storage.
 [[s-openstack-overview]]
 === Openstack Overview
 
-Openstack itself consists of a big range of individual services; the two that are mostly concerned with DRBD are Cinder and Nova. *Cinder* is the block storage service, while *Nova* is the compute node service that's responsible to make the volumes available for the VMs.
+Openstack itself consists of a big range of individual services; the two that are mostly concerned with DRBD
+are Cinder and Nova. *Cinder* is the block storage service, while *Nova* is the compute node service that's
+responsible to make the volumes available for the VMs.
 
-DRBD storage volumes can be accessed in two ways: using the iSCSI protocol (for maximum compatibility), and using DRBD client functionality (being submitted to Openstack).  For a discussion of these two modes and their differences please see <<s-openstack-transport-protocol>>.
+DRBD storage volumes can be accessed in two ways: using the iSCSI protocol (for maximum compatibility), and
+using DRBD client functionality (being submitted to Openstack).  For a discussion of these two modes and their
+differences please see <<s-openstack-transport-protocol>>.
 
 [[s-openstack-install]]
 === DRBD for Openstack Installation
 
-The __drbdmanage__ driver is upstream in Openstack since the Liberty release. It is used (mostly) in the ++c-vol++ service, so you'll need drbdmanage and DRBD 9 installed on the node(s) running that.
+The _drbdmanage driver_ is upstream in Openstack since the Liberty release. It is used (mostly) in the `c-vol`
+service, so you'll need drbdmanage and DRBD 9 installed on the node(s) running that.
 
 
 Depending on the specific Openstack variant being used there are a few differences for paths, user names, etc.:
@@ -24,16 +29,17 @@ Depending on the specific Openstack variant being used there are a few differenc
 [format="csv",separator=";",options="header"]
 |============================================
 what   ;   rdostack   ;   devstack
-Cinder/DRBD Manage driver file location; ++/usr/lib/python2.6/site-packages/cinder/volume/drivers/drbdmanagedrv.py++ ; ++/opt/stack/cinder/cinder/volume/drivers/drbdmanagedrv.py++
-Cinder configuration file ; ++/usr/share/cinder/cinder-dist.conf++ ; ++/etc/cinder/cinder.conf++
-Admin access data, for sourcing into shell ; ++/etc/nagios/keystonerc_admin++ ; ++~stack/devstack/accrc/admin/admin++
-User used for running ++c-vol++ service ; ++cinder++ ; ++stack ++
+Cinder/DRBD Manage driver file location;
+`/usr/lib/python2.6/site-packages/cinder/volume/drivers/drbdmanagedrv.py` ; `/opt/stack/cinder/cinder/volume/drivers/drbdmanagedrv.py`
+Cinder configuration file ; `/usr/share/cinder/cinder-dist.conf` ; `/etc/cinder/cinder.conf`
+Admin access data, for sourcing into shell ; `/etc/nagios/keystonerc_admin` ; `~stack/devstack/accrc/admin/admin`
+User used for running `c-vol` service ; `cinder` ; `stack `
 |============================================
 
 
 The generalized installations steps are these:
 
-  * In the ++cinder.conf++ you'll need something like that; the ++volume_driver++ consists of the class name (last part), and the file path:
+  * In the `cinder.conf` you'll need something like that; the `volume_driver` consists of the class name (last part), and the file path:
 +
 --
 
@@ -52,7 +58,7 @@ and DRBD transport modes, and <<s-openstack-addtl-conf,other configuration
 settings>>.
 --
 
-  * Register the backend: (you might need to fetch the authentication environment variables via ++source __<admin access data>__++)
+  * Register the backend: (you might need to fetch the authentication environment variables via `source _<admin access data>_`)
 +
 --
 
@@ -61,7 +67,7 @@ settings>>.
 -------
 --
 
-  * Allow the user to access the "__org.drbd.drbdmanaged__" service on DBus. For that you need to extend the file ++/etc/dbus-1/system.d/org.drbd.drbdmanaged.conf++ by an additional stanza like this (replace __USER__ by the username as per the table above):
+  * Allow the user to access the "__org.drbd.drbdmanaged__" service on DBus. For that you need to extend the file `/etc/dbus-1/system.d/org.drbd.drbdmanaged.conf` by an additional stanza like this (replace __USER__ by the username as per the table above):
 +
 --
 
@@ -75,17 +81,17 @@ settings>>.
 --
 
 
-That's it; after a restart of the ++c-vol++ service you should be able to create your DRBD volumes.
+That's it; after a restart of the `c-vol` service you should be able to create your DRBD volumes.
 
 
 [[s-openstack-addtl-conf]]
 ==== Additional Configuration
 
-The ++drbdmanage++ backend configuration in ++cinder.conf++ can contain a few 
+The `drbdmanage` backend configuration in `cinder.conf` can contain a few 
 additional settings that modify the exact behaviour.
 
 [[s-openstack-redundancy]]
-  * (((OpenStack,Redundancy)))++drbdmanage_redundancy = 2++ eg. would 
+  * (((OpenStack,Redundancy)))`drbdmanage_redundancy = 2` eg. would 
     declare that each volume needs to have 2 storage locations, ie. be 
     replicated once. This means that two times the storage will be used, and 
     that the reported free space <<s-openstack-free-space,looks limited>>.
@@ -96,17 +102,17 @@ than two copies of the data; the limit is given by DRBD 9 and the number of
 storage hosts you have defined.
 --
 
-  * ++drbdmanage_devs_on_controller = True++: By default each volume will get 
+  * `drbdmanage_devs_on_controller = True`: By default each volume will get 
     a DRBD client mapped on the Cinder controller node; apart from being used 
     for iSCSI exports, this might prove helpful for debugging, too.
 
   * indexterm:[iSCSI, in OpenStack Cinder]indexterm:[OpenStack, Cinder iSCSI transport]In 
     case you need to choose a different iSCSI backend, you can provide an 
-    additional configuration to set it, like ++iscsi_helper=lioadm++.
+    additional configuration to set it, like `iscsi_helper=lioadm`.
 
-  * (((OpenStack,resize policy)))++drbdmanage_resize_policy++,
-    (((OpenStack,resource policy)))++drbdmanage_resource_policy++, and
-    (((OpenStack,snapshot policy)))++drbdmanage_snapshot_policy++ configure
+  * (((OpenStack,resize policy)))`drbdmanage_resize_policy`,
+    (((OpenStack,resource policy)))`drbdmanage_resource_policy`, and
+    (((OpenStack,snapshot policy)))`drbdmanage_snapshot_policy` configure
 	the behaviour when resizing volumes, resp. creating snapshots or new 
 	resources (freshly create or from a snapshot, etc.)
 +
@@ -124,11 +130,11 @@ quotes, for instance, and take other JSON specifications and restrictions into
 account as well!
 
 In case you want to call different plugins for this purpose, the 
-++drbdmanage_resize_plugin++, ++drbdmanage_resource_plugin++, and
-++drbdmanage_snapshot_plugin++ configuration items exist as well.
+`drbdmanage_resize_plugin`, `drbdmanage_resource_plugin`, and
+`drbdmanage_snapshot_plugin` configuration items exist as well.
 --
 
-  * ++drbdmanage_net_options++ resp. ++drbdmanage_resource_options++ can be 
+  * `drbdmanage_net_options` resp. `drbdmanage_resource_options` can be 
     used to set DRBD configuration values on each newly created resource. These 
     already have sane default values; if you want to override, don't forget to 
     add these in again! 
@@ -141,8 +147,8 @@ Again, these strings get parsed as JSON blobs. The defaults are
 
 --
 
-  * ++drbdmanage_late_local_assign++ and 
-    ++drbdmanage_late_local_assign_exclude++ is a performance optimization for 
+  * `drbdmanage_late_local_assign` and 
+    `drbdmanage_late_local_assign_exclude` is a performance optimization for 
     hyperconverged setups; this needs a bit of discussion, so please look at 
     the dedicated chapter <<s-openstack-late-local-assign>>.
 
@@ -211,7 +217,7 @@ on the hypervisor nodes will shrink to DRBD 9 kernel module and -userspace only.
 [[s-openstack-conf-transport-protocol]]
 ==== Configuring the Transport Protocol
 
-In the storage stanzas in ++cinder.conf++ you can define the volume driver to use; 
+In the storage stanzas in `cinder.conf` you can define the volume driver to use; 
 you can use different drivers for different backend configurations, ie. you can 
 define a 2-way-redundancy iSCSI backend, a 2-way-redundancy DRBD backend, and 
 a 3-way DRBD backend at the same time. Horizonfootnote:[The Openstack GUI] 
@@ -249,14 +255,14 @@ compatibility reasons; it's just an alias to the iSCSI driver.
 ==== Free space reporting
 
 The free space that the cinder driver reports is fetched from DRBD Manage, using 
-the defined <<s-openstack-addtl-conf,+drbdmanage_redundancy+>> setting.
+the defined <<s-openstack-addtl-conf,`drbdmanage_redundancy`>> setting.
 
 This will return the size for the single largest volume that can be created 
 with this replication count; so, with 10 storage nodes each having 1TiB free 
 space, the value returned for a redundancy count of three will be 1TiB, and 
 allocating such a volume will not change the free space value, as there are 
 three more nodes with that much free space available. For storage nodes with 
-20GiB, 15GiB, 10GiB, and 5GiB space available, the free space for ++drbdmanage_redundancy++ 
+20GiB, 15GiB, 10GiB, and 5GiB space available, the free space for `drbdmanage_redundancy` 
 being 3 will be 10GiB, and 15GiB for 2.
 
 This issue is further muddled by thin LVM pools (one or multiple, 
@@ -273,7 +279,7 @@ https://github.com/openstack/cinder-specs/blob/master/specs/kilo/over-subscripti
 [[s-openstack-late-local-assign]]
 ==== Hyperconverged Setups
 
-The configuration item ++drbdmanage_late_local_assign++ (available in the DRBD 
+The configuration item `drbdmanage_late_local_assign` (available in the DRBD 
 Manage Cinder driver from 1.2.0 on, requiring DRBD Manage 0.98.3 or better) is
 a performance optimization for hyperconverged setups. +
 With that feature, the driver tries to get a local copy of the data assigned to
@@ -283,22 +289,22 @@ across the network.
 At the time of writing, Nova doesn't pass enough information to Cinder; 
 Cinder isn't told which hypervisor will be used. +
 So the DRBD Manage driver assigns all but one 
-copies at +create_volume+ time; the last one is done in the +attach_volume+ 
+copies at `create_volume` time; the last one is done in the `attach_volume` 
 step, when the hypervisor is known. If this hypervisor is out of space, defined 
 as a storage-less node in DRBD Manage, or otherwise not eligible to receive 
 a copy, any other storage node is used instead, and the target node will 
-receive a __client__ assignment only.
+receive a _client_ assignment only.
 
 
 Because an image might be copied to the volume before it gets attached to a VM, 
 the "local" assignment can't simply be done on the first accessfootnote:[If it 
 assigned on first access, the image copy node (Glance) would receive the copy of 
 the data]. The Cinder driver must be told which nodes are not eligible for 
-local copies; this can be done via +drbdmanage_late_local_assign_exclude+.
+local copies; this can be done via `drbdmanage_late_local_assign_exclude`.
 
 
 For volumes that get cloned from an image stored within Cinder (via a DRBD 
-Manage snapshot), the new resource will be empty until the +attach_volume+ 
+Manage snapshot), the new resource will be empty until the `attach_volume` 
 call; at that time the Cinder driver can decide on which nodes the volumes will 
 be deployed, and can actually clone the volume on these.
 
@@ -321,11 +327,11 @@ To summarize:
 
 	* The <<s-openstack-drbd,DRBD transport protocol>> must be used; iSCSI won't offer any locality benefits.
 
-	* The <<s-openstack-redundancy,+drbdmanage_redundancy+ setting>> must be set to at least two copies.
+	* The <<s-openstack-redundancy,`drbdmanage_redundancy` setting>> must be set to at least two copies.
 
-	* To generally enable this feature, set ++drbdmanage_late_local_assign++ to +True+.
+	* To generally enable this feature, set `drbdmanage_late_local_assign` to `True`.
 	
-	* To specify which hosts should *not* get a local copy, set ++drbdmanage_late_local_assign_exclude++ to a comma-separated list of hostnames; this should typically include Glance and the Cinder-controller nodes (but not the Cinder-storage nodes!).
+	* To specify which hosts should *not* get a local copy, set `drbdmanage_late_local_assign_exclude` to a comma-separated list of hostnames; this should typically include Glance and the Cinder-controller nodes (but not the Cinder-storage nodes!).
 	
 	* Take care to not run out of disk space.
 

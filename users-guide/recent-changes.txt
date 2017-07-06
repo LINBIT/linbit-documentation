@@ -19,8 +19,8 @@ Associated with this change are
 
 * Metadata size changes (one bitmap per peer)
 
-* +/proc/drbd+ now only gives minimal information, see
-    <<s-drbdadm-status, +drbdadm status+>>
+* `/proc/drbd` now only gives minimal information, see
+    <<s-drbdadm-status, `drbdadm status`>>
 
 * Resynchronization from/to <<s-multi-node,multiple peers>>
 
@@ -28,13 +28,13 @@ Associated with this change are
   <<s-resource-roles,Secondary>> role
 
 [[s-recent-changes-auto-promote]]
-=== +Auto-Promote+ Feature
+=== Auto-Promote Feature
 
-DRBD 9 can be configured to do the +Primary+/+Secondary+ <<s-resource-roles,role switch>>
+DRBD 9 can be configured to do the _Primary_/_Secondary_ <<s-resource-roles,role switch>>
 automatically, on demand.
 
-This feature replaces both the +become-primary-on+ configuration value, as well 
-as the old Heartbeat v1 +drbddisk+ script.
+This feature replaces both the `become-primary-on` configuration value, as well 
+as the old Heartbeat v1 `drbddisk` script.
 
 Please see <<s-automatic-promotion>> for more details.
 
@@ -64,11 +64,11 @@ This results in a few other necessary changes in behaviour:
 ==== Changes to udev symlinks
 
 The DRBD udev integration scripts manage symlinks pointing to
-individual block device nodes. These exist in the +/dev/drbd/by-res/+
-and +/dev/drbd/by-disk/+ directories.
+individual block device nodes. These exist in the `/dev/drbd/by-res/`
+and `/dev/drbd/by-disk/` directories.
 
 In DRBD 8.4, since a single resource may correspond to multiple
-volumes, +/dev/drbd/by-res/__<resource>__+ is a _directory_,
+volumes, `/dev/drbd/by-res/__<resource>__` is a _directory_,
 containing symlinks pointing to individual volumes:
 
 .udev managed DRBD symlinks in DRBD 8.4
@@ -80,19 +80,19 @@ lrwxrwxrwx 1 root root 11 2015-08-09 19:33 /dev/drbd/by-res/nfs-root/1 -> ../../
 ----------------------------
 
 Configurations where filesystems are referred to by such a symlink must be
-updated when moving to DRBD 8.4, usually by simply appending +/0+ to
-the symlink path. If the filesystem was referenced via +UUID=+ or 
-+/dev/drbd__X__+ in +/etc/fstab+, no change is necessary.
+updated when moving to DRBD 8.4, usually by simply appending `/0` to
+the symlink path. If the filesystem was referenced via `UUID=` or 
+`/dev/drbd__X__` in `/etc/fstab`, no change is necessary.
 
 
 [[s-recent-changes-config]]
 === Changes to the configuration syntax
 
 This section highlights changes to the configuration syntax. It
-affects the DRBD configuration files in +/etc/drbd.d+, and
-+/etc/drbd.conf+.
+affects the DRBD configuration files in `/etc/drbd.d`, and
+`/etc/drbd.conf`.
 
-IMPORTANT: The +drbdadm+ parser still accepts pre-8.4 configuration
+IMPORTANT: The `drbdadm` parser still accepts pre-8.4 configuration
 syntax and automatically translates, internally, into the current
 syntax. Unless you are planning to use new features from DRBD 9,
 there is no requirement to modify your
@@ -103,7 +103,7 @@ be supported in DRBD 9.
 [[s-recent-changes-config-booleans]]
 ==== Boolean configuration options
 
-+drbd.conf+ supports a variety of boolean configuration options. In
+`drbd.conf` supports a variety of boolean configuration options. In
 pre DRBD 8.4 syntax, these boolean options would be set as follows:
 
 .Pre-DRBD 8.4 configuration example with boolean options
@@ -117,10 +117,10 @@ resource test {
 ----------------------------
 
 This led to configuration issues if you wanted to set a boolean
-variable in the +common+ configuration section, and then override it
+variable in the `common` configuration section, and then override it
 for individual resources:
 
-.Pre-DRBD 8.4 configuration example with boolean options in +common+ section
+.Pre-DRBD 8.4 configuration example with boolean options in `common` section
 [source,drbd]
 ----------------------------
 common {
@@ -136,11 +136,11 @@ resource test {
 }
 ----------------------------
 
-In DRBD 8.4, all boolean options take a value of +yes+ or +no+, making
-them easily configurable both from +common+ and from individual
-+resource+ sections:
+In DRBD 8.4, all boolean options take a value of `yes` or `no`, making
+them easily configurable both from `common` and from individual
+`resource` sections:
 
-.DRBD 8.4 configuration example with boolean options in +common+ section
+.DRBD 8.4 configuration example with boolean options in `common` section
 [source,drbd]
 ----------------------------
 common {
@@ -154,14 +154,14 @@ resource test {
 ----------------------------
 
 [[s-recent-changes-config-syncer]]
-==== +syncer+ section no longer exists
+==== `syncer` section no longer exists
 
-Prior to DRBD 8.4, the configuration syntax allowed for a +syncer+
+Prior to DRBD 8.4, the configuration syntax allowed for a `syncer`
 section which has become obsolete in 8.4. All previously existing
-+syncer+ options have now moved into the +net+ or +disk+ sections of
+`syncer` options have now moved into the `net` or `disk` sections of
 resources.
 
-.Pre-DRBD 8.4 configuration example with +syncer+ section
+.Pre-DRBD 8.4 configuration example with `syncer` section
 [source,drbd]
 ----------------------------
 resource test {
@@ -175,7 +175,7 @@ resource test {
 
 The above example is expressed, in DRBD 8.4 syntax, as follows:
 
-.DRBD 8.4 configuration example with +syncer+ section replaced
+.DRBD 8.4 configuration example with `syncer` section replaced
 [source,drbd]
 ----------------------------
 resource test {
@@ -190,13 +190,13 @@ resource test {
 ----------------------------
 
 [[s-recent-changes-config-protocol]]
-==== +protocol+ option is no longer special
+==== `protocol` option is no longer special
 
-In prior DRBD releases, the +protocol+ option was awkwardly (and
+In prior DRBD releases, the `protocol` option was awkwardly (and
 counter-intuitively) required to be specified on its own, rather than
-as part of the +net+ section. DRBD 8.4 removes this anomaly:
+as part of the `net` section. DRBD 8.4 removes this anomaly:
 
-.Pre-DRBD 8.4 configuration example with standalone +protocol+ option
+.Pre-DRBD 8.4 configuration example with standalone `protocol` option
 [source,drbd]
 ----------------------------
 resource test {
@@ -211,7 +211,7 @@ resource test {
 
 The equivalent DRBD 8.4 configuration syntax is:
 
-.DRBD 8.4 configuration example with +protocol+ option within +net+ section
+.DRBD 8.4 configuration example with `protocol` option within `net` section
 [source,drbd]
 ----------------------------
 resource test {
@@ -225,16 +225,16 @@ resource test {
 
 
 [[s-recent-changes-config-options]]
-==== New per-resource +options+ section
+==== New per-resource `options` section
 
-DRBD 8.4 introduces a new +options+ section that may be specified
-either in a +resource+ or in the +common+ section. The +cpu-mask+
-option has moved into this section from the +syncer+ section in which
-it was awkwardly configured before. The +on-no-data-accessible+ option
-has also moved to this section, rather than being in +disk+ where
+DRBD 8.4 introduces a new `options` section that may be specified
+either in a `resource` or in the `common` section. The `cpu-mask`
+option has moved into this section from the `syncer` section in which
+it was awkwardly configured before. The `on-no-data-accessible` option
+has also moved to this section, rather than being in `disk` where
 it had been in pre-8.4 releases.
 
-.Pre-DRBD 8.4 configuration example with +cpu-mask+ and +on-no-data-accessible+
+.Pre-DRBD 8.4 configuration example with `cpu-mask` and `on-no-data-accessible`
 [source,drbd]
 ----------------------------
 resource test {
@@ -250,7 +250,7 @@ resource test {
 
 The equivalent DRBD 8.4 configuration syntax is:
 
-.DRBD 8.4 configuration example with +options+ section
+.DRBD 8.4 configuration example with `options` section
 [source,drbd]
 ----------------------------
 resource test {
@@ -271,8 +271,8 @@ resource test {
 
 Prior to DRBD 8.4, changes to the replication protocol were impossible
 while the resource was on-line and active. You would have to change
-the +protocol+ option in your resource configuration file, then issue
-+drbdadm disconnect+ and finally +drbdadm connect+ on both nodes.
+the `protocol` option in your resource configuration file, then issue
+`drbdadm disconnect` and finally `drbdadm connect` on both nodes.
 
 In DRBD 8.4, the replication protocol can be changed on the fly. You
 may, for example, temporarily switch a connection to asynchronous
@@ -288,9 +288,9 @@ drbdadm net-options --protocol=A <resource>
 
 Prior to DRBD 8.4, it was impossible to switch between single-Primary
 to dual-Primary or back while the resource was on-line and active. You
-would have to change the +allow-two-primaries+ option in your resource
-configuration file, then issue +drbdadm disconnect+ and finally
-+drbdadm connect+ on both nodes.
+would have to change the `allow-two-primaries` option in your resource
+configuration file, then issue `drbdadm disconnect` and finally
+`drbdadm connect` on both nodes.
 
 In DRBD 8.4, it is possible to switch modes on-line.
 
@@ -304,23 +304,23 @@ dual-Primary mode while the resource is on-line.
 
 
 [[s-recent-changes-drbdadm]]
-=== Changes to the +drbdadm+ command
+=== Changes to the `drbdadm` command
 
 [[s-recent-changes-drbdadm-passthrough-options]]
 ==== Changes to pass-through options
 
-Prior to DRBD 8.4, if you wanted +drbdadm+ to pass special options through to
-+drbdsetup+, you had to use the arcane +--{nbsp}--<option>+ syntax, as in the
+Prior to DRBD 8.4, if you wanted `drbdadm` to pass special options through to
+`drbdsetup`, you had to use the arcane `--{nbsp}--<option>` syntax, as in the
 following example:
 
-.Pre-DRBD 8.4 +drbdadm+ pass-through options
+.Pre-DRBD 8.4 `drbdadm` pass-through options
 ----------------------------
 drbdadm -- --discard-my-data connect <resource>
 ----------------------------
 
-Instead, +drbdadm+ now accepts those pass-through options as normal options:
+Instead, `drbdadm` now accepts those pass-through options as normal options:
 
-.DRBD 8.4 +drbdadm+ pass-through options
+.DRBD 8.4 `drbdadm` pass-through options
 ----------------------------
 drbdadm connect --discard-my-data <resource>
 ----------------------------
@@ -328,25 +328,25 @@ drbdadm connect --discard-my-data <resource>
 NOTE: The old syntax is still supported, but its use is strongly
 discouraged. However, if you choose to use the new, more
 straightforward syntax, you must specify the option
-(+--discard-my-data+) _after_ the subcommand (+connect+) and _before_
+(`--discard-my-data`) _after_ the subcommand (`connect`) and _before_
 the resource identifier.
 
 [[s-recent-changes-drbdadm-force]]
-==== +--force+ option replaces +--overwrite-data-of-peer+
+==== `--force` option replaces `--overwrite-data-of-peer`
 
-The +--overwrite-data-of-peer+ option is no longer present in DRBD
-8.4. It has been replaced by the simpler +--force+. Thus, to kick off
+The `--overwrite-data-of-peer` option is no longer present in DRBD
+8.4. It has been replaced by the simpler `--force`. Thus, to kick off
 an initial resource synchronization, you no longer use the following
 command:
 
-.Pre-DRBD 8.4 initial sync +drbdadm+ commands
+.Pre-DRBD 8.4 initial sync `drbdadm` commands
 ----------------------------
 drbdadm -- --overwrite-data-of-peer primary <resource>
 ----------------------------
 
 Use the command below instead:
 
-.DRBD 8.4 initial sync +drbdadm+ commands
+.DRBD 8.4 initial sync `drbdadm` commands
 ----------------------------
 drbdadm primary --force <resource>
 ----------------------------
@@ -355,13 +355,13 @@ drbdadm primary --force <resource>
 [[s-recent-changes-defaults]]
 === Changed default values
 
-In DRBD 8.4, several +drbd.conf+ default values have been updated to
+In DRBD 8.4, several `drbd.conf` default values have been updated to
 match improvements in the Linux kernel and available server hardware.
 
 [[s-recent-changes-defaults-al-extents]]
-==== Number of concurrently active Activity Log extents (+al-extents+)
+==== Number of concurrently active Activity Log extents (`al-extents`)
 
-+al-extents+' previous default of 127 has changed to 1237, allowing
+``al-extents``' previous default of 127 has changed to 1237, allowing
 for better performance by reducing the amount of metadata disk write
 operations. The associated extended resynchronization time after a
 primary node crash, which this change introduces, is marginal given
@@ -369,21 +369,21 @@ the ubiquity of Gigabit Ethernet and higher-bandwidth replication
 links.
 
 [[s-recent-changes-defaults-use-rle]]
-==== Run-length encoding (+use-rle+)
+==== Run-length encoding (`use-rle`)
 
 Run-length encoding (RLE) for bitmap transfers is enabled by default
-in DRBD 8.4; the default for the +use-rle+ option is +yes+. RLE
+in DRBD 8.4; the default for the `use-rle` option is `yes`. RLE
 greatly reduces the amount of data transferred during the
 <<s-quick-sync-bitmap,quick-sync bitmap>> exchange (which occurs any
 time two disconnected nodes reconnect).
 
 [[s-recent-changes-on-io-error]]
-==== I/O error handling strategy (+on-io-error+)
+==== I/O error handling strategy (`on-io-error`)
 
 DRBD 8.4 defaults to <<fp-io-error-detach,masking I/O errors>>, which
 replaces the earlier behavior of <<fp-io-error-pass-on,passing them on>>
 to upper layers in the I/O stack. This means that a DRBD volume
-operating on a faulty drive automatically switches to the +Diskless+
+operating on a faulty drive automatically switches to the _Diskless_
 disk state and continues to serve data from its peer node.
 
 [[s-recent-changes-defaults-variable-rate-sync]]
@@ -406,7 +406,7 @@ resource test {
 ----------------------------
 
 [[s-recent-changes-defaults-minor-count]]
-==== Number of configurable DRBD devices (+minor-count+)
+==== Number of configurable DRBD devices (`minor-count`)
 
 The maximum number of configurable DRBD devices (previously 255) is
 1,048,576 (2^20^) in DRBD 8.4. This is more of a theoretical limit

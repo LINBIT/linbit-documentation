@@ -17,18 +17,18 @@ are covered in detail in <<ch-troubleshooting>>.
 We assume that the following steps are accomplished on *all* cluster nodes:
 
 . The DRBD9 kernel module is installed and loaded
-. +drbd-utils+ are installed
-. +LVM+ tools are installed
-. +drbdmanage+ and its dependencies are installed
+. `drbd-utils` are installed
+. `LVM` tools are installed
+. `drbdmanage` and its dependencies are installed
 
 Note that drbdmanage uses dbus-activation to start its server component when necessary, do not start the
 server manually.
 
-The first step is to review the configuration file of +drbdmanage+
-(+/etc/drbdmanaged.cfg+) and to create an +LVM+ volume group with the name
+The first step is to review the configuration file of `drbdmanage`
+(`/etc/drbdmanaged.cfg`) and to create an _LVM volume_ group with the name
 specified in the configuration. In the following we use the default name,
-which is +drbdpool+, and assume that the volume group consists of +/dev/sda6+
-and +/dev/sda7+. Creating the volume group is a step that has to be executed on
+which is `drbdpool`, and assume that the volume group consists of `/dev/sda6`
+and `/dev/sda7`. Creating the volume group is a step that has to be executed on
 *every* cluster node:
 
 ----------------------------
@@ -48,7 +48,7 @@ cluster, otherwise the IP is optional. This step must only be done on exactly on
 We recommend using 'drbdpool' as the name of your LVM volume group as it is
 the default value and makes your administration life easier. If, for whatever
 reason, you decide to use a different name, make sure that the option
-*drbdctrl-vg* is set accordingly in +/etc/drbdmanaged.cfg+. Configuration will
+*drbdctrl-vg* is set accordingly in `/etc/drbdmanaged.cfg`. Configuration will
 be discussed in <<s-dm-set-config>>.
 
 [[s-dm-add-node]]
@@ -61,7 +61,7 @@ Adding nodes to your cluster is easy and requires a single command with two para
 --
 
 .Note
-If DNS is configured properly, the tab-completion of +drbdmanage+ is able to 
+If DNS is configured properly, the tab-completion of `drbdmanage` is able to 
 complete the IP of the given node name.
 --
 
@@ -70,12 +70,12 @@ complete the IP of the given node name.
 ----------------------------
 
 Here we assume that the command was executed on node 'alpha'. If the 'root'
-user is allowed to execute commands as 'root' on 'bravo' via +ssh+, then the
+user is allowed to execute commands as 'root' on 'bravo' via `ssh`, then the
 node 'bravo' will automatically join your cluster.
 
-If +ssh+ access with public-key authentication is not possible, +drbdmanage+
+If `ssh` access with public-key authentication is not possible, `drbdmanage`
 will print a join command that has to be executed on node 'bravo'. You can
-always query +drbdmanage+ to output the join command for a specific node:
+always query `drbdmanage` to output the join command for a specific node:
 
 ----------------------------
 # drbdmanage howto-join bravo
@@ -125,7 +125,7 @@ image::satellitecluster.png[]
 *External nodes*:
 
 * Have no access to the control volume at all (no dedicated TCP/IP connection to a control node) and no local storage
-* Gets its configuration via a different channel (e.g., DRBD configuration via +scp+)
+* Gets its configuration via a different channel (e.g., DRBD configuration via `scp`)
 * These are not the droids you are looking for, if you are not sure if you want to use that type of nodes.
 
 ==== Adding a control node
@@ -165,11 +165,11 @@ as a satellite node.
 === Cluster configuration
 Drbdmanage knows many configuration settings like the log-level or the storage
 plugin that should be used (i.e., LVM, ThinLV, ThinPool, ZPool, or ThinZpool). Executing
-+drbdmanage modify-config+ starts an editor that is used to specify theses
+`drbdmanage modify-config` starts an editor that is used to specify theses
 settings. The configuration is split in several sections. If an option is
-specified in the +[GLOBAL]+ section, this setting is used in the entire
+specified in the `[GLOBAL]` section, this setting is used in the entire
 cluster. Additionally, it is possible to specify settings per node and per
-site. Node sections follow a syntax of +[Node:nodename]+. If an option is set
+site. Node sections follow a syntax of `[Node:nodename]`. If an option is set
 globally and per node, the node setting overrules the global setting.
 
 It is also possible to group nodes into *sites*. In order to make node 'alpha'
@@ -183,7 +183,7 @@ site = mysite
 ----------------------------
 
 It is then also possible to specify drbdmanage settings per site using
-+[Site:]+ sections. Lets assume that you want to set the 'loglevel' option in
+`[Site:]` sections. Lets assume that you want to set the 'loglevel' option in
 general to 'INFO', for site 'mysite' to 'WARN' and for node alpha, which is also
 part of site 'mysite' to DEBUG. This would result in the following
 configuration:
@@ -201,7 +201,7 @@ site = mysite
 loglevel = DEBUG
 ----------------------------
 
-By executing +drbdmanage modify-config+ without any options, you can edit
+By executing `drbdmanage modify-config` without any options, you can edit
 global, per site and per node settings. It is also possible to execute
 'modify-config' for a specific node. In this per-node view, it is possible to
 set further per-node specific settings like the storage plugin discussed in
@@ -253,13 +253,13 @@ indexterm:[drbdmanage, storage plugins]
 
 DRBD Manage has four supported storage plugins as of this writing:
 
-  * Thick LVM (++drbdmanage.storage.lvm.Lvm++);
+  * Thick LVM (`drbdmanage.storage.lvm.Lvm`);
 
-  * Thin LVM with a single thin pool (++drbdmanage.storage.lvm_thinlv.LvmThinLv++)
+  * Thin LVM with a single thin pool (`drbdmanage.storage.lvm_thinlv.LvmThinLv`)
 
-  * Thin LVM with thin pools for each volume (++drbdmanage.storage.lvm_thinpool.LvmThinPool++)
+  * Thin LVM with thin pools for each volume (`drbdmanage.storage.lvm_thinpool.LvmThinPool`)
 
-  * Thick ZFS (++drbdmanage.storage.zvol.Zvol++)
+  * Thick ZFS (`drbdmanage.storage.zvol.Zvol`)
 
 Here's a short discussion of the relative advantages and disadvantages of these plugins.
 
@@ -268,13 +268,13 @@ Here's a short discussion of the relative advantages and disadvantages of these 
 .DRBD Manage storage plugins, comparison
 [cols="^e,^,^,^", options="header"]
 |===================================
-|Topic | ++lvm.Lvm++ | ++lvm_thinlv.LvmThinLv++ | ++lvm_thinpool.LvmThinPool++
+|Topic | `lvm.Lvm` | `lvm_thinlv.LvmThinLv` | `lvm_thinpool.LvmThinPool`
 |Pools | the VG is the pool | a single Thin pool | one Thin pool for each volume
 |Free Space reporting | Exact | Free space goes down as per written data and snapshots, needs monitoring | Each pool carves some space out of the VG, but still needs to be monitored if snapshots are used 
 |Allocation | Fully pre-allocated   2+| thinly allocated, needs nearly zero space initially
 |Snapshots | -- not supported --  2+| Fast, efficient (copy-on-write)
 |Stability | Well established, known code, very stable  2+| Some kernel versions have bugs re Thin LVs, destroying data
-|Recovery | Easiest - text editor, and/or lvm configuration archives in ++/etc/lvm/++, in the worst case ++dd++ with offset/length | All data in one pool, might incur running ++thin_check++ across *everything* (needs CPU, memory, time) | Independent Pools, so not all volumes damaged at the same time, faster ++thin_check++ (less CPU, memory, time)
+|Recovery | Easiest - text editor, and/or lvm configuration archives in `/etc/lvm/`, in the worst case `dd` with offset/length | All data in one pool, might incur running `thin_check` across *everything* (needs CPU, memory, time) | Independent Pools, so not all volumes damaged at the same time, faster `thin_check` (less CPU, memory, time)
 |===================================
 
 
@@ -296,7 +296,7 @@ Second, we create a new volume within that resource:
 ----------------------------
 # drbdmanage add-volume backups 500GB
 ----------------------------
-In case we would not have used 'add-resource' in the first step, +drbdmanage+
+In case we would not have used 'add-resource' in the first step, `drbdmanage`
 would have known that the resource did not exist and it would have created it.
 
 The third step is to deploy the resource to 3 cluster nodes:
@@ -305,13 +305,13 @@ The third step is to deploy the resource to 3 cluster nodes:
 # drbdmanage deploy-resource backups 3
 ----------------------------
 
-In this case +drbdmanage+ chooses 3 nodes that fit all requirements best,
+In this case `drbdmanage` chooses 3 nodes that fit all requirements best,
 which is by default the set of nodes with the most free space in the
-+drbdpool+ volume group. We will see how to manually assign resources to
+`drbdpool` volume group. We will see how to manually assign resources to
 specific nodes in a moment.
 
 As deploying a new resource/volume to a set of nodes is a very common task,
-+drbdmanage+ provides the following short-cut:
+`drbdmanage` provides the following short-cut:
 ----------------------------
 # drbdmanage add-volume backups 500GB --deploy 3
 ----------------------------
@@ -328,7 +328,7 @@ For example if you decide to assign the 'backups' resource to 'bravo' and
 
 [[s-dm-snapshots]]
 === Managing snapshots
-In the following we assume that the +ThinLV+ plugin is used on all nodes that
+In the following we assume that the _ThinLV_ plugin is used on all nodes that
 have deployed resources from which snapshots should be taken. For further
 information on how to configure the storage plugin, please refer to
 <<s-dm-set-config>>.
@@ -364,7 +364,7 @@ An existing snapshot can be removed as follows:
 
 [[s-dm-status]]
 === Checking the state of your cluster
-+Drbdmanage+ provides various commands to check the state of your cluster.
+`Drbdmanage` provides various commands to check the state of your cluster.
 These commands start with a 'list-' prefix and provide various filtering and
 sorting options. The '--groupby' option can be used to group and sort the
 output in multiple dimensions. Additional output can be turned on by using the
@@ -379,7 +379,7 @@ output in multiple dimensions. Additional output can be turned on by using the
 
 [[s-dm-setupopts]]
 === Setting options for resources
-Currently, it is possible to set the following +drbdsetup+ options:
+Currently, it is possible to set the following `drbdsetup` options:
 
 . net-options
 . peer-device-options
@@ -388,10 +388,10 @@ Currently, it is possible to set the following +drbdsetup+ options:
 
 Additionally, it is possible to set DRBD event handler.
 
-As for example +net-options+ are allowed in the 'common' section as well as per
+As for example _net-options_ are allowed in the 'common' section as well as per
 resource, these commands then provide the according switches.
 
-Setting +max-buffers+ for a resource 'backups' looks like this:
+Setting `max-buffers` for a resource 'backups' looks like this:
 
 ----------------------------
 # drbdmanage net-options --max-buffers 2048 --resource backups
@@ -404,7 +404,7 @@ Setting this option in the common section looks like this:
 ----------------------------
 
 Additionally, there is always an '--unset-' option for every option that can
-be specified. So, unsetting +max-buffers+ for a resource 'backups' looks like
+be specified. So, unsetting `max-buffers` for a resource 'backups' looks like
 this:
 
 ----------------------------
@@ -414,7 +414,7 @@ this:
 It is possible to visualize currently set options with the 'show-options'
 subcommand.
 
-Setting +net-options+ per site is also supported. Lets assume 'alpha' and
+Setting _net-options_ per site is also supported. Lets assume 'alpha' and
 'bravo' should be part of site 'first' and 'charlie' and 'delta' should be part of
 site 'second'. Further, we want to use DRBD protocol 'C' within the two sites, and
 protocol 'A' between the sites 'first' and 'second'. This would be set up as follows:
@@ -489,13 +489,13 @@ command `drbdadm status` with (optionally) the resource name.
 One of the nodes that _still_ has the data will show a status like
 
 --------
-    replication:SyncSource peer-disk:Inconsistent done:5.34
+replication:SyncSource peer-disk:Inconsistent done:5.34
 --------
 
-while the target node will have a state of +SyncTarget+.
+while the target node will have a state of _SyncTarget_.
 
 
-When the target assignment reaches a state of +UpToDate+, you have a full 
+When the target assignment reaches a state of _UpToDate_, you have a full 
 additional copy of your data on this node; now it is safe to remove the 
 assignment from another node:
 
@@ -504,16 +504,16 @@ assignment from another node:
 ---------------------
 
 And voilà - you moved one assignment, in twofootnote:[Or three, if you count 
-waiting for the +UpToDate+ state.] easy steps!
+waiting for the _UpToDate_ state.] easy steps!
 
 
 [[s-dm-getting-help]]
 === Getting help
 The easiest way to get an overview about drbdmanage's subcommands is to read
-the main man-page (+man drbdmanage+).
+the main man-page (`man drbdmanage`).
 
 A quick way to list available commands on the command line is to type
-+drbdmanage list+.
+`drbdmanage list`.
 
 Further information on subcommands (e.g., list-nodes) can be retrieved in
 three ways:
@@ -524,7 +524,7 @@ three ways:
 ----------------------------
 
 Using the 'help' subcommand is especially helpful when drbdmanage is executed
-in interactive mode (+drbdmanage interactive+).
+in interactive mode (`drbdmanage interactive`).
 
 One of the most helpful features of drbdmanage is its rich tab-completion,
 which can be used to complete basically every object drbdmanage knows about

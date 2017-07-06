@@ -56,7 +56,7 @@ allows multiple nodes to access the same storage device, in read/write
 mode, simultaneously without risking data corruption. It does so by
 using a Distributed Lock Manager (DLM) which manages concurrent access
 from cluster nodes. The DLM itself uses a virtual file system
-(+ocfs2_dlmfs+) which is separate from the actual OCFS2 file systems
+(`ocfs2_dlmfs`) which is separate from the actual OCFS2 file systems
 present on the system.
 
 OCFS2 may either use an intrinsic cluster communication layer to
@@ -103,26 +103,26 @@ By setting auto-recovery policies, you are effectively configuring automatic dat
 ===============================
 
 
-It is not recommended to set the +allow-two-primaries+ option to +yes+
+It is not recommended to set the `allow-two-primaries` option to `yes`
 upon initial configuration. You should do so after the initial
 resource synchronization has completed.
 
 Once you have added these options to <<ch-configure,your
 freshly-configured resource>>, you may <<s-first-time-up,initialize
 your resource as you normally would>>. After you set the
-indexterm:[drbd.conf]+allow-two-primaries+ option to +yes+ for this
+indexterm:[drbd.conf]`allow-two-primaries` option to `yes` for this
 resource, you will be able to <<s-switch-resource-roles,promote the
 resource>>to the primary role on both nodes.
 
 NOTE: With DRBD 9.1 it will be possible to have more than two nodes in the 
-+Primary+ role; with DRBD 9.0 you can only use two primaries, but more nodes
-can be in +Secondary+ role to provide more redundancy.
+_Primary_ role; with DRBD 9.0 you can only use two primaries, but more nodes
+can be in _Secondary_ role to provide more redundancy.
 
 
 [[s-ocfs2-create]]
 === Creating an OCFS2 filesystem
 
-Now, use OCFS2's +mkfs+ implementation to create the file system:
+Now, use OCFS2's `mkfs` implementation to create the file system:
 ----------------------------
 # mkfs -t ocfs2 -N 2 -L ocfs2_drbd0 /dev/drbd0
 mkfs.ocfs2 1.4.0
@@ -144,8 +144,8 @@ mkfs.ocfs2 successful
 ----------------------------
 
 This will create an OCFS2 file system with two node slots on
-+/dev/drbd0+, and set the filesystem label to +ocfs2_drbd0+. You may
-specify other options on +mkfs+ invocation; please see the +mkfs.ocfs2+
+`/dev/drbd0`, and set the filesystem label to `ocfs2_drbd0`. You may
+specify other options on `mkfs` invocation; please see the `mkfs.ocfs2`
 system manual page for details.
 
 [[s-ocfs2-pacemaker]]
@@ -156,7 +156,7 @@ system manual page for details.
 
 An existing <<s-ocfs2-create-resource,Dual-Primary DRBD resource>>may
 be added to Pacemaker resource management with the following
-+crm+ configuration:
+`crm` configuration:
 
 [source,drbd]
 ----------------------------
@@ -166,9 +166,9 @@ ms ms_drbd_ocfs2 p_drbd_ocfs2 \
   meta master-max=2 clone-max=2 notify=true
 ----------------------------
 
-IMPORTANT: Note the +master-max=2+ meta variable; it enables
+IMPORTANT: Note the `master-max=2` meta variable; it enables
 dual-Master mode for a Pacemaker master/slave set. This requires that
-+allow-two-primaries+ is also set to +yes+ in the DRBD
+`allow-two-primaries` is also set to `yes` in the DRBD
 configuration. Otherwise, Pacemaker will flag a configuration error
 during resource validation.
 
@@ -178,18 +178,18 @@ during resource validation.
 In order to manage OCFS2 and the kernel Distributed Lock Manager
 (DLM), Pacemaker uses a total of three different resource agents:
 
-* +ocf:pacemaker:controld+ -- Pacemaker's interface to the DLM;
+* `ocf:pacemaker:controld` -- Pacemaker's interface to the DLM;
 
-* +ocf:ocfs2:o2cb+ -- Pacemaker's interface to OCFS2 cluster
+* `ocf:ocfs2:o2cb` -- Pacemaker's interface to OCFS2 cluster
   management;
 
-* +ocf:heartbeat:Filesystem+ -- the generic filesystem management
+* `ocf:heartbeat:Filesystem` -- the generic filesystem management
   resource agent which supports cluster file systems when configured
   as a Pacemaker clone.
 
 You may enable all nodes in a Pacemaker cluster for OCFS2 management
 by creating a _cloned group_ of resources, with the following
-+crm+ configuration:
+`crm` configuration:
 
 [source,drbd]
 ----------------------------
@@ -200,15 +200,15 @@ clone cl_ocfs2mgmt g_ocfs2mgmt meta interleave=true
 ----------------------------
 
 Once this configuration is committed, Pacemaker will start instances
-of the +controld+ and +o2cb+ resource types on all nodes in the cluster.
+of the `controld` and `o2cb` resource types on all nodes in the cluster.
 
 [[s-ocfs2-pacemaker-fs]]
 ==== Adding an OCFS2 filesystem to Pacemaker
 
 Pacemaker manages OCFS2 filesystems using the conventional
-+ocf:heartbeat:Filesystem+ resource agent, albeit in clone mode. To
+`ocf:heartbeat:Filesystem` resource agent, albeit in clone mode. To
 put an OCFS2 filesystem under Pacemaker management, use the following
-+crm+ configuration:
+`crm` configuration:
 
 [source,drbd]
 ----------------------------
@@ -246,7 +246,7 @@ always use the <<s-ocfs2-pacemaker,Pacemaker>> approach.
 [[s-ocfs2-create-cluster-conf]]
 ===== Creating the configuration file
 
-OCFS2 uses a central configuration file, +/etc/ocfs2/cluster.conf+.
+OCFS2 uses a central configuration file, `/etc/ocfs2/cluster.conf`.
 
 When creating your OCFS2 cluster, be sure to add both your hosts to
 the cluster configuration. The default port (7777) is usually an
@@ -255,10 +255,10 @@ choose any other port number, be sure to choose one that does not
 clash with an existing port used by DRBD (or any other configured
 TCP/IP).
 
-If you feel less than comfortable editing the +cluster.conf+ file
-directly, you may also use the +ocfs2console+ graphical configuration
+If you feel less than comfortable editing the `cluster.conf` file
+directly, you may also use the `ocfs2console` graphical configuration
 utility which is usually more convenient. Regardless of the approach
-you selected, your +/etc/ocfs2/cluster.conf+ file contents should look
+you selected, your `/etc/ocfs2/cluster.conf` file contents should look
 roughly like this:
 
 [source,drbd]
@@ -283,7 +283,7 @@ cluster:
 ----------------------------
 
 
-When you have configured you cluster configuration, use +scp+ to
+When you have configured you cluster configuration, use `scp` to
 distribute the configuration to both nodes in the cluster.
 
 [[s-configure-o2cb-driver]]
@@ -291,7 +291,7 @@ distribute the configuration to both nodes in the cluster.
 
 ====== SUSE Linux Enterprise systems
 
-On SLES, you may utilize the +configure+ option of the +o2cb+ init
+On SLES, you may utilize the `configure` option of the `o2cb` init
 script:
 
 ----------------------------
@@ -322,8 +322,8 @@ Starting O2CB cluster ocfs2: OK
 ----------------------------
 
 ====== .Debian GNU/Linux systems
-On Debian, the +configure+ option to +/etc/init.d/o2cb+ is not
-available. Instead, reconfigure the +ocfs2-tools+ package to enable the
+On Debian, the `configure` option to `/etc/init.d/o2cb` is not
+available. Instead, reconfigure the `ocfs2-tools` package to enable the
 driver:
 
 ----------------------------
@@ -362,7 +362,7 @@ system, you may mount it as any other file system:
 # mount -t ocfs2 /dev/drbd0 /shared
 ----------------------------
 
-Your kernel log (accessible by issuing the command +dmesg+) should
+Your kernel log (accessible by issuing the command `dmesg`) should
 then contain a line similar to this one:
 
 [source,drbd]

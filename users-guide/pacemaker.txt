@@ -46,10 +46,10 @@ In this section you will see that using autonomous DRBD storage can look
 like local storage; so integrating in a Pacemaker cluster is done by 
 pointing your mount points at DRBD.
 
-First of all, we will use the +auto-promote+ feature of DRBD, so that 
-DRBD automatically sets itself +primary+ when needed. This will probably 
+First of all, we will use the `auto-promote` feature of DRBD, so that 
+DRBD automatically sets itself _Primary_ when needed. This will probably 
 apply to all of your resources, so setting that a default in the 
-+common+ section makes sense:
+`common` section makes sense:
 
 [source,drbd]
 ----------------------------
@@ -63,7 +63,7 @@ common {
 
 Now you just need to use your storage, eg. via a filesystem:
 
-.Pacemaker configuration for DRBD-backed MySQL service, using +auto-promote+
+.Pacemaker configuration for DRBD-backed MySQL service, using `auto-promote`
 ----------------------------
 crm configure
 crm(live)configure# primitive fs_mysql ocf:heartbeat:Filesystem \
@@ -78,7 +78,7 @@ crm(live)configure# exit
 bye
 ----------------------------
 
-Essentially all that is needed is a mountpoint (+/var/lib/mysql+ in this 
+Essentially all that is needed is a mountpoint (`/var/lib/mysql` in this 
 example) where the DRBD resource gets mounted.
 
 As long as Pacemaker has control, it will only allow a single instance 
@@ -100,30 +100,30 @@ should disable the DRBD init script:
 chkconfig drbd off
 ----------------------------
 
-The +ocf:linbit:drbd+ OCF resource agent provides Master/Slave
+The `ocf:linbit:drbd` OCF resource agent provides Master/Slave
 capability, allowing Pacemaker to start and monitor the DRBD resource
 on multiple nodes and promoting and demoting as needed. You must,
-however, understand that the +drbd+ RA disconnects and detaches all
+however, understand that the DRBD RA disconnects and detaches all
 DRBD resources it manages on Pacemaker shutdown, and also upon
 enabling standby mode for a node.
 
 
 IMPORTANT: The OCF resource agent which ships with DRBD belongs to the
-+linbit+ provider, and hence installs as
-+/usr/lib/ocf/resource.d/linbit/drbd+. There is a legacy resource
+`linbit` provider, and hence installs as
+`/usr/lib/ocf/resource.d/linbit/drbd`. There is a legacy resource
 agent that ships as part of the OCF resource agents package, which
-uses the +heartbeat+ provider and installs into
-+/usr/lib/ocf/resource.d/heartbeat/drbd+. The legacy OCF RA is
+uses the `heartbeat` provider and installs into
+`/usr/lib/ocf/resource.d/heartbeat/drbd`. The legacy OCF RA is
 deprecated and should no longer be used.
 
 In order to enable a DRBD-backed configuration for a MySQL database in
-a Pacemaker CRM cluster with the +drbd+ OCF resource agent, you must
+a Pacemaker CRM cluster with the `drbd` OCF resource agent, you must
 create both the necessary resources, and Pacemaker constraints to
 ensure your service only starts on a previously promoted DRBD
-resource. You may do so using the +crm+ shell, as outlined in the
+resource. You may do so using the `crm` shell, as outlined in the
 following example:
 
-.Pacemaker configuration for DRBD-backed MySQL service, using a +master-slave+ resource
+.Pacemaker configuration for DRBD-backed MySQL service, using a `master-slave` resource
 ----------------------------
 crm configure
 crm(live)configure# primitive drbd_mysql ocf:linbit:drbd \
@@ -158,7 +158,7 @@ the DRBD-backed resource group on that same node.
 === Using resource-level fencing in Pacemaker clusters
 
 This section outlines the steps necessary to prevent Pacemaker from
-promoting a +drbd+ Master/Slave resource when its DRBD replication link
+promoting a DRBD Master/Slave resource when its DRBD replication link
 has been interrupted. This keeps Pacemaker from starting a service
 with outdated data and causing an unwanted "time warp" in the
 process.
@@ -176,7 +176,7 @@ resource <resource> {
 }
 ----------------------------
 
-You will also have to make changes to the +handlers+ section depending
+You will also have to make changes to the `handlers` section depending
 on the cluster infrastructure being used:
 
 * Heartbeat-based Pacemaker clusters can employ the configuration
@@ -187,23 +187,23 @@ on the cluster infrastructure being used:
 IMPORTANT: It is absolutely vital to configure at least two
 independent cluster communications channels for this functionality to
 work correctly. Heartbeat-based Pacemaker clusters should define at
-least two cluster communication links in their +ha.cf+ configuration
+least two cluster communication links in their `ha.cf` configuration
 files. Corosync clusters should list at least two redundant rings in
-+corosync.conf+.
+`corosync.conf`.
 
 [[s-pacemaker-fencing-dopd]]
-==== Resource-level fencing with +dopd+
+==== Resource-level fencing with `dopd`
 
 indexterm:[dopd]In Heartbeat-based Pacemaker clusters, DRBD can
 use a resources-level fencing facility named the _DRBD outdate-peer
-daemon_, or +dopd+ for short.
+daemon_, or `dopd` for short.
 
 
 [[s-dopd-heartbeat-config]]
-===== Heartbeat configuration for +dopd+
+===== Heartbeat configuration for `dopd`
 
 To enable dopd, you must add these lines to your indexterm:[ha.cf
-(Heartbeat configuration file)]+/etc/ha.d/ha.cf+ file:
+(Heartbeat configuration file)]`/etc/ha.d/ha.cf` file:
 
 [source,drbd]
 ----------------------------
@@ -211,14 +211,14 @@ respawn hacluster /usr/lib/heartbeat/dopd
 apiauth dopd gid=haclient uid=hacluster
 ----------------------------
 
-You may have to adjust +dopd+'s path according to your preferred
+You may have to adjust ``dopd``'s path according to your preferred
 distribution. On some distributions and architectures, the correct
-path is +/usr/lib64/heartbeat/dopd+.
+path is `/usr/lib64/heartbeat/dopd`.
 
-After you have made this change and copied +ha.cf+ to the peer node,
+After you have made this change and copied `ha.cf` to the peer node,
 put Pacemaker in maintenance mode and run `/etc/init.d/heartbeat
 reload` to have Heartbeat re-read its configuration file. Afterwards,
-you should be able to verify that you now have a running +dopd+
+you should be able to verify that you now have a running `dopd`
 process.
 
 NOTE: You can check for this process either by running `ps ax | grep
@@ -226,9 +226,9 @@ dopd` or by issuing `killall -0 dopd`.
 
 
 [[s-dopd-drbd-config]]
-===== DRBD Configuration for +dopd+
+===== DRBD Configuration for `dopd`
 
-Once +dopd+ is running, add these items to your DRBD resource
+Once `dopd` is running, add these items to your DRBD resource
 configuration:
 
 [source,drbd]
@@ -246,51 +246,51 @@ resource <resource> {
 }
 ----------------------------
 
-As with +dopd+, your distribution may place the +drbd-peer-outdater+
-binary in +/usr/lib64/heartbeat+ depending on your system
+As with `dopd`, your distribution may place the `drbd-peer-outdater`
+binary in `/usr/lib64/heartbeat` depending on your system
 architecture.
 
-Finally, copy your +drbd.conf+ to the peer node and issue `drbdadm
+Finally, copy your `drbd.conf` to the peer node and issue `drbdadm
 adjust resource` to reconfigure your resource and reflect your
 changes.
 
 [[s-dopd-test]]
-===== Testing +dopd+ functionality
+===== Testing `dopd` functionality
 
-To test whether your +dopd+ setup is working correctly, interrupt the
+To test whether your `dopd` setup is working correctly, interrupt the
 replication link of a configured and connected resource while
 Heartbeat services are running normally. You may do so simply by
 physically unplugging the network link, but that is fairly
-invasive. Instead, you may insert a temporary +iptables+ rule to drop
+invasive. Instead, you may insert a temporary `iptables` rule to drop
 incoming DRBD traffic to the TCP port used by your resource.
 
 After this, you will be able to observe the resource
 <<s-connection-states,connection state>> change from
 indexterm:[connection state]indexterm:[Connected (connection state)]
-+Connected+ to indexterm:[connection state]indexterm:[WFConnection
-(connection state)]+WFConnection+. Allow a few seconds to pass, and
+_Connected_ to indexterm:[connection state]indexterm:[WFConnection
+(connection state)]_WFConnection_. Allow a few seconds to pass, and
 you should see the <<s-disk-states,disk state>>become indexterm:[disk
-state]indexterm:[Outdated (disk state)]+Outdated/DUnknown+. That is
-what +dopd+ is responsible for.
+state]indexterm:[Outdated (disk state)]_Outdated/DUnknown_. That is
+what `dopd` is responsible for.
 
 Any attempt to switch the outdated resource to the primary role will
 fail after this.
 
 When re-instituting network connectivity (either by plugging the
-physical link or by removing the temporary +iptables+ rule you inserted
-previously), the connection state will change to +Connected+, and then
-promptly to +SyncTarget+ (assuming changes occurred on the primary node
+physical link or by removing the temporary `iptables` rule you inserted
+previously), the connection state will change to _Connected_, and then
+promptly to _SyncTarget_ (assuming changes occurred on the primary node
 during the network interruption). Then you will be able to observe a
 brief synchronization period, and finally, the previously outdated
 resource will be marked as indexterm:[disk state]indexterm:[UpToDate
-(disk state)]+UpToDate+ again.
+(disk state)]_UpToDate_ again.
 
 
 [[s-pacemaker-fencing-cib]]
 ==== Resource-level fencing using the Cluster Information Base (CIB)
 
 In order to enable resource-level fencing for Pacemaker, you will have
-to set two options in +drbd.conf+:
+to set two options in `drbd.conf`:
 
 [source,drbd]
 ----------------------------
@@ -309,7 +309,7 @@ resource <resource> {
 ----------------------------
 
 Thus, if the DRBD replication link becomes disconnected, the
-+crm-fence-peer.sh+ script contacts the cluster manager, determines the
+`crm-fence-peer.sh` script contacts the cluster manager, determines the
 Pacemaker Master/Slave resource associated with this DRBD resource,
 and ensures that the Master/Slave resource no longer gets promoted on
 any node other than the currently active one. Conversely, when the
@@ -343,8 +343,8 @@ illustration to describe the concept.
 .DRBD resource stacking in Pacemaker clusters
 image::drbd-resource-stacking-pacemaker-3nodes[scaledwidth="100%"]
 
-In this example, +alice+ and +bob+ form a two-node Pacemaker cluster,
-whereas +charlie+ is an off-site node not managed by Pacemaker.
+In this example, 'alice' and 'bob' form a two-node Pacemaker cluster,
+whereas 'charlie' is an off-site node not managed by Pacemaker.
 
 To create such a configuration, you would first configure and
 initialize DRBD resources as described in <<s-three-nodes>>. Then,
@@ -388,7 +388,7 @@ order o_drbd_r0_before_r0-U \
 ----------------------------
 
 Assuming you created this configuration in a temporary file named
-+/tmp/crm.txt+, you may import it into the live cluster configuration
+`/tmp/crm.txt`, you may import it into the live cluster configuration
 with the following command:
 
 ----------------------------
@@ -396,22 +396,23 @@ crm configure < /tmp/crm.txt
 ----------------------------
 
 This configuration will ensure that the following actions occur in the
-correct order on the +alice+/ +bob+ cluster:
+correct order on the 'alice'/'bob' cluster:
 
-. Pacemaker starts the DRBD resource +r0+ on both cluster nodes, and
+if self.dbustracer_running:
+. Pacemaker starts the DRBD resource `r0` on both cluster nodes, and
   promotes one node to the Master (DRBD Primary) role.
 
 . Pacemaker then starts the IP address 192.168.42.1, which the stacked
   resource is to use for replication to the third node. It does so on
-  the node it has previously promoted to the Master role for +r0+ DRBD
+  the node it has previously promoted to the Master role for `r0` DRBD
   resource.
 
-. On the node which now has the Primary role for +r0+ and also the
-  replication IP address for +r0-U+, Pacemaker now starts the
-  +r0-U+ DRBD resource, which connects and replicates to the off-site
+. On the node which now has the Primary role for `r0` and also the
+  replication IP address for `r0-U`, Pacemaker now starts the
+  `r0-U` DRBD resource, which connects and replicates to the off-site
   node.
 
-. Pacemaker then promotes the +r0-U+ resource to the Primary role too,
+. Pacemaker then promotes the `r0-U` resource to the Primary role too,
   so it can be used by an application.
 
 Thus, this Pacemaker configuration ensures that there is not only full
@@ -434,11 +435,11 @@ Consider the following illustration to explain the concept.
 .DRBD resource stacking in Pacemaker clusters
 image::drbd-resource-stacking-pacemaker-4nodes[scaledwidth="100%"]
 
-In this example, +alice+, +bob+, +charlie+, and +daisy+ form two
-two-node Pacemaker clusters. +alice+ and +bob+ form the cluster named
-+left+ and replicate data using a DRBD resource between them, while
-+charlie+ and +daisy+ do the same with a separate DRBD resource, in a
-cluster named +right+. A third, stacked DRBD resource connects the two
+In this example, 'alice', 'bob', 'charlie', and 'daisy' form two
+two-node Pacemaker clusters. 'alice' and 'bob' form the cluster named
+`left` and replicate data using a DRBD resource between them, while
+'charlie' and 'daisy' do the same with a separate DRBD resource, in a
+cluster named `right`. A third, stacked DRBD resource connects the two
 clusters.
 
 NOTE: Due to limitations in the Pacemaker cluster manager as of
@@ -451,7 +452,7 @@ To create such a configuration, you would first configure and
 initialize DRBD resources as described in <<s-three-nodes>> (except
 that the remote half of the DRBD configuration is also stacked, not
 just the local cluster). Then, configure Pacemaker with the following
-CRM configuration, starting with the cluster +left+:
+CRM configuration, starting with the cluster `left`:
 
 [source,drbd]
 ----------------------------
@@ -489,7 +490,7 @@ order o_drbd_left_before_stacked_left \
 ----------------------------
 
 Assuming you created this configuration in a temporary file named
-+/tmp/crm.txt+, you may import it into the live cluster configuration
+`/tmp/crm.txt`, you may import it into the live cluster configuration
 with the following command:
 
 ----------------------------
@@ -499,19 +500,19 @@ crm configure < /tmp/crm.txt
 After adding this configuration to the CIB, Pacemaker will execute the
 following actions:
 
-. Bring up the DRBD resource +left+ replicating between +alice+ and
-  +bob+ promoting the resource to the Master role on one of these nodes.
+. Bring up the DRBD resource `left` replicating between 'alice' and
+  'bob' promoting the resource to the Master role on one of these nodes.
 
-. Bring up the IP address 10.9.9.100 (on either +alice+ or +bob+,
+. Bring up the IP address 10.9.9.100 (on either 'alice' or 'bob',
   depending on which of these holds the Master role for the resource
-  +left+).
+  `left`).
 
-. Bring up the DRBD resource +stacked+ on the same node that holds the
+. Bring up the DRBD resource `stacked` on the same node that holds the
   just-configured IP address.
 
 . Promote the stacked DRBD resource to the Primary role.
 
-Now, proceed on the cluster +right+ by creating the following
+Now, proceed on the cluster `right` by creating the following
 configuration:
 
 [source,drbd]
@@ -551,19 +552,19 @@ order o_drbd_right_before_stacked_right \
 After adding this configuration to the CIB, Pacemaker will execute the
 following actions:
 
-. Bring up the DRBD resource +right+ replicating between +charlie+ and
-  +daisy+, promoting the resource to the Master role on one of these
+. Bring up the DRBD resource `right` replicating between 'charlie' and
+  'daisy', promoting the resource to the Master role on one of these
   nodes.
 
-. Bring up the IP address 10.9.10.101 (on either +charlie+ or +daisy+,
+. Bring up the IP address 10.9.10.101 (on either 'charlie' or 'daisy',
   depending on which of these holds the Master role for the resource
-  +right+).
+  `right`).
 
-. Bring up the DRBD resource +stacked+ on the same node that holds the
+. Bring up the DRBD resource `stacked` on the same node that holds the
   just-configured IP address.
 
 . Leave the stacked DRBD resource in the Secondary role (due to
-  +target-role="Slave"+).
+  `target-role="Slave"`).
 
 
 [[s-pacemaker-floating-peers]]
@@ -597,7 +598,7 @@ testing STONITH is absolutely vital for it to work properly.
 [[s-pacemaker-floating-peers-drbd-config]]
 ==== DRBD resource configuration
 
-To enable your DRBD resource to float, configure it in +drbd.conf+ in
+To enable your DRBD resource to float, configure it in `drbd.conf` in
 the following fashion:
 
 [source,drbd]
@@ -612,7 +613,7 @@ resource <resource> {
 }
 ----------------------------
 
-The +floating+ keyword replaces the +on <host>+ sections normally
+The `floating` keyword replaces the `on <host>` sections normally
 found in the resource configuration. In this mode, DRBD identifies
 peers by IP address and TCP port, rather than by host name. It is
 important to note that the addresses specified must be virtual cluster
@@ -637,9 +638,9 @@ involved):
 * Pacemaker constraints ensuring that resources are started on the
   correct nodes, and in the correct order.
 
-To configure a resource named +mysql+ in a floating peers
+To configure a resource named `mysql` in a floating peers
 configuration in a 2-node cluster, using the replication address
-+10.9.9.100+, configure Pacemaker with the following +crm+ commands:
+`10.9.9.100`, configure Pacemaker with the following `crm` commands:
 
 ----------------------------
 crm configure
@@ -662,7 +663,7 @@ bye
 After adding this configuration to the CIB, Pacemaker will execute the
 following actions:
 
-. Bring up the IP address 10.9.9.100 (on either +alice+ or +bob+).
+. Bring up the IP address 10.9.9.100 (on either 'alice' or 'bob').
 . Bring up the DRBD resource according to the IP address configured.
 . Promote the DRBD resource to the Primary role.
 
@@ -691,11 +692,11 @@ bye
 After adding this configuration to the CIB, Pacemaker will execute the
 following actions:
 
-. Bring up the IP address 10.9.10.101 (on either +charlie+ or
-  +daisy+).
+. Bring up the IP address 10.9.10.101 (on either 'charlie' or
+  'daisy').
 . Bring up the DRBD resource according to the IP address configured.
 . Leave the DRBD resource in the Secondary role (due to
-  +target-role="Slave"+).
+  `target-role="Slave"`).
 
 
 [[s-pacemaker-floating-peers-site-fail-over]]
@@ -707,14 +708,14 @@ transition, or of a disastrous event. In case the transition is a
 normal, anticipated event, the recommended course of action is this:
 
 * Connect to the cluster on the site about to relinquish resources,
-  and change the affected DRBD resource's +target-role+ attribute from
-  +Master+ to +Slave+. This will shut down any resources depending on
+  and change the affected DRBD resource's `target-role` attribute from
+  `Master` to `Slave`. This will shut down any resources depending on
   the Primary role of the DRBD resource, demote it, and continue to
   run, ready to receive updates from a new Primary.
 
 * Connect to the cluster on the site about to take over resources, and
-  change the affected DRBD resource's +target-role+ attribute from
-  +Slave+ to +Master+. This will promote the DRBD resources, start any
+  change the affected DRBD resource's `target-role` attribute from
+  `Slave` to `Master`. This will promote the DRBD resources, start any
   other Pacemaker resources depending on the Primary role of the DRBD
   resource, and replicate updates to the remote site.
 
@@ -725,8 +726,8 @@ be expected that the site is off line and no longer replicated to the
 backup site. In such an event:
 
 * Connect to the cluster on the still-functioning site resources, and
-  change the affected DRBD resource's +target-role+ attribute from
-  +Slave+ to +Master+. This will promote the DRBD resources, and start
+  change the affected DRBD resource's `target-role` attribute from
+  `Slave` to `Master`. This will promote the DRBD resources, and start
   any other Pacemaker resources depending on the Primary role of the
   DRBD resource.
 
