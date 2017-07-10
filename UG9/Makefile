@@ -3,8 +3,8 @@ OUTDIR=output
 OUTDIRPDF=$(OUTDIR)-pdf
 OUTDIRHTML=$(OUTDIR)-html
 OUTDIRHTMLIMAGES=$(OUTDIRHTML)/images
-OUTDIRPDFFINAL=$(OUTDIRPDF)-final
-OUTDIRHTMLFINAL=$(OUTDIRHTML)-final
+OUTDIRPDFFINAL=$(OUTDIRPDF)-finalize
+OUTDIRHTMLFINAL=$(OUTDIRHTML)-finalize
 IMGDIR=../images
 OUTHTML=$(addsuffix .html,$(basename $(IN)))
 OUTPDF=$(addsuffix .pdf,$(basename $(IN)))
@@ -31,7 +31,7 @@ $(OUTDIRHTML)/%.adoc: %.adoc
 	sed -i 's/\(^image::.*\)\.svg\(.*\)/\1.png\2/g' $@
 
 $(OUTDIRHTML)/$(OUTHTML): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGS) $(OUTADOCS)
-	asciidoctor -n -d book -a toc=left -o ./$(OUTDIRHTML)/$(OUTHTML) $(OUTDIRHTML)/$(IN)
+	asciidoctor -n -d book -a toc=left -a linkcss -o ./$(OUTDIRHTML)/$(OUTHTML) $(OUTDIRHTML)/$(IN)
 
 html: $(OUTDIRHTML)/$(OUTHTML)
 	@echo "Generated web page in $$(pwd)/$(OUTDIRHTML)"
