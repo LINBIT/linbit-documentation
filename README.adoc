@@ -1,0 +1,66 @@
+= Using the LINBIT Documentation Framework
+
+== Build dependencies
+If you have `docker`, execute `build_docker_image.sh`, which will generate a "linbit-documentation" base
+image containing all the dependencies for generating html and pdf outputs.
+
+Otherwise you will need `GNU make` and you have to install the following dependencies:
+
+=== HTML targets
+- asciidoctor
+- inkscape
+
+=== PDF targets
+- https://github.com/asciidoctor/asciidoctor-pdf[asciidoctor-pdf]
+
+== Makefile interface/API for projects
+Projects are organized in sub directories, for example the users guide for DRBD 9 is in `UG9`. The top level
+`Makefile` contains html and pdf targets for these (e.g., `make UG9-pdf`). The final output is generated in
+`$project/output-$format-finalize` (e.g. `UG9/output-pdf-finalize`).
+
+Every project needs a *proper* `Makefile` that has the following targets:
+
+- `pdf`
+- `pdf-finalize`
+- `html`
+- `html-finalize`
+
+If a project only generates pdf output, implement the html targets as empty.
+
+=== pdf and html targets
+These generate their output to `output-$format`. It is perfectly fine that these directories contain temporary
+files like symlinks. As already written, we want propper ``Makefile``s, so if the source does not change
+re-executing these targets should only process files that changed.
+
+Sub-projects do not require "docker" targets, it is up to the user, but it is simple. At the top level
+execute:
+
+--------------------
+docker run -it --rm -v $(pwd):/home/makedoc/linbit-documentation linbit-documentation /bin/sh
+--------------------
+
+Then `cd` to the directory and execute `make` as usual.
+
+=== pdf-finalize and html-finalize targets
+These generate their output to `output-$format-finalize`. This is the *final* output. The one that is
+published to a web page/sent to a web developer. For example this generates tar-balls for `UG9` that can be
+sent to someone who puts it on the web page.
+
+It is usually the final target that is executed after multiple iterations of `make pdf`/`make html` and it is
+fine if that target alters the content of `output-$format` to generate `output-$format-finalize`. If possible
+it should not, but it is not a strict requirement.
+
+[[work-public]]
+== Working on a public project
+- `cd` to the project (e.g, `cd UG-9`)
+- modify sources accordingly
+- `make pdf` or `make html`
+
+Output is generated in `output-$format`. These directories (in contrast to `output-$format-finalze`) can
+contain temporary files (symlinks, processed adoc files,...). When you are satisfied, `make $format-finalize`,
+to generate the final output in `output-$format-finalize`.
+
+== Working on a private project
+- make sure you are at the top-level of the framework (`linbit-documentation`)
+- `git clone` the private project
+- follow <<work-public>>
