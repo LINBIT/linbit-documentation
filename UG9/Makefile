@@ -27,8 +27,7 @@ $(OUTDIRHTMLIMAGES)/%.png: $(IMGDIR)/%.svg
 	inkscape --file=$< --export-dpi=90 --export-area-drawing --export-png=./$@
 
 $(OUTDIRHTML)/%.adoc: %.adoc
-	cp $< $@
-	sed -i 's/\(^image::.*\)\.svg\(.*\)/\1.png\2/g' $@
+	sed 's/\(^image::.*\)\.svg\(.*\)/\1.png\2/g' $< > $@
 
 $(OUTDIRHTML)/$(OUTHTML): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGS) $(OUTADOCS)
 	asciidoctor -n -d book -a toc=left -a linkcss -o ./$(OUTDIRHTML)/$(OUTHTML) $(OUTDIRHTML)/$(IN)
