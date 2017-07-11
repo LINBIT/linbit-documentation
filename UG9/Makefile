@@ -6,6 +6,7 @@ OUTDIRHTMLIMAGES=$(OUTDIRHTML)/images
 OUTDIRPDFFINAL=$(OUTDIRPDF)-finalize
 OUTDIRHTMLFINAL=$(OUTDIRHTML)-finalize
 IMGDIR=../images
+FONTDIR=../linbit-fonts
 OUTHTML=$(addsuffix .html,$(basename $(IN)))
 OUTPDF=$(addsuffix .pdf,$(basename $(IN)))
 
@@ -46,7 +47,9 @@ html-finalize: html
 	ln -s $(IMGDIR)
 
 $(OUTDIRPDF)/$(OUTPDF): $(SRC)
-	asciidoctor-pdf -a pdf-style=../stylesheets/pdf-style.yml -d book -a pdf-fontsdir=../fonts -o $@ $(IN)
+	if [ -d $(FONTDIR) ]; then INTERN="-a pdf-style=../stylesheets/pdf-style.yml -a pdf-fontsdir=$(FONTDIR)"; else \
+		INTERN=""; fi && \
+	asciidoctor-pdf -d book $$INTERN -o $@ $(IN)
 
 pdf: ./images $(OUTDIRPDF)/$(OUTPDF)
 	@echo "Generated $$(pwd)/$(OUTDIRPDF)/$(OUTPDF)"
