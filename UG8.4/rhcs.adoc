@@ -1,0 +1,201 @@
+[[ch-rhcs]]
+== Integrating DRBD with Red Hat Cluster
+
+indexterm:[Red Hat Cluster]This chapter describes using DRBD as
+replicated storage for Red Hat Cluster high availability
+clusters.
+
+NOTE: This guide uses the unofficial term _Red Hat Cluster_ to refer
+to a product that has had multiple official product names over its
+history, including _Red Hat Cluster Suite_ and _Red Hat Enterprise
+Linux High Availability Add-On_.
+
+[[s-rhcs-primer]]
+=== Red Hat Cluster background information
+
+[[s-rhcs-fencing]]
+==== Fencing
+
+Red Hat Cluster, originally designed primarily for shared
+storage clusters, relies on node fencing to prevent concurrent,
+uncoordinated access to shared resources. The Red Hat Cluster
+fencing infrastructure relies on the fencing daemon `fenced`, and
+fencing agents implemented as shell scripts.
+
+Even though DRBD-based clusters utilize no shared storage resources
+and thus fencing is not strictly required from DRBD's standpoint, Red
+Hat Cluster Suite still requires fencing even in DRBD-based
+configurations.
+
+[[s-rhcs-rgmanager]]
+==== The Resource Group Manager
+
+The resource group manager ( `rgmanager`, alternatively `clurgmgr`) is
+akin to Pacemaker. It serves as the cluster management suite's primary
+interface with the applications it is configured to manage.
+
+[[s-rhcs-resources]]
+===== Red Hat Cluster resources
+
+indexterm:[Red Hat Cluster]A single highly available
+application, filesystem, IP address and the like is referred to as a
+_resource_ in Red Hat Cluster terminology.
+
+Where resources depend on each other -- such as, for example, an NFS
+export depending on a filesystem being mounted -- they form a
+_resource tree_, a form of nesting resources inside another. Resources
+in inner levels of nesting may inherit parameters from resources in
+outer nesting levels. The concept of resource trees is absent in
+Pacemaker.
+
+[[s-rhcs-services]]
+===== Red Hat Cluster services
+
+indexterm:[Red Hat Cluster]Where resources form a co-dependent
+collection, that collection is called a _service_. This is different
+from Pacemaker, where such a collection is referred to as a _resource
+group_.
+
+[[s-rhcs-resource-agents]]
+===== rgmanager resource agents
+
+The resource agents invoked by `rgmanager` are similar to those used by
+Pacemaker, in the sense that they utilize the same shell-based
+API as defined in the Open Cluster Framework (OCF), although Pacemaker
+utilizes some extensions not defined in the framework. Thus in theory,
+the resource agents are largely interchangeable between Red Hat
+Cluster Suite and Pacemaker -- in practice however, the two cluster
+management suites use different resource agents even for similar or
+identical tasks.
+
+Red Hat Cluster resource agents install into the `/usr/share/cluster`
+directory. Unlike Pacemaker OCF resource agents which are by
+convention self-contained, some Red Hat Cluster resource agents are
+split into a `.sh` file containing the actual shell code, and a
+`.metadata` file containing XML resource agent metadata.
+
+DRBD includes a Red Hat Cluster resource agent. It installs into the
+customary directory as `drbd.sh` and `drbd.metadata`.
+
+[[s-rhcs-config]]
+=== Red Hat Cluster configuration
+
+This section outlines the configuration steps necessary to get Red Hat
+Cluster running. Preparing your cluster configuration is fairly
+straightforward; all a DRBD-based Red Hat Cluster requires are two
+participating nodes (referred to as _Cluster Members_ in Red Hat's
+documentation) and a fencing device.
+
+NOTE: For more information about configuring Red Hat clusters, see
+http://www.redhat.com/docs/manuals/csgfs/[Red Hat's documentation on
+the Red Hat Cluster and GFS.]
+
+
+[[s-rhcs-cluster-conf]]
+==== The `cluster.conf` file
+
+RHEL clusters keep their configuration in a single configuration file,
+indexterm:[Red Hat Cluster]indexterm:[cluster.conf (Red Hat Cluster
+configuration file)]`/etc/cluster/cluster.conf`. You may manage your
+cluster configuration in the following ways:
+
+.Editing the configuration file directly
+This is the most straightforward method. It has no prerequisites other
+than having a text editor available.
+
+.Using the `system-config-cluster` GUI
+This is a GUI application written in Python using Glade. It requires
+the availability of an X display (either directly on a server console,
+or tunneled via SSH).
+
+.Using the Conga web-based management infrastructure
+The Conga infrastructure consists of a node agent ( `ricci`)
+communicating with the local cluster manager, cluster resource
+manager, and cluster LVM daemon, and an administration web application
+( `luci`) which may be used to configure the cluster infrastructure
+using a simple web browser.
+
+
+[[s-rhcs-failover-clusters]]
+=== Using DRBD in Red Hat Cluster fail-over clusters
+
+NOTE: This section deals exclusively with setting up DRBD for Red Hat
+Cluster fail over clusters not involving GFS. For GFS (and GFS2)
+configurations, please see <<ch-gfs>>.
+
+This section, like <<ch-pacemaker>>, assumes you are about to
+configure a highly available MySQL database with the following
+configuration parameters:
+
+* The DRBD resources to be used as your database storage area is named
+  `mysql`, and it manages the device `/dev/drbd0`.
+
+* The DRBD device holds an ext3 filesystem which is to be mounted to
+  `/var/lib/mysql` (the default MySQL data directory).
+
+* The MySQL database is to utilize that filesystem, and listen on a
+  dedicated cluster IP address, 192.168.42.1.
+
+
+[[s-rhcs-example-cluster-conf]]
+==== Setting up your cluster configuration
+
+To configure your highly available MySQL database, create or modify
+your `/etc/cluster/cluster.conf` file to contain the following
+configuration items.
+
+To do that, open `/etc/cluster/cluster.conf` with your preferred text
+editing application. Then, include the following items in your
+resource configuration:
+
+[source,xml]
+----------------------------
+<rm>
+  <resources />
+  <service autostart="1" name="mysql">
+    <drbd name="drbd-mysql" resource="mysql">
+      <fs device="/dev/drbd/by-res/mysql/0"
+          mountpoint="/var/lib/mysql"
+          fstype="ext3"
+          name="mysql"
+          options="noatime"/>
+    </drbd>
+    <ip address="10.9.9.180" monitor_link="1"/>
+    <mysql config_file="/etc/my.cnf"
+           listen_address="10.9.9.180"
+           name="mysqld"/>
+  </service>
+</rm>
+----------------------------
+
+NOTE: This example assumes a single-volume resource.
+
+Nesting resource references inside one another in `<service/>` is the
+Red Hat Cluster way of expressing resource dependencies.
+
+Be sure to increment the `config_version` attribute, found on the root
+`<cluster>` element, after you have completed your
+configuration. Then, issue the following commands to commit your
+changes to the running cluster configuration:
+
+----------------------------
+ccs_tool update /etc/cluster/cluster.conf
+cman_tool version -r <version>
+----------------------------
+
+In the second command, be sure to replace _<version>_ with the new
+cluster configuration version number.
+
+NOTE: Both the `system-config-cluster` GUI configuration utility and
+the Conga web based cluster management infrastructure will complain
+about your cluster configuration after including the `drbd` resource
+agent in your `cluster.conf` file. This is due to the design of the
+Python cluster management wrappers provided by these two applications
+which does not expect third party extensions to the cluster
+infrastructure.
+
+Thus, when you utilize the `drbd` resource agent in cluster
+configurations, it is not recommended to utilize
+`system-config-cluster` nor Conga for cluster configuration
+purposes. Using either of these tools to only monitor the cluster's
+status, however, is expected to work fine.
