@@ -40,7 +40,7 @@ html: $(OUTDIRHTML)/$(OUTHTML)
 html-finalize: html
 	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL)
 	rm -f $(OUTADOCS) $(OUTDIRHTML)/*.css
-	tar -czvf $(OUTDIRHTMLFINAL)/UG9-$$(date +%F).tar.gz $(OUTDIRHTML)
+	tar -czvf $(OUTDIRHTMLFINAL)/$$(basename $$PWD)-$$(date +%F).tar.gz $(OUTDIRHTML)
 
 # PDF
 ./images: $(IMAGEDIR)
