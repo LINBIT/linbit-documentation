@@ -38,7 +38,7 @@ html: $(OUTDIRHTML)/$(OUTHTML)
 	@echo "execute 'make html-finalize' to prepare upload"
 
 html-finalize: html
-	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL)
+	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL) && touch $(OUTDIRHTMLFINAL)/.empty
 	rm -f $(OUTADOCS) $(OUTDIRHTML)/*.css
 	tar -czvf $(OUTDIRHTMLFINAL)/$$(basename $$PWD)-$$(date +%F).tar.gz $(OUTDIRHTML)
 
@@ -46,7 +46,7 @@ html-finalize: html
 ./images: $(IMAGEDIR)
 	ln -s $(IMGDIR)
 
-$(OUTDIRPDF)/$(OUTPDF): $(SRC)
+$(OUTDIRPDF)/$(OUTPDF): $(SRC) $(SVGSUSED)
 	if [ -d $(FONTDIR) ]; then INTERN="-a pdf-style=../stylesheets/pdf-style.yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
 	asciidoctor-pdf -d book $$INTERN -o $@ $(IN)
@@ -55,7 +55,7 @@ pdf: ./images $(OUTDIRPDF)/$(OUTPDF)
 	@echo "Generated $$(pwd)/$(OUTDIRPDF)/$(OUTPDF)"
 
 pdf-finalize: pdf
-	rm -rf $(OUTDIRPDFFINAL) && mkdir $(OUTDIRPDFFINAL)
+	rm -rf $(OUTDIRPDFFINAL) && mkdir $(OUTDIRPDFFINAL) && touch $(OUTDIRPDFFINAL)/.empty
 	cp $(OUTDIRPDF)/*.pdf $(OUTDIRPDFFINAL)
 
 clean:
