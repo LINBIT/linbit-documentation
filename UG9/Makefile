@@ -8,6 +8,7 @@ OUTDIRHTMLFINAL=$(OUTDIRHTML)-finalize
 IMGDIR=../images
 FONTDIR=../linbit-fonts
 OUTHTML=$(addsuffix .html,$(basename $(IN)))
+OUTHTMLWEBDEVS=drbd-users-guide-without-css.html
 OUTPDF=$(addsuffix .pdf,$(basename $(IN)))
 
 SRC=$(wildcard *.adoc)
@@ -39,7 +40,7 @@ html: $(OUTDIRHTML)/$(OUTHTML)
 
 html-finalize: html
 	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL) && touch $(OUTDIRHTMLFINAL)/.empty
-	rm -f $(OUTADOCS) $(OUTDIRHTML)/*.css
+	mv $(OUTDIRHTML)/$(OUTHTML) $(OUTDIRHTML)/$(OUTHTMLWEBDEVS)
 	tar -czvf $(OUTDIRHTMLFINAL)/$$(basename $$PWD)-$$(date +%F).tar.gz $(OUTDIRHTML)
 
 # PDF
