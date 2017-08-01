@@ -57,7 +57,10 @@ pdf: ./images $(OUTDIRPDF)/$(OUTPDF)
 
 pdf-finalize: pdf
 	rm -rf $(OUTDIRPDFFINAL) && mkdir $(OUTDIRPDFFINAL) && touch $(OUTDIRPDFFINAL)/.empty
-	cp $(OUTDIRPDF)/*.pdf $(OUTDIRPDFFINAL)
+	cp $(OUTDIRPDF)/*.pdf $(OUTDIRPDFFINAL) && \
+		D=$$(basename $$PWD)-$$(date +%F) && \
+		cd $(OUTDIRPDFFINAL) && \
+		mv $(OUTPDF) $${D}.pdf
 
 clean:
 	rm -rf $(OUTDIRHTML)/* $(OUTDIRHTMLFINAL)/* $(OUTDIRPDF)/* $(OUTDIRPDFFINAL)/*
