@@ -41,6 +41,7 @@ html: $(OUTDIRHTML)/$(OUTHTML)
 html-finalize: html
 	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL) && touch $(OUTDIRHTMLFINAL)/.empty
 	mv $(OUTDIRHTML)/$(OUTHTML) $(OUTDIRHTML)/$(OUTHTMLWEBDEVS)
+	rm -f $(OUTDIRHTML)/*.adoc
 	tar -czvf $(OUTDIRHTMLFINAL)/$$(basename $$PWD)-$$(date +%F).tar.gz $(OUTDIRHTML)
 
 # PDF
