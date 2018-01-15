@@ -2190,3 +2190,87 @@ to achieve 3-way redundancy again.
 
 Still, you might want to compare the steps above with the procedure when using 
 DRBD Manage: <<s-dm-rebalance>>...
+
+
+[[s-configuring-quorum]]
+=== Configuring quorum
+
+In order to avoid split brain or diverging data of replicas one has to configure
+fencing. All the options for fencing rely on redundant communication in the end.
+That might be in the form of a management network that connects the nodes to the IPMI
+network interfaces of the peer machines. In case of the crm-fence-peer script it
+is necessary that Pacemakers communication stays available when DRBD's network
+link breaks.
+
+The quorum mechanism on the other hand takes a completely difference approach. The basic
+idea is that a cluster partition may only modify the replicated data set if the
+number of nodes that can communicate is greater then the half of the overall number
+of nodes. A node of such a partition _has quorum_.
+On the other hand a node does not have quorum needs to guarantee that the replicated
+data set it not touched, that it does not create a diverging data set.
+
+The quorum implementation in DRBR gets enabled by setting the `quorum` resource
+option to `majority`, `all` or a numeric value. Where `majority` selects the
+behavior that was described in the previous paragraph.
+
+==== Guaranteed minimal redundancy
+
+By default every node with a disk gets a vote in the quorum election. In other words
+only diskless nodes do not count. So a partition with two _Inconsistent_ disks gets
+quorum, while a partition with one _UpToDate_ node will have quorum in a 3 node
+cluster. By configuring `quorum-minimum-redundancy` this behavior can be changed so that
+only nodes that are `UpToDate` have a vote in the quorum election. The option takes the
+same arguments as the `quorum` option.
+
+With this option you express that you rather want to wait until eventually necessary
+resync operations finish before any services start. So in a way you prefer
+that the minimal redundancy of your data is guaranteed over the availability of your
+service. Financial data and services is an example that comes to mind.
+
+Consider following example for a 5 node cluster. It requires a partitions to have at
+least 3 nodes, and two of them must be `UpToDate`:
+-------------------------------------
+resource quorum-demo {
+  quorum majority;
+  quorum-minimum-redundancy 2;
+  ...
+}
+-------------------------------------
+
+==== Actions on loss of quorum
+
+When a node that is running the service loses quorum it needs to cease write-operations
+on the data set immediately. That means that IO immediately starts to complete all IO
+requests with errors. Usually that means that a graceful shutdown is not possible, since
+that would require more modifications to the data set. The IO errors propagate from
+the block level to the file system and from the file system to the user space application(s).
+
+Ideally the application simply terminates in case of IO errors. This allows then Pacemaker
+to unmount the filesystem and to demote the DRBD resource to secondary role.
+If that is true you should set the `on-no-quorum` resource option to `io-error`.
+Here is an example:
+
+-------------------------------------
+resource quorum-demo {
+  quorum majority;
+  on-no-quorum io-error;
+  ...
+}
+-------------------------------------
+
+If you application does not terminate on the first IO error, you can choose to freeze IO
+instead and to reboot the node. Here is a configuration example:
+
+-------------------------------------
+resource quorum-demo {
+  quorum majority;
+  on-no-quorum suspend-io;
+  ...
+
+  handlers {
+    quorum-lost "echo b > /proc/sysrq-trigger";
+  }
+  ...
+}
+-------------------------------------
+
