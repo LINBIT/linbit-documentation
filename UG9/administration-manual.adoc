@@ -1984,6 +1984,59 @@ stacked resources in your cluster manager configuration. See
 <<s-pacemaker-stacked-resources>> for information on doing this in a
 cluster managed by the Pacemaker cluster management framework.
 
+[[s-permanently-diskless-nodes]]
+=== Permanently diskless nodes
+
+A node might be permanently diskless in DRBD. Here is a configuration example
+showing a resource with 3 diskfull nodes (servers) and one permanently diskless
+node (client).
+
+-------------------------------------
+resource kvm-mail {
+  device      /dev/drbd6;
+  disk        /dev/vg/kvm-mail;
+  meta-disk   internal;
+
+  on store1 {
+    address   10.1.10.1:7006;
+    node-id   0;
+  }
+  on store2 {
+    address   10.1.10.2:7006;
+    node-id   1;
+  }
+  on store3 {
+    address   10.1.10.3:7006;
+    node-id   2;
+  }
+
+  on for-later-rebalancing {
+    address   10.1.10.4:7006;
+    node-id   3;
+  }
+
+  # DRBD "client"
+  floating 10.1.11.6:8006 {
+    disk      none;
+    node-id   4;
+  }
+
+  # rest omitted for brevity
+  ...
+}
+-------------------------------------
+
+For permanently diskless nodes no bitmap slot gets allocated. For such nodes the
+diskless status is displayed in green color since it is not an error or unexpected
+state.
+
+[NOTE]
+====================
+This _DRBD client_ is an easy way to get data over the wire, but it
+doesn't have any of the advanced iSCSI features like _Persistent Reservations_. +
+If your setup has only basic I/O needs, like _read_, _write_, _trim_/_discard_ and
+perhaps _resize_ (eg. for a virtual machine), you should be fine.
+====================
 
 [[s-rebalance-workflow]]
 === Data rebalancing

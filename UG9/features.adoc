@@ -699,88 +699,22 @@ with net 100TiB.
 DRBD 9 makes it possible to do an online, live migration of the data; please see 
 <<s-rebalance-workflow>> for the exact steps needed.
 
-
-
 [[s-drbd-client]]
 === DRBD client
 
-With the multiple-peer feature of DRBD a number of interesting use-cases have 
+With the multiple-peer feature of DRBD a number of interesting use-cases have
 been added, for example the _DRBD client_.
 
-The basic idea is that the DRBD _backend_ can consist of 3, 4, or more nodes 
-(depending on the policy of needed duplicity); but, as DRBD 9 can connect more 
-nodes than that, one bitmap slotfootnote:[This might be optimized away some 
-time, perhaps even with DRBD 9.0.0.] gets reserved for a _Diskless Primary_, 
-ie. a _DRBD Client_.
+The basic idea is that the DRBD _backend_ can consist of 3, 4, or more nodes
+(depending on the policy of required redundancy); but, as DRBD 9 can connect more
+nodes than that. DRBD works then as a storage access protocol in addition to
+storage replication.
 
-So, with a policy of having 3-way data redundancy, and reserving one 
-bitmap slot for <<s-rebalance,re-balancing>>, you might define your 
-DRBD resources like this:
+All write requests executed on a primary _DRBD client_ gets shipped to all
+nodes equipped with storage. Read requests are only shipped to one of the server
+nodes. The _DRBD client_ will evenly distribute the read requests among all
+available server nodes.
 
--------------------------------------
-resource kvm-mail {
-  device      /dev/drbd6;
-  disk        /dev/vg/kvm-mail;
-  meta-disk   internal;
-
-  on store1 {
-    address   10.1.10.1:7006;
-    node-id   0;
-  }
-  on store2 {
-    address   10.1.10.2:7006;
-    node-id   1;
-  }
-  on store3 {
-    address   10.1.10.3:7006;
-    node-id   2;
-  }
-
-  on for-later-rebalancing {
-    address   10.1.10.4:7006;
-    node-id   3;
-  }
-
-  # DRBD "client"
-  floating 10.1.11.6:8006 {
-    disk      none;
-    node-id   4;
-  }
-
-  # rest omitted for brevity
-  ...
-}
--------------------------------------
-
-Of course you can have more than one DRBD client defined, too; you just
-need to remember to allocate an unique `node-id` for each one.
-
-.NOTE
-DRBD Manage (which is the recommended configuration method, see its
-<<ch-admin-drbdmanage,documentation>>) allows to configure hosts
-as clients, too.
-
-
-
-Additionally to the horizontal scaling via adding storage nodes and doing 
-a <<s-rebalance,_live_\, online_ rebalancing of storage>>
-this kind of setup allows a cluster of VM frontend servers, managed eg. 
-via Pacemaker, to access the data without 
-needing local storage.
-
-
-[NOTE]
-====================
-This _DRBD client_ is an easy way to get data over the wire, but it 
-doesn't have any of the advanced iSCSI features like _Persistent Reservations_. +
-If your setup has only basic I/O needs, like _read_, _write_, _trim_/_discard_ and 
-perhaps _resize_ (eg. for a virtual machine), you should be fine.
-
-
-Furthermore, this kind of setup is not fully optimized in the DRBD-9.0.0 release.
-Planned enhancements include
-
-* not needing a bitmap slot for client nodes
-* More granular specification of `read-balancing`.
-====================
-
+See <<s-permanently-diskless-nodes>> for the configuration file syntax or in
+case you are using drbdmanage, use its `--client` option when assigning resources
+to nodes.
