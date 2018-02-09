@@ -901,6 +901,13 @@ resource <resource>
     protocol C;
     allow-two-primaries yes;
   }
+  disk {
+    fencing resource-and-stonith;
+  }
+  handlers {
+    fence-peer "...";
+    unfence-peer "...";
+  }
   ...
 }
 ----------------------------
@@ -910,6 +917,10 @@ After that, do not forget to synchronize the configuration between nodes. Run
 
 You can now change both nodes to role primary at the same time with `drbdadm
 primary <resource>`.
+
+CAUTION: You should always implement suitable fencing policies.
+Using 'allow-two-primaries' without fencing is a very bad idea,
+even worse than using single-primary without fencing.
 
 [[s-enable-dual-primary-temporary]]
 ==== Temporary dual-primary mode
@@ -946,10 +957,12 @@ resource <resource>
 The `/etc/init.d/drbd` system init script parses this option on
 startup and promotes resources accordingly.
 
-NOTE: The `become-primary-on` approach is not required, nor
-recommended, in <<ch-pacemaker,Pacemaker-managed>> DRBD
-configurations. In Pacemaker configuration, resource promotion and
-demotion should always be handled by the cluster manager.
+NOTE: The `become-primary-on` approach *should be avoided*,
+we recommend to use a cluster manager if at all possible.
+See for example <<ch-pacemaker,Pacemaker-managed>> DRBD
+configurations. In Pacemaker (or other cluster manager)
+configurations, resource promotion and demotion should
+always be handled by the cluster manager.
 
 
 [[s-use-online-verify]]
@@ -1630,6 +1643,15 @@ the newly-configured handler on the next occurrence of split brain.
 
 [[s-automatic-split-brain-recovery-configuration]]
 ==== Automatic split brain recovery policies
+
+CAUTION: Configuring DRBD to automatically resolve data divergence
+siutaions resulting from split-brain (or other) scenarios
+is configuring for potential *automatic data loss*.
+Understand the implications, and don't do it if you don't mean to.
+
+TIP: You rather want to look into fencing policies, cluster manager
+integration, and redundant cluster manager communication links
+to *avoid* data divergence in the first place.
 
 In order to be able to enable and configure DRBD's automatic split
 brain recovery policies, you must understand that DRBD offers several
