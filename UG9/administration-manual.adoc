@@ -84,7 +84,7 @@ home role:Secondary
     disk:UpToDate
   nino role:Secondary
     disk:UpToDate
-  nono connection:WFConnection
+  nono connection:Connecting
 ----------------------------
 
 This here just says that the resource _home_ is locally, on 'nina', and
@@ -92,7 +92,7 @@ on 'nino' _UpToDate_ and _Secondary_; so the three nodes have the same
 data on their storage devices, and nobody is using the device currently.
 
 The node 'nono' is not connected, its state is reported as
-_WFConnection_; please see <<s-connection-states>> below for more details.
+_Connecting_; please see <<s-connection-states>> below for more details.
 
 
 You can get more information by passing the `--verbose` and/or
@@ -116,7 +116,7 @@ home node-id:1 role:Secondary suspended:no
     volume:0 replication:Connected disk:UpToDate resync-suspended:no
         received:0 sent:0 out-of-sync:0 pending:0 unacked:0
   nono local:ipv4:10.9.9.111:7013 peer:ipv4:10.9.9.138:7031 node-id:3
-                                                           connection:WFConnection
+                                                           connection:Connecting
 ----------------------------
 
 
@@ -257,7 +257,7 @@ next state is _StandAlone_.
 
 ._Unconnected_
 indexterm:[connection state, Unconnected]Temporary state, prior to a connection
-attempt. Possible next states: _WFConnection_ and _WFReportParams_.
+attempt. Possible next states: _Connecting_.
 
 ._Timeout_
 indexterm:[connection state, Timeout]Temporary state following a timeout in the
@@ -279,69 +279,88 @@ the partner was lost. Next state: _Unconnected_.
 indexterm:[connection state, TearDown]Temporary state. The peer is closing the
 connection. Next state: _Unconnected_.
 
-._WFConnection_
-indexterm:[connection state, WFConnection]This node is waiting until the peer node
+._Connecting_
+indexterm:[connection state, Connecting]This node is waiting until the peer node
 becomes visible on the network.
-
-._WFReportParams_
-indexterm:[connection state, WFReportParams]TCP connection has been established, this
-node waits for the first network packet from the peer.
 
 ._Connected_
 indexterm:[connection state, Connected]A DRBD connection has been established,
 data mirroring is now active. This is the normal state.
 
+[[s-replication-states]]
+==== Replication states
+
+Each volume has over each connection a replication state. The possible replication
+states are:
+
+._Off_
+indexterm:[replication state, Off]The volume is not replicated over this
+connection, since the connection is not _Connected_.
+
+._Established_
+indexterm:[replication state, Established]All writes to that volume are replicated
+online. This is the normal state.
+
 ._StartingSyncS_
-indexterm:[connection state, StartingSyncS]Full synchronization, initiated by the
+indexterm:[replication state, StartingSyncS]Full synchronization, initiated by the
 administrator, is just starting. The next possible states are:
 _SyncSource_ or _PausedSyncS_.
 
 ._StartingSyncT_
-indexterm:[connection state, StartingSyncT]Full synchronization, initiated by the
+indexterm:[replication state, StartingSyncT]Full synchronization, initiated by the
 administrator, is just starting. Next state: _WFSyncUUID_.
 
 ._WFBitMapS_
-indexterm:[connection state, WFBitMapS]Partial synchronization is just
+indexterm:[replication state, WFBitMapS]Partial synchronization is just
 starting. Next possible states: _SyncSource_ or _PausedSyncS_.
 
 ._WFBitMapT_
-indexterm:[connection state, WFBitMapT]Partial synchronization is just
+indexterm:[replication state, WFBitMapT]Partial synchronization is just
 starting. Next possible state: _WFSyncUUID_.
 
 ._WFSyncUUID_
-indexterm:[connection state, WFSyncUUID]Synchronization is about to begin. Next
+indexterm:[replication state, WFSyncUUID]Synchronization is about to begin. Next
 possible states: _SyncTarget_ or _PausedSyncT_.
 
 ._SyncSource_
-indexterm:[connection state, SyncSource]Synchronization is currently running, with
+indexterm:[replication state, SyncSource]Synchronization is currently running, with
 the local node being the source of synchronization.
 
 ._SyncTarget_
-indexterm:[connection state, SyncTarget]Synchronization is currently running, with
+indexterm:[replication state, SyncTarget]Synchronization is currently running, with
 the local node being the target of synchronization.
 
 ._PausedSyncS_
-indexterm:[connection state, PausedSyncS]The local node is the source of an ongoing
+indexterm:[replication state, PausedSyncS]The local node is the source of an ongoing
 synchronization, but synchronization is currently paused. This may be
 due to a dependency on the completion of another synchronization
 process, or due to synchronization having been manually interrupted by
 `drbdadm pause-sync`.
 
 ._PausedSyncT_
-indexterm:[connection state, PausedSyncT]The local node is the target of an ongoing
+indexterm:[replication state, PausedSyncT]The local node is the target of an ongoing
 synchronization, but synchronization is currently paused. This may be
 due to a dependency on the completion of another synchronization
 process, or due to synchronization having been manually interrupted by
 `drbdadm pause-sync`.
 
 ._VerifyS_
-indexterm:[connection state, VerifyS]On-line device verification is currently
+indexterm:[replication state, VerifyS]On-line device verification is currently
 running, with the local node being the source of verification.
 
 ._VerifyT_
-indexterm:[connection state, VerifyT]On-line device verification is currently
+indexterm:[replication state, VerifyT]On-line device verification is currently
 running, with the local node being the target of verification.
 
+._Ahead_
+indexterm:[replication state, Ahead]Data replication was suspended, since the
+link can not cope with the load. This state is enabled by the configuration
+`on-congestion` optione (see <<s-configure-congestion-policy>>).
+
+._Behind_
+indexterm:[replication state, Behind]Data replication was suspended by the peer,
+since the link can not cope with the load. This state is enabled by the configuration
+`on-congestion` option on the peer node (see <<s-configure-congestion-policy>>).
 
 [[s-roles]]
 ==== Resource roles
@@ -395,6 +414,10 @@ error.
 
 ._Attaching_
 indexterm:[disk state, Attaching]Transient state while reading meta data.
+
+._Detaching_
+indexterm:[disk state, Detaching]Transient state while detaching and waiting
+for ongoing IOs to complete.
 
 ._Failed_
 indexterm:[disk state, Failed]Transient state following an I/O failure report
