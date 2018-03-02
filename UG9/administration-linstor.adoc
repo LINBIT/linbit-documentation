@@ -111,31 +111,39 @@ the linstor-satellite as well.
 
 === Storage pools
 
-Storage pools group storage in the context of linstor. They
-might span multiple nodes. For example one valid approach is to
-group all SSDs into one storage pool and all HDDs into a second storage
-pool.
+_Storage pools_ identify storage in the context of linstor.
+To group storage pools from multiple nodes, simply use the same name
+on each node.
+For example one valid approach is to give all SSDs one name and
+all HDDs another.
 
-On each host contributing to a storage pool you need to create
-either a LVM VG or an ZFS zPool. The VGs contributing to one linstor
-storage pool my have different VG names on the hosts, but do yourself
+On each host contributing storage you need to create
+either an LVM VG or a ZFS zPool. The VGs identified with one linstor
+storage pool name may have different VG names on the hosts, but do yourself
 a favor and use the same VG name on all nodes.
 (FIXME add wording about zPools)
 
 ----------------------------
 # vgcreate vg_ssd /dev/nvme0n1 /dev/nvme1n1 [...]
+----------------------------
+
+These then need to be registered with linstor:
+
+----------------------------
 # linstor create-storage-pool pool_ssd alpha lvm vg_ssd
 # linstor create-storage-pool pool_ssd bravo lvm vg_ssd
 ----------------------------
 
 --
-
 .Note
+The storage pool name and common metadata is referred to as a
+_storage pool definition_.
 The listed commands create a storage pool definition implicitly.
 You can see that by using `linstor list-storage-pool-definitions`.
 Creating storage pool definitions explicitly is possible but
 not necessary.
 --
+
 ==== A storage pool per backend device
 
 In clusters where you have only one kind of storage and the capability
