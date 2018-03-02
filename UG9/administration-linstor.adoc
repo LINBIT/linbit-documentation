@@ -1,9 +1,9 @@
 == Common administrative tasks - LINSTOR
 
 LINSTOR is a configuration management system for storage on Linux systems.
-It manages LVM logical volumes and/or ZFS' ZVOLs on a bunch of nodes. It
-leverages on DRBD to replicate between different nodes and to provide
-block storage devices to users and applications. It manages snaphosts,
+It manages LVM logical volumes and/or ZFS ZVOLs on a cluster of nodes. It
+leverages DRBD for replication between different nodes and to provide
+block storage devices to users and applications. It manages snapshots,
 encryption and caching of HDD backed data in SSDs via bcache.
 
 This chapter outlines typical administrative tasks encountered during
@@ -13,15 +13,15 @@ are covered in detail in <<ch-troubleshooting>>.
 === Concepts and Terms
 
 A linstor setup has exactly one active controller and multiple satellites.
-The _linstor controler_ contains the database that holds all configuration
-information of the whole cluster. It finds all decisions that need to have a
-view of the whole cluster. Usually you deploy the controller as a HA service
+The _linstor controller_ contains the database that holds all configuration
+information for the whole cluster. It makes all decisions that need to have a
+view of the whole cluster. The controller is typically deployed as a HA service
 using Pacemaker and DRBD as it is a crucial part of the system.
 
 The _linstor satellite_ runs on each node where linstor consumes local
-storage or provides storage to services. It is stateless, it receives
-all information it needs from the controler. It runs programs
-like `lvcreate` and `drbdadm`, it is It is like a node agent.
+storage or provides storage to services. It is stateless; it receives
+all the information it needs from the controller. It runs programs
+like `lvcreate` and `drbdadm`. It is like a node agent.
 
 The _linstor client_ is a command line utility that you use to issue
 commands to the system and to investigate the status of the system
@@ -30,20 +30,20 @@ commands to the system and to investigate the status of the system
 
 While linstor might be used to make the management of DRBD more convenient
 it is often integrated with software stacks higher up. Such integrations
-exists for: Kubernetes, (in progress: OpenStack, OpenNebula, Proxmox).
+exists for: Kubernetes. (In progress: OpenStack, OpenNebula, Proxmox).
 
-The southbound drivers of linstor are LVM, thinLVM, ZFS and thinZFS.
+The southbound drivers used by linstor are LVM, thinLVM, ZFS and thinZFS.
 (Support for Swordfish is in progress.)
 
 === Packages
 
-Linstor is packages in just two packages in both the .rpm and the .dpkg variants:
+Linstor is packaged in just two packages in both the .rpm and the .dpkg variants:
 
 . _linstor-client_ contains the command line client program. It only depends
   on python which is usually already installed.
-. _linstor-server_ contains the _controler_ and the _satellite_. I.e. it
-  brings system-d unit files for both services. It depends on a Java runtime environment
-  (JRE) version 1.8 (headless) or higher. That might pull in about 100MByte of dependencies.
+. _linstor-server_ contains the _controller_ and the _satellite_. It provides
+  systemd unit files for both services. It depends on a Java runtime environment
+  (JRE) version 1.8 (headless) or higher. This might pull in about 100MB of dependencies.
 
 [[s-linstor-init-cluster]]
 === Initializing your cluster
@@ -54,7 +54,7 @@ We assume that the following steps are accomplished on *all* cluster nodes:
 . `LVM` tools are installed
 . `linstor server` and its dependencies are installed
 
-Start the linstor-controller service.
+Start the linstor-controller service:
 ----------------------------
 # systemctl start linstor-controller
 ----------------------------
@@ -62,7 +62,7 @@ Start the linstor-controller service.
 === Using the linstor client
 Whenever you run the linstor command line client it needs to know where your
 linstor-server runs. If you do not specify it, it will try to reach a locally
-running linstor-controller listening on IP 127.0.0.1 port 3376.
+running linstor-controller listening on IP `127.0.0.1` port `3376`.
 
 ----------------------------
 # linstor list-nodes
@@ -70,8 +70,9 @@ running linstor-controller listening on IP 127.0.0.1 port 3376.
 should give show you an empty list and not an error message.
 
 You can use the `linstor` command on any other machine, but then you need
-to tell the client how to find the linstor server. Please see the examples
-for the command line option, the process environment and a global file:
+to tell the client how to find the linstor server. As shown, this can be
+specified as a command line option, an environment variable or in a global
+file:
 
 ----------------------------
 # linstor --controllers=alice list-nodes
@@ -87,7 +88,7 @@ The next step is to add nodes to your linstor cluster. You need to provide
 . The IP address of the node.
 
 ----------------------------
-# linstor create-node --node-type Satellite bravo 10.43.70.3
+# linstor create-node bravo 10.43.70.3
 ----------------------------
 
 When you use `linstor list-nodes` you will see that the new node
@@ -98,7 +99,7 @@ with:
 ----------------------------
 About 10 seconds later you will see the status in `linstor list-nodes`
 becoming online. Of course the satellite process may be started before
-the controller knows about the existance of the satellite node.
+the controller knows about the existence of the satellite node.
 
 --
 
@@ -110,14 +111,14 @@ the linstor-satellite as well.
 
 === Storage pools
 
-Storage pools group storage in some way in the context of linstor. They
+Storage pools group storage in the context of linstor. They
 might span multiple nodes. For example one valid approach is to
 group all SSDs into one storage pool and all HDDs into a second storage
 pool.
 
 On each host contributing to a storage pool you need to create
 either a LVM VG or an ZFS zPool. The VGs contributing to one linstor
-storage pool my have different VG names on the nosts, but do yourself
+storage pool my have different VG names on the hosts, but do yourself
 a favor and use the same VG name on all nodes.
 (FIXME add wording about zPools)
 
@@ -132,13 +133,13 @@ a favor and use the same VG name on all nodes.
 .Note
 The listed commands create a storage pool definition implicitly.
 You can see that by using `linstor list-storage-pool-definitions`.
-Creating _list-storage-pool-definitions_ explicitly is possible but
+Creating storage pool definitions explicitly is possible but
 not necessary.
 --
 ==== A storage pool per backend device
 
 In clusters where you have only one kind of storage and the capability
-to hot-repair storage devices you may choose a model where you crate
+to hot-repair storage devices you may choose a model where you create
 one storage pool per physical backing device. The advantage of this
 model is to confine failure domains to a single storage device.
 
@@ -147,7 +148,7 @@ model is to confine failure domains to a single storage device.
 === Cluster configuration
 FIXME
 
-==== Discussion of the storage plugins
+==== Available storage plugins
 
 indexterm:[linstor, storage plugins]
 
@@ -183,9 +184,9 @@ Second, we create a new volume definition within that resource definition:
 # linstor create-volume-definition backups 500G
 ----------------------------
 
-So far we crated only objects in linstor's database, not a single LV was crated
-on the storage nodes so far. Now you have to choice of delegating the task
-of placement to linstor or doing it yourself
+So far we have only created objects in linstor's database, not a single LV was
+created on the storage nodes. Now you have to choice of delegating the
+task of placement to linstor or doing it yourself
 
 ==== Autoplace
 
@@ -194,13 +195,13 @@ The storage-pool option should be obvious.
 ----------------------------
 # linstor create-resource backups --auto-place 3 --storage-pool pool_hdd
 ----------------------------
-Maybe not so obvious is that you may ommit the `--storage-pool` option, then
+Maybe not so obvious is that you may omit the `--storage-pool` option, then
 linstor may select different storage pools on different nodes!
 
 ==== Manual placement
 
-With the `create-cresource` command you may assign a resource definition
-to names nodes explicitly.
+With the `create-resource` command you may assign a resource definition
+to named nodes explicitly.
 
 ----------------------------
 # linstor create-resource backups alpha --storage-pool pool_hdd
@@ -241,7 +242,7 @@ output in multiple dimensions.
 IMPLEMENT
 
 [[s-linstor-rebalance]]
-=== Rebalancing data with DRBD Manage
+=== Rebalancing data with LINSTOR
 FIXME
 
 [[s-linstor-getting-help]]
@@ -272,7 +273,7 @@ In the following we show some possible completions, and their results:
 ----------------------------
 
 If tab-completion does not work out of the box, please try to source the
-according file:
+appropriate file:
 
 ----------------------------
 # source /etc/bash_completion.d/linstor # or
