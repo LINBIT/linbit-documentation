@@ -32,7 +32,7 @@ While linstor might be used to make the management of DRBD more convenient
 it is often integrated with software stacks higher up. Such integrations
 exists for: Kubernetes. (In progress: OpenStack, OpenNebula, Proxmox).
 
-The southbound drivers used by linstor are LVM, thinLVM, ZFS and thinZFS.
+The southbound drivers used by linstor are LVM, thinLVM and ZFS.
 (Support for Swordfish is in progress.)
 
 === Packages
@@ -118,10 +118,10 @@ For example one valid approach is to give all SSDs one name and
 all HDDs another.
 
 On each host contributing storage you need to create
-either an LVM VG or a ZFS zPool. The VGs identified with one linstor
-storage pool name may have different VG names on the hosts, but do yourself
-a favor and use the same VG name on all nodes.
-(FIXME add wording about zPools)
+either an LVM VG or a ZFS zPool. The VGs and zPools identified with one
+linstor storage pool name may have different VG or zPool names on the
+hosts, but do yourself a favor and use the same VG or zPool name on all
+nodes.
 
 ----------------------------
 # vgcreate vg_ssd /dev/nvme0n1 /dev/nvme1n1 [...]
@@ -160,17 +160,13 @@ FIXME
 
 indexterm:[linstor, storage plugins]
 
-LINSTOR has four supported storage plugins as of this writing:
+LINSTOR has three supported storage plugins as of this writing:
 
   * Thick LVM
 
   * Thin LVM with a single thin pool
 
-  * Thin LVM with thin pools for each volume
-
-  * Thick ZFS
-
-  * Thin ZFS
+  * ZFS
 
 FIXME
 
@@ -204,7 +200,14 @@ The storage-pool option should be obvious.
 # linstor create-resource backups --auto-place 3 --storage-pool pool_hdd
 ----------------------------
 Maybe not so obvious is that you may omit the `--storage-pool` option, then
-linstor may select different storage pools on different nodes!
+linstor may select a storage pool on its own. The selection follows these rules:
+
+  * Discard all nodes and storage pools the current user has no access to
+  * Discard all diskless storage pools
+  * Discard all storage pools not having enough free space for the autoplace
+
+From the remaining storage pools linstor currently chooses the one with the
+most available free space.
 
 ==== Manual placement
 
@@ -226,8 +229,35 @@ have a permanently diskless DRBD device on a node.
 ----------------------------
 
 ==== Volumes of one resource to different Storage-Pools
-IMPLEMENT
-Linstor can do that, but it is not yet implemented in the client.
+This can be achieved by setting the `StorPoolName` property to the volume
+definitions before the resource is deployed to the nodes:
+
+----------------------------
+# linstor create-resource-definition backups
+# linstor create-volume-definition backups 500G
+# linstor create-volume-definition backups 100G
+# linstor set-volume-definition-property backups 0 StorPoolName pool_hdd
+# linstor set-volume-definition-property backups 1 StorPoolName pool_ssd
+# linstor create-resource backups alpha
+# linstor create-resource backups bravo
+# linstor create resource backups charlie
+----------------------------
+
+Here the 'create-resource' commands do not need a `--storage-pool` option.
+In this case linstor uses a 'fallback' storage pool. Finding that storage pool
+linstor queries the properties of the following objects in the following order:
+
+  * Volume definition
+  * Resource
+  * Resource definition
+  * Node
+
+If none of those objects contain a `StorPoolName` property, the controller
+falls back to a hardcoded 'DfltStorPool' string as a storage pool.
+
+This also means that if you forgot to define a storage pool prior deploying a
+resource, you will get an error message that linstor could not find the
+storage pool named 'DfltStorPool'.
 
 [[s-linstor-snapshots]]
 === Managing snapshots
