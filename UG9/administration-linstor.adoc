@@ -256,6 +256,34 @@ This also means that if you forgot to define a storage pool prior deploying a
 resource, you will get an error message that linstor could not find the
 storage pool named 'DfltStorPool'.
 
+=== Managing Network Interface Cards
+
+Linstor can deal with multiple network interface cards (NICs) in a machine,
+they are called `netif` in linstor speak.
+
+NOTE: When a satellite node is created a first `netif` gets created implicitly
+with the name `default`. Using the `--interface-name` option of the `create-node`
+command you can give it a different name.
+
+Additional NICs are created like that:
+----------------------------
+# linstor create-netif alpha 100G_nic 192.168.43.221
+# linstor create-netif alpha 10G_nic 192.168.43.231
+----------------------------
+
+NICs are identified by the IP address only, the name is arbitrary and is
+*not* related to the interface name used by Linux. The NICs can be assigned
+to storage pools so that whenever a resource is created in such a storage
+pool, the DRBD traffic will be routed through the specified NIC.
+
+----------------------------
+# linstor set-storage-pool-property pool_hdd alpha PrefNic 10G_nic
+# linstor set-storage-pool-property pool_ssd alpha PrefNic 100G_nic
+----------------------------
+
+FIXME describe how to route the controler <-> client communication through
+a specific `netif`.
+
 [[s-linstor-snapshots]]
 === Managing snapshots
 IMPLEMENT
