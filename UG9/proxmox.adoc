@@ -1,7 +1,7 @@
 [[ch-proxmox]]
 == DRBD Volumes in Proxmox VE
 
-indexterm:[Proxmox]This chapter describes DRBD in Proxmox VE via 
+indexterm:[Proxmox]This chapter describes DRBD in Proxmox VE via
 the http://git.linbit.com/drbdmanage-proxmox.git[DRBD Manage Proxmox Plugin].
 
 [[s-proxmox-overview]]
@@ -21,8 +21,17 @@ replicated to multiple nodes.
 
 LINBIT provides a dedicated public repository for Proxmox VE users. This repository not only contains the
 Proxmox plugin, but the whole DRBD SDS stack including a customized version of DRBD Manage, DRBD SDS kernel
-module and user space utilities, and of course the Proxmox Perl plugin itself. This repository can be enabled
-as follows, where "$PVERS" should be set to your Proxmox VE *major version* (e.g., "5", not "5.2"):
+module and user space utilities, and of course the Proxmox Perl plugin itself.
+
+The DRBD9 kernel module gets installed as a `dkms` package (i.e., `drbd-dkms`), therefore you want to install
+`pve-headers` before you set up/install software from LINBIT's repositories. Following that order ensures that
+the kernel module is built for your kernel. If you do not follow the latest Proxmox kernel, you have to
+install kernel headers matching your current kernel (e.g., `pve-headers-$(uname -r)`). If you did not follow
+that advice and you need to rebuild the dkms package against your current kernel (headers have to be
+installed), you can issue `apt-get install --reinstall drbd-dkms`.
+
+LINBIT's repository can be enabled as follows, where "$PVERS" should be set to your Proxmox VE *major version*
+(e.g., "5", not "5.2"):
 
 ----------------------------
 # wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -
@@ -34,7 +43,6 @@ as follows, where "$PVERS" should be set to your Proxmox VE *major version* (e.g
 
 If you are already (or have been) using Proxmox's version of DRBD Manage, you can simply enable the repository and
 install `drbdmanage-proxmox`; you don't have to change the existing configuration.
-
 
 [[s-proxmox-configuration]]
 === Proxmox Plugin Configuration
