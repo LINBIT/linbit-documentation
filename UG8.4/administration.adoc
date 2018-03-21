@@ -2088,28 +2088,30 @@ Currently it is treated as `zlib level 9`.
 [[s-drbd-proxy-bwlimit]]
 ==== Using a WAN Side Bandwidth Limit
 
-With DRBD-utils 8.4.4 and DRBD Proxy version 3.1.1 there is experimental
-support for a per-connection bandwidth limit in the proxy configuration
-section, via the the `bwlimit` option.
+The experimental `bwlimit` option of DRBD Proxy is broken. Do not use
+it, as it may cause applications on DRBD to block on IO. It will
+be removed.
 
-This will make the corresponding sending thread sleep a bit after sending
-a chunk of data, to use not more than (approximately) the specified bandwidth.
+Instead use the Linux kernel's traffic control framework to
+limit bandwidth consumed by proxy on the WAN side.
 
-// Please note that, to avoid surplus CPU load, the sending happens in pieces of up to two seconds' worth
+In the following example you would need to replace the interface
+name, the source port and the ip address of the peer.
 
+----------------------------
+# tc qdisc add dev eth0 root handle 1: htb default 1
+# tc class add dev eth0 parent 1: classid 1:1 htb rate 1gbit
+# tc class add dev eth0 parent 1:1 classid 1:10 htb rate 500kbit
+# tc filter add dev eth0 parent 1: protocol ip prio 16 u32 \
+        match ip sport 7000 0xffff \
+        match ip dst 192.168..47.11 flowid 1:10
+----------------------------
 
-The value `0` means _no_ limitation, and is the default.
+You can remove this bandwidth limitation with
 
---------------------------
-	proxy {
-		bwlimit 2M;
-		...
-	}
---------------------------
-
-The example above would restrict the outgoing rate over the WAN connection to
-approximately 2MiB per second, leaving room on the wire for other data.
-
+----------------------------
+# tc qdisc del dev eth0 root handle 1
+----------------------------
 
 [[s-drbd-proxy-troubleshoot]]
 ==== Troubleshooting
