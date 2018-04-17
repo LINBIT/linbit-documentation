@@ -21,23 +21,24 @@ using Pacemaker and DRBD as it is a crucial part of the system.
 The _linstor-satellite_ runs on each node where LINSTOR consumes local
 storage or provides storage to services. It is stateless; it receives
 all the information it needs from the controller. It runs programs
-like `lvcreate` and `drbdadm`. It is like a node agent.
+like `lvcreate` and `drbdadm`. It acts like a node agent.
 
 The _linstor-client_ is a command line utility that you use to issue
-commands to the system and to investigate the status of the system
+commands to the system and to investigate the status of the system.
 
 === Broader Context
 
-While LINSTOR might be used to make the management of DRBD more convenient
-it is often integrated with software stacks higher up. Such integrations
-exists for: Kubernetes. (In progress: OpenStack, OpenNebula, Proxmox).
+While LINSTOR might be used to make the management of DRBD more
+convenient, it is often integrated with software stacks higher up.
+Such integrations exist already for Kubernetes, and are in progress
+for OpenStack, OpenNebula, and Proxmox.
 
-The southbound drivers used by LINSTOR are LVM, thinLVM and ZFS.
-(Support for Swordfish is in progress.)
+The southbound drivers used by LINSTOR are LVM, thinLVM and ZFS
+with support for Swordfish in progress.
 
 === Packages
 
-LINSTOR is packaged in just two packages in both the .rpm and the .deb variants:
+LINSTOR is packaged  in both the .rpm and the .deb variants:
 
 . _linstor-client_ contains the command line client program. It only depends
   on python which is usually already installed.
@@ -60,14 +61,14 @@ Start the linstor-controller service:
 ----------------------------
 
 === Using the LINSTOR client
-Whenever you run the LINSTOR command line client it needs to know where your
+Whenever you run the LINSTOR command line client, it needs to know where your
 linstor-server runs. If you do not specify it, it will try to reach a locally
 running linstor-controller listening on IP `127.0.0.1` port `3376`.
 
 ----------------------------
 # linstor list-nodes
 ----------------------------
-should give show you an empty list and not an error message.
+should give you an empty list and not an error message.
 
 You can use the `linstor` command on any other machine, but then you need
 to tell the client how to find the linstor-server. As shown, this can be
@@ -82,7 +83,8 @@ file:
 FIXME describe how to specify multiple controllers
 
 === Adding nodes to your cluster
-The next step is to add nodes to your LINSTOR cluster. You need to provide
+The next step is to add nodes to your LINSTOR cluster. You need to
+provide:
 
 . A node name which *must* match the output of `uname -n`
 . The IP address of the node.
@@ -102,7 +104,7 @@ becoming online. Of course the satellite process may be started before
 the controller knows about the existence of the satellite node.
 
 NOTE: In case the node which hosts your controller should also contribute
-storage to the LINSTOR cluster, you have to add it as node and start
+storage to the LINSTOR cluster, you have to add it as a node and start
 the linstor-satellite as well.
 
 === Storage pools
@@ -110,10 +112,10 @@ the linstor-satellite as well.
 _Storage pools_ identify storage in the context of LINSTOR.
 To group storage pools from multiple nodes, simply use the same name
 on each node.
-For example one valid approach is to give all SSDs one name and
+For example, one valid approach is to give all SSDs one name and
 all HDDs another.
 
-On each host contributing storage you need to create
+On each host contributing storage, you need to create
 either an LVM VG or a ZFS zPool. The VGs and zPools identified with one
 LINSTOR storage pool name may have different VG or zPool names on the
 hosts, but do yourself a favor and use the same VG or zPool name on all
@@ -140,7 +142,7 @@ not necessary.
 ==== A storage pool per backend device
 
 In clusters where you have only one kind of storage and the capability
-to hot-repair storage devices you may choose a model where you create
+to hot-repair storage devices, you may choose a model where you create
 one storage pool per physical backing device. The advantage of this
 model is to confine failure domains to a single storage device.
 
@@ -167,7 +169,7 @@ FIXME
 
 === Creating and deploying resources/volumes
 In the following scenario we assume that the goal is to create a resource
-'backups' with a size of '500 GB' that is replicated among 3 cluster nodes.
+'backups' with a size of '500 GB' that is replicated among three cluster nodes.
 
 First, we create a new resource definition:
 
@@ -182,8 +184,8 @@ Second, we create a new volume definition within that resource definition:
 ----------------------------
 
 So far we have only created objects in LINSTOR's database, not a single LV was
-created on the storage nodes. Now you have to choice of delegating the
-task of placement to LINSTOR or doing it yourself
+created on the storage nodes. Now you have the choice of delegating the
+task of placement to LINSTOR or doing it yourself.
 
 ==== Manual placement
 
@@ -210,7 +212,7 @@ LINSTOR may select a storage pool on its own. The selection follows these rules:
   * Ignore all diskless storage pools
   * Ignore all storage pools not having enough free space
 
-From the remaining storage pools LINSTOR currently chooses the one with the
+From the remaining storage pools, LINSTOR currently chooses the one with the
 most available free space.
 
 ==== DRBD clients
@@ -237,12 +239,13 @@ definitions before the resource is deployed to the nodes:
 ----------------------------
 
 NOTE: Since the `create-volume-definition` command is used without the `--vlmnr` option
-LINSTOR assigned the volume nubers starting at 0. In the following two
-lines the 0 and 1 refers to these automatically asigned volume numbers.
+LINSTOR assigned the volume numbers starting at 0. In the following two
+lines the 0 and 1 refer to these automatically assigned volume numbers.
 
 Here the 'create-resource' commands do not need a `--storage-pool` option.
-In this case LINSTOR uses a 'fallback' storage pool. Finding that storage pool
-LINSTOR queries the properties of the following objects in the following order:
+In this case LINSTOR uses a 'fallback' storage pool. Finding that
+storage pool, LINSTOR queries the properties of the following objects
+in the following order:
 
   * Volume definition
   * Resource
@@ -265,7 +268,7 @@ NOTE: When a satellite node is created a first `netif` gets created implicitly
 with the name `default`. Using the `--interface-name` option of the `create-node`
 command you can give it a different name.
 
-Additional NICs are created like that:
+Additional NICs are created like this:
 ----------------------------
 # linstor create-netif alpha 100G_nic 192.168.43.221
 # linstor create-netif alpha 10G_nic 192.168.43.231
@@ -281,7 +284,7 @@ pool, the DRBD traffic will be routed through the specified NIC.
 # linstor set-storage-pool-property pool_ssd alpha PrefNic 100G_nic
 ----------------------------
 
-FIXME describe how to route the controler +<->+ client communication through
+FIXME describe how to route the controller +<->+ client communication through
 a specific `netif`.
 
 [[s-linstor-encrypted-volumes]]
@@ -333,12 +336,13 @@ a volume definition, the flag is is `--encrypt` e.g.:
 # linstor create create-volume-definition crypt_rsc 1G --encrypt
 ----
 
-To enter the master passphrase (after controller restart) use the following command.
+To enter the master passphrase (after controller restart) use the following command:
+
 ----
 # linstor crypt-enter-passphrase
 ----
 
-NOTE: Whenever the linstor-controller is restarted the user has to send
+NOTE: Whenever the linstor-controller is restarted, the user has to send
 the master passphrase to the controller, otherwise LINSTOR is unable to reopen or
 create encrypted volumes.
 
@@ -386,7 +390,7 @@ in interactive mode (`linstor interactive`).
 One of the most helpful features of LINSTOR is its rich tab-completion,
 which can be used to complete basically every object LINSTOR knows about
 (e.g., node names, IP addresses, resource names, ...).
-In the following we show some possible completions, and their results:
+In the following examples, we show some possible completions, and their results:
 
 ----------------------------
 # linstor create-node alpha 1<tab> # completes the IP address if hostname can be resolved
