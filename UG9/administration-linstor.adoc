@@ -12,32 +12,32 @@ are covered in detail in <<ch-troubleshooting>>.
 
 === Concepts and Terms
 
-A linstor setup has exactly one active controller and multiple satellites.
+A LINSTOR setup has exactly one active controller and multiple satellites.
 The _linstor controller_ contains the database that holds all configuration
 information for the whole cluster. It makes all decisions that need to have a
 view of the whole cluster. The controller is typically deployed as a HA service
 using Pacemaker and DRBD as it is a crucial part of the system.
 
-The _linstor satellite_ runs on each node where linstor consumes local
+The _linstor satellite_ runs on each node where LINSTOR consumes local
 storage or provides storage to services. It is stateless; it receives
 all the information it needs from the controller. It runs programs
 like `lvcreate` and `drbdadm`. It is like a node agent.
 
-The _linstor client_ is a command line utility that you use to issue
+The _LINSTOR client_ is a command line utility that you use to issue
 commands to the system and to investigate the status of the system
 
 === Broader Context
 
-While linstor might be used to make the management of DRBD more convenient
+While LINSTOR might be used to make the management of DRBD more convenient
 it is often integrated with software stacks higher up. Such integrations
 exists for: Kubernetes. (In progress: OpenStack, OpenNebula, Proxmox).
 
-The southbound drivers used by linstor are LVM, thinLVM and ZFS.
+The southbound drivers used by LINSTOR are LVM, thinLVM and ZFS.
 (Support for Swordfish is in progress.)
 
 === Packages
 
-Linstor is packaged in just two packages in both the .rpm and the .deb variants:
+LINSTOR is packaged in just two packages in both the .rpm and the .deb variants:
 
 . _linstor-client_ contains the command line client program. It only depends
   on python which is usually already installed.
@@ -59,8 +59,8 @@ Start the linstor-controller service:
 # systemctl start linstor-controller
 ----------------------------
 
-=== Using the linstor client
-Whenever you run the linstor command line client it needs to know where your
+=== Using the LINSTOR client
+Whenever you run the LINSTOR command line client it needs to know where your
 linstor-server runs. If you do not specify it, it will try to reach a locally
 running linstor-controller listening on IP `127.0.0.1` port `3376`.
 
@@ -82,7 +82,7 @@ file:
 FIXME describe how to specify multiple controllers
 
 === Adding nodes to your cluster
-The next step is to add nodes to your linstor cluster. You need to provide
+The next step is to add nodes to your LINSTOR cluster. You need to provide
 
 . A node name which *must* match the output of `uname -n`
 . The IP address of the node.
@@ -102,12 +102,12 @@ becoming online. Of course the satellite process may be started before
 the controller knows about the existence of the satellite node.
 
 NOTE: In case the node which hosts your controller should also contribute
-storage to the linstor cluster, you have to add it as node and start
+storage to the LINSTOR cluster, you have to add it as node and start
 the linstor-satellite as well.
 
 === Storage pools
 
-_Storage pools_ identify storage in the context of linstor.
+_Storage pools_ identify storage in the context of LINSTOR.
 To group storage pools from multiple nodes, simply use the same name
 on each node.
 For example one valid approach is to give all SSDs one name and
@@ -115,7 +115,7 @@ all HDDs another.
 
 On each host contributing storage you need to create
 either an LVM VG or a ZFS zPool. The VGs and zPools identified with one
-linstor storage pool name may have different VG or zPool names on the
+LINSTOR storage pool name may have different VG or zPool names on the
 hosts, but do yourself a favor and use the same VG or zPool name on all
 nodes.
 
@@ -123,7 +123,7 @@ nodes.
 # vgcreate vg_ssd /dev/nvme0n1 /dev/nvme1n1 [...]
 ----------------------------
 
-These then need to be registered with linstor:
+These then need to be registered with LINSTOR:
 
 ----------------------------
 # linstor create-storage-pool pool_ssd alpha lvm vg_ssd
@@ -181,9 +181,9 @@ Second, we create a new volume definition within that resource definition:
 # linstor create-volume-definition backups 500G
 ----------------------------
 
-So far we have only created objects in linstor's database, not a single LV was
+So far we have only created objects in LINSTOR's database, not a single LV was
 created on the storage nodes. Now you have to choice of delegating the
-task of placement to linstor or doing it yourself
+task of placement to LINSTOR or doing it yourself
 
 ==== Manual placement
 
@@ -198,19 +198,19 @@ to named nodes explicitly.
 
 ==== Autoplace
 
-The value after autoplace tells linstor how many replicas you want to have.
+The value after autoplace tells LINSTOR how many replicas you want to have.
 The storage-pool option should be obvious.
 ----------------------------
 # linstor create-resource backups --auto-place 3 --storage-pool pool_hdd
 ----------------------------
 Maybe not so obvious is that you may omit the `--storage-pool` option, then
-linstor may select a storage pool on its own. The selection follows these rules:
+LINSTOR may select a storage pool on its own. The selection follows these rules:
 
   * Ignore all nodes and storage pools the current user has no access to
   * Ignore all diskless storage pools
   * Ignore all storage pools not having enough free space
 
-From the remaining storage pools linstor currently chooses the one with the
+From the remaining storage pools LINSTOR currently chooses the one with the
 most available free space.
 
 ==== DRBD clients
@@ -237,12 +237,12 @@ definitions before the resource is deployed to the nodes:
 ----------------------------
 
 NOTE: Since the `create-volume-definition` command is used without the `--vlmnr` option
-linstor assigned the volume nubers starting at 0. In the following two
+LINSTOR assigned the volume nubers starting at 0. In the following two
 lines the 0 and 1 refers to these automatically asigned volume numbers.
 
 Here the 'create-resource' commands do not need a `--storage-pool` option.
-In this case linstor uses a 'fallback' storage pool. Finding that storage pool
-linstor queries the properties of the following objects in the following order:
+In this case LINSTOR uses a 'fallback' storage pool. Finding that storage pool
+LINSTOR queries the properties of the following objects in the following order:
 
   * Volume definition
   * Resource
@@ -253,13 +253,13 @@ If none of those objects contain a `StorPoolName` property, the controller
 falls back to a hardcoded 'DfltStorPool' string as a storage pool.
 
 This also means that if you forgot to define a storage pool prior deploying a
-resource, you will get an error message that linstor could not find the
+resource, you will get an error message that LINSTOR could not find the
 storage pool named 'DfltStorPool'.
 
 === Managing Network Interface Cards
 
-Linstor can deal with multiple network interface cards (NICs) in a machine,
-they are called `netif` in linstor speak.
+LINSTOR can deal with multiple network interface cards (NICs) in a machine,
+they are called `netif` in LINSTOR speak.
 
 NOTE: When a satellite node is created a first `netif` gets created implicitly
 with the name `default`. Using the `--interface-name` option of the `create-node`
@@ -286,7 +286,7 @@ a specific `netif`.
 
 [[s-linstor-encrypted-volumes]]
 === Encrypted volumes
-`Linstor` can handle transparent encryption of drbd volumes. dm-crypt is used to
+LINSTOR can handle transparent encryption of drbd volumes. dm-crypt is used to
 encrypt the provided storage from the storage device.
 
 Basic steps to use encryption:
@@ -310,7 +310,7 @@ afterwards persisted.
 ==== Encrypt commands
 Below are details about the commands.
 
-Before `Linstor` can encrypt any volume a master passphrase needs to be created.
+Before LINSTOR can encrypt any volume a master passphrase needs to be created.
 This can be done with the linstor client.
 
 ----
@@ -339,7 +339,7 @@ To enter the master passphrase (after controller restart) use the following comm
 ----
 
 NOTE: Whenever the `Linstor` controller is restarted the user has to send
-the master passphrase to the controller, otherwise `Linstor` is unable to reopen or
+the master passphrase to the controller, otherwise LINSTOR is unable to reopen or
 create encrypted volumes.
 
 [[s-linstor-snapshots]]
@@ -348,7 +348,7 @@ IMPLEMENT
 
 [[s-linstor-status]]
 === Checking the state of your cluster
-`Linstor` provides various commands to check the state of your cluster.
+LINSTOR provides various commands to check the state of your cluster.
 These commands start with a 'list-' prefix and provide various filtering and
 sorting options. The '--groupby' option can be used to group and sort the
 output in multiple dimensions.
@@ -380,11 +380,11 @@ two ways:
 # linstor help list-nodes
 ----------------------------
 
-Using the 'help' subcommand is especially helpful when linstor is executed
+Using the 'help' subcommand is especially helpful when LINSTOR is executed
 in interactive mode (`linstor interactive`).
 
-One of the most helpful features of linstor is its rich tab-completion,
-which can be used to complete basically every object linstor knows about
+One of the most helpful features of LINSTOR is its rich tab-completion,
+which can be used to complete basically every object LINSTOR knows about
 (e.g., node names, IP addresses, resource names, ...).
 In the following we show some possible completions, and their results:
 
