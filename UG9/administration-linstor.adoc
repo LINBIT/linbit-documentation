@@ -13,17 +13,17 @@ are covered in detail in <<ch-troubleshooting>>.
 === Concepts and Terms
 
 A LINSTOR setup has exactly one active controller and multiple satellites.
-The _linstor controller_ contains the database that holds all configuration
+The _linstor-controller_ contains the database that holds all configuration
 information for the whole cluster. It makes all decisions that need to have a
 view of the whole cluster. The controller is typically deployed as a HA service
 using Pacemaker and DRBD as it is a crucial part of the system.
 
-The _linstor satellite_ runs on each node where LINSTOR consumes local
+The _linstor-satellite_ runs on each node where LINSTOR consumes local
 storage or provides storage to services. It is stateless; it receives
 all the information it needs from the controller. It runs programs
 like `lvcreate` and `drbdadm`. It is like a node agent.
 
-The _LINSTOR client_ is a command line utility that you use to issue
+The _linstor-client_ is a command line utility that you use to issue
 commands to the system and to investigate the status of the system
 
 === Broader Context
@@ -52,7 +52,7 @@ We assume that the following steps are accomplished on *all* cluster nodes:
 . The DRBD9 kernel module is installed and loaded
 . `drbd-utils` are installed
 . `LVM` tools are installed
-. `linstor server` and its dependencies are installed
+. `linstor-server` and its dependencies are installed
 
 Start the linstor-controller service:
 ----------------------------
@@ -70,7 +70,7 @@ running linstor-controller listening on IP `127.0.0.1` port `3376`.
 should give show you an empty list and not an error message.
 
 You can use the `linstor` command on any other machine, but then you need
-to tell the client how to find the linstor server. As shown, this can be
+to tell the client how to find the linstor-server. As shown, this can be
 specified as a command line option, an environment variable or in a global
 file:
 
@@ -92,7 +92,7 @@ The next step is to add nodes to your LINSTOR cluster. You need to provide
 ----------------------------
 
 When you use `linstor list-nodes` you will see that the new node
-is marked as offline. Now start the linstor satellite on that node
+is marked as offline. Now start the linstor-satellite on that node
 with:
 ----------------------------
 # systemctl start linstor-satellite
@@ -300,10 +300,10 @@ Basic steps to use encryption:
 Disabling the user security on the `Linstor` controller is a one time operation and is
 afterwards persisted.
 
-1. Stop the running `Linstor` controller via systemd: `systemctl stop linstor-controller`
-2. Start a `Linstor` controller in debug mode: `/opt/linstor-server/bin/Controller -c /opt/linstor-server -d`
+1. Stop the running linstor-controller via systemd: `systemctl stop linstor-controller`
+2. Start a linstor-controller in debug mode: `/opt/linstor-server/bin/Controller -c /opt/linstor-server -d`
 3. In the debug console enter: `setSecLvl secLvl(NO_SECURITY)`
-4. Stop `Linstor` controller with the debug shutdown command: `shutdown`
+4. Stop linstor-controller with the debug shutdown command: `shutdown`
 5. Start the controller again with systemd: `systemctl start linstor-controller`
 
 
@@ -311,7 +311,7 @@ afterwards persisted.
 Below are details about the commands.
 
 Before LINSTOR can encrypt any volume a master passphrase needs to be created.
-This can be done with the linstor client.
+This can be done with the linstor-client.
 
 ----
 # linstor crypt-create-passphrase
@@ -338,7 +338,7 @@ To enter the master passphrase (after controller restart) use the following comm
 # linstor crypt-enter-passphrase
 ----
 
-NOTE: Whenever the `Linstor` controller is restarted the user has to send
+NOTE: Whenever the linstor-controller is restarted the user has to send
 the master passphrase to the controller, otherwise LINSTOR is unable to reopen or
 create encrypted volumes.
 
@@ -401,7 +401,7 @@ appropriate file:
 # source /usr/share/bash_completion/completions/linstor
 ----------------------------
 
-For zsh shell users linstor client can generate a zsh compilation file,
+For zsh shell users linstor-client can generate a zsh compilation file,
 that has basic support for command and argument completion.
 
 ----------------------------
