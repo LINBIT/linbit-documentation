@@ -1,5 +1,5 @@
 define run-in-docker =
-	docker run -it --rm -v $$(pwd):/home/devin/linbit-documentation linbit-documentation /bin/sh -c 'cd /home/devin/linbit-documentation && make $(patsubst %-docker,%,$@)'
+	docker run -it --rm -v $$(pwd):/home/makedoc/linbit-documentation linbit-documentation /bin/sh -c 'cd ~/linbit-documentation && make $(patsubst %-docker,%,$@)'
 endef
 
 .PHONY: README.html-docker
