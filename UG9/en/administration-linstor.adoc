@@ -66,7 +66,7 @@ linstor-server runs. If you do not specify it, it will try to reach a locally
 running linstor-controller listening on IP `127.0.0.1` port `3376`.
 
 ----------------------------
-# linstor list-nodes
+# linstor node list
 ----------------------------
 should give you an empty list and not an error message.
 
@@ -76,8 +76,8 @@ specified as a command line option, an environment variable or in a global
 file:
 
 ----------------------------
-# linstor --controllers=alice list-nodes
-# LS_CONTROLLERS=alice linstor list-nodes
+# linstor --controllers=alice node list
+# LS_CONTROLLERS=alice linstor node list
 # FIXME add info about /etc/file...
 ----------------------------
 FIXME describe how to specify multiple controllers
@@ -90,16 +90,16 @@ provide:
 . The IP address of the node.
 
 ----------------------------
-# linstor create-node bravo 10.43.70.3
+# linstor node create bravo 10.43.70.3
 ----------------------------
 
-When you use `linstor list-nodes` you will see that the new node
+When you use `linstor node list` you will see that the new node
 is marked as offline. Now start the linstor-satellite on that node
 with:
 ----------------------------
 # systemctl start linstor-satellite
 ----------------------------
-About 10 seconds later you will see the status in `linstor list-nodes`
+About 10 seconds later you will see the status in `linstor node list`
 becoming online. Of course the satellite process may be started before
 the controller knows about the existence of the satellite node.
 
@@ -135,7 +135,7 @@ These then need to be registered with LINSTOR:
 NOTE: The storage pool name and common metadata is referred to as a
 _storage pool definition_.
 The listed commands create a storage pool definition implicitly.
-You can see that by using `linstor list-storage-pool-definitions`.
+You can see that by using `linstor storage-pool-definition list`.
 Creating storage pool definitions explicitly is possible but
 not necessary.
 
@@ -174,13 +174,13 @@ In the following scenario we assume that the goal is to create a resource
 First, we create a new resource definition:
 
 ----------------------------
-# linstor create-resource-definition backups
+# linstor resource-definition create backups
 ----------------------------
 
 Second, we create a new volume definition within that resource definition:
 
 ----------------------------
-# linstor create-volume-definition backups 500G
+# linstor volume-definition create backups 500G
 ----------------------------
 
 So far we have only created objects in LINSTOR's database, not a single LV was
@@ -189,13 +189,13 @@ task of placement to LINSTOR or doing it yourself.
 
 ==== Manual placement
 
-With the `create-resource` command you may assign a resource definition
+With the `resource create` command you may assign a resource definition
 to named nodes explicitly.
 
 ----------------------------
-# linstor create-resource backups alpha --storage-pool pool_hdd
-# linstor create-resource backups bravo --storage-pool pool_hdd
-# linstor create-resource backups charlie --storage-pool pool_hdd
+# linstor resource create alpha backups --storage-pool pool_hdd
+# linstor resource create bravo backups --storage-pool pool_hdd
+# linstor resource create charlie backups --storage-pool pool_hdd
 ----------------------------
 
 ==== Autoplace
@@ -203,7 +203,7 @@ to named nodes explicitly.
 The value after autoplace tells LINSTOR how many replicas you want to have.
 The storage-pool option should be obvious.
 ----------------------------
-# linstor create-resource backups --auto-place 3 --storage-pool pool_hdd
+# linstor resource create backups --auto-place 3 --storage-pool pool_hdd
 ----------------------------
 Maybe not so obvious is that you may omit the `--storage-pool` option, then
 LINSTOR may select a storage pool on its own. The selection follows these rules:
@@ -220,7 +220,7 @@ By using the `--diskless` option instead of `--storage-pool` you can
 have a permanently diskless DRBD device on a node.
 
 ----------------------------
-# linstor create-resource backups delta --diskless
+# linstor resource create delta backups --diskless
 ----------------------------
 
 ==== Volumes of one resource to different Storage-Pools
@@ -228,21 +228,21 @@ This can be achieved by setting the `StorPoolName` property to the volume
 definitions before the resource is deployed to the nodes:
 
 ----------------------------
-# linstor create-resource-definition backups
-# linstor create-volume-definition backups 500G
-# linstor create-volume-definition backups 100G
-# linstor set-volume-definition-property backups 0 StorPoolName pool_hdd
-# linstor set-volume-definition-property backups 1 StorPoolName pool_ssd
-# linstor create-resource backups alpha
-# linstor create-resource backups bravo
-# linstor create resource backups charlie
+# linstor resource-definition create backups
+# linstor volume-definition create backups 500G
+# linstor volume-definition create backups 100G
+# linstor volume-definition set-property backups 0 StorPoolName pool_hdd
+# linstor volume-definition set-property backups 1 StorPoolName pool_ssd
+# linstor resource create alpha backups
+# linstor resource create bravo backups
+# linstor resource create charlie backups
 ----------------------------
 
-NOTE: Since the `create-volume-definition` command is used without the `--vlmnr` option
+NOTE: Since the `volume-definition create` command is used without the `--vlmnr` option
 LINSTOR assigned the volume numbers starting at 0. In the following two
 lines the 0 and 1 refer to these automatically assigned volume numbers.
 
-Here the 'create-resource' commands do not need a `--storage-pool` option.
+Here the 'resource create' commands do not need a `--storage-pool` option.
 In this case LINSTOR uses a 'fallback' storage pool. Finding that
 storage pool, LINSTOR queries the properties of the following objects
 in the following order:
@@ -265,13 +265,13 @@ LINSTOR can deal with multiple network interface cards (NICs) in a machine,
 they are called `netif` in LINSTOR speak.
 
 NOTE: When a satellite node is created a first `netif` gets created implicitly
-with the name `default`. Using the `--interface-name` option of the `create-node`
+with the name `default`. Using the `--interface-name` option of the `node create`
 command you can give it a different name.
 
 Additional NICs are created like this:
 ----------------------------
-# linstor create-netif alpha 100G_nic 192.168.43.221
-# linstor create-netif alpha 10G_nic 192.168.43.231
+# linstor node interface create alpha 100G_nic 192.168.43.221
+# linstor node interface create alpha 10G_nic 192.168.43.231
 ----------------------------
 
 NICs are identified by the IP address only, the name is arbitrary and is
@@ -280,8 +280,8 @@ to storage pools so that whenever a resource is created in such a storage
 pool, the DRBD traffic will be routed through the specified NIC.
 
 ----------------------------
-# linstor set-storage-pool-property pool_hdd alpha PrefNic 10G_nic
-# linstor set-storage-pool-property pool_ssd alpha PrefNic 100G_nic
+# linstor storage-pool set-property alpha pool_hdd PrefNic 10G_nic
+# linstor storage-pool set-property alpha pool_ssd PrefNic 100G_nic
 ----------------------------
 
 FIXME describe how to route the controller +<->+ client communication through
@@ -317,7 +317,7 @@ Before LINSTOR can encrypt any volume a master passphrase needs to be created.
 This can be done with the linstor-client.
 
 ----
-# linstor crypt-create-passphrase
+# linstor encryption create-passphrase
 ----
 
 `crypt-create-passphrase` will wait for the user to input the initial master passphrase
@@ -326,20 +326,20 @@ This can be done with the linstor-client.
 If you ever want to change the master passphrase this can be done with:
 
 ----
-# linstor crypt-modify-passphrase
+# linstor encryption modify-passphrase
 ----
 
 To mark which volumes should be encrypted you have to add a flag while creating
 a volume definition, the flag is is `--encrypt` e.g.:
 
 ----
-# linstor create create-volume-definition crypt_rsc 1G --encrypt
+# linstor volume-definition create crypt_rsc 1G --encrypt
 ----
 
 To enter the master passphrase (after controller restart) use the following command:
 
 ----
-# linstor crypt-enter-passphrase
+# linstor encryption enter-passphrase
 ----
 
 NOTE: Whenever the linstor-controller is restarted, the user has to send
@@ -358,8 +358,8 @@ sorting options. The '--groupby' option can be used to group and sort the
 output in multiple dimensions.
 
 ----------------------------
-# linstor list-nodes
-# linstor list-storage-pools --groupby Size
+# linstor node list
+# linstor storage-pool list --groupby Size
 ----------------------------
 
 [[s-linstor-setupopts]]
@@ -371,17 +371,17 @@ managed by LINSTOR will be ignored.
 The following commands show the usage and available options:
 
 ----------------------------
-# linstor drbd-options -h
-# linstor drbd-resource-options -h
-# linstor drbd-volume-options -h
-# linstor drbd-resource-connection-options -h
+# linstor controller drbd-options -h
+# linstor resource-definition drbd-options -h
+# linstor volume-definition drbd-options -h
+# linstor resource drbd-peer-options -h
 ----------------------------
 
 For instance, it is easy to set the DRBD protocol for a resource named
 `backups`:
 
 ----------------------------
-# linstor drbd-resource-options --protocol C backups
+# linstor resource-definition drbd-options --protocol C backups
 ----------------------------
 
 [[s-linstor-rebalance]]
@@ -398,8 +398,8 @@ A quick way to list available commands on the command line is to type
 Further information on subcommands (e.g., list-nodes) can be retrieved in
 two ways:
 ----------------------------
-# linstor list-nodes -h
-# linstor help list-nodes
+# linstor node list -h
+# linstor help node list
 ----------------------------
 
 Using the 'help' subcommand is especially helpful when LINSTOR is executed
@@ -411,8 +411,8 @@ which can be used to complete basically every object LINSTOR knows about
 In the following examples, we show some possible completions, and their results:
 
 ----------------------------
-# linstor create-node alpha 1<tab> # completes the IP address if hostname can be resolved
-# linstor create-resource b<tab> c<tab> # linstor assign-resource backups charlie
+# linstor node create alpha 1<tab> # completes the IP address if hostname can be resolved
+# linstor resource create b<tab> c<tab> # linstor assign-resource backups charlie
 ----------------------------
 
 If tab-completion does not work out of the box, please try to source the
