@@ -1,1 +1,1 @@
-../UG9/Makefile
+include ../UG-top.inc
