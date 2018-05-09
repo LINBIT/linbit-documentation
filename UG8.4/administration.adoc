@@ -42,49 +42,35 @@ status of a single resource.
 # drbdadm status home
 home role:Secondary
   disk:UpToDate
-  nina role:Secondary
-    disk:UpToDate
-  nino role:Secondary
-    disk:UpToDate
-  nono connection:WFConnection
+  peer role:Secondary
+    replication:Established peer-disk:UpToDate
 ----------------------------
 
-This here just says that the resource `home` is locally, on 'nina', and
-on 'nino' _UpToDate_ and _Secondary_; so the three nodes have the same
+This here just says that the resource `home` is locally and on peer
+_UpToDate_ and _Secondary_; so the two nodes have the same
 data on their storage devices, and nobody is using the device currently.
 
-The node 'nono' is not connected, its state is reported as
-_WFConnection_; please see <<s-connection-states>> below for more details.
-
-
 You can get more information by passing the `--verbose` and/or
-`--statistics` arguments:
+`--statistics` arguments to `drbdsetup`:
 
 ----------------------------
-# drbdadm status home --verbose --statistics
-home node-id:1 role:Secondary suspended:no
-    write-ordering:none
+# drbdsetup status home --verbose --statistics
+home role:Secondary suspended:no
+    write-ordering:flush
   volume:0 minor:0 disk:UpToDate
-      size:1048412 read:0 written:1048412 al-writes:0 bm-writes:48 upper-pending:0 lower-pending:0 al-suspended:no blocked:no
-  nina local:ipv4:10.9.9.111:7001 peer:ipv4:10.9.9.103:7010 node-id:0 connection:Connected role:Secondary
-      congested:no
-    volume:0 replication:Connected disk:UpToDate resync-suspended:no
-        received:1048412 sent:0 out-of-sync:0 pending:0 unacked:0
-  nino local:ipv4:10.9.9.111:7021 peer:ipv4:10.9.9.129:7012 node-id:2 connection:Connected role:Secondary
-      congested:no
-    volume:0 replication:Connected disk:UpToDate resync-suspended:no
+      size:5033792 read:0 written:0 al-writes:0 bm-writes:0 upper-pending:0
+      lower-pending:0 al-suspended:no blocked:no
+  peer connection:Connected role:Secondary congested:no
+    volume:0 replication:Established peer-disk:UpToDate
+        resync-suspended:no
         received:0 sent:0 out-of-sync:0 pending:0 unacked:0
-  nono local:ipv4:10.9.9.111:7013 peer:ipv4:10.9.9.138:7031 node-id:3 connection:WFConnection
 ----------------------------
-
 
 Every few lines in this example form a block that is repeated
 for every node used in this resource, with small format exceptions
 for the local node - see below for more details.
 
-The first line in each block shows the `node-id` (for the current
-resource; a host can have different ``node-id``s in different resources).
-Furthermore the `role` (see <<s-roles>>) is shown.
+The first line in each block shows the `role` (see <<s-roles>>).
 
 The next important line begins with the `volume` specification; normally
 these are numbered starting by zero, but the configuration may specify
@@ -109,8 +95,6 @@ this case, this is `0`, corresponding to the device `/dev/drbd0`.
 The resource-specific output contains various pieces
 of information about the resource:
 
-
-.Replication protocol FIXME
 Replication protocol used by the resource. Either `A`, `B` or `C`. See
 <<s-replication-protocols>> for details.
 
