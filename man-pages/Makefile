@@ -12,8 +12,8 @@ else
 MANDIR=$(DRBD_UTILS)/documentation
 endif
 
-MANDIR_v9=$(MANDIR)/v9
-MANDIR_v84=$(MANDIR)/v84
+MANDIR_v9=$(MANDIR)/$(DRBD_UTILS_LANG)/v9
+MANDIR_v84=$(MANDIR)/$(DRBD_UTILS_LANG)/v84
 
 MANPAGES_v9_5=$(wildcard $(MANDIR_v9)/*.5)
 MANPAGES_v9_8=$(wildcard $(MANDIR_v9)/*.8)
