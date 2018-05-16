@@ -1,0 +1,1728 @@
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+[[ch-admin]]
+== 一般的な管理作業
+
+この章では、日常的な運用において必要な一般的な管理作業について説明します。トラブルシューティング作業については取り上げません。これについては、<<ch-troubleshooting>>を参照してください。
+
+[[s-check-status]]
+=== DRBDの状態のチェック
+
+[[s-drbd-overview]]
+==== `drbd-overview` で状態を取得する
+
+DRBDのステータスはindexterm:[drbd-overview] `drbd-overview` ユーティリティで簡単に確認できます。
+
+----------------------------
+# drbd-overview
+0:home                 Connected Primary/Secondary
+  UpToDate/UpToDate C r--- /home        xfs  200G 158G 43G  79%
+1:data                 Connected Primary/Secondary
+  UpToDate/UpToDate C r--- /mnt/ha1     ext3 9.9G 618M 8.8G 7%
+2:nfs-root             Connected Primary/Secondary
+  UpToDate/UpToDate C r--- /mnt/netboot ext3 79G  57G  19G  76%
+----------------------------
+
+[[s-drbdadm-status]]
+==== `drbdadm` によるステータス情報
+
+indexterm:[drbdadm status]一番シンプルなものとして、1つのリソースのステータスを表示します。
+
+----------------------------
+# drbdadm status home
+home role:Secondary
+  disk:UpToDate
+  peer role:Secondary
+    replication:Established peer-disk:UpToDate
+----------------------------
+
+ここでは、リソース `home` がローカル、対抗ノードにあり、UpToDate, Secondary
+状態であることを示します。よって、2つのノードはストレージデバイス上で同じデータを持ち、どちらもそのデバイスを使用していません。
+
+より多くの情報を得るには `drbdsetup` に `--verbose` , `--statistics`
+引数のどちらか、あるいは両方を指定します:
+
+----------------------------
+# drbdsetup status home --verbose --statistics
+home role:Secondary suspended:no
+    write-ordering:flush
+  volume:0 minor:0 disk:UpToDate
+      size:5033792 read:0 written:0 al-writes:0 bm-writes:0 upper-pending:0
+      lower-pending:0 al-suspended:no blocked:no
+  peer connection:Connected role:Secondary congested:no
+    volume:0 replication:Established peer-disk:UpToDate
+        resync-suspended:no
+        received:0 sent:0 out-of-sync:0 pending:0 unacked:0
+----------------------------
+
+この例では、ローカルノードについては多少異なりますが、このリソースで使用しているノードすべてを数行ごとにブロックで表示しています。以下で詳細を説明します。
+
+各ブロックの最初の行はロール (<<s-roles>> を参照) を表示します。
+
+次に重要な行は `volume` で始まる行で通常０から番号付けされますが、構成により他の番号付けも可能です。この行は、 `replication`
+項に indexterm:[connection state] 接続状態と `disk` 項 (<<s-disk-states>> を参照)
+にリモートの indexterm:[disk state] ディスク状態を表示します。さらに `received`, `sent`,
+`out-of-sync` などの統計情報が続きます。詳細は <<s-performance-indicators>> を参照してください。
+
+ローカルノードの場合、この例では、最初の行にリソース名 `home` が表示されます。最初のブロックは常にローカルノードを記述するので、
+`Connection` やアドレス情報はありません。
+
+詳細は `drbd.conf` マニュアルページを参照してください。
+
+この例の他の6行は、構成されている各DRBDデバイスについて繰り返されるブロックで、先頭にデバイスのマイナー番号が付いています。この場合、 `0`
+はデバイス `/dev/drbd0` に対応します。
+
+リソース固有の出力には、リソースについてのさまざまな情報が表示されます。
+
+Replication protocolはリソースが使用します。 `A` 、 `B` 、 `C`
+のいずれかです。詳細は<<s-replication-protocols>>を参照ください。
+
+[[s-drbdsetup-events2]]
+==== `drbdsetup events2` によるワンショットもしくはリアルタイムの監視
+
+NOTE: これは drbd-utils バージョン 8.9.3, kernel module 8.4.6 以降で利用可能です。
+
+これは、監視のような自動ツールでの使用に適したもので、DRBD から情報を取得する低レベルのメカニズムです。
+
+最も単純な呼び出しでは、現在のステータスのみを表示し、出力は次のようになります（ただし、端末で実行するとカラー属性を含みます）。
+
+.'drbdsetup' の出力例（読みやすくするために改行してある）
+-----------------
+# drbdsetup events2 --now r0
+exists resource name:r0 role:Secondary suspended:no
+exists connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connected role:Secondary
+exists device name:r0 volume:0 minor:7 disk:UpToDate
+exists device name:r0 volume:1 minor:8 disk:UpToDate
+exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:0
+	replication:Established peer-disk:UpToDate resync-suspended:no
+exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:1
+	replication:Established peer-disk:UpToDate resync-suspended:no
+exists -
+-----------------
+
+--now 引数なしではプロセスは実行し続け、このように連続的に更新し続けます:
+
+-----------------
+# drbdsetup events2 r0
+...
+change connection name:r0 peer-node-id:1 conn-name:remote-host connection:StandAlone
+change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Unconnected
+change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connecting
+-----------------
+
+監視目的のために ''--statistics'' 引数を指定すると、パフォーマンスカウンタや他の事象を生成できます。
+
+.'drbdsetup' 冗長出力（読みやすくするために改行してある
+-----------------
+# drbdsetup events2 --statistics --now r0
+exists resource name:r0 role:Secondary suspended:no write-ordering:drain
+exists connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connected role:Secondary congested:no
+exists device name:r0 volume:0 minor:7 disk:UpToDate size:6291228 read:6397188 written:131844
+	al-writes:34 bm-writes:0 upper-pending:0 lower-pending:0 al-suspended:no blocked:no
+exists device name:r0 volume:1 minor:8 disk:UpToDate size:104854364 read:5910680 written:6634548
+	al-writes:417 bm-writes:0 upper-pending:0 lower-pending:0 al-suspended:no blocked:no
+exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:0 replication:Established
+	peer-disk:UpToDate resync-suspended:no received:0 sent:131844 out-of-sync:0 pending:0 unacked:0
+exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:1 replication:Established
+	peer-disk:UpToDate resync-suspended:no received:0 sent:6634548 out-of-sync:0 pending:0 unacked:0
+exists -
+-----------------
+
+`--timestamp` 引数もあります。
+
+
+
+
+[[s-proc-drbd]]
+==== `/proc/drbd` でのステータス情報
+
+NOTE: ''/proc/drbd'' は非推奨です。8.4 シリーズでは削除されませんが、<<s-drbdadm-status>> や監視目的の
+<<s-drbdsetup-events2>> などの他の手段に切り替えることをお勧めします。
+
+indexterm:[/proc/drbd@/proc/drbd] `/proc/drbd`
+は現在設定されているすべてのDRBDリソースに関するリアルタイムのステータス情報を表示する仮想ファイルです。次のようにして、ファイルの内容を確認できます。
+
+----------------------------
+$ cat /proc/drbd
+version: 8.4.0 (api:1/proto:86-100)
+GIT-hash: 09b6d528b3b3de50462cd7831c0a3791abc665c3 build by linbit@buildsystem.linbit, 2011-10-12 09:07:35
+ 0: cs:Connected ro:Secondary/Secondary ds:UpToDate/UpToDate C r-----
+    ns:0 nr:0 dw:0 dr:656 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+ 1: cs:Connected ro:Primary/Secondary ds:UpToDate/UpToDate C r---
+    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+ 2: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r---
+    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+----------------------------
+
+先頭に +version:+
+と記述された最初の行は、システムで使用されているDRBDのバージョンを示します。2行目にはこのビルドに関する情報が記述されています。
+
+この例の他の6行は、構成されている各DRBDデバイスについて繰り返されるブロックで、先頭にデバイスのマイナー番号が付いています。この場合、 `0`
+はデバイス `/dev/drbd0` に対応します。
+
+`/proc/drbd` のデバイス固有の出力には、リソースについてのさまざまな情報が表示されます。
+
+.`cs` (connection state)
+indexterm:[せつぞくじょうたい@接続状態]ネットワーク接続の状態。接続状態の種類や詳細については<<s-connection-states>>を参照ください。
+
+.`ro` (roles)
+indexterm:[resource]ノードのロール最初にローカルノードのロールが表示され、スラッシュの後に対向ノードのロールが表示されます。リソースロールの詳細は、<<s-roles>>を参照してください。
+
+.`ds` (disk states)
+indexterm:[でぃすくじょうたい@ディスク状態]ハードディスクの状態スラッシュの前にローカルノードの状態、スラッシュの後に対向ノードのハードディスクの状態が表示されます。さまざまなディスク状態については<<s-disk-states>>をご参照ください。
+
+.レプリケーションプロトコル
+Replication protocolはリソースが使用します。 `A` 、 `B` 、 `C`
+のいずれかです。詳細は<<s-replication-protocols>>を参照ください。
+
+.I/Oフラグ
+リソースのI/O状態を反映する6種のフラグです。これらフラグの詳細は<<s-io-flags>>を参照ください。
+
+.パフォーマンス指標
+リソースの利用とパフォーマンスを反映したカウンタです。詳細は<<s-performance-indicators>>を参照ください。
+
+
+
+[[s-connection-states]]
+==== 接続状態
+
+indexterm:[せつぞくじょうたい@接続状態]リソースの接続状態を確認するには、 `/proc/drbd` を監視するか、 `drbdadm
+cstate` コマンドを実行します。
+
+----------------------------
+# drbdadm cstate <resource>
+Connected
+----------------------------
+
+リソースの接続状態には次のようなものがあります。
+
+._StandAlone_
+indexterm:[せつぞくじょうたい@接続状態]ネットワーク構成は使用できません。リソースがまだ接続されていない、管理上の理由で切断されている(`drbdadm
+disconnect`を使用)、認証の失敗またはスプリットブレインにより接続が解除された、のいずれかが考えられます。
+
+._Disconnecting_
+indexterm:[せつぞくじょうたい@接続状態]切断中の一時的な状態です。次の状態は _StandAlone_ です。
+
+._Unconnected_
+indexterm:[せつぞくじょうたい@接続状態]接続を試行する前の一時的な状態です。次に考えられる状態は、 _WFConnection_ および
+_WFReportParams_ です。
+
+._Timeout_
+indexterm:[せつぞくじょうたい@接続状態]対向ノードとの通信のタイムアウト後の一時的な状態です。次の状態は _Unconnected_ です。
+
+._BrokenPipe_
+対向ノードとの接続が失われた後の一時的な状態です。indexterm:[せつぞくじょうたい@接続状態]次の状態は _Unconnected_ です。
+
+._NetworkFailure_
+indexterm:[せつぞくじょうたい@接続状態]対向ノードとの接続が失われた後の一時的な状態です。次の状態は _Unconnected_ です。
+
+._ProtocolError_
+indexterm:[せつぞくじょうたい@接続状態]対向ノードとの接続が失われた後の一時的な状態です。次の状態は _Unconnected_ です。
+
+._TearDown_
+indexterm:[せつぞくじょうたい@接続状態]一時的な状態です。対向ノードが接続を閉じています。次の状態は _Unconnected_ です。
+
+._WFConnection_
+indexterm:[せつぞくじょうたい@接続状態]対向ノードノードがネットワーク上で可視になるまでノードが待機します。
+
+._WFReportParams_
+indexterm:[せつぞくじょうたい@接続状態]TCP
+(伝送制御プロトコル)接続が確立され、ノードが対向ノードからの最初のネットワークパケットを待っています。
+
+._Connected_
+indexterm:[せつぞくじょうたい@接続状態]DRBDの接続が確立され、データミラー化がアクティブになっています。これが正常な状態です。
+
+._StartingSyncS_
+indexterm:[せつぞくじょうたい@接続状態]管理者により開始されたフル同期が始まっています。次に考えられる状態は _SyncSource_
+または _PausedSyncS_ です。
+
+._StartingSyncT_
+indexterm:[せつぞくじょうたい@接続状態]管理者により開始されたフル同期が始まっています。次の状態は _WFSyncUUID_ です。
+
+._WFBitMapS_
+indexterm:[せつぞくじょうたい@接続状態]部分同期が始まっています。次に考えられる状態は _SyncSource_ または
+_PausedSyncS_ です。
+
+._WFBitMapT_
+indexterm:[せつぞくじょうたい@接続状態]部分同期が始まっています。次に考えられる状態は _WFSyncUUID_ です。
+
+._WFSyncUUID_
+indexterm:[せつぞくじょうたい@接続状態]同期が開始されるところです。次に考えられる状態は _SyncTarget_ または
+_PausedSyncT_ です。
+
+._SyncSource_
+indexterm:[せつぞくじょうたい@接続状態]現在、ローカルノードを同期元にして同期を実行中です。
+
+._SyncTarget_
+indexterm:[せつぞくじょうたい@接続状態]現在、ローカルノードを同期先にして同期を実行中です。
+
+._PausedSyncS_
+ローカルノードが進行中の同期の同期元ですが、現在は同期が一時停止しています。indexterm:[せつぞくじょうたい@接続状態]原因として、別の同期プロセスの完了との依存関係、または
+`drbdadm pause-sync` を使用して手動で同期が中断されたことが考えられます。
+
+._PausedSyncT_
+indexterm:[せつぞくじょうたい@接続状態]ローカルノードが進行中の同期の同期先ですが、現在は同期が一時停止しています。原因として、別の同期プロセスの完了との依存関係、または
+`drbdadm pause-sync` を使用して手動で同期が中断されたことが考えられます。
+
+._VerifyS_
+indexterm:[せつぞくじょうたい@接続状態]現在、ローカルノードを照合元にして、オンラインデバイスの照合を実行中です。
+
+._VerifyT_
+indexterm:[せつぞくじょうたい@接続状態]現在、ローカルノードを照合先にして、オンラインデバイスの照合を実行中です。
+
+
+[[s-roles]]
+==== リソースのロール
+
+indexterm:[resource]リソースのロールは、 `/proc/drbd` を監視するか、indexterm:[drbdadm]
+`drbdadm role` コマンドを発行することのいずれかによって確認できます。
+
+----------------------------
+# drbdadm role <resource>
+Primary/Secondary
+----------------------------
+
+左側はローカルリソースのロール、右側はリモートリソースのロールです。
+
+リソースロールには次のようなものがあります。
+
+._Primary_
+現在、リソースはプライマリロールで読み書き加能です。2つのノードの一方だけがこのロールになることができます。ただし、<<s-dual-primary-mode,デュアルプライマリモード>>が有効な場合は例外です。
+
+._Secondary_
+現在、リソースがセカンダリロールです。対向ノードから正常に更新を受け取ることができますが(切断モード以外の場合)、このリソースに対して読み書きは実行できません。1つまたは両ノードがこのロールになることができます。
+
+._Unknown_
+現在、リソースのロールが不明です。ローカルリソースロールがこの状態になることはありません。これは、切断モードの場合にのみ、対向ノードのリソースロールだけに表示されます。
+
+
+[[s-disk-states]]
+==== ディスク状態
+
+リソースのディスクの状態は、 `/proc/drbd` を監視することにより、または `drbdadm dstate`
+コマンドを発行することのいずれかによって確認できます。
+
+----------------------------
+# drbdadm dstate <resource>
+UpToDate/UpToDate
+----------------------------
+
+左側はローカルディスクの状態、右側はリモートディスクの状態です。
+
+ローカルディスクとリモートディスクの状態には、次のようなものがあります。
+
+._Diskless_
+indexterm:[でぃすくじょうたい@ディスク状態]DRBDドライバにローカルブロックデバイスが割り当てられていません。原因として、リソースが下位デバイスに接続されなかった、
+`drbdadm detach` を使用して手動でリソースを切り離した、または下位レベルのI/Oエラーにより自動的に切り離されたことが考えられます。
+
+._Attaching_
+indexterm:[でぃすくじょうたい@ディスク状態]メタデータ読み取り中の一時的な状態です。
+
+._Failed_
+indexterm:[でぃすくじょうたい@ディスク状態]ローカルブロックデバイスがI/O障害を報告した後の一時的な状態です。次の状態は
+_Diskless_ です。
+
+._Negotiating_
+indexterm:[でぃすくじょうたい@ディスク状態]すでに接続しているDRBDデバイスで接続が実行された場合の一時的状態です。
+
+._Inconsistent_
+indexterm:[でぃすくじょうたい@ディスク状態]データが一致しません。新規リソースを作成した直後に(初期フル同期の前に)両方のノードがこの状態になります。また、同期中には片方のノード(同期先)がこの状態になります。
+
+._Outdated_
+indexterm:[でぃすくじょうたい@ディスク状態]リソースデータは一致していますが、<<s-outdate,無効>>です。
+
+._DUnknown_
+indexterm:[でぃすくじょうたい@ディスク状態]ネットワーク接続を使用できない場合に、対向ノードディスクにこの状態が使用されます。
+
+._Consistent_
+indexterm:[でぃすくじょうたい@ディスク状態]接続していない状態でノードのデータが一致しています。接続が確立すると、データが
+_UpToDate_ か _Outdated_ か判断されます。
+
+._UpToDate_
+indexterm:[でぃすくじょうたい@ディスク状態]データが一致していて最新の状態です。これが正常な状態です。
+
+[[s-io-flags]]
+==== I/O状態フラグ
+
+`/proc/drbd`
+フィールドのI/O状態フラグは現在のリソースへのI/Oオペレーションの状態に関する情報を含みます。全部で6つのフラグがあり、次の値をとります。
+
+. I/O停止。I/Oの動作中には `r` であり、停止中には `s` です。通常時は `r` です。
+
+. シリアル再同期。リソースの再同期を待ち受け中で、 再同期後の依存性があるため延期されている場合、このフラグが `a` になります。通常は `-` です。
+
+. 対向ノードで開始された同期の停止。リソースの再同期を待ち受け中で、対向ノードが何らかの理由で同期を停止した場合に、このフラグが `p`
+  になります。通常は `-` です。
+
+. ローカルで開始された同期の停止。リソースの再同期を待ち受け中で、ローカルノードのユーザが同期を停止した場合、このノードが `u` になります。通常は
+  `-` です。
+
+. ローカルでブロックされたI/O。通常は `-` です。次のいずれかのフラグになります。
+
+** `d` : 何らかの理由でDRBD内部でI/Oがブロックされたなどの一時的な状況
+** `b` : 下位デバイスのI/Oがブロックされている。
+** `n` : ネットワークソケットの輻輳。
+** `a` : デバイスI/Oのブロックとネットワーク輻輳が同時に発生。
+
+. アクティビティログのアップデートの停止アクティビティログへのアップデートが停止された場合、このフラグが `s` になります。通常は `-` です。
+
+[[s-performance-indicators]]
+==== パフォーマンス指標
+
+`/proc/drbd` の2行目の各リソースの情報は次のカウンタを含んでいます。
+
+.`ns` (ネットワーク送信)
+ネットワーク接続を介して対向ノードに送信された正味データの量(単位はKibyte)。
+
+.`nr` (ネットワーク受信)
+ネットワーク接続を介して対向ノードが受信した正味データの量(単位はKibyte)。
+
+.`dw` (ディスク書き込み)
+ローカルハードディスクに書き込まれた正味データ(単位はKibyte)。
+
+.`dr` (ディスク読み取り)
+ローカルハードディスクから読み取った正味データ(単位はKibyte)。
+
+.`al` (アクティビティログ)
+メタデータのアクティビティログ領域の更新の数。
+
+.`bm` (ビットマップ)
+メタデータのビットマップ領域の更新の数。
+
+.`lo` (ローカルカウント)
+DRBDが発行したローカルI/Oサブシステムに対するオープン要求の数。
+
+.`pe` (保留)
+対向ノードに送信されたが、対向ノードから応答がない要求の数。
+
+.`ua` (未確認)
+ネットワーク接続を介して対向ノードが受信したが、応答がない要求の数。
+
+.`ap` (アプリケーション保留)
+DRBDに転送されたが、DRBDが応答していないブロックI/O要求の数。
+
+.`ep` (エポック)
+エポックオブジェクトの数。通常は1。 `barrier` または `none`
+書き込み順序付けメソッドを使用する場合は、I/O負荷により増加する可能性があります。
+
+.`wo` (書き込み順序付け)
+現在使用されている書き込み順序付けメソッド。 `b` (バリア)、 `f` (フラッシュ)、 `d` (ドレイン)または `n` (なし)。
+
+.`oos` (非同期)
+現在、同期していないストレージの量(単位はKibibyte)。
+
+
+[[s-enable-disable]]
+=== リソースの有効化と無効化
+
+[[s-enable-resource]]
+==== リソースの有効化
+
+indexterm:[resource]クラスタ構成に応じたクラスタ管理アプリケーションの操作によって、通常、すべての構成されているDRBDリソースが自動的に有効になります。
+
+* by a cluster resource management application at its discretion, based on
+  your cluster configuration, or
+
+* またはシステム起動時の `/etc/init.d/drbd` によっても有効になります。
+
+もし何らかの理由により手動でリソースを起動する必要のある場合、以下のコマンドの実行によって行うことができます。
+
+----------------------------
+# drbdadm up <resource>
+----------------------------
+
+他の場合と同様に、特定のリソース名の代わりにキーワード `all` を使用すれば、 `/etc/drbd.conf`
+で構成されているすべてのリソースを一度に有効にできます。
+
+[[s-disable-resource]]
+==== リソースを無効にする
+
+indexterm:[resource]特定のリソースを一時的に無効にするには、次のコマンドを実行します。
+
+----------------------------
+# drbdadm down <resource>
+----------------------------
+
+ここでも、リソース名の代わりにキーワード `all` を使用して、1回で `/etc/drbd.conf`
+に記述されたすべてのリソースを一時的に無効にできます。
+
+[[s-reconfigure]]
+=== リソースの設定の動的な変更
+
+indexterm:[resource]動作中のリソースのパラメータを変更できます。次の手順を行います。
+
+* `/etc/drbd.conf` のリソース構成を変更します。
+
+* 両方のノードで `/etc/drbd.conf` ファイルを同期します。
+
+* 両ノードでindexterm:[drbdadm] `drbdadm adjust <resource>` コマンドを実行します。
+
+`drbdadm adjust` は `drbdsetup` を通じて実行中のリソースを調整します。保留中の `drbdsetup`
+呼び出しを確認するには、 `drbdadm` を `-d` (予行演習)オプションをつけて実行します。
+
+NOTE: `/etc/drbd.conf` の `common` セクションを変更して一度にすべてのリソースに反映させたいときは、 `drbdadm adjust
+all` を実行します。
+
+[[s-switch-resource-roles]]
+=== リソースの昇格と降格
+
+indexterm:[resource]手動で<<s-resource-roles,リソースロール>>をセカンダリからプライマリに切り替える(昇格)、またはその逆に切り替える(降格)には、次のコマンドを実行します。
+
+----------------------------
+# drbdadm primary <resource>
+# drbdadm secondary <resource>
+----------------------------
+
+DRBDが<<s-single-primary-mode,シングルプライマリモード>>
+(DRBDのデフォルト)で、<<s-connection-states,接続状態>>が _Connected_
+の場合、任意のタイミングでどちらか1つのノード上でのみリソースはプライマリロールになれます。したがって、 _<resource>_
+が対向ノードがプライマリロールになっているときに `drbdadm primary <resource>` を実行すると、エラーが発生します。
+
+リソースが<<s-dual-primary-mode,デュアルプライマリモード>>に対応するように設定されている場合は、両方のノードをプライマリロールに切り替えることができます。
+
+[[s-manual-fail-over]]
+=== 基本的な手動フェイルオーバ
+
+Pacemakerを使わず、パッシブ/アクティブ構成でフェイルオーバを手動で制御するには次のようにします。
+
+現在のプライマリノードでDRBDデバイスを使用するすべてのアプリケーションとサービスを停止し、リソースをセカンダリに降格します。
+
+----------------------------
+# umount /dev/drbd/by-res/<resource>
+# drbdadm secondary <resource>
+----------------------------
+
+プライマリにしたいノードでリソースを昇格してデバイスをマウントします。
+
+----------------------------
+# drbdadm primary <resource>
+# mount /dev/drbd/by-res/<resource> <mountpoint>
+----------------------------
+
+[[s-upgrading-drbd]]
+=== DRBDをアップグレードする
+
+DRBDのアップグレードは非常にシンプルな手順です。このセクションでは8.3.xから8.4.xへのアップグレードを扱いますが、この手順は他のアップグレードでも使えます。
+
+[[s-updating-your-repo]]
+==== リポジトリをアップデートする
+
+8.3から8.4の間で多くの変更があったため、それぞれ別個のリポジトリを作りました。両ノードでリポジトリのアップデートを行います。
+
+[[s-RHEL-systems]]
+===== RHEL/CentOSシステム
+
+/etc/yum.repos.d/linbit.repos.d/linbit.repoファイルに次の変更を反映するよう編集します。
+
+----------------------------
+[drbd-8.4]
+name=DRBD 8.4
+baseurl=http://packages.linbit.com/<hash>/8.4/rhel6/<arch>
+gpgcheck=0
+----------------------------
+
+NOTE: <hash>と<arch>の部分を埋める必要があります。<hash>キーは、LINNBITサポートから入手します。
+
+[[s-Debian-Systems]]
+===== Debian/Ubuntuシステム
+
+次の変更点を/etc/apt/sources.listへ反映させるため編集します。
+
+----------------------------
+deb http://packages.linbit.com/<hash>/8.4/debian squeeze main
+----------------------------
+
+NOTE: <hash> の部分を埋める必要があります。<hash>キーは、LINNBITサポートから入手します。
+
+次にDRBDの署名キーを信頼済みキーに追加します。
+
+----------------------------
+# gpg --keyserver subkeys.pgp.net --recv-keys  0x282B6E23
+# gpg --export -a 282B6E23 | apt-key add -
+----------------------------
+
+最後にDebianに認識させるためapt-get updateを実行します。
+
+----------------------------
+apt-get update
+----------------------------
+
+[[s-Upgrading-the-packages]]
+==== パッケージをアップグレードする
+
+最初に、リソースが同期している事を確認してください。'cat /proc/drbd'がUpToDate/UpToDateを出力しています。
+
+----------------------------
+bob# cat /proc/drbd
+
+version: 8.3.12 (api:88/proto:86-96)
+GIT-hash: e2a8ef4656be026bbae540305fcb998a5991090f build by buildsystem@linbit, 2011-10-28 10:20:38
+ 0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
+    ns:0 nr:33300 dw:33300 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+----------------------------
+
+リソースが同期している事が確認できたので、セカンダリノードのアップグレードから始めます。これは手動で実行できますが、Pacemakerを使用している場合にはスタンバイモードにしてください。どちらの方法についても、以下をご覧ください。Pacemakerを動作させている場合には、手動の方法は実施しないでください。
+
+* 手動の方法
+----------------------------
+bob# /etc/init.d/drbd stop
+----------------------------
+
+* Pacemaker
+
+セカンダリノードをスタンバイモードにします。この例は bob がセカンダリの場合です。
+
+----------------------------
+bob# crm node standby bob
+----------------------------
+
+NOTE: "Unconfigured"と表示されるまでは、クラスタの状態を'crm_mon -rf'または'cat /proc/drbd'で確認できます。
+
+yumまたはaptでパッケージをアップデートします。
+
+----------------------------
+bob# yum upgrade
+----------------------------
+
+----------------------------
+bob# apt-get upgrade
+----------------------------
+
+セカンダリノードのボブでアップグレードが終わり、最新のDRBD 8.4カーネルモジュールとdrbd-utilsになったらDRBDを開始します。
+
+* 手動
+----------------------------
+bob# /etc/init.d/drbd start
+----------------------------
+
+* Pacemaker
+----------------------------
+# crm node online bob
+----------------------------
+
+bobの'cat /proc/drbd'の出力結果が8.4.xを示し、次のようになっています。
+
+----------------------------
+version: 8.4.1 (api:1/proto:86-100)
+GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 2011-12-20 12:58:48
+ 0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
+    ns:0 nr:12 dw:12 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+----------------------------
+
+NOTE: プライマリノードのaliceでは、アップグレードをするまで'cat /proc/drbd'が以前のバージョンを示しています。
+
+この時点では異なるバージョンのDRBDが混在しています。プライマリノードのaliceでDRBDを使用するすべてのサービスを停止したら、bobを昇格します。繰り返しですが、この操作は手動でもPacemakerのシェルからでも行えます。
+
+* 手動
+----------------------------
+alice # umount /dev/drbd/by-res/r0
+alice # /etc/init.d/drbd stop
+bob # drbdadm primary r0
+bob # mount /dev/drbd/by-res/r0/0 /mnt/drbd
+----------------------------
+マウントコマンドは現在、リソースのボリュームナンバーを定義している'/0'を参照している点に注意してください。新しいボリュームの特徴の詳細については<<s-recent-changes-volumes>>を参照してください。
+
+* Pacemaker
+----------------------------
+# crm node standby alice
+----------------------------
+
+WARNING: この手順は動作中のサービスを停止させてセカンダリサーバのbobへ移行させます。
+
+この状態でDRBDをyumまたはaptを使って安全にアップグレードできます。
+
+----------------------------
+alice# yum upgrade
+----------------------------
+
+----------------------------
+alice# apt-get upgrade
+----------------------------
+
+アップグレードが完了したらaliceサーバは最新バージョンのDRBDとなり、起動できるようになります。
+
+* 手動
+----------------------------
+alice# /etc/init.d/drbd start
+----------------------------
+
+* Pacemaker
+----------------------------
+alice# crm node online alice
+----------------------------
+
+NOTE: サービスはbobサーバに残ったままであり、手動で戻さない限りそのままです。
+
+これで両サーバのDRBDはconnectedの状態で最新バージョンとなります。
+
+----------------------------
+version: 8.4.1 (api:1/proto:86-100)
+GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 2011-12-20 12:58:48
+ 0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
+    ns:0 nr:12 dw:12 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+----------------------------
+
+==== 構成の移行
+
+DRBD
+8.4は8.3の構成と後方互換性がありますが、いくつかの構文は変更になっています。すべての変更点の一覧は<<s-recent-changes-config>>を参照してください。'drbdadm
+dump
+all'コマンドを使うことで、古い構成をとても簡単に移すことができます。新しいリソース構成ファイルに続いて新しいグローバル構成も両方とも出力します。この出力を使って変更を適宜行ってください。
+
+[[s-downgrading-drbd84]]
+=== DRBD 8.4を8.3にダウングレードする。
+
+DRBD
+8.4を使っていて8.3に戻したい場合、従わなければいけないいくつかの手順があります。このセクションでは、現在8.4のカーネルモジュールをつかっており、8.4のユーティリティがインストールされていると仮定します。
+
+DRBDリソースにアクセスしているサービスを停止し、アンマウントし、デバイスをセカンダリに降格します。それから次のコマンドを実行します。
+
+NOTE: これらの手順は両サーバで完了する必要があります。
+
+----------------------------
+drbdadm down all
+drbdadm apply-al all
+rmmod drbd
+----------------------------
+
+LINBITリポジトリを使用している場合には `apt-get remove drbd8-utils drbd8-module-`uname -r`
+または `yum remove drbd kmod-drbd` でパッケージを削除できます。
+
+8.4が削除されたので8.3をインストールします。インストールはリポジトリを8.3に戻すことでも、http://www.drbd.jp/users-guide/p-build-install-configure.html[8.3ユーザーズガイド]の手順でも行えます。
+
+WARNING: 構成を8.4フォーマットに移行した場合には8.3フォーマットに戻すのを忘れないでください。戻すのに必要なオプションについては<<s-recent-changes-config>>を参照ください。
+
+8.3が再インストールされたら、 `drbdadm` または `/etc/init.d/drbd start` のどちらからでも手動で起動できます。
+
+[[s-enable-dual-primary]]
+=== デュアルプライマリモードを有効にする
+
+デュアルプライマリモードではリソースが両ノードで同時にプライマリになることができます。これは永続的にも一時的なものとしても加能です。
+
+[NOTE]
+===============================
+デュアルプライマリモードではリソースが同期レプリケート(プロトコルC)で設定されていることが必要です。そのためレイテンシに過敏となり、WAN環境には適していません。
+
+さらに、両リソースが常にプライマリとなるので、どのようなノード間のネットワーク不通でもスプリットブレインが発生します。
+===============================
+
+[[s-enable-dual-primary-permanent]]
+==== 永続的なデュアルプライマリモード
+
+indexterm:[デュアルプライマリモード]デュアルプライマリモードを有効にするため、リソース設定の `net` セクションで、
+`allow-two-primaries` オプションを `yes` に指定します。
+
+[source, drbd]
+----------------------------
+resource <resource>
+  net {
+    protocol C;
+    allow-two-primaries yes;
+  }
+  disk {
+    fencing resource-and-stonith;
+  }
+  handlers {
+    fence-peer "...";
+    unfence-peer "...";
+  }
+  ...
+}
+----------------------------
+
+そして、両ノード間で設定を同期することを忘れないでください。両ノードで`drbdadm adjust <resource>`を実行してください。
+
+これで `drbdadm primary <resource>` で、両ノードを同時にプライマリのロールにすることができます。
+
+CAUTION: 適切なフェンシングポリシーを常に実装してください。フェンシングなしで 'allow-two-primaries'
+を使用することは、フェンシングなしでシングルプライマリを使用するよりも悪い考えです。
+
+[[s-enable-dual-primary-temporary]]
+==== 一時的なデュアルプライマリモード
+
+通常はシングルプライマリで稼動しているリソースを、一時的にデュアルプライマリモードを有効にするには次のコマンドを実行してください。
+
+----------------------------
+# drbdadm net-options --protocol=C --allow-two-primaries <resource>
+----------------------------
+
+一時的なデュアルプライマリモードを終えるには、上記と同じコマンドを実行します。ただし、 `--allow-two-primaries=no`
+としてください(また、適切であれば希望するレプリケーションプロトコルにも)。
+
+
+==== システム起動時の自動昇格
+
+リソースがデュアルプライマリモードをサポートするように設定されている場合は、システム(またはDRBD)の起動時にリソースを自動的にプライマリロールに切り替わるように設定することをお勧めします。
+
+[source, drbd]
+----------------------------
+resource <resource>
+  startup {
+    become-primary-on both;
+  }
+  ...
+}
+----------------------------
+
+スタートアップ時に、 `/etc/init.d/drbd` システムinitスクリプトはこのオプションを読み込み、これに沿ってリソースを昇格します。
+
+NOTE: `become-primary-on`
+の方法は避けるべきです。可能であれば、常にクラスタマネージャを使用することをお勧めします。たとえば、<<ch-pacemaker,Pacemaker管理の>>DRBD設定を参照してください。Pacemaker
+(または他のクラスタマネージャ) 設定では、リソース昇格と降格は常にクラスタ管理システムで操作されるべきです。
+
+
+[[s-use-online-verify]]
+=== オンラインデバイス照合の使用
+
+[[s-online-verify-enable]]
+==== オンライン照合を有効にする
+
+indexterm:[おんらいんしょうごう@オンライン照合]<<s-online-verify,オンラインデバイス照合>>はデフォルトでは有効になっていません。有効にする場合は、
+`/etc/drbd.conf` のリソース構成に次の行を追加します。
+
+[source, drbd]
+----------------------------
+resource <resource>
+  net {
+    verify-alg <algorithm>;
+  }
+  ...
+}
+----------------------------
+
+_<algorithm>_ は、システムのカーネル構成内のカーネルcrypto
+APIでサポートされる任意のメッセージダイジェストアルゴリズムです。通常は `sha1` 、 `md5` 、 `crc32c` から選択します。
+
+既存のリソースに対してこの変更を行う場合は、 `drbd.conf` を対向ノードと同期し、両方のノードで `drbdadm adjust
+<resource>` を実行します。
+
+[[s-online-verify-invoke]]
+==== オンライン照合の実行
+
+indexterm:[おんらいんしょうごう@オンライン照合]オンライン照合を有効にしたら、次のコマンドでオンライン照合を開始します。
+
+----------------------------
+# drbdadm verify <resource>
+----------------------------
+
+コマンドを実行すると、DRBDが _<resource>_
+に対してオンライン照合を実行します。同期していないブロックを検出した場合は、ブロックに非同期のマークを付け、カーネルログにメッセージを書き込みます。このときにデバイスを使用しているアプリケーションは中断なく動作し続けます。また、<<s-switch-resource-roles,リソースロールの切り替え>>も行うことができます。
+
+照合中に同期していないブロックが検出された場合は、照合の完了後に、次のコマンド使用して再同期できます。
+
+----------------------------
+# drbdadm disconnect <resource>
+# drbdadm connect <resource>
+----------------------------
+
+
+[[s-online-verify-automate]]
+==== 自動オンライン照合
+
+indexterm:[おんらいんしょうごう@オンライン照合]通常は、オンラインデバイス照合を自動的に実行するほうが便利です。自動化は簡単です。一方のノードに
+`/etc/cron.d/drbd-verify` という名前で、次のような内容のファイルを作成します。
+
+[source, drbd]
+----------------------------
+42 0 * * 0    root    /sbin/drbdadm verify <resource>
+----------------------------
+
+これにより、毎週日曜日の午前0時42分に、 `cron` がデバイス照合を呼び出します。
+
+オンライン照合をすべてのリソースで有効にした場合(たとえば `/etc/drbd.conf` の `common` セクションに `verify-alg
+<algorithm>` を追加するなど)には、次のようにできます。
+
+[source, drbd]
+----------------------------
+42 0 * * 0    root    /sbin/drbdadm verify all
+----------------------------
+
+
+[[s-configure-sync-rate]]
+=== 同期速度の設定
+
+indexterm:[どうき@同期]バックグラウンド同期中は同期先のデータとの一貫性が一時的に失われるため、同期をできるだけ早く完了したいと考えるでしょう。ただし、すべての帯域幅がバックグラウンド同期に占有されてしまうと、フォアグラウンドレプリケーションに使用できなくなり、アプリケーションのパフォーマンス低下につながります。これは避ける必要があります。同期用の帯域幅はハードウェアに合わせて設定する必要があります。
+
+IMPORTANT: 同期速度をセカンダリノードの最大書き込みスループットを上回る速度に設定しても意味がありません。デバイス同期の速度をどれほど高速に設定しても、セカンダリノードがそのI/Oサブシステムの能力より高速に書き込みを行うことは不可能です。
+
+また、同じ理由で、同期速度をレプリケーションネットワークの帯域幅の能力を上回る速度に設定しても意味がありません。
+
+
+[[s-configure-sync-rate-variable]]
+==== 可変同期速度設定
+
+DRBD
+8.4以降、デフォルトは可変レート同期に切り替わりました。このモードでは、DRBDは自動制御のループアルゴリズムを使用して同期速度を常に調整し決定します。このアルゴリズムはフォアグラウンド同期に常に十分な帯域幅を確保し、バックグラウンド同期がフォアグラウンドのI/Oに与える影響を少なくします。
+
+最適な可変レート同期の設定は使用できるネットワーク帯域幅、アプリケーションのI/Oパターンやリンクの輻輳によって変わってきます。理想的な設定は<<s-drbd-proxy,DRBD
+Proxy>>の使用有無によっても変わってきます。このDRBDの特徴を最適化するためにコンサルタントを利用するのもよいでしょう。以下は、DRBDを使用した環境での設定の一例です。
+
+[source, drbd]
+----------------------------
+resource <resource> {
+  disk {
+    c-plan-ahead 200;
+    c-max-rate 10M;
+    c-fill-target 15M;
+  }
+}
+----------------------------
+
+TIP: `c-fill-target` の初期値は _BDP×3_ がいいでしょう。BDPとはレプリケーションリンク上の帯域幅遅延積(Bandwidth
+Delay Product)です。
+
+
+[[s-configure-sync-rate-permanent]]
+==== 永続的な同期速度の設定
+
+テスト目的のために、動的再同期コントローラを無効にし、DRBDを固定の再同期速度に設定することが役立つかもしれません。これは唯一の上限になりますが、ボトルネック（またはアプリケーションIO）がある場合、この速度は達成されません。
+
+リソースがバックグラウンド再同期に使用する最大帯域幅はリソースの `resync-rate` オプションで指定します。これはリソース設定ファイルの
+`/etc/drbd.conf` の `disk` セクションに含まれている必要があります。
+
+[source, drbd]
+----------------------------
+resource <resource>
+  disk {
+    resync-rate 40M;
+    ...
+  }
+  ...
+}
+----------------------------
+
+毎秒の速度はビット単位ではなくバイトで設定します。デフォルトの単位はキビバイトなので `4096` は `4MiB` と解釈されます。
+
+TIP: 経験則では、この数値として使用可能なレプリケーション帯域幅の30%程度が適切です。180MB/sの書き込みスループットを維持できるI/Oサブシステム、および110MB/sのネットワークスループットを維持できるギガビットイーサネットネットワークの場合は、ネットワークが律速要因になります。速度は次のように計算できます。
+
+[[eq-sync-rate-example1]]
+.syncer 速度の例(有効帯域幅が110MB/sの場合)
+image::images/sync-rate-example1.svg[]
+
+この結果、 `rate` オプションの推奨値は `33M` になります。
+
+一方、最大スループットが80MB/sのI/Oサブシステム、およびギガビットイーサネット接続を使用する場合は、I/Oサブシステムが律速要因になります。速度は次のように計算できます。
+
+[[eq-sync-rate-example2]]
+.cyncer 速度の例(有効帯域幅が80MB/sの場合)
+image::images/sync-rate-example2.svg[]
+
+この場合、 `rate` オプションの推奨値は `24M` になります。
+
+[[s-configure-sync-rate-temporary]]
+==== 一時的な同期速度の設定
+
+一時的に同期速度を調整したい場合もあるでしょう。たとえば、いずれかのクラスタノードの定期保守を行ったときに、バックグラウンド再同期を高速に実行したい場合などです。また、アプリケーションの書き込み操作が非常に多いときに、バックグラウンド再同期の速度を落して、既存の帯域幅の多くをレプリケーションのために確保したい場合もあります。
+
+たとえば、ギガビットイーサネットリンクのほとんどの帯域幅を再同期に割り当てるには、次のコマンドを実行します:
+
+----------------------------
+# drbdadm disk-options --c-plan-ahead=0 --resync-rate=110M <resource>
+----------------------------
+
+このコマンドは _SyncTarget_ ノードで実行します。
+
+この一時的な設定を元に戻して、 `/etc/drbd.conf` で設定された同期速度を再び有効にするには、次のコマンドを実行します。
+
+----------------------------
+# drbdadm adjust <resource>
+----------------------------
+
+
+[[s-configure-checksum-sync]]
+=== チェックサムベース同期の設定
+
+indexterm:[ちぇっくさむべーすどうき@チェックサムベース同期]<<p-checksum-sync,チェックサムベース同期>>はデフォルトでは有効になっていません。有効にする場合は、
+`/etc/drbd.conf` のリソース構成に次の行を追加します。
+
+[source, drbd]
+----------------------------
+resource <resource>
+  net {
+    csums-alg <algorithm>;
+  }
+  ...
+}
+----------------------------
+
+_<algorithm>_ は、システムのカーネル構成内のカーネルcrypto
+APIでサポートされる任意のメッセージダイジェストアルゴリズムです。通常は `sha1` 、 `md5` 、 `crc32c` から選択します。
+
+既存のリソースに対してこの変更を行う場合は、 `drbd.conf` を対向ノードと同期し、両方のノードで `drbdadm adjust
+<resource>` を実行します。
+
+[[s-configure-congestion-policy]]
+=== 輻輳ポリシーと中断したレプリケーションの構成
+
+レプリケーション帯域幅が大きく変動する環境(WANレプリケーション設定に典型的)の場合、レプリケーションリンクは時に輻輳します。デフォルト設定では、これはプライマリノードのI/Oのブロックを引き起こし、これは望ましくない場合があります。
+
+その代わりに、進行中の同期を _suspend_ (中断)に設定し、プライマリのデータセットをセカンダリから _pull ahead_
+(引き離す)にします。このモードではDRBDはレプリケーションチャネルを開いたままにし、切断モードにはしません。しかし十分な帯域幅が利用できるようになるまで実際にはレプリケートを行いません。
+
+次の例は、DRBD Proxy構成のためのものです。
+
+[source, drbd]
+----------------------------
+resource <resource> {
+  net {
+    on-congestion pull-ahead;
+    congestion-fill 2G;
+    congestion-extents 2000;
+    ...
+  }
+  ...
+}
+----------------------------
+
+通常は `congestion-fill` と `congestion-extents` を `pull-ahead`
+オプションと合わせて設定するのがよい方法でしょう。
+
+`congestion-fill` の値は以下の値の90%にするとよいでしょう。
+
+* DRBD Proxy越しの同期の場合の、DRBD Proxyのバッファメモリの割り当て、または
+* DRBD Proxy構成でない環境でのTCPネットワークの送信バッファ
+
+`congestion-extents` の値は、影響するリソースの `al-extents` に設定した値の90%がよいでしょう。
+
+
+[[s-configure-io-error-behavior]]
+=== I/Oエラー処理方針の設定
+
+indexterm:[I/Oエラー]indexterm:[drbd.conf]DRBDが<<s-handling-disk-errors,下位レベルI/Oエラーを処理する際の方針>>は、
+`/etc/drbd.conf` の `disk` セクションの `on-io-error` オプションで指定します。
+
+[source, drbd]
+----------------------------
+resource <resource> {
+  disk {
+    on-io-error <strategy>;
+    ...
+  }
+  ...
+}
+----------------------------
+
+すべてのリソースのグローバルI/Oエラー処理方針を定義したい場合は、これを `common` セクションで設定します。
+
+_<strategy>_ は、次のいずれかのオプションです。
+
+. `detach`
+  これがデフォルトで、推奨オプションです。下位レベルI/Oエラーが発生すると、DRBDはそのノードの下位デバイスを切り離し、ディスクレスモードで動作を継続します。
+
+. `pass_on`
+  上位層にI/Oエラーを通知します。プライマリノードの場合は、マウントされたファイルシステムに通知されます。セカンダリノードの場合は無視されます(セカンダリノードには通知すべき上位層がないため)。
+
+. `call-local-io-error` ローカルI/Oエラーハンドラとして定義されたコマンドを呼び出します。このオプションを使うには、
+  `対応するlocal-io-error` ハンドラをリソースの `handlers` セクションに定義する必要があります。
+  `local-io-error` で呼び出されるコマンド(またはスクリプト)にI/Oエラー処理を実装するかどうかは管理者の判断です。
+
+NOTE: DRBDの以前のバージョン(8.0以前)にはもう1つのオプション `panic`
+があり、これを使用すると、ローカルI/Oエラーが発生するたびにカーネルパニックによりノードがクラスタから強制的に削除されました。このオプションは現在は使用できませんが、
+`local-io-error`/`call-local-io-error`
+インタフェースを使用すると同じように動作します。ただし、この動作の意味を十分理解した上で使用してください。ただし、この動作の意味を十分理解した上で使用してください。
+
+
+次のコマンドで、実行中のリソースのI/Oエラー処理方針を再構成することができます。
+
+* `/etc/drbd.d/<resource>.res` のリソース構成の編集
+
+* 構成の対向ノードへのコピー
+
+* 両ノードでの `drbdadm adjust <resource>` の実行
+
+
+[[s-configure-integrity-check]]
+=== レプリケーショントラフィックの整合性チェックを設定
+
+indexterm:[れぷりけーしょんようとらふぃっくのせいごうせいちぇっく@レプリケーション用トラフィックの整合性チェック]<<s-integrity-check,レプリケーショントラフィックの整合性チェック>>はデフォルトでは有効になっていません。有効にする場合は、
+`/etc/drbd.conf` のリソース構成に次の行を追加します。
+
+[source, drbd]
+----------------------------
+resource <resource>
+  net {
+    data-integrity-alg <algorithm>;
+  }
+  ...
+}
+----------------------------
+
+_<algorithm>_ は、システムのカーネル構成内のカーネルcrypto
+APIでサポートされる任意のメッセージダイジェストアルゴリズムです。通常は `sha1` 、 `md5` 、 `crc32c` から選択します。
+
+既存のリソースに対してこの変更を行う場合は、 `drbd.conf` を対向ノードと同期し、両方のノードで `drbdadm adjust
+<resource>` を実行します。
+
+[[s-resizing]]
+=== リソースのサイズ変更
+
+[[s-growing-online]]
+==== オンラインで拡張する
+
+indexterm:[resource]動作中(オンライン)に下位ブロックデバイスを拡張できる場合は、これらのデバイスをベースとするDRBDデバイスについても動作中にサイズを拡張することができます。その際に、次の2つの条件を満たす必要があります。
+
+. 影響を受けるリソースの下位デバイスが、LVMやEVMSなどの論理ボリューム管理サブシステムによって管理されている。
+
+. 現在、リソースの接続状態が _Connected_ になっている。
+
+両方のノードの下位ブロックデバイスを拡張したら、一方のノードだけがプライマリ状態であることを確認してください。プライマリノードで次のように入力します。
+
+----------------------------
+# drbdadm resize <resource>
+----------------------------
+
+新しいセクションの同期がトリガーされます。同期はプライマリノードからセカンダリノードへ実行されます。
+
+追加する領域がクリーンな場合には、追加領域の同期を--assume-cleanオプションでスキップできます。
+
+----------------------------
+# drbdadm -- --assume-clean resize <resource>
+----------------------------
+
+[[s-growing-offline]]
+==== オフラインで拡張する
+
+indexterm:[resource]<<s-external-meta-data,外部メタデータ>>を使っている場合、DRBD停止中に両ノードの下位ブロックデバイスを拡張すると、新しいサイズが自動的に認識されます。管理者による作業は必要ありません。両方のノードで次にDRBDを起動した際に、DRBDデバイスのサイズが新しいサイズになり、ネットワーク接続が正常に確立します。
+
+DRBDリソースで<<s-internal-meta-data,内部メタデータ>>を使用している場合は、リソースのサイズを変更する前に、メタデータを拡張されるデバイス領域の後ろの方に移動させる必要があります。これを行うには次の手順を実行します。これを行うには次の手順を実行します
+
+WARNING: これは高度な手順です。慎重に検討した上で実行してください。
+
+* DRBDリソースを停止します。
+
+[source, drbd]
+
+----------------------------
+# drbdadm down <resource>
+----------------------------
+
+* 縮小する前に、メタデータをテキストファイルに保存します。
+
+----------------------------
+# drbdadm dump-md <resource> > /tmp/metadata
+----------------------------
+
+各ノードごとにそれぞれのダンプファイルを作成する必要があります。この手順は、両方のノードでそれぞれ実行します。一方のノードのメタデータのダンプを対向ノードにコピーすることは避けてください。これはうまくいきません。
+
+* 両方のノードの下位ブロックデバイスを拡大します。
+
+* これに合わせて、両方のノードについて、 `/tmp/metadata` ファイルのサイズ情報( `la-size-sect` )を書き換えます。
+  `la-size-sect` は、必ずセクタ単位で指定する必要があります。
+
+* メタデータ領域の再初期化:
+
+----------------------------
+# drbdadm create-md <resource>
+----------------------------
+
+* 両方のノード上で修正のメタデータをインポートします:
+
+----------------------------
+# drbdmeta_cmd=$(drbdadm -d dump-md <resource>)
+# ${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata
+Valid meta-data in place, overwrite? [need to type 'yes' to confirm]
+yes
+Successfully restored meta data
+----------------------------
+
+NOTE: この例では `bash`
+パラメータ置換を使用しています。他のシェルの場合、機能する場合もしない場合もあります。現在使用しているシェルが分からない場合は、 `SHELL`
+環境変数を確認してください。
+
+* DRBDリソースを再度有効にします。
+
+----------------------------
+# drbdadm up <resource>
+----------------------------
+
+* 片側のノードでDRBDリソースをプライマリにします
+
+----------------------------
+# drbdadm primary <resource>
+----------------------------
+
+* 最後に、拡張したDRBDデバイスを活用するために、ファイルシステムを拡張します。
+
+
+[[s-shrinking-online]]
+==== オンラインで縮小する
+
+
+WARNING: オンラインでの縮小は外部メタデータ使用の場合のみサポートしています。
+
+indexterm:[resource]DRBDデバイスを縮小する前に、DRBDの上位層(通常はファイルシステム)を縮小しなければいけません。ファイルシステムが実際に使用している容量を、DRBDが知ることはできないため、データが失われないように注意する必要があります。
+
+NOTE: ファイルシステムをオンラインで縮小できるかどうかは、使用しているファイルシステムによって異なります。ほとんどのファイルシステムはオンラインでの縮小をサポートしません。XFSは縮小そのものをサポートしません。
+
+オンラインでDRBDを縮小するには、その上位に常駐するファイルシステムを縮小した後に、次のコマンドを実行します。
+
+[source, drbd]
+----------------------------
+# drbdadm resize --size=<new-size> <resource>
+----------------------------
+
+_<new-size>_
+には通常の乗数サフィックス(K、M、Gなど)を使用できます。DRBDを縮小したら、DRBDに含まれるブロックデバイスも縮小できます(デバイスが縮小をサポートする場合)。
+
+[[s-shrinking-offline]]
+==== オフラインで縮小する
+
+indexterm:[resource]DRBDが停止しているときに下位ブロックデバイスを縮小すると、次にそのブロックデバイスを接続しようとしてもDRBDが拒否します。これは、ブロックデバイスが小さすぎる(外部メタデータを使用する場合)、またはメタデータを見つけられない(内部メタデータを使用する場合)ことが原因です。この問題を回避するには、次の手順を行います(<<s-shrinking-online,オンライン縮小>>を使用できない場合)。
+
+
+WARNING: これは高度な手順です。慎重に検討した上で実行してください。
+
+* DRBDがまだ動作している状態で、一方のノードのファイルシステムを縮小します。
+
+* DRBDリソースを停止します。
+
+----------------------------
+# drbdadm down <resource>
+----------------------------
+
+* 縮小する前に、メタデータをテキストファイルに保存します。
+
+----------------------------
+# drbdadm dump-md <resource> > /tmp/metadata
+----------------------------
+
+各ノードごとにそれぞれのダンプファイルを作成する必要があります。この手順は、両方のノードでそれぞれ実行します。一方のノードのメタデータのダンプを対向ノードにコピーすることは避けてください。これはうまくいきません。
+
+* 両方のノードの下位ブロックデバイスを縮小します。
+
+* これに合わせて、両方のノードについて、 `/tmp/metadata` ファイルのサイズ情報( `la-size-sect` )を書き換えます。
+  `la-size-sect` は、必ずセクタ単位で指定する必要があります。
+
+* 内部メタデータを使用している場合は、メタデータ領域を再初期化します(この時点では、縮小によりおそらく内部メタデータが失われています)。
+
+----------------------------
+# drbdadm create-md <resource>
+----------------------------
+
+* 両方のノード上で修正のメタデータをインポートします:
+
+----------------------------
+# drbdmeta_cmd=$(drbdadm -d dump-md <resource>)
+# ${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata
+Valid meta-data in place, overwrite? [need to type 'yes' to confirm]
+yes
+Successfully restored meta data
+----------------------------
+
+NOTE: この例では `bash`
+パラメータ置換を使用しています。他のシェルの場合、機能する場合もしない場合もあります。現在使用しているシェルが分からない場合は、 `SHELL`
+環境変数を確認してください。
+
+* DRBDリソースを再度有効にします。
+
+----------------------------
+# drbdadm up <resource>
+----------------------------
+
+
+[[s-disable-flushes]]
+=== 下位デバイスのフラッシュを無効にする
+
+CAUTION: バッテリバックアップ書き込みキャッシュ(BBWC)を備えたデバイスでDRBDを実行している場合にのみ、デバイスのフラッシュを無効にできます。ほとんどのストレージコントローラは、バッテリが消耗すると書き込みキャッシュを自動的に無効にし、バッテリが完全になくなると即時書き込み(ライトスルー)モードに切り替える機能を備えています。このような機能を有効にすることを強くお勧めします。
+
+BBWC機能を使用していない、またはバッテリが消耗した状態でBBWCを使用しているときに、DRBDのフラッシュを無効にすると、データが失われるおそれがあります。したがって、これはお勧めできません。
+
+DRBDは<<s-disk-flush-support,下位デバイスのフラッシュ>>を、レプリケートされたデータセットとDRBD独自のメタデータについて、個別に有効と無効を切り替える機能を備えています。この2つのオプションはデフォルトで有効になっています。このオプションのいずれか(または両方)を無効にしたい場合は、DRBD設定ファイル
+`/etc/drbd.conf` の `disk` セクションで設定できます。
+
+レプリケートされたデータセットのディスクフラッシュを無効にするには、構成に次の行を記述します。
+
+[source, drbd]
+----------------------------
+resource <resource>
+  disk {
+    disk-flushes no;
+    ...
+  }
+  ...
+}
+----------------------------
+
+
+DRBDのメタデータのディスクフラッシュを無効にするには、次の行を記述します。
+
+[source, drbd]
+----------------------------
+resource <resource>
+  disk {
+    md-flushes no;
+    ...
+  }
+  ...
+}
+----------------------------
+
+リソースの構成を修正し、また、もちろん両ノードの `/etc/drbd.conf`
+を同期したら、両ノードで次のコマンドを実行して、これらの設定を有効にします。
+
+----------------------------
+# drbdadm adjust <resource>
+----------------------------
+
+
+[[s-configure-split-brain-behavior]]
+=== スプリットブレイン時の動作の設定
+
+[[s-split-brain-notification]]
+==== スプリットブレインの通知
+
+スプリットブレインが検出されると、DRBD はつねに `split-brain`
+ハンドラを呼び出します(設定されていれば)。このハンドラを設定するには、リソース構成に次の項目を追加します。
+
+----------------------------
+resource <resource>
+  handlers {
+    split-brain <handler>;
+    ...
+  }
+  ...
+}
+----------------------------
+
+_<handler>_ はシステムに存在する任意の実行可能ファイルです。
+
+DRBDディストリビューションでは `/usr/lib/drbd/notify-split-brain.sh`
+という名前のスプリットブレイン対策用のハンドラスクリプトを提供しています。これは指定したアドレスに電子メールで通知を送信するだけのシンプルなものです。
+`root@localhost` (このアドレス宛のメールは実際のシステム管理者に転送されると仮定)にメッセージを送信するようにハンドラを設定するには、
+`split-brain handler` を次のように記述します。
+
+----------------------------
+resource <resource>
+  handlers {
+    split-brain "/usr/lib/drbd/notify-split-brain.sh root";
+    ...
+  }
+  ...
+}
+----------------------------
+
+実行中のリソースで上記の変更を行い(ノード間で設定ファイルを同期すれば)、後はハンドラを有効にするための他の操作は必要ありません。次にスプリットブレインが発生すると、DRBDが新しく設定したハンドラを呼び出します。
+
+[[s-automatic-split-brain-recovery-configuration]]
+==== スプリットブレインからの自動復旧ポリシー
+
+CAUTION: スプリットブレイン（またはその他のシナリオ）に起因するデータ相違問題を自動的に解決するようにDRBDを構成することは、潜在的な *自動データ損失*
+を構成することを意味します。このことを理解し、そうでない場合は、そのような構成をとらないでください。
+
+TIP: むしろフェンシング・ポリシー、統合したクラスタ・マネージャー、および冗長なクラスター・マネージャーの通信リンクを調べて、まずはデータの相違をできるだけ回避するようにしてください。
+
+スプリットブレインからの自動復旧ポリシーには、状況に応じた複数のオプションが用意されています。DRBDは、スプリットブレインを検出したときのプライマリロールのノードの数にもとづいてスプリットブレイン回復手続きを適用します。そのために、DRBDはリソース設定ファイルの
+`net` セクションの次のキーワードを読み取ります。
+
+.`after-sb-0pri`
+スプリットブレインが検出されたときに両ノードともセカンダリロールの場合に適用されるポリシーを定義します。次のキーワードを指定できます。
+
+* `disconnect` : 自動復旧は実行されません。 `split-brain`
+  ハンドラスクリプト(設定されている場合)を呼び出し、コネクションを切断して切断モードで続行します。
+
+
+* `discard-younger-primary` : 最後にプライマリロールだったホストに加えられた変更内容を破棄してロールバックします。
+
+* `discard-least-changes` : 変更が少なかったほうのホストの変更内容を破棄してロールバックします。
+
+* `discard-zero-changes` : 変更がなかったホストがある場合は、他方に加えられたすべての変更内容を適用して続行します。
+
+.`after-sb-1pri`
+スプリットブレインが検出されたときにどちらか1つのノードがプライマリロールである場合に適用されるポリシーを定義します。次のキーワードを指定できます。次のキーワードを指定できます。
+
+* `disconnect` : `after-sb-0pri` と同様に、 `split-brain`
+  ハンドラスクリプト(構成されている場合)を呼び出し、コネクションを切断して切断モードで続行します。
+
+* `consensus` : `after-sb-0pri`
+  で設定したものと同じ復旧ポリシーが適用されます。これらのポリシーを適用した後で、スプリットブレインの犠牲ノードを選択できる場合は自動的に解決します。それ以外の場合は、
+  `disconnect` を指定した場合と同様に動作します。
+
+* `call-pri-lost-after-sb` : `after-sb-0pri`
+  で指定した復旧ポリシーが適用されます。これらのポリシーを適用した後で、スプリットブレインの犠牲ノードを選択できる場合は、犠牲ノードで
+  `pri-lost-after-sb` ハンドラを起動します。このハンドラは `handlers`
+  セクションで設定する必要があります。また、クラスタからノードを強制的に削除します。
+
+* `discard-secondary` : 現在のセカンダリロールのホストを、スプリットブレインの犠牲ノードにします。
+
+.`after-sb-2pri`.
+スプリットブレインが検出されたときに両ノードともプライマリロールである場合に適用されるポリシーを定義します。このオプションは
+`after-sb-1pri` と同じキーワードを受け入れます。ただし、 `discard-secondary` と `consensus`
+は除きます。
+
+NOTE: 上記の3つのオプションで、DRBDは追加のキーワードも認識しますが、これらはめったに使用されないためここでは省略します。ここで取り上げた以外のスプリットブレイン復旧キーワードについては、
+`drbd.conf` マニュアルページを参照してください。
+
+たとえば、デュアルプライマリモードでGFSまたはOCFS2ファイルシステムのブロックデバイスとして機能するリソースの場合、次のように復旧ポリシーを定義できます。
+
+----------------------------
+resource <resource> {
+  handlers {
+    split-brain "/usr/lib/drbd/notify-split-brain.sh root"
+    ...
+  }
+  net {
+    after-sb-0pri discard-zero-changes;
+    after-sb-1pri discard-secondary;
+    after-sb-2pri disconnect;
+    ...
+  }
+  ...
+}
+----------------------------
+
+
+[[s-three-nodes]]
+=== 3ノード構成の作成
+
+3ノード構成では、1つのDRBDデバイスを別のデバイスの上にスタック(積み重ね)します。
+
+[[s-stacking-considerations]]
+==== デバイススタックの検討事項
+
+3ノード構成では次のような事項に注意する必要があります。
+
+* スタックデバイスがアクティブなデバイスです。1つのDRBDデバイス `/dev/drbd0` が構成され、その上位にスタックデバイス
+  `/dev/drbd10` があるとします。この場合は、 `/dev/drbd10` がマウントされて使用されるデバイスになります。
+
+* 下位のDRBDデバイスおよびスタックDRBDデバイス(上位DRBDデバイス)の両方にそれぞれメタデータが存在します。上位DRBDデバイスには、必ず<<s-internal-meta-data,内部メタデータ>>を使用してください。このため、3ノード構成時の使用可能なディスク領域は、2ノード構成に比べてわずかに小さくなります。
+
+* スタックされた上位デバイスを実行するには、下位のデバイスがプライマリロールになっている必要があります。
+
+* バックアップノードにデータを同期するには、アクティブなノードのスタックデバイスがプライマリモードで動作している必要があります。
+
+
+[[s-three-node-config]]
+==== スタックリソースの設定
+
+次の例では 'alice' 、 'bob' 、 'charlie' という名前のノードがあり、 'alice' と 'bob'
+が2ノードクラスタを構成し、 'charlie' がバックアップノードになっています。
+
+[source, drbd]
+----------------------------
+resource r0 {
+  net {
+    protocol C;
+  }
+
+  on alice {
+    device     /dev/drbd0;
+    disk       /dev/sda6;
+    address    10.0.0.1:7788;
+    meta-disk internal;
+  }
+
+  on bob {
+    device    /dev/drbd0;
+    disk      /dev/sda6;
+    address   10.0.0.2:7788;
+    meta-disk internal;
+  }
+}
+
+resource r0-U {
+  net {
+    protocol A;
+  }
+
+  stacked-on-top-of r0 {
+    device     /dev/drbd10;
+    address    192.168.42.1:7788;
+  }
+
+  on charlie {
+    device     /dev/drbd10;
+    disk       /dev/hda6;
+    address    192.168.42.2:7788; # Public IP of the backup node
+    meta-disk  internal;
+  }
+}
+----------------------------
+
+他の `drbd.conf`
+設定ファイルと同様に、この設定ファイルもクラスタのすべてのノード(この場合は3つ)に配布する必要があります。非スタックリソース構成にはない次のキーワードにご注意ください。
+
+.`stacked-on-top-of`
+この情報により、DRBDに含まれるリソースがスタックリソースであることをDRBDに知らせます。これは、非スタックリソース構成ににある2つの `on`
+セクションのいずれかと置き換えます。下位レベルリソースには `stacked-on-top-of` を使用しないでください。
+
+NOTE: スタックリソースに<<fp-protocol-a,Protocol
+A>>を使用することは必須ではありません。アプリケーションに応じて任意のDRBDのレプリケーションプロトコルを選択できます。
+
+[[s-three-node-enable]]
+==== スタックリソースを有効にする
+
+スタックリソースを有効にするには、まず、下位レベルリソースを有効にしてどちらか一方をプライマリに昇格します。
+----------------------------
+drbdadm up r0
+drbdadm primary r0
+----------------------------
+
+非スタックリソースと同様に、スタックリソースの場合もDRBDメタデータを作成する必要があります。次のコマンドで実行します。
+
+----------------------------
+# drbdadm create-md --stacked r0-U
+----------------------------
+
+次に、スタックリソースを有効にします。
+
+---------------------------
+# drbdadm up --stacked r0-U
+# drbdadm primary --stacked r0-U
+---------------------------
+
+この後でバックアップノードのリソースを起動し、3ノードレプリケーションを有効にします。:
+
+----------------------------
+# drbdadm create-md r0-U
+# drbdadm up r0-U
+----------------------------
+
+クラスタ管理システムを使えばスタックリソースの管理を自動化できます。Pacemakerクラスタ管理フレームワークで管理する方法については、<<s-pacemaker-stacked-resources>>を参照してください。
+
+[[s-using-drbd-proxy]]
+=== Using DRBD Proxy
+
+[[s-drbd-proxy-deployment-considerations]]
+==== DRBD Proxy配備に関する検討事項
+
+<<s-drbd-proxy,DRBD
+Proxy>>プロセスは、DRBDが設定されているマシン上に直接配置するか、個別の専用サーバに配置することができます。DRBD
+Proxyインスタンスは、複数のノードの複数のDRBDデバイスのプロキシとして機能することができます。
+
+DRBD ProxyはDRBDに対して完全に透過的です。通常は大量のデータパケットがDRBD
+Proxyを含む転送経路に溜まるため、アクティビティログがかなり大きくなります。これは、プライマリノードのクラッシュ後の長い再同期の実行を引き起こす可能性があるので、それはDRBDの
+`csums-alg` 設定を有効にすることをお勧めします。
+
+[[s-drbd-proxy-installation]]
+==== インストール
+
+DRBD
+Proxyを入手するには、(日本では)株式会社サードウェアまたはその販売代理店に連絡してください。特別な理由がない限り、常に最新バージョンのDRBD
+Proxyを使用してください。
+
+DebianとDebianベースのシステム上でDRBD Proxyをインストールするには(DRBD
+Proxyのバージョンとアーキテクチャは、ターゲットのアーキテクチャに合わせてください)、dpkgを次のように使用します。
+
+----------------------------
+# dpkg -i drbd-proxy_3.0.0_amd64.deb
+----------------------------
+
+RPMベースのシステム(SLESやRedhat)にDRBD Proxyをインストールする場合は、次のコマンドを使用します(DRBD
+Proxyのバージョンとアーキテクチャは、ターゲットのアーキテクチャに合わせてください)。
+
+----------------------------
+# rpm -i drbd-proxy-3.0-3.0.0-1.x86_64.rpm
+----------------------------
+
+DRBD Proxyの設定にはdrbdadmが必要なので、これもインストールします。
+
+DRBD Proxyバイナリだけでなく、 `/etc/init.d` に通常に入る起動スクリプトもインストールします。DRBD
+Proxyを起動/停止するには、通常はこの起動スクリプトを使ってください。このスクリプトは単に起動/停止するだけでなく、 `drbdadm`
+を使ってDRBD Proxyの動作も設定します。
+
+[[s-drbd-proxy-license]]
+==== ライセンスファイル
+
+DRBD Proxyの実行には、ライセンスファイルが必要です。DRBD
+Proxyを実行したいマシンにライセンスファイルを設定してください。このファイルは `drbd-proxy.license` と呼ばれ、対象マシンの
+`/etc` ディレクトリにコピーされ、また `drbdpxy` ユーザ/グループに所有されている必要があります。
+
+----------------------------
+# cp drbd-proxy.license /etc/
+----------------------------
+
+
+[[s-drbd-proxy-configuration]]
+==== 設定
+
+DRBD ProxyはDRBDのメイン設定ファイルで設定します。設定は、追加のオプションセクション `proxy` とホストセクション内の `proxy
+on` セクションで行います。
+
+DRBDノードで直接実行されるプロキシのDRBD Proxyの設定例を次に示します。
+
+[source, drbd]
+----------------------------
+resource r0 {
+        net {
+          protocol A;
+        }
+        device     minor 0;
+        disk       /dev/sdb1;
+        meta-disk  /dev/sdb2;
+
+        proxy {
+                memlimit 100M;
+                plugin {
+                        zlib level 9;
+                }
+        }
+
+        on alice {
+                address 127.0.0.1:7789;
+                proxy on alice {
+                        inside 127.0.0.1:7788;
+                        outside 192.168.23.1:7788;
+                }
+        }
+
+        on bob {
+                address 127.0.0.1:7789;
+                proxy on bob {
+                        inside 127.0.0.1:7788;
+                        outside 192.168.23.2:7788;
+                }
+        }
+}
+----------------------------
+
+`inside` IPアドレスはDRBDとDRBD Proxyとの通信に使用し、 `outside` IPアドレスはプロキシ間の通信に使用します。
+
+[[s-drbd-proxy-controlling]]
+==== DRBD Proxyの制御
+
+`drbdadm` には `proxy-up` および `proxy-down` サブコマンドがあり、名前付きDRBDリソースのローカルDRBD
+Proxyプロセスとの接続を設定したり削除したりできます。これらのコマンドは、 `/etc/init.d/drbdproxy` が実装する
+`start` および `stop` アクションによって使用されます。
+
+DRBD Proxyには `drbd-proxy-ctl`
+という下位レベル構成ツールがあります。このツールをオプションを指定せずに呼び出した場合は、対話型モードで動作します。
+
+対話型モードをにせずコマンドを直接渡すには、 `-c` パラメータをコマンドに続けて使用します。
+
+使用可能なコマンドを表示するには次のようにします。
+----------------------------
+# drbd-proxy-ctl -c "help"
+----------------------------
+
+コマンドの周りのダブルクォートは読み飛ばされる点に注意ください。
+
+
+[source, drbd]
+----------------------------
+add connection <name> <listen-lan-ip>:<port> <remote-proxy-ip>:<port>
+   <local-proxy-wan-ip>:<port> <local-drbd-ip>:<port>
+   Creates a communication path between two DRBD instances.
+
+set memlimit <name> <memlimit-in-bytes>
+   Sets memlimit for connection <name>
+
+del connection <name>
+   Deletes communication path named name.
+
+show
+   Shows currently configured communication paths.
+
+show memusage
+   Shows memory usage of each connection.
+
+show [h]subconnections
+   Shows currently established individual connections
+   together with some stats. With h outputs bytes in human
+   readable format.
+
+show [h]connections
+   Shows currently configured connections and their states
+   With h outputs bytes in human readable format.
+
+shutdown
+   Shuts down the drbd-proxy program. Attention: this
+   unconditionally terminates any DRBD connections running.
+
+Examples:
+	drbd-proxy-ctl -c "list hconnections"
+		prints configured connections and their status to stdout
+             Note that the quotes are required.
+
+	drbd-proxy-ctl -c "list subconnections" | cut -f 2,9,13
+		prints some more detailed info about the individual connections
+
+	watch -n 1 'drbd-proxy-ctl -c "show memusage"'
+		monitors memory usage.
+             Note that the quotes are required as listed above.
+
+----------------------------
+
+上記のコマンドは、UID 0 (つまり `root`
+ユーザ)でのみ受け入れられますが、どのユーザでも使える情報収集のコマンドがあります(unixのパーミッションが
+`/var/run/drbd-proxy/drbd-proxy-ctl.socket`
+のプロキシソケットへのアクセスを許可していれば)。権限の設定については `/etc/init.d/drbdproxy`
+のinitスクリプトを参照してください。
+
+----------------------------
+print details
+   This prints detailed statistics for the currently active connections.
+   Can be used for monitoring, as this is the only command that may be sent by a user with UID
+
+quit
+   Exits the client program (closes control connection).
+----------------------------
+
+
+[[s-drbd-proxy-plugins]]
+==== DRBD Proxyプラグインについて
+
+DRBD proxy 3.0以降のプロキシではWANコネクション用のプラグインを使用できます。 現在使用できるプラグインは `zlib` と
+`lzma` です。
+
+`zlib` プラグインはGZIPアルゴリズムを圧縮に使っています。CPU使用量が低いのが利点です。
+
+`lzma`
+プラグインはliblzma2ライブラリを使います。数百MiBの辞書を使って、小さな変更であっても非常に効率的な繰り返しデータの差分符号化を行います。
+`lzma` はより多くCPUとメモリを必要としますが、 `zlib` よりも高い圧縮率になります。 `lzma`
+プラグインはライセンスで有効化されてる必要があります。
+
+CPU (速度、スレッド数)、メモリ、インプットと有効なアウトプット帯域幅に応じたプラグインの推奨構成については、サードウェアに相談してください。
+
+`proxy` セクションの古い `compression on` は使用されておらず、次期リリースではなくなる予定です。 現在は `zlib
+level 9` で扱っています。
+
+
+[[s-drbd-proxy-bwlimit]]
+==== WANサイドの帯域幅制限を使用する
+
+DRBD
+Proxyの実験的なbwlimitオプションは壊れています。DRBD上のアプリケーションがIOをブロックする可能性があるため、使用しないでください。これはいずれ削除されます。
+
+代わりにLinuxカーネルのトラフィック制御フレームワークを使用して、WAN側でプロキシが消費する帯域幅を制限します。
+
+次の例では、対抗ノードのインターフェイス名、送信元ポート、およびIPアドレスを置き換えて使用します。
+
+----------------------------
+# tc qdisc add dev eth0 root handle 1: htb default 1
+# tc class add dev eth0 parent 1: classid 1:1 htb rate 1gbit
+# tc class add dev eth0 parent 1:1 classid 1:10 htb rate 500kbit
+# tc filter add dev eth0 parent 1: protocol ip prio 16 u32 \
+        match ip sport 7000 0xffff \
+        match ip dst 192.168.47.11 flowid 1:10
+# tc filter add dev eth0 parent 1: protocol ip prio 16 u32 \
+        match ip dport 7000 0xffff \
+        match ip dst 192.168.47.11 flowid 1:10
+----------------------------
+
+以下のコマンドで帯域制限設定を削除できます。
+
+----------------------------
+# tc qdisc del dev eth0 root handle 1
+----------------------------
+
+[[s-drbd-proxy-troubleshoot]]
+==== トラブルシューティング
+
+DRBD proxyのログはsyslogの `LOG_DAEMON` ファシリティに記録されます。通常ログは `/var/log/daemon.log`
+に記録されます。
+
+DRBD Proxyでデバッグモードを有効にするには次のようにします。
+
+--------------------------
+# drbd-proxy-ctl -c 'set loglevel debug'
+--------------------------
+
+たとえば、DRBD Proxyが接続に失敗すると、 `Rejecting connection because I can't connect on
+the other side`
+というようなメッセージがログに記録されます。その場合は、DRBDが(スタンドアローンモードでなく)両方のノードで動作していて、両方ノードでプロキシが動作していることを確認してください。また、両方のノードで設定値を確認してください。

@@ -22,6 +22,7 @@ RUN useradd -u $(id -u) -g $(id -g) makedoc
 
 RUN apt update -y && apt install -y make inkscape ruby
 RUN gem install --pre asciidoctor-pdf
+RUN gem install --pre asciidoctor-pdf-cjk
 
 USER makedoc
 EOF

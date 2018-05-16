@@ -32,7 +32,7 @@ $(OUTDIRHTML)/%.adoc: %.adoc
 	sed 's/\(^image::.*\)\.svg\(.*\)/\1.png\2/g' $< > $@
 
 $(OUTDIRHTML)/$(OUTHTML): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGS) $(OUTADOCS)
-	asciidoctor -n -d book -a toc=left -a linkcss -o ./$(OUTDIRHTML)/$(OUTHTML) $(OUTDIRHTML)/$(IN)
+	asciidoctor $(ASCIIDOCTOR_ADD_OPTIONS) -n -d book -a toc=left -a linkcss -o ./$(OUTDIRHTML)/$(OUTHTML) $(OUTDIRHTML)/$(IN)
 
 html: $(OUTDIRHTML)/$(OUTHTML)
 	@echo "Generated web page in $$(pwd)/$(OUTDIRHTML)"
@@ -51,7 +51,7 @@ html-finalize: html
 $(OUTDIRPDF)/$(OUTPDF): $(SRC) $(SVGSUSED)
 	if [ -d $(FONTDIR) ]; then INTERN="-a pdf-style=../../stylesheets/pdf-style.yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
-	asciidoctor-pdf -d book $$INTERN -o $@ $(IN)
+	asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN -o $@ $(IN)
 
 pdf: ./images $(OUTDIRPDF)/$(OUTPDF)
 	@echo "Generated $$(pwd)/$(OUTDIRPDF)/$(OUTPDF)"

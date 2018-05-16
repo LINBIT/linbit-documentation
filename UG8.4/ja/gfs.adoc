@@ -1,0 +1,213 @@
+[[ch-gfs]]
+== DRBDとGFSの使用
+
+indexterm:[GFS]indexterm:[Global File System]この章では、DRBDリソースを共有GFS (Global
+File System)バージョン2を持つブロックデバイスとして設定する方法をかいつまんで説明します。
+
+詳細な手順についてはLINBITの技術ガイドをご参照ください。http://www.linbit.com/en/downloads/tech-guides[GFS
+in dual-primary setups].
+
+[WARNING]
+===============================
+このガイドではDRBDのデュアルプライマリセットアップを扱います。デュアルプライマリセットアップは適切な設定を行わないと
+*データが破壊される可能性があります。* +
+
+デュアルプライマリリソースの設定を行う予定のある場合、事前にLINBITの技術ガイドをお読みくださいhttp://www.linbit.com/en/downloads/tech-guides?download=15:dual-primary-think-twice["Dual
+primary: think twice"] +
+
+もしこのドキュメントに何か不明点や不明瞭な点があれば、お気軽にLINBITへご相談ください。
+===============================
+
+[[s-gfs-primer]]
+=== GFSの基礎
+
+Red Hat Global File System (GFS)は、同時アクセス共有ストレージファイルシステムのRed
+Hatによる実装です。同様のファイルシステムのように、GFSでも複数のノードが読み取り/書き込みモードで、同時に同じストレージデバイスにアクセスすることが可能です。データが破損するおそれはありません。これには、クラスタメンバからの同時アクセスを管理する
+DLM (Distributed Lock Manager)が使用されます。
+
+本来、GFSは従来型の共有ストレージデバイスを管理するために設計されたものですが、デュアルプライマリモードでDRBDをGFS用のレプリケートされたストレージデバイスとして問題なく使用することができます。アプリケーションについては、読み書きの待ち時間が短縮されるというメリットがあります。
+これは、GFSが一般的に実行されるSANデバイスとは異なり、DRBDが通常はローカルストレージに対して読み書きを行うためです。また、DRBDは各GFSファイルシステムに物理コピーを追加して、冗長性を確保します。
+
+GFSファイルシステムは通常はRedHat独自のクラスタ管理フレームワークのindexterm:[Red Hat Cluster
+Suite]<<ch-rhcs,Red Hat Cluster>>と密接に統合されています。この章ではDRBDをGFSとともに使用する方法を Red
+Hat
+Clusterの観点から説明します。また、Pacemakerクラスタマネージャへの接続の説明では、リソースマネジメントとSTONITHについても説明します。
+
+GFS、Pacemaker、Red Hat ClusterはRed Hat Enterprise Linux
+(RHEL)と、indexterm:[CentOS]CentOSなどの派生ディストリビューションで入手できます。同じソースからビルドされたパッケージがindexterm:[Debian
+GNU/Linux]Debian GNU/Linuxでも入手できます。この章の説明は、Red Hat Enterprise
+LinuxシステムでGFSを実行することを前提にしています。
+
+[[s-gfs-create-resource]]
+=== GFS2 用の DRBDリソースの作成
+
+GFSは共有クラスタファイルシステムで、すべてのクラスタノードからストレージに対して同時に読み取り/書き込みアクセスが行われることを前提としています。したがって、GFSファイルシステムを格納するために使用するDRBDリソースは<<s-dual-primary-mode,デュアルプライマリモード>>で設定する必要があります。また、<<s-automatic-split-brain-recovery-configuration,スプリットブレインから自動的に回復>>するためのDRBDの機能を使用することをお勧めします。両ノードのリソース昇格やGFSファイルシステムの開始は、Pacemakerが制御します。DRBDリソースの準備をするため、リソース構成に次の行を追加してください。indexterm:[drbd.conf]
+
+[source, drbd]
+----------------------------
+resource <resource> {
+  net {
+    allow-two-primaries;
+    after-sb-0pri discard-zero-changes;
+    after-sb-1pri discard-secondary;
+    after-sb-2pri disconnect;
+    ...
+  }
+  ...
+}
+----------------------------
+
+[WARNING]
+===============================
+回復ポリシーを設定することは、事実上、自動データロス設定を行うことです。十分にご理解のうえご使用ください。
+===============================
+
+
+これらのオプションを<<ch-configure,新しく構成したリソース>>に追加したら、<<s-first-time-up,通常どおりにリソースを初期化できます>>。リソースのindexterm:[drbd.conf]
+`allow-two-primaries` オプションが `yes`
+に設定されているので、両ノードの<<s-switch-resource-roles,リソースをプライマリに昇格>>することができます。
+
+[IMPORTANT]
+===============================
+*再度確認してください* fencing/STONITHを構成している事を確認し、すべてのユースケースを広範にカバーするよう、特にデュアルプライマリの設定をテストしてください。
+===============================
+
+==== デュアルプライマリリソースのリソースフェンシングを有効にする
+
+DRBDのリソースフェンシングを有効にするためには、DRBD構成中に以下のセクションが必要です。
+
+[source, drbd]
+----------------------------
+  disk {
+	fencing resource-and-stonith;
+  }
+
+  handlers {
+	fence-peer		"/usr/lib/drbd/crm-fence-peer.sh";
+	after-resync-target	"/usr/lib/drbd/crm-unfence-peer.sh";
+  }
+----------------------------
+
+このスクリプトは、DRBDのインストール時に追加されます。
+
+[WARNING]
+===============================
+クラスタのデュアルプライマリ設定でのフェンシングでは、DRBDユーザーズガイドの「<<ch-rhcs>>」セクションの短さに惑わされないでください。すべてのデュアルプライマリでクラスタのフェンシング設定が必要です。詳細な情報については、Red
+Hat
+Clusterのドキュメントをご参照ください。http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_Linux/6/html/Cluster_Administration/s1-config-fence-devices-ccs-CA.html[5.5.Configuring
+Fence
+Devices]また、http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_Linux/6/html/Cluster_Administration/s1-config-member-ccs-CA.html[5.6.Configuring
+Fencing for Cluster Members]
+===============================
+
+[[s-gfs-configure-cman]]
+=== CMANを構成する
+
+GFSを動作させるには、Red Hatクラスタマネージャの `cman` が必要です。 `cman` は、次のステップで行う `pacemaker`
+のように柔軟で構成しやすくありません。
+
+[NOTE]
+===============================
+もし `pacemaker` を使いたくなければ、 `cman`
+の該当するhttps://access.redhat.com/knowledge/docs/en-US/Red_Hat_Enterprise_Linux/6/html/Cluster_Administration/ch-config-cli-CA.html[マニュアル]を参照してください。
+===============================
+
+GFSファイルシステムを作成する前に `cman` を構成します。
+
+[NOTE]
+===============================
+2ノードクラスタを構成する場合、クォーラムを獲得することはできません。cmanにクォーラムを無視する設定を行う事が必要です。以下のようにして設定できます。
+
+  # sed -i.orig "s/.*CMAN_QUORUM_TIMEOUT=.*/CMAN_QUORUM_TIMEOUT=0/g" /etc/sysconfig/cman
+
+===============================
+
+次のものは、 `/etc/cluster/cluster.conf` での `cman` のクラスタ構成です。
+
+[source, drbd]
+----------------------------
+<?xml version="1.0"?>
+<cluster name="my-cluster" config_version="1">
+	<logging debug="off"/>
+	<clusternodes>
+		<clusternode name="gfs-machine1" nodeid="1">
+			<fence>
+				<method name="pcmk-redirect">
+					<device name="pcmk" port="gfs-machine1"/>
+				</method>
+			</fence>
+		</clusternode>
+		<clusternode name="gfs-machine2" nodeid="2">
+			<fence>
+				<method name="pcmk-redirect">
+					<device name="pcmk" port="gfs-machine2"/>
+				</method>
+			</fence>
+		</clusternode>
+	</clusternodes>
+	<fencedevices>
+		<fencedevice name="pcmk" agent="fence_pcmk"/>
+	</fencedevices>
+</cluster>
+----------------------------
+
+これは、 `cman` にクラスタ名は `my-cluster` 、クラスタノード名は `gfs-machine1` と `gfs-machine2`
+であり、 `pacemaker` によってfencingされるという設定です。
+
+構成が済んだら `cman` を起動します。
+
+[[s-gfs-create]]
+=== GFSファイルシステムの作成
+
+デュアルプライマリのDRBDリソースでGFSファイルシステムを作成するには,次のコマンドを*1つ*(!)のノード(これは _Primary_
+でなければいけません)で実行します。
+
+indexterm:[GFS]
+----------------------------
+mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name> /dev/<drbd-resource>
+----------------------------
+
+`-j`
+オプションはGFS用に確保するジャーナルの数を示しています。これはGFSクラスタのノードの数と等しい値です。DRBDは2つまでのノードしかサポートしないため、ここで設定する値は常に2です。
+
+[TIP]
+===============================
+DRBD
+9では1つのディスクを2ノード以上で共有することができます。そうしたい場合には、大きなジャーナルの値を指定するか、稼動しているファイルシステムにジャーナルを作成する必要があります。
+===============================
+
+`-t` オプションはロックテーブル名を定義します。 _<cluster>:<name>_ という形式が続きます。 _<cluster>_ は
+`/etc/cluster/cluster.conf`
+に定義したクラスタ名に一致しなければなりません。このように、特定のクラスタのメンバだけにファイルシステムの使用が許可されます。これに対して、
+_<name>_ はクラスタ内で一意の任意のファイルシステム名です。
+
+
+
+=== PacemakerでのGFS2ファイルシステムの使用
+
+Pacemakerをクラスタリソースマネージャとして使用したい場合、現在の構成をPacemaerに設定して、リソースを管理するように設定しなければなりません。
+
+[IMPORTANT]
+===============================
+Pacemakerの構成がfencingとSTONITHの動作のすべてに注意して行われていることを確認してください(詳細な情報についてはLINBIT社の技術ガイドをご参照ください。https://www.linbit.com/en/resources/technical-publications/[GFS
+in dual-primary setups]
+===============================
+
+Pacemakerの構成は右記に記載のように行ってください。<<s-pacemaker-crm-drbd-backed-service,8.2.クラスタ構成にDRBDのサービスを追加する>>.
+
+ここではデュアルプライマリ構成であるため、マスタースレーブ構成に次の変更を行います。
+
+----------------------------
+crm(live)configure# ms ms_drbd_xyz drbd_xyz \
+                    meta master-max="2" master-node-max="1" \
+                         clone-max="2" clone-node-max="1" \
+                         notify="true"
+----------------------------
+
+`master-max` が *2* になっている点に注目ください。この設定によってDRBDリーソースが両クラスタノードで昇格されます。
+
+さらに、GFSファイルシステムを両ノードで開始したいので、プリミティブのファイルシステムのクローンを追加します。
+
+----------------------------
+crm(live)configure# clone cl_fs_xyz p_fs_xyz meta interleave="true"
+----------------------------
