@@ -1,28 +1,18 @@
-html: en-html
-html-finalize: en-html-finalize
-pdf: en-pdf
-pdf-finalize: en-pdf-finalize
+languages = en ja
+formats = html pdf
 
-en-html:
-	make -C en html
+# you can override on command line
+lang = en
 
-en-pdf:
-	make -C en pdf
+html: $(lang)/html
+html-finalize: $(lang)/html-finalize
+pdf: $(lang)/pdf
+pdf-finalize: $(lang)/pdf-finalize
 
-en-html-finalize:
-	make -C en html-finalize
+known-targets := $(foreach l,$(languages),$(addprefix $(l)/,$(formats)))
+known-targets += $(addsuffix -finalize,$(known-targets))
 
-en-pdf-finalize:
-	make -C en pdf-finalize
+$(known-targets):
+	make -C $(@D) $(@F)
 
-ja-html:
-	make -C ja html
-
-ja-pdf:
-	make -C ja pdf
-
-ja-html-finalize:
-	make -C ja html-finalize
-
-ja-pdf-finalize:
-	make -C ja pdf-finalize
+.PHONY: $(known-targets) html html-finalize pdf pdf-finalize
