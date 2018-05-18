@@ -1,1 +1,1 @@
-include ../UG-top.inc
+include ../UG-top.mk

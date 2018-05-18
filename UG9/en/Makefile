@@ -1,1 +1,1 @@
-include ../../UG-build.inc
+include ../../UG-build.mk
