@@ -42,7 +42,7 @@ html-finalize: html
 	mv $(OUTDIRHTML)/$(OUTHTML) $(OUTDIRHTML)/$(OUTHTMLWEBDEVS)
 	rm -f $(OUTDIRHTML)/*.adoc
 	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL)
-	tar -czvf $(OUTDIRHTMLFINAL)/$$(basename $$PWD)-$$(date +%F).tar.gz $(OUTDIRHTML)
+	tar -czvf $(OUTDIRHTMLFINAL)/$$(basename $$(dirname $$PWD))-$$(basename $$PWD)-$$(date +%F).tar.gz $(OUTDIRHTML)
 
 # PDF
 ./images: $(IMAGEDIR)
