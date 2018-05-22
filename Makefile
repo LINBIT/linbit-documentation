@@ -15,7 +15,7 @@ README.html-docker:
 # UG 9
 .PHONY: UG9-pdf-finalize UG9-pdf-finalize-docker UG9-html-finalize UG9-html-finalize-docker
 UG9-pdf-finalize:
-	make -C UG9 pdf-finalize
+	make -C UG9 pdf-finalize lang=$(lang)
 
 UG9-pdf-finalize-docker:
 	$(run-in-docker)
@@ -29,7 +29,7 @@ UG9-html-finalize-docker:
 # UG 8.4
 .PHONY: UG8.4-pdf-finalize UG8.4-pdf-finalize-docker UG8.4-html-finalize UG8.4-html-finalize-docker
 UG8.4-pdf-finalize:
-	make -C UG8.4 pdf-finalize
+	make -C UG8.4 pdf-finalize lang=$(lang)
 
 UG8.4-pdf-finalize-docker:
 	$(run-in-docker)
