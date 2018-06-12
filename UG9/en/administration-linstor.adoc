@@ -348,7 +348,49 @@ create encrypted volumes.
 
 [[s-linstor-snapshots]]
 === Managing snapshots
-IMPLEMENT
+Snapshots are supported with thin LVM and ZFS storage pools.
+
+==== Creating a snapshot
+Assuming a resource definition named 'resource1' which has been placed on some
+nodes, a snapshot can be created as follows:
+
+----------------------------
+# linstor snapshot create resource1 snap1
+----------------------------
+
+This will create snapshots on all nodes where the resource is present.
+LINSTOR will ensure that consistent snapshots are taken even when the
+resource is in active use.
+
+==== Restoring a snapshot
+The following steps restore a snapshot to a new resource.
+This is possible even when the original resource has been removed
+from the nodes where the snapshots were taken.
+
+First define the new resource with volumes matching those from the snapshot:
+
+----------------------------
+# linstor resource-definition create resource2
+# linstor snapshot volume-definition restore --from-resource resource1 --from-snapshot snap1 --to-resource resource2
+----------------------------
+
+At this point, additional configuration can be applied if necessary.
+Then, when ready, create resources based on the snapshots:
+
+----------------------------
+# linstor snapshot resource restore --from-resource resource1 --from-snapshot snap1 --to-resource resource2
+----------------------------
+
+This will place the new resource on all nodes where the snapshot is present.
+The nodes on which to place the resource can also be selected explicitly;
+see the help (`linstor snapshot resource restore -h`).
+
+==== Removing a snapshot
+An existing snapshot can be removed as follows:
+
+----------------------------
+# linstor snapshot delete resource1 snap1
+----------------------------
 
 [[s-linstor-status]]
 === Checking the state of your cluster
