@@ -15,7 +15,14 @@ SRC=$(wildcard *.adoc)
 # for html
 SVGSUSED=$(shell sed -n -e 's/^image::\(.*\.svg\)\(.*\)/\1/p' *.adoc)
 SVGS=$(addprefix ../../, $(SVGSUSED))
-OUTPNGS=$(patsubst $(IMGDIR)/%.svg,$(OUTDIRHTMLIMAGES)/%.png, $(SVGS))
+# output pngs from svgs
+OUTPNGSSVGS=$(patsubst $(IMGDIR)/%.svg,$(OUTDIRHTMLIMAGES)/%.png, $(SVGS))
+
+PNGSUSED=$(shell sed -n -e 's/^image::\(.*\.png\)\(.*\)/\1/p' *.adoc)
+PNGS=$(addprefix ../../, $(PNGSUSED))
+# output pngs from pngs
+OUTPNGSPNGS=$(patsubst $(IMGDIR)/%.png,$(OUTDIRHTMLIMAGES)/%.png, $(PNGS))
+
 OUTADOCS=$(addprefix $(OUTDIRHTML)/, $(SRC))
 
 %.adoc:
@@ -28,10 +35,13 @@ $(OUTDIRHTMLIMAGES): $(IMGDIR)
 $(OUTDIRHTMLIMAGES)/%.png: $(IMGDIR)/%.svg
 	inkscape --file=$< --export-dpi=90 --export-area-drawing --export-png=./$@
 
+$(OUTDIRHTMLIMAGES)/%.png: $(IMGDIR)/%.png
+	cp $< $@
+
 $(OUTDIRHTML)/%.adoc: %.adoc
 	sed 's/\(^image::.*\)\.svg\(.*\)/\1.png\2/g' $< > $@
 
-$(OUTDIRHTML)/$(OUTHTML): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGS) $(OUTADOCS)
+$(OUTDIRHTML)/$(OUTHTML): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGSSVGS) $(OUTPNGSPNGS) $(OUTADOCS)
 	asciidoctor $(ASCIIDOCTOR_ADD_OPTIONS) -n -d book -a toc=left -a linkcss -o ./$(OUTDIRHTML)/$(OUTHTML) $(OUTDIRHTML)/$(IN)
 
 html: $(OUTDIRHTML)/$(OUTHTML)
