@@ -49,7 +49,8 @@ html-finalize: html
 	ln -s $(IMGDIR)
 
 $(OUTDIRPDF)/$(OUTPDF): $(SRC) $(SVGSUSED)
-	if [ -d $(FONTDIR) ]; then INTERN="-a pdf-style=../../stylesheets/pdf-style.yml -a pdf-fontsdir=$(FONTDIR)"; else \
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "ja" ]; then \
+		INTERN="-a pdf-style=../../stylesheets/pdf-style.yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
 	asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN -o $@ $(IN)
 
