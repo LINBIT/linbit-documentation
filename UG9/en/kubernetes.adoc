@@ -1,0 +1,296 @@
+[[ch-kubernetes]]
+== DRBD Volumes in Kubernetes
+
+indexterm:[Kubernetes]This chapter describes DRBD in Kubernetes via the tandem
+usage of the https://github.com/LINBIT/linstor-external-provisioner[Linstor
+External Provisioner] and the
+https://github.com/LINBIT/linstor-flexvolume[Linstor FlexVolume Provisioner].
+
+The External Provisioner creates and deletes volumes, while the FlexVolume
+Provisioner attaches, detaches, mounts, unmounts, and creates filesystems on
+volumes.
+
+[[s-kubernetes-overview]]
+=== Kubernetes Overview
+
+Kubernetes is a container orchestrator (CO) made by Google. Kubernetes defines
+the behavior of containers and related services via declarative
+specifications. In this guide, we'll focus on on using kubectl to manipulate
+`.yaml` files that define the specifications of Kubernetes objects.
+
+[[s-kubernetes-linstor-external-provisioner-installation]]
+=== Linstor External Provisioner Installation
+
+Instructions for building the External Provisioner can be found on the
+https://github.com/LINBIT/linstor-external-provisioner[project's github]. This
+will produce a native binary with no external dependencies.
+
+The Linstor External Provisioner can be ran on any machine where the Linstor
+Client is present and able to communicate with both the Linstor controller and
+the Kubernetes API server.
+
+The provisioner needs to be passed a name to the `provisioner` option and it
+needs to be passed the location of a Kubernetes config:
+
+----
+# ./linstor-external-provisioner -provisioner=external/linstor -kubeconfig=$HOME/.kube/config
+----
+
+or the address of a Kubernetes master:
+
+----
+# ./linstor-external-provisioner -provisioner=external/linstor -master=http://0.0.0.0:8080
+----
+
+Once, started, the provisioner will log to `stdout` and `stderr`, so you may
+wish to redirect it's output to another location.
+
+[[s-kubernetes-linstor-flexvolume-provisioner-installation]]
+=== Linstor FlexVolume Provisioner Installation
+
+Instructions for building the FlexVolume Provisioner can be found on the
+https://github.com/LINBIT/linstor-flexvolume[project's github]. This will
+produce a native binary with no external dependencies.
+
+The resulting binary will need to be places in the following location on all
+kubelet nodes.
+
+----
+/usr/libexec/kubernetes/kubelet-plugins/volume/exec/linbit~linstor-flexvolume/
+----
+
+After installation, restarting kubelet process is required on each node for
+Kubernetes versions older than 1.8.
+
+You must set the `--enable-controller-attach-detach=false` option on all
+kubelets and restart the kubelet process. For systemd managed kubelets this
+can be set in `/etc/systemd/system/kubelet.service.d/10-kubeadm.conf`
+
+In addition, all kubelets must have the `linstor` command in their `PATH` and
+the Linstor client must be able to communicate to the Linstor controller(s)
+defined in the StorageClass for the volumes.
+
+[[s-kubernetes-basic-configuration-and-deployment]]
+=== Basic Configuration and Deployment
+
+With a working Linstor cluster, a running External Provisioner, and the
+FlexVolume Provisioner placed on all kubelets, we can now provision volumes
+using the usual Kubernetes workflows.
+
+Configuring the behavior and properties of Linstor volumes defined and
+deployed are accomplished via the use of Kubernetes StorageClasses. Here below
+is the simplest practical StorageClass that can be used to deploy volumes:
+
+----
+apiVersion: storage.k8s.io/v1beta1
+kind: StorageClass
+metadata:
+  # The name used to identify this StorageClass.
+  name: two-replica
+  # The name used to match this StorageClass with a provisioner.
+  # This corresponds to the provisioner flag passed to the external provisioner.
+provisioner: external/linstor
+parameters:
+  # Create volumes replicated across two nodes, and place them automatically.
+  autoPlace: "2"
+  # Volumes will be formatted with an xfs filesystem at mount time, if not already present.
+  filesystem: "xfs"
+  # Linstor will provision volumes from the drbdpool storage pool.
+  storagePool: "drbdpool"
+  # Comma-separated list of Linstor Controller processes that will provision volumes.
+  controllers: "192.168.10.10:8080,172.0.0.1:3366"
+----
+
+Assuming the above configuration is in a file called `two-replica-sc.yaml`, we
+can create the StorageClass with the following command:
+
+----
+kubectl create -f two-replica-sc.yaml
+----
+
+Now that that storage class is created, we can now use PersistentVolumeClaims
+to ask create volumes known both to Kubernetes and Linstor:
+
+----
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: my-first-volume
+  annotations:
+    # This line matches the PersistentVolumeClaim with our StorageClass
+    # and therefore our provisioner.
+    volume.beta.kubernetes.io/storage-class: two-replica
+  spec:
+    accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+----
+
+Assuming the above configuration is in a file called
+`my-first-volume-pvc.yaml`, we can create the PersistentVolumeClaim with the
+following command:
+
+----
+kubectl create -f my-first-volume-pvc.yaml
+----
+
+This will create a PersistentVolumeClaim known to Kubernetes, which will have
+a PersistentVolume bound to it, additionally Linstor will now create this
+volume according to the configuration defined in the two-replica
+StorageClass. The Linstor volume's name and the PersistentVolume's name will
+be the PersistentVolumeClaim name, prepended by the PVC's Kubernetes
+namespace. For instance, if we were in the default namespace in Kubernetes the
+Linstor volume we just created will be named `default-my-first-volume`. This
+can be confirmed by running `linstor resource list`. Once that volume is
+created, we can attach it to a pod in much the same way as creating it. The
+following pod spec will spawn a Fedora container with our volume attached that
+busy waits so as to not be unscheduled:
+
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fedora
+  namespace: default
+spec:
+  containers:
+  - name: fedora
+    image: fedora
+    command: [/bin/bash]
+    args: ["-c", "while true; do sleep 10; done"]
+    volumeMounts:
+    - name: default-my-firt-volume
+      mountPath: /data
+    ports:
+    - containerPort: 80
+  volumes:
+  - name: default-my-first-volume
+    persistentVolumeClaim:
+      claimName: "my-first-volume"
+----
+
+Running `kubectl describe pod fedora` can be used to confirm that pod
+scheduduling and volume attachment succeeded.
+
+To remove a volume, please ensure that no pod is using it and then delete the
+PersistentVolumeClaim via `kubectl`. For example, to remove the volume that we
+just made, run the following two commands, noting that the pod must be
+unscheduled before the volume will be removed:
+
+----
+kubectl delete pod fedora # unschedule the pod.
+
+kubectl get pod -w # wait for pod to be unscheduled
+
+kubectl delete pvc my-first-volume # remove the PersistentVolumeClaim, the PersistentVolume, and the Linstor Volume.
+----
+
+
+[[s-kubernetes-advanced-configuration]]
+=== Advanced Configuration
+
+In general, all configuration for Linstor volumes in Kubernetes should be done
+via the storage class parameters, as seen above with the basic example. Will
+give all the available options an in depth treatment here.
+
+==== autoPlace
+
+`autoPlace` is an integer that determines the amount of replicas a volume of
+this StorageClass will have.  For instance, `autoPlace: 3` will produce
+volumes with three-way replication. If neither `autoPlace` nor `nodeList` are
+set, volumes will be automatically placed on one node.
+
+Example: `autoPlace: 2`
+
+==== blockSize
+
+`blockSize` is an optional parameter that is used to set the block size of
+either xfs or ext4 filesystems on creation.
+
+Example: `blockSize: 2048`
+
+==== controllers
+
+`controllers` is a comma separated list of Linstor controller end points and
+is generally required, except in such cases where the controller is running
+locally on the kubelet, such as in a one-node test cluster.
+
+Example:  `controllers: "192.168.10.10:8080,172.0.0.1:3366"`
+
+==== disklessStoragePool
+
+`disklessStoragePool` is an optional parameter that only effects nodes being
+assigned disklessly to kubelets i.e., as clients. If you have a custom
+diskless storage pool defined in Linstor, you'll specify that here.
+
+Example: `disklessStoragePool: my-custom-diskless-pool`
+
+==== doNotPlaceWithRegex
+
+`doNotPlaceWithRegex` is an optional parameter that takes a regex that will
+cause Linstor to _prefer_ not to place resources with other resources that
+match the regex. For example, if you have a PersistentVolumeClaim named `cats`
+and you prefer it not to be on the same nodes as your PersistentVolumeClaims
+named `dogs` and `doughnuts`, you'd do the following, keeping namespace
+prefixing in mind:
+
+Example: `^default-do.*`
+
+==== encryption
+
+`encryption` is an optional parameter that determines whether to encrypt
+volumes. Linstor must be properly configured for encryption for this to work
+properly.
+
+Example: `encryption: "yes"`
+
+==== force
+
+`force` is an optional parameter that will force filesystem creation at mount
+time.
+
+Example: `force: "true"`
+
+==== nodeList
+
+`nodeList` is an list of nodes for volumes to be assigned to. This will assign
+the volume to each node and it will be replicated amongst all of them.
+
+Example: `nodeList: "node-a node-b node-c"`
+
+==== storagePool
+
+`storagePool` is the name of the Linstor storage pool that will be used to
+provide storage to the newly-created volumes.
+
+Example: `storagePool: my-storage-pool`
+
+`mountOpts` is an optional parameter that passes options to the volume's
+filesystem at mount time.
+
+Example: `mountOpts: "sync,noatime"`
+
+==== xfs Specific Parameters
+
+The following are optional xfs tuning parameters that take effect on
+filesystem creation.
+
+`xfsDataSU` corresponds to the `-d su` flag on mkfs.xfs.
+
+Example: `xfsDataSU: "64k"`
+
+`xfsDataSW` corresponds to the `-d sw` flag on mkfs.xfs.
+
+Example: `xfsDataSW: "4"`
+
+`xfsLogDev` corresponds to the `-l logdev` flag on mkfs.xfs.
+
+Example: `xfsLogDev: "/dev/example"`
+
+`xfsdiscardblocks` corresponds to the `-K` flat on mkfs.xfs. Please note that
+by default, blocks will *not* be discarded, the default behavior of xfs is to
+discard blocks.
+
+Example: `xfsdiscardblocks: "true"`
