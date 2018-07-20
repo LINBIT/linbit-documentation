@@ -1,0 +1,89 @@
+[[ch-proxmox-linstor]]
+== DRBD Volumes in Proxmox VE
+
+indexterm:[Proxmox]This chapter describes DRBD in Proxmox VE via
+the http://git.linbit.com/linstor-proxmox.git[LINSTOR Proxmox Plugin].
+
+[[s-proxmox-ls-overview]]
+=== Proxmox VE Overview
+
+http://www.proxmox.com/en/[Proxmox VE] is an easy to use, complete server
+virtualization environment with KVM, Linux Containers and HA.
+
+'linstor-proxmox' is a Perl plugin for Proxmox that, in combination with LINSTOR, allows to replicate VM
+//(LVM volumes on DRBD)
+disks  on several Proxmox VE nodes. This allows to live-migrate
+active VMs within a few seconds and with no downtime without needing a central SAN, as the data is already
+replicated to multiple nodes.
+
+[[s-proxmox-ls-install]]
+=== Proxmox Plugin Installation
+
+LINBIT provides a dedicated public repository for Proxmox VE users. This repository not only contains the
+Proxmox plugin, but the whole DRBD SDS stack including a DRBD SDS kernel
+module and user space utilities.
+
+The DRBD9 kernel module gets installed as a `dkms` package (i.e., `drbd-dkms`), therefore you want to install
+`pve-headers` before you set up/install software from LINBIT's repositories. Following that order ensures that
+the kernel module is built for your kernel. If you do not follow the latest Proxmox kernel, you have to
+install kernel headers matching your current kernel (e.g., `pve-headers-$(uname -r)`). If you did not follow
+that advice and you need to rebuild the dkms package against your current kernel (headers have to be
+installed), you can issue `apt-get install --reinstall drbd-dkms`.
+
+LINBIT's repository can be enabled as follows, where "$PVERS" should be set to your Proxmox VE *major version*
+(e.g., "5", not "5.2"):
+
+----------------------------
+# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -
+# PVERS=5 && echo "deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0" > \
+	/etc/apt/sources.list.d/linbit.list
+# apt-get update && apt-get install linstor-proxmox
+----------------------------
+
+[[s-proxmox-ls-ls-configuration]]
+=== LINSTOR Configuration
+For the following we assume that you have a LINSTOR cluster configured as described in
+<<s-linstor-init-cluster>>. In the most simple case have one storage pool definition (e.g., "drbdpool") and the
+equivalent storage pools on every PVE node. If you have multiple pools, currently the plugin selects one of
+these, but as of now you can not control which one. But usually you only have one pool for you DRBD resources
+anyways. Also make sure to create every every node as a "Combined" node. Start the "linstor-controller" on one
+node, and the "linstor-satellite" on all nodes.
+
+[[s-proxmox-ls-configuration]]
+=== Proxmox Plugin Configuration
+The final step is to provide a configuration for Proxmox itself. This is done by adding an entry to
+`/etc/pve/storage.cfg` with the following content, assuming a three node cluster in this example:
+
+----------------------------
+drbd: drbdstorage
+   content images,rootdir
+   redundancy 3
+   controller 10.11.12.13
+----------------------------
+
+The name "drbd" is fixed, you are not allowed to change it, while drbdstorage" is just the name that will be
+shown in the web GUI. The "content" entry is also fixed, do not change it. The "redundancy" parameter
+specifies how many copies on distinct nodes of your data will be available. The data is still accessible by
+all of your nodes (e.g., all 5 nodes will be able to access a 3 times redundant volume). The "controller"
+parameter has to be set to the IP of the node that runs the LINSTOR controller. For now that node has to be
+available, or if that node fails, start the LINSTOR controller on another node and change that value.
+
+After that you can create VMs via Proxmox's web GUI by selecting "__drbdstorage__" as storage location.
+
+.NOTE: DRBD supports only the **raw** disk format at the moment.
+
+At this point you can try to live migrate the VM - as all data is accessible on all nodes it will take just a
+few seconds. The overall process might take a bit longer if the VM is under load and if there is a lot of RAM
+being dirtied all the time. But in any case, the downtime is minimal and you will see no interruption at all.
+
+[[s-proxmox-ls-HA]]
+=== Makinging the Controller Highly-Availible
+.NOTE: This section is under construction.
+
+- Start on one node
+- Create one volume replicated to all nodes
+- `qemu-img dd` the appliance to the drbd device
+- set the VMs IP in the config
+- set the "controllervm" parameter
+- make this VM HA in Proxmox (give it some head up before the other VMs are started)
+- make sure the drbd init script is enabled on all nodes (to start the DRBD resource the VM is on)
