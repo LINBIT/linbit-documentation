@@ -77,13 +77,146 @@ few seconds. The overall process might take a bit longer if the VM is under load
 being dirtied all the time. But in any case, the downtime is minimal and you will see no interruption at all.
 
 [[s-proxmox-ls-HA]]
-=== Making the Controller Highly-Availible
-.NOTE: This section is under construction.
+=== Making the Controller Highly-Available
+For the described HA setup we assume that you installed LINSTOR and the Proxmox Plugin as described in
+<<s-proxmox-ls-ls-configuration>>.
 
-- Start on one node
-- Create one volume replicated to all nodes
-- `qemu-img dd` the appliance to the drbd device
-- set the VMs IP in the config
-- set the "controllervm" parameter
-- make this VM HA in Proxmox (give it some head up before the other VMs are started)
-- make sure the drbd init script is enabled on all nodes (to start the DRBD resource the VM is on)
+The basic idea is to execute the LINSTOR controller within a VM that is controlled by Proxmox and its HA
+features, where the storage resides on DRBD managed by LINSTOR itself.
+
+The first step is to allocate storage for the VM: Create a VM as usual and select "Do not use any media" on
+the "OS" section. The hard disk should of course reside on DRBD (e.g., "drbdstorage"). 2GB disk space should
+be enough, and for RAM we chose 1GB. These are the minimal requirements for the appliance LINBIT provides to
+its customers (see below). If you set up your own controller VM, or resources are not constrained, increase
+these minimal values. In the following we assume that the controller VM was created with ID 100, but it is
+fine if this VM is created later, after you already created other VMs.
+
+LINBIT provides an appliance for its customers that can be used to populate the created storage. For the
+appliance to work, we first create a "Serial Port". First click on "Hardware" and then on "Add" and finally on
+"Serial Port":
+
+[[img-pm_add_serial1_controller_vm.png]]
+.Adding a Serial Port
+image::images/pm_add_serial1_controller_vm.png[]
+
+If everything worked as expected the VM definition should then look like this:
+
+[[img-pm_add_serial2_controller_vm.png]]
+.VM with Serial Port
+image::images/pm_add_serial2_controller_vm.png[]
+
+The next step is to copy the VM appliance to the created storage. This can be done with `qemu-img`.
+
+IMPORTANT: Make sure to replace the VM ID with the correct one.
+
+------------------
+# qemu-img dd -O raw if=/tmp/linbit-linstor-controller-amd64.img \
+  of=/dev/drbd/by-res/vm-100-disk-1/0
+------------------
+
+After that you can start the VM and connect to it via the Proxmox VNC viewer. The default user name and
+password are both "linbit". Note that we kept the defaults for ssh, so you will not be able to log in to the VM
+via ssh and username/password. If you want to enable that (and/or "root" login), enable these settings in
+`/etc/ssh/sshd_config` and restart the ssh service. As this VM is based on "Ubuntu Bionic", you should change
+your network settings (e.g., static IP) in `/etc/netplan/config.yaml`. After that you should be able to ssh to
+the VM:
+
+[[img-pm_ssh_controller_vm.png]]
+.LINBIT LINSTOR Controller Appliance
+image::images/pm_ssh_controller_vm.png[]
+
+In the next step you add the controller VM to the existing cluster:
+
+------------
+# linstor node create --node-type Controller \
+  linstor-controller 10.43.7.254
+------------
+
+As this special VM will be not be managed by the Proxmox Plugin, make sure all hosts have access to that VM's
+storage.
+In our test cluster we checked via `linstor resource list` where the storage was already deployed and created
+further assignments via `linstor resource create`. In our lab consisting of four nodes, we made all resource
+assignments diskful, but diskless assignments are fine as well. As a rule of thumb keep the redundancy count
+at "3" (more usually does not make sense), and assign the rest diskless.
+
+As the storage for this particular VM has to be made available (i.e., `drbdadm up`) somehow, enable the
+`drbd.service` on all nodes:
+
+--------------
+# systemctl enable drbd
+# systemctl start drbd
+--------------
+
+After that it is time for the final steps, namely switching from the existing controller to the new one in the
+VM. So let's stop the old controller service on the old host, and copy the LINSTOR controller database to the
+VM:
+
+-----------
+# systemctl stop linstor-controller
+# systemctl disable linstor-controller
+# scp /var/lib/linstor/* root@10.43.7.254:/var/lib/linstor/
+-----------
+
+Finally, we can enable the controller in the VM:
+
+-----------
+# systemctl start linstor-controller # in the VM
+# systemctl enable linstor-controller # in the VM
+-----------
+
+To check if everything worked as expected, you can query the cluster nodes on a host by asking the controller
+in the VM: `linstor --controllers=10.43.7.254 node list`. It is perfectly fine that the controller (which is
+just a controller and not "combined") is shown as "OFFLINE". Still, this might change in the future to
+something more appropriate.
+
+As the last -- but crucial -- step, you need to add the "controlervm" option to
+`/etc/pve/storage.cfg`, and change the controller IP:
+
+----------------------------
+drbd: drbdstorage
+   content images,rootdir
+   redundancy 3
+   controller 10.43.7.254
+   controllervm 100
+----------------------------
+
+By setting the "controllervm" parameter the plugin will ignore (or act accordingly) if there are actions on
+the controller VM. Basically, this VM should not be managed by the plugin, so the plugin mainly ignores all
+actions on the given controller VM ID. Unfortunately there is one exception: When you delete the VM in the GUI,
+it is gone from the GUI. We did not find a way to return/die in a way that would not delete the VM from the
+GUI. However, such requests are ignored by the plugin, so the VM will not be deleted from the LINSTOR cluster.
+Therefore, it is possible to later create a VM with the ID of the old controller. The plugin will just return
+"OK", and the old VM with the old data can be used again. All in all, make your life easier, and be careful to
+not delete the controller VM.
+
+Currently, we have the controller executed as VM, but we should make sure that one instance of the VM is
+started at all times. For that we use Proxmox's HA feature. Click on the VM, then on "More", and then on
+"Manage HA". We set the following parameters for our controller VM:
+
+[[img-pm_manage_ha_controller_vm.png]]
+.HA settings for the controller VM
+image::images/pm_manage_ha_controller_vm.png[]
+
+As long as there are surviving nodes in your Proxmox cluster, everything should be fine and in case the node
+hosting the controller VM is shut down or lost, Proxmox HA will make sure the controller is started on another
+host. Obviously the IP of the controller VM should not change. It is up to you as admin to make sure this is
+the case (e.g., setting a static IP, or always providing the same IP via dhcp on the bridged interface).
+
+One limitation that is not fully handled with this setup is a total cluster outage (e.g., common power supply
+failure) with a restart of all cluster nodes. Proxmox is unfortunately pretty limited in that regard. You can
+enable the "HA Feature" for a VM, and you can define "Start and Shutdown Order" constraints. But both are
+completely separated from each other. Therefore it is hard/impossible to make sure that the controller VM is
+up and then all other VMs are started.
+
+It might be possible to work around that by delaying VM startup in the Proxmox plugin itself until the
+controller VM is up (i.e., if the plugin is asked to start the controller VM it does it, otherwise it waits
+and pings the controller). While a nice idea, this would horribly fail in a serialized, non-concurrent VM
+start/plugin call event stream where some VM should be started (which then blocks) before the controller VM is
+scheduled to be started. That would obviously result in a deadlock.
+
+We will discuss options with Proxmox, but we think the presented solution is valuable in typical use cases as
+is, especially compared to the complexity of a pacemaker setup. Use cases where one can expect that not the
+whole cluster goes down at the same time are covered. And even if that is the case, only automatic startup of
+the VMs would not work when the whole cluster is started. In such a scenario the admin just has to wait until
+the Proxmox HA service starts the controller VM.  After that all VMs can be started manually/scripted on the
+command line.
