@@ -132,8 +132,8 @@ In the next step you add the controller VM to the existing cluster:
   linstor-controller 10.43.7.254
 ------------
 
-IMPORTANT: As this VM will be excluded from the LINSTOR Proxmox Plugin, we must make sure all hosts have access to the VM's
-backing storage, before PVE HA starts the VM, otherwise the VM will fail to start. See below for the details on how to achieve this.
+IMPORTANT: As this HA VM will be handled in a special way by the Proxmox storage plugin (comparing to the rest of VMs), we must make sure all hosts have access to the HA VM's
+backing storage, *before* PVE HA starts the VM, otherwise the VM will fail to start. See below for the details on how to achieve this.
 
 In our test cluster the VM disk was created in DRBD storage and it was initially assigned to one host (use `linstor resource list` to check the assignments).
 Then, we used `linstor resource create` command to create additional resource assignments to the other nodes of the cluster for this VM.
@@ -214,7 +214,7 @@ up and then all other VMs are started.
 It might be possible to work around that by delaying VM startup in the Proxmox plugin itself until the
 controller VM is up (i.e., if the plugin is asked to start the controller VM it does it, otherwise it waits
 and pings the controller). While a nice idea, this would horribly fail in a serialized, non-concurrent VM
-start/plugin call event stream where some VM should be started (which then blocks) before the controller VM is
+start/plugin call event stream where some VM should be started (which then are blocked) before the controller VM is
 scheduled to be started. That would obviously result in a deadlock.
 
 We will discuss these options with Proxmox, but we think the current solution is valuable in most typical use cases, as
