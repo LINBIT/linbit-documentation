@@ -132,8 +132,8 @@ In the next step you add the controller VM to the existing cluster:
   linstor-controller 10.43.7.254
 ------------
 
-IMPORTANT: This VM will not be managed by the LINSTOR Proxmox Plugin, so make sure all hosts have access to the VM's
-backing storage (i.e DRBD or another shared storage that all PVE hosts can access). See below for details on how to achieve this.
+IMPORTANT: As this VM will be excluded from the LINSTOR Proxmox Plugin, we must make sure all hosts have access to the VM's
+backing storage, before PVE HA starts the VM, otherwise the VM will fail to start. See below for the details on how to achieve this.
 
 In our test cluster the VM disk was created in DRBD storage and it was initially assigned to one host (use `linstor resource list` to check the assignments).
 Then, we used `linstor resource create` command to create additional resource assignments to the other nodes of the cluster for this VM.
@@ -203,6 +203,8 @@ hosting the controller VM is shut down or lost, Proxmox HA will make sure the co
 host. Obviously the IP of the controller VM should not change. It is up to you as admin to make sure this is
 the case (e.g., setting a static IP, or always providing the same IP via dhcp on the bridged interface).
 
+It is important to mention at this point that in the case that you are using a dedicated network for the LINSTOR cluster, you must make sure that the network interfaces  configured for the cluster traffic, are configured as bridges (i.e vmb1,vmbr2 etc) on the PVE hosts. If they are setup as direct interfaces (i.e eth0,eth1 etc), then you will not be able to setup the Controller VM vNic to communicate with the rest of LINSTOR nodes in the cluster, as you cannot assign direct network interfaces to the VM, but only bridged interfaces.
+
 One limitation that is not fully handled with this setup is a total cluster outage (e.g., common power supply
 failure) with a restart of all cluster nodes. Proxmox is unfortunately pretty limited in that regard. You can
 enable the "HA Feature" for a VM, and you can define "Start and Shutdown Order" constraints. But both are
@@ -215,8 +217,8 @@ and pings the controller). While a nice idea, this would horribly fail in a seri
 start/plugin call event stream where some VM should be started (which then blocks) before the controller VM is
 scheduled to be started. That would obviously result in a deadlock.
 
-We will discuss options with Proxmox, but we think the presented solution is valuable in typical use cases as
-is, especially compared to the complexity of a pacemaker setup. Use cases where one can expect that not the
+We will discuss these options with Proxmox, but we think the current solution is valuable in most typical use cases, as
+is. Especially, compared to the complexity of a pacemaker setup. Use cases where one can expect that not the
 whole cluster goes down at the same time are covered. And even if that is the case, only automatic startup of
 the VMs would not work when the whole cluster is started. In such a scenario the admin just has to wait until
 the Proxmox HA service starts the controller VM.  After that all VMs can be started manually/scripted on the
