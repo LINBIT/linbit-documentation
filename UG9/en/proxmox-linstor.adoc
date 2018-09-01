@@ -60,10 +60,10 @@ drbd: drbdstorage
 ----------------------------
 
 The "drbd" entry is fixed and you are not allowed to modify it, as it tells to Proxmox to use DRBD as storage backend.
-The "drbdstorage" entry can be modified and is used as a friendly name that will be shown in the PVE web GUI to locate the DRBD storage. 
+The "drbdstorage" entry can be modified and is used as a friendly name that will be shown in the PVE web GUI to locate the DRBD storage.
 The "content" entry is also fixed, so do not change it. The "redundancy" parameter specifies how many replicas of the data will be stored
 in the cluster.The recommended is to set it to "3", assuming that you have a three node cluster as a minimum.
-The data is accessible from all nodes, even if some of them do not have local copies of the data. 
+The data is accessible from all nodes, even if some of them do not have local copies of the data.
 For example, in a 5 node cluster, all nodes will be able to access 3 copies of the data, no matter where they are stored in. The "controller"
 parameter must be set to the IP of the node that runs the LINSTOR controller service. Only one node can be set to run as LINSTOR controller at the same time.
 If that node fails, start the LINSTOR controller on another node and change that value to its IP address. There are more elegant ways to deal with this problem.For more, see later in this chapter how to setup a highly available LINSTOR controller VM in Proxmox.
@@ -73,7 +73,7 @@ By now, you should be able to create VMs via Proxmox's web GUI by selecting "__d
 .NOTE: DRBD supports only the **raw** disk format at the moment.
 
 At this point you can try to live migrate the VM - as all data is accessible on all nodes (even on Diskless nodes) - it will take just a
-few seconds. The overall process might take a bit longer if the VM is under load and if there is a lot of RAM being dirtied all the time. 
+few seconds. The overall process might take a bit longer if the VM is under load and if there is a lot of RAM being dirtied all the time.
 But in any case, the downtime should be minimal and you will see no interruption at all.
 
 [[s-proxmox-ls-HA]]
@@ -147,7 +147,21 @@ As the storage for the Controller VM must be made available on all PVE hosts in 
 # systemctl start drbd
 --------------
 
-After that, it is time for the final steps, namely switching from the existing controller (residing on the physical host) to the new one in the VM. So let's stop the old controller service on the physical host, and copy the LINSTOR controller database to the VM host:
+At startup, the `linstor-satellite` service deletes all of its resource files (`*.res`) and regenerates them.
+This conflicts with the `drbd` services that needs these resource files to start the controller VM. Recent LINSTOR
+releases support a `-k/--keep-res` parameter where one can specify a regular expression. Resource files
+matching this expression are not deleted. To make the necessary changes, you need to edit the service file
+via systemctl (do *not* edit the file directly).
+
+--------------
+systemctl edit linstor-satellite
+# Change the "ExecStart" line to include: --keep-res=vm-100
+# "vm-100", if 100 is your VM ID is good enough, remember, it is a regular expression
+--------------
+
+After that it is time for the final steps, namely switching from the existing controller to the new one in the
+VM. So let's stop the old controller service on the old host, and copy the LINSTOR controller database to the
+VM:
 
 -----------
 # systemctl stop linstor-controller
