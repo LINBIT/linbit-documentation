@@ -24,10 +24,12 @@ Proxmox plugin, but the whole DRBD SDS stack including a DRBD SDS kernel
 module and user space utilities.
 
 The DRBD9 kernel module is installed as a `dkms` package (i.e., `drbd-dkms`), therefore you'll have to install
-`pve-headers` package, before you set up/install the software packages from LINBIT's repositories. Following that order, ensures that
-the kernel module will build properly for your kernel. If you don't plan to install the latest Proxmox kernel, you have to
-install kernel headers matching your current running kernel (e.g., `pve-headers-$(uname -r)`). If you missed this step, then still you can rebuild the dkms package against your current kernel, (kernel headers have to be
-installed in advance), by issuing `apt-get install --reinstall drbd-dkms` command.
+`pve-headers` package, before you set up/install the software packages from LINBIT's repositories. Following
+that order, ensures that the kernel module will build properly for your kernel. If you don't plan to install
+the latest Proxmox kernel, you have to install kernel headers matching your current running kernel (e.g.,
+		`pve-headers-$(uname -r)`). If you missed this step, then still you can rebuild the dkms package against
+your current kernel, (kernel headers have to be installed in advance), by issuing `apt-get install --reinstall
+drbd-dkms` command.
 
 LINBIT's repository can be enabled as follows, where "$PVERS" should be set to your Proxmox VE *major version*
 (e.g., "5", not "5.2"):
@@ -41,12 +43,12 @@ LINBIT's repository can be enabled as follows, where "$PVERS" should be set to y
 
 [[s-proxmox-ls-ls-configuration]]
 === LINSTOR Configuration
-For the following we assume that you have a LINSTOR cluster configured as described in
-<<s-linstor-init-cluster>>. In the most simple case have one storage pool definition (e.g., "drbdpool") and the
-equivalent storage pools on every PVE node. If you have multiple pools, currently the plugin selects one of
-these, but as of now you can not control which one. But usually you only have one pool for you DRBD resources
-anyways. Also make sure to create every node as a "Combined" node. Start the "linstor-controller" on one
-node, and the "linstor-satellite" on all nodes.
+For the  rest of this guide we assume that you have a LINSTOR cluster configured as described in
+<<s-linstor-init-cluster>>. In the most simple case you will have one storage pool definition (e.g.,
+		"drbdpool") and the equivalent storage pools on each PVE node. If you have multiple pools, currently the
+plugin selects one of those, but as of now you can not control which one. But usually you have only one pool
+for your DRBD resources, so that shouldn't be a problem. Also make sure to setup each node as a "Combined"
+node. Start the "linstor-controller" on one node, and the "linstor-satellite" on all nodes.
 
 [[s-proxmox-ls-configuration]]
 === Proxmox Plugin Configuration
@@ -60,26 +62,30 @@ drbd: drbdstorage
    controller 10.11.12.13
 ----------------------------
 
-The "drbd" entry is fixed and you are not allowed to modify it, as it tells to Proxmox to use DRBD as storage backend.
-The "drbdstorage" entry can be modified and is used as a friendly name that will be shown in the PVE web GUI to locate the DRBD storage.
-The "content" entry is also fixed, so do not change it. The "redundancy" parameter specifies how many replicas of the data will be stored
-in the cluster.The recommended is to set it to "3", assuming that you have a three node cluster as a minimum.
-The data is accessible from all nodes, even if some of them do not have local copies of the data.
-For example, in a 5 node cluster, all nodes will be able to access 3 copies of the data, no matter where they are stored in. The "controller"
-parameter must be set to the IP of the node that runs the LINSTOR controller service. Only one node can be set to run as LINSTOR controller at the same time.
-If that node fails, start the LINSTOR controller on another node and change that value to its IP address. There are more elegant ways to deal with this problem.For more, see later in this chapter how to setup a highly available LINSTOR controller VM in Proxmox.
+The "drbd" entry is fixed and you are not allowed to modify it, as it tells to Proxmox to use DRBD as storage
+backend.  The "drbdstorage" entry can be modified and is used as a friendly name that will be shown in the PVE
+web GUI to locate the DRBD storage.  The "content" entry is also fixed, so do not change it. The "redundancy"
+parameter specifies how many replicas of the data will be stored in the cluster.The recommended is to set it
+to "3", assuming that you have a three node cluster as a minimum.  The data is accessible from all nodes, even
+if some of them do not have local copies of the data.  For example, in a 5 node cluster, all nodes will be
+able to access 3 copies of the data, no matter where they are stored in. The "controller" parameter must be
+set to the IP of the node that runs the LINSTOR controller service. Only one node can be set to run as LINSTOR
+controller at the same time.  If that node fails, start the LINSTOR controller on another node and change that
+value to its IP address. There are more elegant ways to deal with this problem.For more, see later in this
+chapter how to setup a highly available LINSTOR controller VM in Proxmox.
 
 By now, you should be able to create VMs via Proxmox's web GUI by selecting "__drbdstorage__" as storage location.
 
 .NOTE: DRBD supports only the **raw** disk format at the moment.
 
-At this point you can try to live migrate the VM - as all data is accessible on all nodes (even on Diskless nodes) - it will take just a
-few seconds. The overall process might take a bit longer if the VM is under load and if there is a lot of RAM being dirtied all the time.
-But in any case, the downtime should be minimal and you will see no interruption at all.
+At this point you can try to live migrate the VM - as all data is accessible on all nodes (even on Diskless
+nodes) - it will take just a few seconds. The overall process might take a bit longer if the VM is under
+load and if there is a lot of RAM being dirtied all the time.  But in any case, the downtime should be minimal
+and you will see no interruption at all.
 
 [[s-proxmox-ls-HA]]
 === Making the Controller Highly-Available
-For the described HA setup we assume that you installed LINSTOR and the Proxmox Plugin as described in
+For the rest of this guide we assume that you installed LINSTOR and the Proxmox Plugin as described in
 <<s-proxmox-ls-ls-configuration>>.
 
 The basic idea is to execute the LINSTOR controller within a VM that is controlled by Proxmox and its HA
@@ -87,10 +93,11 @@ features, where the storage resides on DRBD managed by LINSTOR itself.
 
 The first step is to allocate storage for the VM: Create a VM as usual and select "Do not use any media" on
 the "OS" section. The hard disk should of course reside on DRBD (e.g., "drbdstorage"). 2GB disk space should
-be enough, and for RAM we chose 1GB. These are the minimal requirements for the appliance LINBIT provides to
-its customers (see below). If you set up your own controller VM, or resources are not constrained, increase
-these minimal values. In the following we assume that the controller VM was created with ID 100, but it is
-fine if this VM is created later, after you already created other VMs.
+be enough, and for RAM we chose 1GB. These are the minimum requirements for the appliance LINBIT provides to
+its customers (see below). If you wish to set up your own controller VM, and you have enough hardware
+resources available, you can increase these minimum values. In the following use case, we assume that the
+controller VM was created with ID 100, but it is fine if this VM was created at a later time and has a
+different ID.
 
 LINBIT provides an appliance for its customers that can be used to populate the created storage. For the
 appliance to work, we first create a "Serial Port". First click on "Hardware" and then on "Add" and finally on
@@ -106,7 +113,7 @@ If everything worked as expected the VM definition should then look like this:
 .VM with Serial Port
 image::images/pm_add_serial2_controller_vm.png[]
 
-The next step is to copy the VM appliance to the created storage. This can be done with `qemu-img`.
+The next step is to copy the VM appliance to the VM disk storage. This can be done with `qemu-img`.
 
 IMPORTANT: Make sure to replace the VM ID with the correct one.
 
@@ -115,12 +122,12 @@ IMPORTANT: Make sure to replace the VM ID with the correct one.
   of=/dev/drbd/by-res/vm-100-disk-1/0
 ------------------
 
-After that you can start the VM and connect to it via the Proxmox VNC viewer. The default user name and
-password are both "linbit". Note that we kept the defaults for ssh, so you will not be able to log in to the VM
-via ssh and username/password. If you want to enable that (and/or "root" login), enable these settings in
-`/etc/ssh/sshd_config` and restart the ssh service. As this VM is based on "Ubuntu Bionic", you should change
-your network settings (e.g., static IP) in `/etc/netplan/config.yaml`. After that you should be able to ssh to
-the VM:
+Once completed you can start the VM and connect to it via the Proxmox VNC viewer. The default user name and
+password are both "linbit". Note that we kept the default configuration for the ssh server, so you will not be
+able to log in to the VM via ssh and username/password. If you want to enable that (and/or "root" login),
+enable these settings in `/etc/ssh/sshd_config` and restart the ssh service. As this VM is based on "Ubuntu
+Bionic", you should change your network settings (e.g., static IP) in `/etc/netplan/config.yaml`.  After that
+you should be able to ssh to the VM:
 
 [[img-pm_ssh_controller_vm.png]]
 .LINBIT LINSTOR Controller Appliance
@@ -133,15 +140,19 @@ In the next step you add the controller VM to the existing cluster:
   linstor-controller 10.43.7.254
 ------------
 
-As this special VM will be not be managed by the Proxmox Plugin, make sure all hosts have access to that VM's
-storage.
-In our test cluster we checked via `linstor resource list` where the storage was already deployed and created
-further assignments via `linstor resource create`. In our lab consisting of four nodes, we made all resource
-assignments diskful, but diskless assignments are fine as well. As a rule of thumb keep the redundancy count
-at "3" (more usually does not make sense), and assign the rest diskless.
+IMPORTANT: As the Controller VM will be handled in a special way by the Proxmox storage plugin (comparing to
+the rest of VMs), we must make sure all hosts have access to its backing storage, *before* PVE HA starts
+the VM, otherwise the VM will fail to start. See below for the details on how to achieve this.
 
-As the storage for this particular VM has to be made available (i.e., `drbdadm up`) somehow, enable the
-`drbd.service` on all nodes:
+In our test cluster the Controller VM disk was created in DRBD storage and it was initially assigned to one
+host (use `linstor resource list` to check the assignments).  Then, we used `linstor resource create` command
+to create additional resource assignments to the other nodes of the cluster for this VM.  In our lab
+consisting of four nodes, we created all resource assignments as diskful, but diskless assignments are fine as
+well. As a rule of thumb keep the redundancy count at "3" (more usually does not make sense), and assign the
+rest as diskless.
+
+As the storage for the Controller VM must be made available on all PVE hosts in some way, we must make sure to
+enable the `drbd.service` on all hosts (given that it is not controlled by LINSTOR at this stage):
 
 --------------
 # systemctl enable drbd
@@ -158,11 +169,18 @@ via systemctl (do *not* edit the file directly).
 systemctl edit linstor-satellite
 # Change the "ExecStart" line to include: --keep-res=vm-100
 # "vm-100", if 100 is your VM ID is good enough, remember, it is a regular expression
+# You need to include "[Service]" and you need to reset the old value
+# The file should look like that:
+[Service]
+ExecStart=
+ExecStart=/usr/share/linstor-server/bin/Satellite --logs=/var/log/linstor-satellite --config-directory=/etc/linstor --keep-res=vm-100
 --------------
 
-After that it is time for the final steps, namely switching from the existing controller to the new one in the
-VM. So let's stop the old controller service on the old host, and copy the LINSTOR controller database to the
-VM:
+Don't forget to restart the `linstor-satellite.service`.
+
+After that, it is time for the final steps, namely switching from the existing controller (residing on the
+physical host) to the new one in the VM. So let's stop the old controller service on the physical host, and
+copy the LINSTOR controller database to the VM host:
 
 -----------
 # systemctl stop linstor-controller
@@ -177,13 +195,13 @@ Finally, we can enable the controller in the VM:
 # systemctl enable linstor-controller # in the VM
 -----------
 
-To check if everything worked as expected, you can query the cluster nodes on a host by asking the controller
-in the VM: `linstor --controllers=10.43.7.254 node list`. It is perfectly fine that the controller (which is
-just a controller and not "combined") is shown as "OFFLINE". Still, this might change in the future to
-something more appropriate.
+To check if everything worked as expected, you can query the cluster nodes on a physical PVE host by asking
+the controller in the VM: `linstor --controllers=10.43.7.254 node list`. It is perfectly fine that the
+controller (which is just a Controller and not a "Combined" host) is shown as "OFFLINE". This might change in
+the future to something more reasonable.
 
 As the last -- but crucial -- step, you need to add the "controlervm" option to
-`/etc/pve/storage.cfg`, and change the controller IP:
+`/etc/pve/storage.cfg`, and change the controller IP address to the IP address of the Controller VM:
 
 ----------------------------
 drbd: drbdstorage
@@ -193,14 +211,26 @@ drbd: drbdstorage
    controllervm 100
 ----------------------------
 
-By setting the "controllervm" parameter the plugin will ignore (or act accordingly) if there are actions on
-the controller VM. Basically, this VM should not be managed by the plugin, so the plugin mainly ignores all
-actions on the given controller VM ID. Unfortunately there is one exception: When you delete the VM in the GUI,
-it is gone from the GUI. We did not find a way to return/die in a way that would not delete the VM from the
-GUI. However, such requests are ignored by the plugin, so the VM will not be deleted from the LINSTOR cluster.
-Therefore, it is possible to later create a VM with the ID of the old controller. The plugin will just return
-"OK", and the old VM with the old data can be used again. All in all, make your life easier, and be careful to
-not delete the controller VM.
+Please note the additional setting "controllervm". This setting is very important, as it tells to PVE to
+handle the Controller VM differently than the rest of VMs stored in the DRBD storage.  In specific, it will
+instruct PVE to NOT use LINSTOR storage plugin for handling the Controller VM, but to use other methods
+instead. The reason for this, is that simply LINSTOR backend is not available at this stage.  Once the
+Controller VM is up and running (and the associated LINSTOR controller service inside the VM), then the PVE
+hosts will be able to start the rest of virtual machines which are stored in the DRBD storage by using LINSTOR
+storage plugin. Please make sure to set the correct VM ID in the "controllervm" setting. In this case is set
+to "100", which represents the ID assigned to our Controller VM.
+
+It is very important to make sure that the Controller VM is up and running at all times and that you are
+backing it up at regular times(mostly when you do modifications to the LINSTOR cluster). Once the VM is gone,
+and there are no backups, the LINSTOR cluster must be recreated from scratch.
+
+We haven't found a way to prevent accidental deletion of the VM, so when you delete the VM in the PVE GUI, it
+will disappear from the list of VMs.  However, such requests are ignored by our storage plugin, so the VM disk
+will NOT be deleted from the LINSTOR cluster.  Therefore, it is possible to recreate the VM with the same ID
+as before(simply recreate the VM configuration file in PVE and assign the same DRBD storage device used by the
+old VM). The plugin will just return "OK", and the old VM with the old data can be used again. In general, be
+careful to not delete the controller VM and "protect" it accordingly.
+
 
 Currently, we have the controller executed as VM, but we should make sure that one instance of the VM is
 started at all times. For that we use Proxmox's HA feature. Click on the VM, then on "More", and then on
@@ -211,25 +241,32 @@ started at all times. For that we use Proxmox's HA feature. Click on the VM, the
 image::images/pm_manage_ha_controller_vm.png[]
 
 As long as there are surviving nodes in your Proxmox cluster, everything should be fine and in case the node
-hosting the controller VM is shut down or lost, Proxmox HA will make sure the controller is started on another
-host. Obviously the IP of the controller VM should not change. It is up to you as admin to make sure this is
+hosting the Controller VM is shut down or lost, Proxmox HA will make sure the controller is started on another
+host. Obviously the IP of the controller VM should not change. It is up to you as an administrator to make sure this is
 the case (e.g., setting a static IP, or always providing the same IP via dhcp on the bridged interface).
 
+It is important to mention at this point that in the case that you are using a dedicated network for the
+LINSTOR cluster, you must make sure that the network interfaces  configured for the cluster traffic, are
+configured as bridges (i.e vmb1,vmbr2 etc) on the PVE hosts. If they are setup as direct interfaces (i.e
+eth0,eth1 etc), then you will not be able to setup the Controller VM vNIC to communicate with the rest of
+LINSTOR nodes in the cluster, as you cannot assign direct network interfaces to the VM, but only bridged
+interfaces.
+
 One limitation that is not fully handled with this setup is a total cluster outage (e.g., common power supply
-failure) with a restart of all cluster nodes. Proxmox is unfortunately pretty limited in that regard. You can
+failure) with a restart of all cluster nodes. Proxmox is unfortunately pretty limited in this regard. You can
 enable the "HA Feature" for a VM, and you can define "Start and Shutdown Order" constraints. But both are
-completely separated from each other. Therefore it is hard/impossible to make sure that the controller VM is
-up and then all other VMs are started.
+completely separated from each other. Therefore it is hard/impossible to guarantee that the Controller VM will
+be up and running, before all other VMs are started.
 
 It might be possible to work around that by delaying VM startup in the Proxmox plugin itself until the
 controller VM is up (i.e., if the plugin is asked to start the controller VM it does it, otherwise it waits
 and pings the controller). While a nice idea, this would horribly fail in a serialized, non-concurrent VM
-start/plugin call event stream where some VM should be started (which then blocks) before the controller VM is
+start/plugin call event stream where some VM should be started (which then are blocked) before the Controller VM is
 scheduled to be started. That would obviously result in a deadlock.
 
-We will discuss options with Proxmox, but we think the presented solution is valuable in typical use cases as
-is, especially compared to the complexity of a pacemaker setup. Use cases where one can expect that not the
-whole cluster goes down at the same time are covered. And even if that is the case, only automatic startup of
-the VMs would not work when the whole cluster is started. In such a scenario the admin just has to wait until
-the Proxmox HA service starts the controller VM.  After that all VMs can be started manually/scripted on the
-command line.
+We will discuss these options with Proxmox, but we think the current solution is valuable in most typical use
+cases, as is. Especially, compared to the complexity of a pacemaker setup. Use cases where one can expect that
+not the whole cluster goes down at the same time are covered. And even if that is the case, only automatic
+startup of the VMs would not work when the whole cluster is started. In such a scenario the admin just has to
+wait until the Proxmox HA service starts the controller VM.  After that all VMs can be started
+manually/scripted on the command line.
