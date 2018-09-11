@@ -1,0 +1,360 @@
+[[ap-recent-changes]]
+[appendix]
+== 最近の変更
+
+この付録はDRBD9.0以前のバージョンからアップグレードするユーザー向けです。DRBDの設定と挙動についての重要な変更点を説明します。
+
+[[s-recent-changes-connections]]
+=== コネクション
+
+DRBD9では3台以上のノードでもデータのレプリケーションが可能です。
+
+そのためDRBDボリュームのスタック利用はもはや(可能ではありますが)推奨しません。
+また、DRBDをネットワークブロックデバイス(<<s-drbd-client,DRBD client>>)として利用する事が可能になりました。
+
+関連する変更項目
+
+* メタデータサイズの変更(対向ノードごとに1ビットマップ)
+
+* `/proc/drbd` では最小限の情報のみを表示。
+    <<s-drbdadm-status, `drbdadm status`> 参照
+
+* 再同期の同期元/先が<<s-multi-node,複数の対向ノード>>に。
+
+* <<s-activity-log,アクティビティログ>>が <<s-resource-roles,セカンダリ>>ロールでも使用される
+
+[[s-recent-changes-auto-promote]]
+=== `自動プロモーション` 機能
+
+DRBD9では必要なときに自動的に `プライマリ`/`セカンダリ` の<<s-resource-roles,ロール切り替え>> を行います。
+
+この機能は、 `become-primary-on` の設定ならびにHeartbeat v1の `drbddisk` スクリプトを無用にするものです。
+
+詳細は<<s-automatic-promotion>>を参照してください。
+
+[[s-recent-changes-performance]]
+=== パフォーマンスの向上
+
+DRBD9はパフォーマンスの面でも目覚ましく向上しました。ハードウェアによっては最大で100倍高速になります。（ランダム書き込みにおける1秒あたりのI/O処理数の測定）
+
+
+
+[[s-recent-changes-volumes]]
+=== 1リソース内の複数ボリューム
+
+ボリュームはDRBD
+8.3以前からの新しい概念です。DRBD8.4より前はリソースには1つのブロックデバイスだけしか設定できませんでしたので、DRBDデバイスとリソースには1対1の関係でした。DRBD8.4からは複数ボリューム(それぞれが1つのブロックデバイスと対応する)が、1つのレプリケーションコネクションを共有します。そしてこのレプリケーションコネクションが、1つのリソースに対応します。
+
+この結果、挙動においていくつか必要な変更点があります。
+
+[[s-recent-changes-volumes-udev]]
+==== udevシンボリックリンクの変更
+
+DRBDのudev統合スクリプトは個々のブロックデバイスノードを示すシンボリックリンクを管理します。これらは`/dev/drbd/by-res/` と
+`/dev/drbd/by-disk/` ディレクトリにあります。
+
+DRBD8.4以降、1つのリソースが複数ボリュームに対応できるので、 `/dev/drbd/by-res/<resource>`
+は個々のボリュームに貼られたシンボリックリンクを含む _directory_ になりました。
+
+.DRBD 8.4でのudevが管理するDRBDシンボリックリンク
+----------------------------
+lrwxrwxrwx 1 root root 11 2015-08-09 19:32 /dev/drbd/by-res/home/0 -> ../../drbd0
+lrwxrwxrwx 1 root root 11 2015-08-09 19:32 /dev/drbd/by-res/data/0 -> ../../drbd1
+lrwxrwxrwx 1 root root 11 2015-08-09 19:33 /dev/drbd/by-res/nfs-root/0 -> ../../drbd2
+lrwxrwxrwx 1 root root 11 2015-08-09 19:33 /dev/drbd/by-res/nfs-root/1 -> ../../drbd3
+----------------------------
+
+シンボリックリンクが参照するファイルシステムの構成は、DRBD 8.4に移行する場合には、通常は単純にシンボリックリンクのパスに `/0`
+を追加することで更新する必要があります。ファイルシステムが `/etc/fstab` で `UUID=` や `/dev/drbdX`
+で参照されていれば、変更は必要ありません。
+
+
+[[s-recent-changes-config]]
+=== 設定上の構文の変更点
+
+このセクションでは構成における構文の変更点について扱います。DRBD設定ファイルの `/etc/drbd.d` と `/etc/drbd.conf`
+に影響があります。
+
+IMPORTANT: `drbdadm`
+のパーサーは8.4より前の構文も受け付けて、内部で自動的に現在の構文に変換します。DRBD9の新機能を使わないのであれば、これまでの構文に変更を加える必要はありません。しかし、DRBD9自体は古い構文に対応していないので、新しい構文を使用することをお勧めします。
+
+[[s-recent-changes-config-booleans]]
+==== ブール型設定オプション
+
+`drbd.conf` は多くのブール型設定オプションに対応しています。DRBD
+8.4より前の構文では、これらのブール型オプションは以下のようになっていました。
+
+.DRBD 8.4より前のブール型オプションが付いた構成例
+[source, drbd]
+----------------------------
+resource test {
+	disk {
+		no-md-flushes;
+	}
+}
+----------------------------
+
+これには設定上の問題がありました。 `common` 構成セクションにブール型変数を設定したいとき、その後で個々のリソースを上書きしていました。
+
+.DRBD 8.4より前の `common` セクションにブール型オプションが付いた設定例[source,drbd]
+[source, drbd]
+----------------------------
+common {
+	disk {
+		no-md-flushes;
+	}
+}
+resource test {
+	disk {
+		# "common"で無効化した機能を有効化する方法はない
+	}
+}
+----------------------------
+
+DRBD 8.4では、すべてのブール型オプションは `yes` か `no` の値をとります。 `common` からでも個々の `resource`
+セクションからでも、これらオプションが操作しやすくなっています。
+
+.`common` セクションでのDRBD 8.4のブール型オプションのある設定例
+[source, drbd]
+----------------------------
+common {
+  md-flushes no;
+}
+resource test {
+  disk {
+    md-flushes yes;
+  }
+}
+----------------------------
+
+[[s-recent-changes-config-syncer]]
+==== `syncer` セクションはなくなりました
+
+DRBD 8.4より前では、設定構文で `syncer` セクションが使用できましたが、8.4では廃止されました。既存の `syncer`
+オプションはリソース内の `net` や `disk` セクションに移動しました。
+
+.DRBD8.4より前の `syncer` セクションのある設定例
+[source, drbd]
+----------------------------
+resource test {
+  syncer {
+    al-extents 3389;
+    verify-alg md5;
+  }
+  ...
+}
+----------------------------
+
+上記の例で表しているものは、DRBD 8.4の構文では次のようになります。
+
+.`syncer` セクションが置き換えられたDRBD 8.4の設定例
+[source, drbd]
+----------------------------
+resource test {
+  disk {
+    al-extents 3389;
+  }
+  net {
+    verify-alg md5;
+  }
+  ...
+}
+----------------------------
+
+[[s-recent-changes-config-protocol]]
+==== `protocol` オプションが変則的ではなくなりました
+
+以前のDRBDリリースでは、 `protocol` オプションは奇妙にも(そして直感的でなく)、 `net`
+セクションではなくて単独で記載する必要がありました。DRBD8.4でこの変則がなくなりました。
+
+.DRBD8.4より前の単独で `protocol` オプションがある設定例
+[source, drbd]
+----------------------------
+resource test {
+  protocol C;
+  ...
+  net {
+    ...
+  }
+  ...
+}
+----------------------------
+
+対応するDRBD8.4での設定は以下のようになります。
+
+.`net` 内に `protocol` オプションがあるDRBD8.4の設定例
+[source, drbd]
+----------------------------
+resource test {
+  net {
+    protocol C;
+    ...
+  }
+  ...
+}
+----------------------------
+
+
+[[s-recent-changes-config-options]]
+==== 新しいリソース毎の `options` セクション
+
+DRBD 8.4では、resource セクション内でも `common` セクション内でも定義できる新しい `options`
+セクションを導入しました。以前は不自然にも `syncer` セクションで設定していた `cpu-mask`
+オプションは、このセクションに移動しました。8.4より前のリリースで `disk` セクションにあった `on-no-data-accessible`
+オプションも同様にこのセクションに移動しました。
+
+.DRBD 8.4より前の `cpu-mask` と `on-no-data-accessible` オプションのある設定例.
+[source, drbd]
+----------------------------
+resource test {
+  syncer {
+    cpu-mask ff;
+  }
+  disk {
+    on-no-data-accessible suspend-io;
+  }
+  ...
+}
+----------------------------
+
+対応するDRBD8.4での設定は以下のようになります。
+
+.`options` セクションのあるDRBD 8.4の設定例
+[source, drbd]
+----------------------------
+resource test {
+  options {
+    cpu-mask ff;
+    on-no-data-accessible suspend-io;
+  }
+  ...
+}
+----------------------------
+
+
+[[s-recent-changes-net]]
+=== ネットワーク通信のオンライン変更
+
+[[s-recent-changes-change-protocol]]
+==== レプリケーションプロトコルの変更
+
+DRBD 8.4より前では、リソースがオンラインまたはアクティブの状態では、レプリケーションプロトコルの変更は不可能でした。リソースの構成ファイル内で
+`protocol` オプションを変更し、それから両ノードで `drbdadm disconnect` を実行し、最後に `drbdadm
+connect` を行わなければなりませんでした。
+
+DRBD
+8.4では即座にレプリケーションプロトコルの変更が行えます。たとえば、一時的に接続を通常の同期レプリケーションから非同期レプリケーションのモードに変更することができます。
+
+.接続が確率された状態でレプリケーションプロトコルを変更する
+----------------------------
+drbdadm net-options --protocol=A <resource>
+----------------------------
+
+[[s-recent-changes-switch-dual-primary]]
+==== シングルプライマリからデュアルプライマリのレプリケーションに変更する
+
+DRBD
+8.4より前では、リソースがオンラインやアクティブの状態ではシングルプライマリからデュアルプライマリに変更したり戻したりする事はできませんでした。リソースの構成ファイル内の
+`allow-two-primaries` オプションを変更し、 `drbdadm disconnect` を実行し、それから `drbdadm
+connect` を両ノードで実行する必要がありました。
+
+DRBD 8.4ではオンラインで変更が行えます。
+
+CAUTION: DRBDのデュアルプライマリモードを使うアプリケーションはクラスタファイルシステムまたは他のロッキング機構を使用していることが _必要_
+です。このために、デュアルプライマリモードが一時的または永続的であることは区別されません。
+
+リソースがオンライン中にデュアルプライマリに変更する場合は、<<s-enable-dual-primary-temporary>>を参照してください。
+
+
+[[s-recent-changes-drbdadm]]
+=== `drbdadm` コマンドの変更点
+
+[[s-recent-changes-drbdadm-passthrough-options]]
+==== pass-throughオプションの変更点
+
+DRBD 8.4以前では、`drbdadm` で特殊なオプションを `drbdsetup` に引き渡す場合には、次の例のように難解な
+`--{nbsp}--<option>` の構文を使わなければなりませんでした。
+
+.DRBD 8.4より前の `drbdadm` の引き渡しオプション
+----------------------------
+drbdadm -- --discard-my-data connect <resource>
+----------------------------
+
+これに代わって、通常オプションと同じように `drbdadm` に引き渡すオプションが使えるようになりました。
+
+.DRBD 8.4の `drbdadm` 引き渡しオプション
+----------------------------
+drbdadm connect --discard-my-data <resource>
+----------------------------
+
+NOTE: 古い構文もまだサポートされますが、使わないことを強くお勧めします。なお、この新しい簡単な構文を使用する場合には、(
+`--discard-my-data` )オプションを、( `connect` )サブコマンドの 後 で、かつリソース識別子の _前_
+に指定する必要があります。
+
+[[s-recent-changes-drbdadm-force]]
+==== `--overwrite-data-of-peer` は `--force` オプションに置き換わりました
+
+`--overwrite-data-of-peer` オプションはDRBD8.4でなくなり、より簡潔な `--force`
+に置き換わりました。このため、リソースの同期を開始するために、次のコマンドは使えません。
+
+.DRBD 8.4より前の `drbdadm` 同期開始コマンド. 
+----------------------------
+drbdadm -- --overwrite-data-of-peer primary <resource>
+----------------------------
+
+代わりに次のようなコマンドをご使用ください。
+
+.DRBD 8.4の `drbdadm` 同期開始コマンド
+----------------------------
+drbdadm primary --force <resource>
+----------------------------
+
+
+[[s-recent-changes-defaults]]
+=== デフォルト値の変更点
+
+DRBD 8.4では、Linuxカーネルや利用できるサーバハードウェアの向上に合わせて、drbd.conf のいくつかのデフォルト値が更新されました。
+
+[[s-recent-changes-defaults-al-extents]]
+==== 同時にアクティブなアクティビティログのエクステント数( `al-extents` )
+
+`al-extents`
+の以前のデフォルト値の127は1237に変更になりました。これによりメタデータのディスク書き込み作業量の現象によるパフォーマンスの向上が可能になりました。この変更によりプライマリノードのクラッシュ時の再同期時間が長くなります。これはギガビットイーサネットと高帯域幅のレプリケーションリンクの一般化が関係しています。
+
+[[s-recent-changes-defaults-use-rle]]
+==== ランレングス符号化(`use-rle`)
+
+ビットマップ転送のためのランレングス符号化(RLE)がDRBD 8.4ではデフォルトで有効になっています。use-rle オプションのデフォルト値は
+`yes` です。RLEは、2つの切断されたノードの接続時に常に起きる
+<<s-quick-sync-bitmap,クイック同期ビットマップ>>中のデータ転送量を大きく減らします。
+
+[[s-recent-changes-on-io-error]]
+==== I/Oエラーの処理ストラテジー( `on-io-error` )
+
+DRBD
+8.4ではデフォルトでI/Oスタックの上位レイヤに<<fp-io-error-detach,I/Oエラーを伝えない>>(detach))設定です。以前のバージョンでは<<fp-io-error-pass-on,I/Oエラーを伝える>>(pass-on)設定でしたが、置き換わりました。つまり問題のあるドライブのDRBDボリュームが自動的に
+`Diskless` のディスク状態に遷移し、対向ノードからのデータを提供します。
+
+[[s-recent-changes-defaults-variable-rate-sync]]
+==== 可変レート同期
+
+<<s-variable-rate-sync,可変レート同期>>はDRBD
+8.4ではデフォルトで有効です。デフォルト設定は次の構成のようになっています。
+
+.DRBD 8.4での可変レート同期のデフォルトオプション
+[source, drbd]
+----------------------------
+resource test {
+  disk {
+    c-plan-ahead 20;
+    c-fill-target 50k;
+    c-min-rate 250k;
+  }
+  ...
+----------------------------
+
+[[s-recent-changes-defaults-minor-count]]
+==== 設定可能なDRBDデバイス数( `minor-count` )
+
+DRBD 8.4で設定可能なDRBDデバイス数は1,048,576
+(2^20^)です。(前のバージョンでは255)これは理論的な限界であり、本番環境で使い切ることはないでしょう。
