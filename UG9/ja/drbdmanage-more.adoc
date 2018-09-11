@@ -1,0 +1,107 @@
+[[ch-drbdmanage-more]]
+== DRBD Manageについてのより詳しい情報
+
+ここではDRBD manage内部の技術面と利用方法を記載しています。
+
+
+[[s-drbdmanage-free-space]]
+=== 空き容量の通知
+
+DRBD Manageが空き容量を通知する方法は2種類あります。
+
+  * indexterm:[free space]`drbdmanage nodes` 経由の場合: ノードごとの"物理的な" 空き容量を返します。
+    ストレージでシンLVを使っている場合に有意な値にならいことがあります。
+
+  * indexterm:[free space]`drbdmanage list-free-space` 経由の場合:
+    定義したレプリケーションカウントで作成することができる最大のボリューム1つのサイズを返します。
++
+--
+そのため、10個のストレージノードに各々1TiBの空き容量があれば1TiBが返されますが、そのボリュームを割り当てても返される空き容量の値は変わりません。
+
+20GiB、15GiB、10GiB、5GiBのストレージノードがあり、3重の冗長性の場合には10GiBが返されます。2重の冗長性であれば15GiBが返されます。
+--
+
+この問題はシンLVMのプールの場合(1つまたは複数であるか、DRBD manageのストレージバックエンドに依存して -
+詳細は<<s-drbdmanage-storage-plugins>>参照)、またDRBD manageのスナップショットによって複雑になります。
+
+
+[[s-drbdmanage-deployment-policy]]
+=== デプロイを保留するポリシープラグイン
+
+リソース(ボリュームごと)、スナップショットをデプロイする時、あるいはボリュームのリサイズ時、パフォーマンスと可用性はトレードオフの関係にあります。
+
+ひとつ例をあげます。ストレージサーバが3台あり、そのうち1台がハードウェアやソフトウェアアップグレードでダウンした時、3重の冗長性の維持のために新規リソースを作成すると決めた場合、どうするでしょうか？
+
+  * 3番目のノードが利用できるようになるまで、(何時間、何日、何週?)ボリューム作成は止めるでしょうか?
+  * それでもボリューム作成を続けるでしょうか?たとえば3重の冗長化が要件であるのに、 1つのストレージだけが使用可能な状況でも継続しますか?
+  * 少なくとも1つのサーバがスナップショットを作成可能な場合、スナップショットの作成は保留しますか？それとも継続するでしょうか？
+
+サーバが多ければ多いほど、ある時点で使用できないサーバが存在する可能性が上がります。そのため、どのようなポリシーにするか判断して設定を行う必要があります。
+
+各ドライバfootnote:[OpenAttic、OpenNebula、<<ch-openstack,Openstack>>、ProxMoxなど]がDRBD
+Manageにアクセスするごとに個別に判断しなくてもいいように (多くのコードの複製が発生)、それらの機能を提供するDRBD
+manageのプラグインfootnote:[ここで「プラグイン」というのは適切な表現ではないかもしれません。標準のDRBD
+manageパッケージに含まれていますが、 `run_external_plugin` APIを通じて呼び出します。]を用意しています。
+
+もちろん正確な設定はDRBD manageを使用するサービスに依存しますが、基本的な方法は管理者がJSON
+blobで保留時の挙動を指定できるようすることです。これはシンプルなテキスト文字列で設定できます。(例として<<s-openstack-addtl-conf,OpenStack用のポリシー設定>>をご覧ください)
+
+
+`WaitForResource` および `WaitForSnapshot` で使用できるポリシーは次のものです。
+
+  * (((Policy,count))) `count` は、その数がデプロイされるまで待ちます。ただし、
+    同期footnote:[シックLVMで1TiBのデプロイであれば、初期同期に時間を要しますが それを待っている必要はないでしょう]されている必要はなく、
+    単に *デプロイされた* だけで十分です。
+  * (((Policy,ratio))) `ratio` も同様です。 ただし、 `0.0` から `1.0`
+    の値を使用して、これを所定のデプロイ数に掛けます 。つまり、例えばリソースを5台のサーバに割り当てて、 そのうち3台が使用可能な場合、ratioが
+    `0.6` であれば動作します。
++
+.NOTE
+_ratio_ で指定する値は「以上」です。ですので `0.5`
+を指定することは「過半数になるまで待つ」という事では**ありません**。半数がデプロイされていれば条件を満たしたことになります。過半数になるまで待つのであれば
+`0.51` を指定すれば意図した動作になります。
+
+複数のポリシーを設定した場合には、 _１つでも_ 合致すれば条件を満たします。 `count=3` と `ratio=0.75`
+の場合に、5台中3台のサーバが使用可能であれば、 `result=true` となります。
+
+
+[[s-drbdmanage-deployment-policy-dr-wr]]
+==== ドライバ書き込みについての詳細情報
+
+DBus APIを通じてDBRD manageにアクセスするソフトウェアを使用する場合の例を以下にあげます。(大部分はPython構文です)
+
+    result, data = run_external_plugin(
+                        "drbdmanage.plugins.plugins.wait_for.WaitForResource",
+                        { "resource": "foo",
+                          "starttime": <unix-timestamp, ie. time(NULL), of first call>
+                          "count": "3",
+                          "timeout": "15"})
+
+上記は、通常のsuccess/errorのアレイを返します。footnote:[これは常に呼び出しまたは内部エラーを意味します。つまり「成功」として「ポリシーを満たしていない」または「タイムアウト」が通知されます。]また、以下は詳細なステータス情報のある追加規定です。
+
+    {
+        "policy": "count",
+        "result": "true",
+        "timeout": "false"
+    }
+
+呼び出し時にリソースが最低3台のサーバにデプロイされていれば `count` ポリシーを満たしているので `result` は `「true」`
+になります。
+
+
+以下のプラグイン/イベントを使用して待機することができます。
+
+  * (((Policy,resource creation)))
+    `drbdmanage.plugins.plugins.wait_for.WaitForResource` は入力データとして `resource`
+    キーが必要です。
+  * (((Policy,snapshot creation)))
+    `drbdmanage.plugins.plugins.wait_for.WaitForSnapshot` は、入力データとして `resource`
+    および `snapshot` キーが必要です。
+  * (((Policy,resizing volumes)))
+    `drbdmanage.plugins.plugins.wait_for.WaitForVolumeSize` には引数として `resource`
+    、`volnr` そして `req_size` (KiB単位の合計サイズ)が必要です。
+
+
+DBusのタイムアウトによってこのAPI関数はブロックされませんのでご注意ください。それはすぐに返却されます。. そのために `starttime` と
+`timeout` 値がインプットディクショナリに用意されています。プラグインが現在時刻が `starttime` 経過後に `timeout`
+を過ぎていると検知した場合、 `timeout` の結果を `"true"` にし、ドライバがこれを検知して中止しエラーを返します。

@@ -1,0 +1,157 @@
+[[ch-rhcs]]
+== DRBDとRed Hat Cluster Suite
+
+indexterm:[Red Hat Cluster]この章ではRDBDをRed Hat
+Cluster高可用性クラスタのためのレプリケーションストレージとして使用する方法を説明します。
+
+NOTE: ここでは非公式な _Red Hat Cluster_ という用語を歴代の複数の正式な製品名として使用しており、そのなかには _Red Hat
+Cluster Suite_ と _Red Hat Enterprise Linux High Availability Add-On_
+が含まれています。
+
+[[s-rhcs-primer]]
+=== Red Hat Clusterの背景情報
+
+[[s-rhcs-fencing]]
+==== フェンシング
+
+Red Hat
+Clusterは本来は共有ストレージクラスタを主な対象として設計されたもので、ノードフェンシングによって共有リソースへの危険な同時アクセスを回避します。Red
+Hat Cluster Suiteのフェンシングインフラストラクチャは、フェンシングデーモン fenced
+とシェルスクリプトとして実装されるフェンシングエージェントに依存しています。
+
+DRBDベースのクラスタは共有ストレージリソースを利用しないため、DRBDとしては厳密にはフェンシングは必要ありません。 ただし、Red Hat
+Cluster SuiteはDRBDベースの構成の場合でもフェンシングを必要とします。
+
+[[s-rhcs-rgmanager]]
+==== リソースグループマネージャ
+
+リソースグループマネージャ( `rgmanager` または `clurgmgr`
+)はPacemakerと似ています。これは、クラスタ管理スイートと管理対象アプリケーションとの間の主要なインタフェースとして機能します。
+
+[[s-rhcs-resources]]
+===== Red Hat Clusterリソース
+
+indexterm:[Red Hat Cluster]Red Hat
+Clusterでは、個々の高可用性アプリケーション、ファイルシステム、IPアドレスなどを _リソース_ と呼びます。
+
+たとえば、NFSエクスポートがマウントされているファイルシステムに依存するように、リソースは互いに依存しています。リソースは別のリソース内に入れ子になって、
+_リソースツリー_
+を構成します。入れ子の内部のリソースが、入れ子の外部のリソースからパラメータを継承する場合もあります。Pacemakerにはリソースツリーの概念はありません。
+
+[[s-rhcs-services]]
+===== Red Hat Clusterサービス
+
+indexterm:[Red Hat Cluster]相互に依存するリソースの集合を _サービス_ と呼びます。Pacemakerではこのような集合を
+_リソースグループ_ と呼んでいます。
+
+[[s-rhcs-resource-agents]]
+===== rgmanagerリソースエージェント
+
+`rgmanager` により呼び出されるリソースエージェントは、Pacemakerで使用されるものと同様に、Open Cluster
+Framework
+(OCF)で定義されたシェルベースのAPIを使用しますが、Pacemakerはフレームワークで定義されていない拡張機能も利用します。このように理論的には、Red
+Hat Cluster
+SuiteとPacemakerのリソースエージェントはおおむね互換性がありますが、実際にはこの2つのクラスタ管理スイートは似たようなタスクや同一のタスクに異なるリソースエージェントを使用します。
+
+Red Hat Clusterリソースエージェントは `/usr/share/cluster`
+ディレクトリにインストールされます。オールインワン型のPacemaker OCFリソースエージェントとは異なり、一部の Red Hat
+Clusterリソースエージェントは、実際のシェルコードを含む `.sh` ファイルと、XML形式のリソースエージェントメタデータを含む、
+`.metadata` ファイルに分割されています。
+
+DRBDは Red Hat Clusterリソースエージェントも提供しています。これは通常通りのディレクトリに `drbd.sh` および
+`drbd.metadata` としてインストールされています。
+
+[[s-rhcs-config]]
+=== Red Hat Clusterの設定
+
+ここでは、Red Hat
+Clusterを実行するために必要な設定手順の概要を説明します。クラスタ構成の準備は比較的容易で、すべてのDRBDベースのRed Hat
+Clusterに必要なのは、2つの参加ノード(Red Hatのドキュメントでは _クラスタメンバ_ と呼ばれる)とフェンシングデバイスだけです。
+
+NOTE: Red Hat clusterの設定詳細は、http://www.redhat.com/docs/manuals/csgfs/[Red Hat
+ClusterとGFS(Global File System)についてのRed Hatのマニュアル]をご参照ください。
+
+
+[[s-rhcs-cluster-conf]]
+==== `cluster.conf` ファイル
+
+RHELクラスタの設定は単一の設定ファイルindexterm:[Red Hat Cluster]indexterm:[cluster.conf (Red
+Hat Cluster configuration fileル)] `/etc/cluster/cluster.conf`
+に記載されています。次のような方法でクラスタ構成を管理できます。
+
+.設定ファイルを直接編集する
+これがもっとも簡単な方法です。テキストエディタ以外に必要なものはありません。
+
+.system-config-cluster GUIを使用する
+Gladeを使用してPythonで記述したGUIアプリケーションです。Xディスプレイ(直接サーバコンソール上、またはSSH経由のトンネル)が必要です。
+
+.Conga webベース管理インフラストラクチャを使用する
+Congaインフラストラクチャは、ローカルクラスタ管理システムと通信するノードエージェント( `ricci`
+)、クラスタリソースマネージャ、クラスタLVMデーモン、および管理用Webアプリケーション( `luci`
+)から構成されます。luciを使用して、シンプルなWebブラウザでクラスタインフラストラクチャを構成することができます。
+
+
+[[s-rhcs-failover-clusters]]
+=== Red Hat ClusterフェイルオーバクラスタでDRBDを使用する
+
+NOTE: ここでは、GFSについては取り上げず、Red Hat Clusterフェイルオーバクラスタ用のDRBDの設定方法のみを取り上げます。GFS
+(およびGFS2)の設定については、<<ch-gfs>>を参照してください。
+
+このセクションでは、<<ch-pacemaker>>の同様のセクションのように、高可用性MySQLデータベースを構成することを前提としています。次のような構成パラメータを使用します。
+
+* データベースのストレージ領域として使用するDRBDリソース名は `mysql` で、これによりデバイス `/dev/drbd0` を管理する。
+
+* DRBDデバイスにext3ファイルシステムが格納され、これが
+  `/var/lib/mysql`(デフォルトのMySQLデータディレクトリ)にマウントされる。
+
+* MySQLデータベースがこのファイルシステムを利用し、 専用クラスタIPアドレス192.168.42.1で待機する。
+
+
+[[s-rhcs-example-cluster-conf]]
+==== クラスタ構成の設定
+
+高可用性MySQLデータベースを設定するには、`/etc/cluster/cluster.conf`
+ファイルを作成するか変更して、次の構成項目を記述します。
+
+まず `/etc/cluster/cluster.conf` を適切なテキストエディタで開き、リソース設定で次の項目を記述します。
+
+[source, xml]
+----------------------------
+<rm>
+  <resources />
+  <service autostart="1" name="mysql">
+    <drbd name="drbd-mysql" resource="mysql">
+      <fs device="/dev/drbd/by-res/mysql/0"
+          mountpoint="/var/lib/mysql"
+          fstype="ext3"
+          name="mysql"
+          options="noatime"/>
+    </drbd>
+    <ip address="192.168.42.1" monitor_link="1"/>
+    <mysql config_file="/etc/my.cnf"
+           listen_address="192.168.42.1"
+           name="mysqld"/>
+  </service>
+</rm>
+----------------------------
+
+NOTE: この例ではボリュームリソースが1つの場合を前提にしています。
+
+`<service/>` でリソース参照を相互に入れ子にするのは、Red Hat Cluster Suiteでリソースの依存関係を記述する方法です。
+
+設定が完了したら、必ず、 `<cluster>` 要素の `config_version`
+属性をインクリメントしてください。次のコマンドを実行して、実行中のクラスタ構成に変更内容をコミットします。
+
+----------------------------
+# ccs_tool update /etc/cluster/cluster.conf
+# cman_tool version -r <version>
+----------------------------
+
+必ず、2番目のコマンドの _<version>_ を新しいクラスタ設定のバージョン番号と置き換えてください。
+
+NOTE: `cluster.conf` ファイルに `drbd` リソースエージェントを含めると、 `system-config-cluster GUI`
+設定ユーティリティとConga
+Webベースクラスタ管理インフラストラクチャの両方が、クラスタ設定に関する問題についてのメッセージを返します。これは、2つのアプリケーションが提供するPythonクラスタ管理ラッパーが、クラスタインフラストラクチャに他社製の拡張機能を使用することを前提としていないためです。
+
+したがって、クラスタ設定に `drbd` リソースエージェントを使用する場合は、クラスタ構成のために `system-config-cluster`
+またはCongaを使用することはお勧めできません。これらのツールは正しく機能するはずですが、クラスタの状態を監視するためにのみ使用してください。
