@@ -160,22 +160,15 @@ enable the `drbd.service` on all hosts (given that it is not controlled by LINST
 --------------
 
 At startup, the `linstor-satellite` service deletes all of its resource files (`*.res`) and regenerates them.
-This conflicts with the `drbd` services that needs these resource files to start the controller VM. Recent LINSTOR
-releases support a `-k/--keep-res` parameter where one can specify a regular expression. Resource files
-matching this expression are not deleted. To make the necessary changes, you need to edit the service file
-via systemctl (do *not* edit the file directly).
+This conflicts with the `drbd` services that needs these resource files to start the controller VM. It is good
+enough to first bring up the resources via `drbd.service` and then start `linstor-satellite.service`. To make
+the necessary changes, you need to create a drop-in for the `linstor-satellite.service` via systemctl (do
+*not* edit the file directly).
 
 --------------
 systemctl edit linstor-satellite
 [Unit]
 After=drbd.service
-# Change the "ExecStart" line to include: --keep-res=vm-100
-# "vm-100", if 100 is your VM ID is good enough, remember, it is a regular expression
-# You need to include "[Service]" and you need to reset the old value
-# The file should look like that:
-[Service]
-ExecStart=
-ExecStart=/usr/share/linstor-server/bin/Satellite --logs=/var/log/linstor-satellite --config-directory=/etc/linstor --keep-res=vm-100
 --------------
 
 Don't forget to restart the `linstor-satellite.service`.
