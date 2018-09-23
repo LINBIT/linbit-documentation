@@ -1,0 +1,583 @@
+[[ch-pacemaker]]
+== DRBDとPacemakerクラスタ
+
+indexterm:[Pacemaker]PacemakerクラスタスタックとDRBDの組み合わせは、もっとも多いDRBDの使いみちです。そしてまた、Pacemakerはさまざまな使用シナリオでDRBDを非常に強力なものにするアプリケーションの１つです。
+
+DRBDはPacemakerクラスタで2つの使用法があります。
+* DRBDをSANのようにバックグラウンドのサービスとして使用する、または
+* DRBDをPacemakerで完全に制御する
+
+それぞれの長所と短所は後で考察します。
+
+NOTE: フェンシング設定を行うことを推奨します。
+クラスタ間の接続が途切れてノードが互いを見失うと、両ノードでサービスが開始し(フェイルオーバー)、通信が復帰したタイミングで *スプリットブレイン*
+が発生する事になります。
+
+
+
+[[s-pacemaker-primer]]
+=== Pacemakerの基礎
+
+PacemakerはLinuxプラットフォーム向けの高度で機能豊富なクラスタリソースマネージャで、さまざまな用途で使われています。マニュアルも豊富に用意されています。この章を理解するために、以下のドキュメントを読むことを強くお勧めします。
+
+* http://www.clusterlabs.org/doc/Cluster_from_Scratch.pdf[Clusters From
+  Scratch]:高可用性クラスタ構築ステップバイステップガイド
+* http://crmsh.github.io/documentation/index.html[CRM CLI (command line
+  interface) tool]:CRMのシェルやシンプルかつ直感的なコマンドラインインタフェースのマニュアル
+* http://clusterlabs.org/doc/en-US/Pacemaker/1.1/html/Pacemaker_Explained/[Pacemaker
+  Configuration Explained]:Pacemakerの背景にあるコンセプトや設計を説明している参考ドキュメント
+
+
+[[s-pacemaker-drbd-background]]
+=== DRBDをPacemakerクラスタで管理する
+
+自律的なDRBDストレージはローカルストレージのように扱えます。Pacemakerクラスタへの組み込みは、DRBDのマウントポイントを指定することで行えます。
+
+初めに、DRBDの `自動プロモーション` 機能を使用しますので、DRBDは必要な時に自分自身を `プライマリ`
+に設定します。この動作はすべてのリソースで同じなので `common` セクションで設定しておくとよいでしょう。
+
+[source, drbd]
+----------------------------
+common {
+  options {
+    auto-promote yes;
+    ...
+  }
+}
+----------------------------
+
+後はファイルシステム経由で使ってストレージにアクセスするだけです。
+
+.`自動プロモーション` を使ったDRBDを下位デバイスにするMySQLサービスのPacemaker設定
+----------------------------
+crm configure
+crm(live)configure# primitive fs_mysql ocf:heartbeat:Filesystem \
+                    params device="/dev/drbd/by-res/mysql/0" \
+                      directory="/var/lib/mysql" fstype="ext3"
+crm(live)configure# primitive ip_mysql ocf:heartbeat:IPaddr2 \
+                    params ip="10.9.42.1" nic="eth0"
+crm(live)configure# primitive mysqld lsb:mysqld
+crm(live)configure# group mysql fs_mysql ip_mysql mysqld
+crm(live)configure# commit
+crm(live)configure# exit
+bye
+----------------------------
+
+基本的には、必要なのはDRBDリソースがマウントされるマウントポイント(この例では `/var/lib/mysql` )です。
+
+Pacemaker管理下ではクラスタ内で1インスタンスのみがマウント出来ます。
+
+
+[[s-pacemaker-crm-drbd-backed-service]]
+=== DRBDを下位デバイスにするマスターとスレーブのあるサービスのクラスタ設定
+
+このセクションではPacemakerクラスタでDRBDを下位デバイスにするサービスを使用する方法を説明します。
+
+NOTE: DRBDのOCFリソースエージェントを採用している場合には、DRBDの起動、停止、昇格、降格はOCFリソースエージェント _のみ_
+で行う事を推奨します。DRBDの自動起動は無効にしてください。
+
+----------------------------
+chkconfig drbd off
+----------------------------
+
+OCFリソースエージェントの `ocf:linbit:drbd`
+はマスター/スレーブ管理が可能であり、Pacemakerから複数ノードでのDRBDリソースの起動やモニター、必要な場合には降格を行うことができます。ただし、
+`drbd`
+リソースエージェントはPacemakerのシャットダウン時、またはノードをスタンバイモードにする時には、管理する全DRBDリソースを切断してデタッチを行う事を理解しておく必要があります。
+
+
+IMPORTANT: `linbit` のDRBD付属のOCFリソースエージェントは `/usr/lib/ocf/resource.d/linbit/drbd`
+にインストールされます。`heartbeat` のOCFリソースパッケージに付属するレガシーなリソースエージェントは
+`/usr/lib/ocf/resource.d/heartbeat/drbd`
+にインストールされます。レガシーなOCFリソースエージェントは非推奨なので使用しないでください。
+
+`drbd`
+のOCFリソースエージェントを使用したPacemakerのCRMクラスタで、MySQLデータベースにDRBDの下位デバイス設定を有効にするためには、両方の必要なリソースエージェントを作成して、
+先行してDRBDリソースが昇格したノードでだけサービスが起動するようにPacemakerの制約を設定しなければなりません。以下に示すように、`crm`
+シェルで設定することができます。
+
+.`マスター/スレーブ` リソースを使ったDRBDを下位デバイスにするMySQLサービスのPacemaker設定
+----------------------------
+crm configure
+crm(live)configure# primitive drbd_mysql ocf:linbit:drbd \
+                    params drbd_resource="mysql" \
+                    op monitor interval="29s" role="Master" \
+                    op monitor interval="31s" role="Slave"
+crm(live)configure# ms ms_drbd_mysql drbd_mysql \
+                    meta master-max="1" master-node-max="1" \
+                         clone-max="2" clone-node-max="1" \
+                         notify="true"
+crm(live)configure# primitive fs_mysql ocf:heartbeat:Filesystem \
+                    params device="/dev/drbd/by-res/mysql/0" \
+                      directory="/var/lib/mysql" fstype="ext3"
+crm(live)configure# primitive ip_mysql ocf:heartbeat:IPaddr2 \
+                    params ip="10.9.42.1" nic="eth0"
+crm(live)configure# primitive mysqld lsb:mysqld
+crm(live)configure# group mysql fs_mysql ip_mysql mysqld
+crm(live)configure# colocation mysql_on_drbd \
+                      inf: mysql ms_drbd_mysql:Master
+crm(live)configure# order mysql_after_drbd \
+                      inf: ms_drbd_mysql:promote mysql:start
+crm(live)configure# commit
+crm(live)configure# exit
+bye
+----------------------------
+
+これで設定が有効になります。そしてPacemakerがDRBDリソースを昇格するノードを選び、そのノードでDRBDを下位デバイスにするリソースを起動します。
+
+[[s-pacemaker-fencing]]
+=== Pacemakerクラスタでリソースレベルのフェンシングを使用する
+
+ここでは、DRBDのレプリケーションリンクが遮断された場合に、Pacemakerが `drbd`
+マスター/スレーブリソースを昇格させないようにするために必要な手順の概要を説明します。これにより、Pacemakerが古いデータでサービスを開始し、プロセスでの不要な「タイムワープ」の原因になることが回避できます。
+
+DRBD用のリソースレベルのフェンシングを有効にするには、リソース設定で次の行を追加する必要があります。
+
+[source, drbd]
+----------------------------
+resource <resource> {
+  net {
+    fencing resource-only;
+    ...
+  }
+}
+----------------------------
+
+同時に、使用するクラスタインフラストラクチャによっては `handlers` セクションも変更しなければなりません。
+
+* Heartbeatを使用したPacemakerクラスタは <<s-pacemaker-fencing-dopd>>で説明している設定を使用できます。
+* CorosyncとHeartbeatを使用したクラスタは
+  <<s-pacemaker-fencing-cib>>で説明されている機能を使うことができます。
+
+IMPORTANT: 最低でも2つの独立したクラスタ通信チャネルを設定しなければ、この機能は正しく動作しません。HeartbeatベースのPacemakerクラスタでは
+`ha.cf` 設定ファイルに最低2つのクラスタ通信のリンクを定義する必要があります。Corosyncクラスタでは最低2つの冗長リングを
+`corosync.conf` に記載しなければなりません。
+
+[[s-pacemaker-fencing-dopd]]
+==== `dopd` でのリソースレベルフェンシング
+
+indexterm:[dopd]Heartbeatを使用したPacemakerクラスタでは、DRBDは _DRBD outdate-peer
+daemon_ 、または略して `dopd` と呼ばれるリソースレベルのフェンシング機能を使用できます。
+
+
+[[s-dopd-heartbeat-config]]
+===== `dopd` 用のHeartbeat設定
+
+dopdを有効にするには、次の行をindexterm:[ha.cf (Heartbeat configuration file)]
+`/etc/ha.d/ha.cf` ファイルに追加します。
+
+[source, drbd]
+----------------------------
+respawn hacluster /usr/lib/heartbeat/dopd
+apiauth dopd gid=haclient uid=hacluster
+----------------------------
+
+使用するディストリビューションに応じて `dopd` のパスを調整する必要があります。一部のディストリビューションとアーキテクチャでは、正しいパスが
+`/usr/lib64/heartbeat/dopd` になります。
+
+変更を行い `ha.cf` を対向ノードにコピーをしたら、設定ファイルを読み込むためにPacemakerをメンテナンスモードにして
+'/etc/init.d/heartbeat reload' を実行します。その後、 `dopd` プロセスが動作していることを確認できるでしょう。
+
+NOTE: このプロセスを確認するには、 `ps ax | grep dopd` を実行するか、 `killall -0 dopd` を使用します。
+
+
+[[s-dopd-drbd-config]]
+===== `dopd` 用のDRBD設定
+
+`dopd` が起動したら、DRBDリソース設定にアイテムを追加します。
+
+[source, drbd]
+----------------------------
+resource <resource> {
+    handlers {
+        fence-peer "/usr/lib/heartbeat/drbd-peer-outdater -t 5";
+        ...
+    }
+    net {
+        fencing resource-only;
+        ...
+    }
+    ...
+}
+----------------------------
+
+`dopd` と同様に、システムのアーキテクチャやディストリビューションによっては `drbd-peer-outdater` バイナリは
+`/usr/lib64/heartbeat` に配置されます。
+
+最後に、`drbd.conf` を対向ノードにコピーし、 `drbdadm adjust resource`
+を実行して、リソースを再構成し、変更内容を反映します。
+
+[[s-dopd-test]]
+===== `dopd` 機能のテスト
+
+設定した `dopd`
+が正しく動作しているか確認するためには、Heartbeatサービスが正常に動作しているときに、構成済みの接続されているリソースのレプリケーションリンクを遮断します。ネットワークリンクを物理的に取り外すことで簡単にできますが、少々強引ではあります。あるいは、一時的に
+`iptables` ルールを追加して、DRBD用TCPトラフィックを遮断します。
+
+すると、リソースの<<s-connection-states,コネクションステータス>>がindexterm:[connection
+state]indexterm:[Connected (connection state)] _Connected_
+からindexterm:[connection state]indexterm:[Connecting (connection
+state)]_Connecting_ に変わります。数秒後に<<s-disk-states,ディスク状態>>がindexterm:[disk
+state]indexterm:[Outdated (disk state)]`Outdated/DUnknown` に変化します。これで `dopd`
+が機能していることを確認できます。
+
+これ以降は、古いリソースをプライマリロールに切り替えようとしても失敗します。
+
+物理リンクを接続するか、一時的な `iptables` ルールを削除してネットワーク接続を再確立すると、コネクションステータスが Connected
+に変化し、すぐに `SyncTarget`
+になります(ネットワーク遮断中に、プライマリノードで変化が起こった場合)。同期が終了すると、無効状態であったリソースに再度indexterm:[disk
+state]indexterm:[UpToDate (disk state)] `UpToDate` のマークが付きます。
+
+
+[[s-pacemaker-fencing-cib]]
+==== CIB (Cluster Information Base)を使ったリソースレベルフェンシング
+
+Pacemaker用のリソースレベルフェンシングを有効にするには、 `drbd.conf` の2つのオプション設定をする必要があります。
+
+[source, drbd]
+----------------------------
+resource <resource> {
+  net {
+    fencing resource-only;
+    ...
+  }
+  handlers {
+    fence-peer "/usr/lib/drbd/crm-fence-peer.9.sh";
+    after-resync-target "/usr/lib/drbd/crm-unfence-peer.9.sh";
+    ...
+  }
+  ...
+}
+----------------------------
+
+DRBDレプリケーションリンクが切断された場合には `crm-fence-peer.sh`
+スクリプトがクラスタ管理システムに連絡し、このDRBDリソースに関連付けられたPacemakerのマスター/スレーブリソースが決定され、現在アクティブなノード以外のすべてのノードでマスター/スレーブリソースが昇格されることがないようにします。逆に、接続が再確立してDRBDが同期プロセスが完了すると、この制約は解除され、クラスタ管理システムは再び任意のノードのリソースを自由に昇格させることができます。
+
+
+[[s-pacemaker-stacked-resources]]
+=== PacemakerクラスタでスタックDRBDリソースを使用する
+
+NOTE: DRBD9.xでは1つの階層で複数ノードを使用できるのでスタッキングは非推奨です。詳細は <<s-drbdconf-conns>>をご参照ください。
+
+スタックリソースを用いるとマルチノードクラスタの多重冗長性やオフサイトのディザスタリカバリ機能を実現するためにDRBDを利用できます。本セクションではそのような構成におけるDRBDおよびPacemakerの設定方法について説明します。
+
+
+[[s-pacemaker-stacked-dr]]
+==== オフサイトディザスタリカバリ機能をPacemakerクラスタに追加する
+
+この構成シナリオでは、1つのサイトの2ノードの高可用性クラスタと、多くは別のサイトに設置する独立した1つのノードについて説明します。第3のノードは、ディザスタリカバリノードとして機能するスタンドアロンサーバです。次の図で概念を説明します。
+
+.PacemakerクラスタのDRBDリソースのスタック
+image::images/drbd-resource-stacking-pacemaker-3nodes.svg[]
+
+この例では `alice` と `bob` が2ノードのPacemakerクラスタを構成し、 `charlie`
+はPacemakerで管理されないオフサイトのノードです。
+
+このような構成を作成するには、<<s-three-nodes>>の説明に従って、まずDRBDリソースを設定と初期化を行います。そして、次のCRM構成でPacemakerを設定します。
+
+[source, drbd]
+----------------------------
+primitive p_drbd_r0 ocf:linbit:drbd \
+	params drbd_resource="r0"
+
+primitive p_drbd_r0-U ocf:linbit:drbd \
+	params drbd_resource="r0-U"
+
+primitive p_ip_stacked ocf:heartbeat:IPaddr2 \
+	params ip="192.168.42.1" nic="eth0"
+
+ms ms_drbd_r0 p_drbd_r0 \
+	meta master-max="1" master-node-max="1" \
+        clone-max="2" clone-node-max="1" \
+        notify="true" globally-unique="false"
+
+ms ms_drbd_r0-U p_drbd_r0-U \
+	meta master-max="1" clone-max="1" \
+        clone-node-max="1" master-node-max="1" \
+        notify="true" globally-unique="false"
+
+colocation c_drbd_r0-U_on_drbd_r0 \
+        inf: ms_drbd_r0-U ms_drbd_r0:Master
+
+colocation c_drbd_r0-U_on_ip \
+        inf: ms_drbd_r0-U p_ip_stacked
+
+colocation c_ip_on_r0_master \
+        inf: p_ip_stacked ms_drbd_r0:Master
+
+order o_ip_before_r0-U \
+        inf: p_ip_stacked ms_drbd_r0-U:start
+
+order o_drbd_r0_before_r0-U \
+        inf: ms_drbd_r0:promote ms_drbd_r0-U:start
+----------------------------
+
+この構成を `/tmp/crm.txt` という一時ファイルに保存し、次のコマンドで現在のクラスタにインポートします。
+
+----------------------------
+crm configure < /tmp/crm.txt
+----------------------------
+
+この設定により、次の操作が正しい順序で `alice` と `bob` クラスタで行われます。
+
+. PacemakerはDRBDリソース `r0` を両クラスタノードで開始し、1つのノードをマスター(DRBD Primary)ロールに昇格させます。
+
+. PacemakerはIPアドレス192.168.42.1の、第3ノードへのレプリケーションに使用するスタックリソースを開始します。これは、 `r0`
+  DRBDリソースのマスターロールに昇格したノードで行われます。
+
+. `r0` がプライマリになっていて、かつ、r0-U
+  のレプリケーション用IPアドレスを持つノードで、Pacemakerはオフサイトノードに接続およびレプリケートを行う `r0-U`
+  DRBDリソースを開始します。
+
+. 最後に、Pacemakerが `r0-U` リソースもプライマリロールに昇格させるため、ディザスタリカバリノードとのレプリケーションが始まります。
+
+このように、このPacemaker構成では、クラスタノード間だけではなく第3のオフサイトノードでも完全なデータ冗長性が確保されます。
+
+NOTE: このタイプの設定には通常、<<s-drbd-proxy,DRBD Proxy>>と合わせて使用するのが一般的です。
+
+[[s-pacemaker-stacked-4way]]
+==== スタックリソースを使って、Pacemakerクラスタの4ノード冗長化を実現する
+
+この構成では、全部で3つのDRBDリソース(2つの非スタック、1つのスタック)を使って、4ノードのストレージ冗長化を実現します。4ノードクラスタの目的と意義は、3ノードまで障害が発生しても、可用なサービスを提供し続けることが可能であることです。
+
+次の例で概念を説明します。
+
+.PacemakerクラスタのDRBDリソースのスタック
+image::images/drbd-resource-stacking-pacemaker-4nodes.svg[]
+
+この例では、 `alice` と `bob` ならびに `charlie` と `daisy`
+が2セットの2ノードPacemakerクラスタを構成しています。`alice` と `bob` は `left`
+という名前のクラスタを構成し、互いにDRBDリソースを使ってデータをレプリケートします。一方 `charlie` と `daisy` も同様に、
+`right` という名前の別のDRBDリソースでレプリケートします。3番目に、DRBDリソースをスタックし、2つのクラスタを接続します。
+
+NOTE: Pacemakerバージョン1.0.5のPacemakerクラスタの制限により、CIBバリデーションを有効にしたままで4ノードクラスタをつくることはできません。CIBバリデーションは汎用的に使うのには向かない特殊な高度な処理です。これは、今後のPacemakerのリリースで解決されることが予想されます。
+
+このような構成を作成するには、<<s-three-nodes>>の説明に従って、まずDRBDリソースを設定して初期化します(ただし、ローカルがクラスタになるだけでなく、リモート側にもクラスタになる点が異なります)。そして、次のCRM構成でPacemakerを設定し、
+`left` クラスタを開始します。
+
+[source, drbd]
+----------------------------
+primitive p_drbd_left ocf:linbit:drbd \
+	params drbd_resource="left"
+
+primitive p_drbd_stacked ocf:linbit:drbd \
+	params drbd_resource="stacked"
+
+primitive p_ip_stacked_left ocf:heartbeat:IPaddr2 \
+	params ip="10.9.9.100" nic="eth0"
+
+ms ms_drbd_left p_drbd_left \
+	meta master-max="1" master-node-max="1" \
+        clone-max="2" clone-node-max="1" \
+        notify="true"
+
+ms ms_drbd_stacked p_drbd_stacked \
+	meta master-max="1" clone-max="1" \
+        clone-node-max="1" master-node-max="1" \
+        notify="true" target-role="Master"
+
+colocation c_ip_on_left_master \
+        inf: p_ip_stacked_left ms_drbd_left:Master
+
+colocation c_drbd_stacked_on_ip_left \
+        inf: ms_drbd_stacked p_ip_stacked_left
+
+order o_ip_before_stacked_left \
+        inf: p_ip_stacked_left ms_drbd_stacked:start
+
+order o_drbd_left_before_stacked_left \
+        inf: ms_drbd_left:promote ms_drbd_stacked:start
+
+----------------------------
+
+この構成を `/tmp/crm.txt` という一時ファイルに保存し、次のコマンドで現在のクラスタにインポートします。
+
+----------------------------
+crm configure < /tmp/crm.txt
+----------------------------
+
+CIBに上記の設定を投入すると、Pacemakerは以下のアクションを実行します。
+
+. `alice` と `bob` をレプリケートするリソース `left` を起動し、いずれかのノードをマスターに昇格します。
+
+. IPアドレス10.9.9.100 ( `alice` または `bob` 、いずれかのリソース `left`
+  のマスターロールを担っている方)を起動します。
+
+. IPアドレスを設定したのと同じノード上で、DRBDリソース `stacked` が起動します。
+
+. target-role="Master"が指定されているため、スタックリソースがプライマリになります。
+
+さて、以下の設定を作り、クラスタ `right` に進みましょう。
+
+[source, drbd]
+----------------------------
+primitive p_drbd_right ocf:linbit:drbd \
+	params drbd_resource="right"
+
+primitive p_drbd_stacked ocf:linbit:drbd \
+	params drbd_resource="stacked"
+
+primitive p_ip_stacked_right ocf:heartbeat:IPaddr2 \
+	params ip="10.9.10.101" nic="eth0"
+
+ms ms_drbd_right p_drbd_right \
+	meta master-max="1" master-node-max="1" \
+        clone-max="2" clone-node-max="1" \
+        notify="true"
+
+ms ms_drbd_stacked p_drbd_stacked \
+	meta master-max="1" clone-max="1" \
+        clone-node-max="1" master-node-max="1" \
+        notify="true" target-role="Slave"
+
+colocation c_drbd_stacked_on_ip_right \
+        inf: ms_drbd_stacked p_ip_stacked_right
+
+colocation c_ip_on_right_master \
+        inf: p_ip_stacked_right ms_drbd_right:Master
+
+order o_ip_before_stacked_right \
+        inf: p_ip_stacked_right ms_drbd_stacked:start
+
+order o_drbd_right_before_stacked_right \
+        inf: ms_drbd_right:promote ms_drbd_stacked:start
+----------------------------
+
+CIBに上記の設定を投入すると、Pacemakerは以下のアクションを実行します。
+
+. `charlie` と `daisy` 間をレプリケートするDRBDリソース `right` を起動し、これらのノードのいずれかをマスターにします。
+
+. IPアドレス10.9.10.101を開始します( `charlie` または `daisy` のいずれかのリソース `right`
+  のマスターロールを担っている方)を起動します)。
+
+. IPアドレスを設定したのと同じノード上で、DRBDリソース `stacked` が起動します。
+
+. `target-role="Slave"` が指定されているため、スタックリソースはセカンダリのままになります。
+
+
+[[s-pacemaker-floating-peers]]
+=== 2セットのSANベースPacemakerクラスタ間をDRBDでレプリケート
+
+これは、拠点が離れた構成に用いるやや高度な設定です。2つのクラスタが関与しますが、それぞれのクラスタは別々のSANストレージにアクセスします。サイト間のIPネットワークを使って2つのSANストレージのデータを同期させるためにDRBDを使います。
+
+次の図で概念を説明します。
+
+.SANベースのクラスタ間のレプリケートにDRBDを用いる
+image::images/drbd-pacemaker-floating-peers.svg[]
+
+このような構成の場合、DRBDの通信にかかわるホストをあらかじめ明示的に指定しておくことは不可能です。つまり、動的接続構成の場合、DRBDは特定の物理マシンではなく<<s-floating-peers,_仮想IPアドレス_>>で通信先を決めます。
+
+
+NOTE: このタイプの設定は通常、<<s-drbd-proxy,DRBD
+Proxy>>や、または<<s-truck-based-replication,トラック輸送のレプリケーション>>と組み合わせます。
+
+このタイプの設定は共有ストレージを扱うので、STONITHを構築してテストすることが、正常動作の確認のためには必要不可欠です。ただし、STONITHは本書の範囲を超えるので、以下の設定例は省略しています。
+
+
+[[s-pacemaker-floating-peers-drbd-config]]
+==== DRBDリソース構成
+
+動的接続するDRBDリソースを有効にするには、次のように `drbd.conf` を設定します。
+
+[source, drbd]
+----------------------------
+resource <resource> {
+  ...
+  device /dev/drbd0;
+  disk /dev/sda1;
+  meta-disk internal;
+  floating 10.9.9.100:7788;
+  floating 10.9.10.101:7788;
+}
+----------------------------
+
+`floating` キーワードは、通常リソース設定の `on <host>`
+セクションの代わりに指定します。このモードでは、DRBDはホスト名ではなく、IPアドレスやTCPポートで相互接続を認識します。動的接続を適切に運用するには、物理IPアドレスではなく仮想IPアドレスを指定してください(これはとても重要です)。上の例のように、離れた地点ではそれぞれ別々のIPネットワークに属するのが一般的です。したがって、動的接続を正しく運用するにはDRBDの設定だけではなく、ルータやファイアウォールの適切な設定も重要です。
+
+
+[[s-pacemaker-floating-peers-crm-config]]
+==== Pacemakerリソース構成
+
+DRBD動的接続の設定には、少なくともPacemaker設定が必要です(2つの各Pacemakerクラスタに係わる)。
+
+* 仮想クラスタIPアドレス
+
+* マスター/スレーブDRBDリソース(DRBD OCFリソースエージェントを使用)
+
+* リソースを適切なノードで正しい順序に起動するための各種制約
+
+レプリケーション用アドレスに `10.9.9.100` を使う動的接続構成と、 `mysql` というリソースを構築するには、次のように `crm`
+コマンドでPacemakerを設定します。
+
+----------------------------
+crm configure
+crm(live)configure# primitive p_ip_float_left ocf:heartbeat:IPaddr2 \
+                    params ip=10.9.9.100
+crm(live)configure# primitive p_drbd_mysql ocf:linbit:drbd \
+                    params drbd_resource=mysql
+crm(live)configure# ms ms_drbd_mysql drbd_mysql \
+                    meta master-max="1" master-node-max="1" \
+                         clone-max="1" clone-node-max="1" \
+                         notify="true" target-role="Master"
+crm(live)configure# order drbd_after_left \
+                      inf: p_ip_float_left ms_drbd_mysql
+crm(live)configure# colocation drbd_on_left \
+                      inf: ms_drbd_mysql p_ip_float_left
+crm(live)configure# commit
+bye
+----------------------------
+
+CIBに上記の設定を投入すると、Pacemakerは以下のアクションを実行します。
+
+. IPアドレス10.9.9.100を起動する( `alice` または `bob` のいずれか)
+. IPアドレスの設定にもとづいてDRBDリソースを起動します。
+. DRBDリソースをプライマリにします。
+
+次に、もう一方のクラスタで、これとマッチングする設定を作成します。 `その` Pacemakerのインスタンスを次のコマンドで設定します。
+
+----------------------------
+crm configure
+crm(live)configure# primitive p_ip_float_right ocf:heartbeat:IPaddr2 \
+                    params ip=10.9.10.101
+crm(live)configure# primitive drbd_mysql ocf:linbit:drbd \
+                    params drbd_resource=mysql
+crm(live)configure# ms ms_drbd_mysql drbd_mysql \
+                    meta master-max="1" master-node-max="1" \
+                         clone-max="1" clone-node-max="1" \
+                         notify="true" target-role="Slave"
+crm(live)configure# order drbd_after_right \
+                      inf: p_ip_float_right ms_drbd_mysql
+crm(live)configure# colocation drbd_on_right
+                      inf: ms_drbd_mysql p_ip_float_right
+crm(live)configure# commit
+bye
+----------------------------
+
+CIBに上記の設定を投入すると、Pacemakerは以下のアクションを実行します。
+
+. IPアドレス10.9.10.101を起動する(charlie または daisy のいずれか)。
+. IPアドレスの設定にもとづいてDRBDリソースを起動します。
+. target-role="Slave" が指定されているため、DRBDリソースは、セカンダリのままになります。
+
+
+[[s-pacemaker-floating-peers-site-fail-over]]
+==== サイトのフェイルオーバ
+
+拠点が離れた構成では、サービス自体をある拠点から他の拠点に切り替える必要が生じるかもしれません。これは、計画された移行か、または悲惨な出来事の結果でしょう。計画にもとづく移行の場合、一般的な手順は次のようになります。
+
+* サービス移行元のクラスタに接続し、影響を受けるDRBDリソースの `target-role` 属性を `マスター` から `スレーブ`
+  に変更します。DRBDがプライマリであることに依存したリソースは自動的に停止し、その後DRBDはセカンダリに降格します。
+
+* サービス移行先のクラスタに接続し、DRBDリソースの `target-role` 属性を `Slave` から `Master`
+  に変更します。DRBDリソースは昇格し、DRBDリソースのプライマリ側に依存した他のPacemakerリソースを起動します。
+  そしてリモート拠点への同期が更新されます。
+
+* フェイルバックをするには、手順を逆にするだけです。
+
+アクティブな拠点で壊滅的な災害が起きると、その拠点はオフラインになり、以降その拠点からバックアップ側にレプリケートできなくなる可能性があります。このような場合には
+
+* リモートサイトが機能しているならそのクラスタに接続し、DRBDリソースの `target-role` 属性を `スレーブ` から `マスター`
+  に変更します。DRBDリソースは昇格し、DRBDリソースがプライマリになることに依存する他のPacemakerリソースも起動します。
+
+* 元の拠点が回復または再構成されると、DRBDリソースに再度接続できるようになります。その後、逆の手順でフェイルバックします。
+

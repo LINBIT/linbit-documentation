@@ -1,0 +1,70 @@
+[[ch-opennebula]]
+== OpenNebulaでのDRBDボリューム
+
+indexterm:[OpenNebula]この章ではOpenNebulaでhttps://github.com/OpenNebula/addon-drbdmanage[DRBD
+Manage ストレージドライバアドオン]を通じたDRBDの使用について説明します。
+
+詳細なインストール手順や設定手順はドライバソースのhttps://github.com/OpenNebula/addon-drbdmanage/blob/master/README.md[README.md]を参照ください。
+
+[[s-opennebula-overview]]
+=== OpenNebula概要
+
+http://opennebula.org/[OpenNebula]はアドオンで機能の拡張ができるオープンソースのクラウド管理プラットフォームです。
+
+DRBD
+Manageアドオンは、DRBDが下位デバイスとなってアタッチされた高可用性仮想マシンをDRBDトランスポートを通じてネットワーク上にデプロイします。
+
+[[s-opennebula-install]]
+=== OpenNebulaのインストール
+
+OpenNebulaへのDRBD Manageストレージアドオンのインストールには、実際に動作するOpenNebulaクラスタとDRBD
+Manageクラスタが必要です。
+
+クラスタの構築はhttp://docs.opennebula.org/4.14/design_and_installation/index.html[Design
+and Installation]を参照してください。
+
+DRBD Manageを使ったDRBDクラスタのインストールと設定は本書の<<s-dm-init-cluster>>を参照してください。
+
+OpenNebulaとDRBDクラスタは以下の例外を除いて互いに独立したものとすることができます。
+
+  * OpenNebulaのフロントエンドとホストノードは両クラスタに参加する必要がある。
+  * フロントエンドノードはDRBD Manageのコントロールボリュームのローカルコピーを持っている必要がある
+  。
+
+ホストノード上にDRBD
+Manageのコントロールボリュームは必要ではなく、仮想マシンイメージはネットワーク経由でアタッチできますfootnote:[ホストもストレージノードの場合、利用できればイメージのローカルコピーを使用します。]
+(<<s-openstack-drbd>>参照)。これらの機能はDRBDを既存のOpenNebulaクラスタへの追加手順を簡略化します。`--no-storage`
+と `--satellite` オプションを使ってDRBD Manageクラスタに追加することもできます。
+
+OpenNebula向けのDRBD
+Manageアドオンをインストールして設定する手順は、ドライバアドオンのhttps://github.com/OpenNebula/addon-drbdmanage[GitHub
+page]にある `README.md` ファイルを参照してください。
+
+[[s-opennebula-deployment-policies]]
+=== デプロイメントポリシー
+
+DRBD
+Manageアドオンはcountおよびratioのデプロイポリシーにも対応しています。(<<s-drbdmanage-deployment-policy>>参照)
+
+デフォルトではドライバは１つのアサインが有効になればデプロイが成功したと判断します。これらのポリシーはデータストアのテンプレートまたは
+`datastore/drbdmanage.conf`
+下にある設定ファイルを通じて使用されます。テンプレートで設定したポリシーは、設定ファイルで書かれた内容によって上書きされます。
+
+[[s-opennebula-live-migration]]
+=== ライブマイグレーション
+
+ライブマイグレーションは(この機能が有効になっていれば)、DRBDトランスポート経由でのローカルコピーを含まない全ノードへのイメージのアタッチに対応しています。これによって追加のストレージスペースを要せずクラスタ内の全ノードで使用可能になります。
+
+ライブマイグレーション前に作成された有効なイメージは、ライブマイグレーションすべき任意のノードにDRBD
+Manageを直接使ってアサインする必要があります。これは任意のVMをライブマイグレーション対象として後に有効になるハイパーバイザにコールドマイグレーションすることでも実現できます。
+
+[[s-opennebula-free-space]]
+=== 空き領域の通知
+
+空き領域はリソースが `DRBD_REDUNDANCY` または `DRBD_DEPLOYMENT_NODES` であるかによって異なって計算されます。
+
+`DRBD_DEPLOYMENT_NODES`
+を使用するデータストアでは、空き領域はリソースがデプロイされているノードのうち最も制限されているリソースプールにもとづいて通知されます。例えば、合計ストレージ容量が最小のノードの容量がデータストアの総容量の決定に使用され、最も少ない空き容量が残りのデータストアの空き容量に使用されます。
+
+`DRBD_REDUNDANCY`
+を使用するデータストアでは、容量と残りスペースはクラスタの合計ストレージを冗長レベルで割った容量にもとづいて決定されます。１つのノードに残っている空き容量よりも大きなが通知されることもあります。例えば新規インストールの各100GiBの2ノードのストレージで冗長レベル1のクラスタであれば、200GiBのボリュームを使用できるノードがなくても、空き容量は200GiBになります。ドライバは新規イメージ作成時にこれを決定することができ、またユーザーに通知します。

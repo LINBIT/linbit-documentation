@@ -1,6 +1,7 @@
 LINSTOR is a powerful component in the DRBD SDS stack, but it is still an optional component. If you prefere
 to manage your resources manually, please check the section on manual administration: <<ch-admin-manual>>.
 
+[[s-common_administration]]
 == Common administration
 
 LINSTOR is a configuration management system for storage on Linux systems.
@@ -13,6 +14,7 @@ This chapter outlines typical administrative tasks encountered during
 day-to-day operations. It does not cover troubleshooting tasks, these
 are covered in detail in <<ch-troubleshooting>>.
 
+[[s-concepts_and_terms]]
 === Concepts and Terms
 
 A LINSTOR setup has exactly one active controller and multiple satellites.
@@ -29,6 +31,7 @@ like `lvcreate` and `drbdadm`. It acts like a node agent.
 The _linstor-client_ is a command line utility that you use to issue
 commands to the system and to investigate the status of the system.
 
+[[s-broader_context]]
 === Broader Context
 
 While LINSTOR might be used to make the management of DRBD more
@@ -39,6 +42,7 @@ for OpenStack, OpenNebula, and Proxmox.
 The southbound drivers used by LINSTOR are LVM, thinLVM and ZFS
 with support for Swordfish in progress.
 
+[[s-packages]]
 === Packages
 
 LINSTOR is packaged  in both the .rpm and the .deb variants:
@@ -90,6 +94,7 @@ nodes.
 # bash dmmigrate.sh
 ----------------------------
 
+[[s-using_the_linstor_client]]
 === Using the LINSTOR client
 Whenever you run the LINSTOR command line client, it needs to know where your
 linstor-controller runs. If you do not specify it, it will try to reach a locally
@@ -112,6 +117,7 @@ file:
 ----------------------------
 FIXME describe how to specify multiple controllers
 
+[[s-adding_nodes_to_your_cluster]]
 === Adding nodes to your cluster
 The next step is to add nodes to your LINSTOR cluster. You need to
 provide:
@@ -137,6 +143,7 @@ NOTE: In case the node which hosts your controller should also contribute
 storage to the LINSTOR cluster, you have to add it as a node and start
 the linstor-satellite as well.
 
+[[s-storage_pools]]
 === Storage pools
 
 _Storage pools_ identify storage in the context of LINSTOR.
@@ -169,6 +176,7 @@ You can see that by using `linstor storage-pool-definition list`.
 Creating storage pool definitions explicitly is possible but
 not necessary.
 
+[[s-a_storage_pool_per_backend_device]]
 ==== A storage pool per backend device
 
 In clusters where you have only one kind of storage and the capability
@@ -181,6 +189,7 @@ model is to confine failure domains to a single storage device.
 === Cluster configuration
 FIXME
 
+[[s-available_storage_plugins]]
 ==== Available storage plugins
 
 indexterm:[linstor, storage plugins]
@@ -217,6 +226,7 @@ So far we have only created objects in LINSTOR's database, not a single LV was
 created on the storage nodes. Now you have the choice of delegating the
 task of placement to LINSTOR or doing it yourself.
 
+[[s-manual_placement]]
 ==== Manual placement
 
 With the `resource create` command you may assign a resource definition
@@ -228,6 +238,7 @@ to named nodes explicitly.
 # linstor resource create charlie backups --storage-pool pool_hdd
 ----------------------------
 
+[[s-autoplace-linstor]]
 ==== Autoplace
 
 The value after autoplace tells LINSTOR how many replicas you want to have.
@@ -245,6 +256,7 @@ LINSTOR may select a storage pool on its own. The selection follows these rules:
 From the remaining storage pools, LINSTOR currently chooses the one with the
 most available free space.
 
+[[s-drbd_clients]]
 ==== DRBD clients
 By using the `--diskless` option instead of `--storage-pool` you can
 have a permanently diskless DRBD device on a node.
@@ -253,6 +265,7 @@ have a permanently diskless DRBD device on a node.
 # linstor resource create delta backups --diskless
 ----------------------------
 
+[[s-volumes_of_one_resource_to_different_storage_pools]]
 ==== Volumes of one resource to different Storage-Pools
 This can be achieved by setting the `StorPoolName` property to the volume
 definitions before the resource is deployed to the nodes:
@@ -289,6 +302,7 @@ This also means that if you forgot to define a storage pool prior deploying a
 resource, you will get an error message that LINSTOR could not find the
 storage pool named 'DfltStorPool'.
 
+[[s-managing_network_interface_cards]]
 === Managing Network Interface Cards
 
 LINSTOR can deal with multiple network interface cards (NICs) in a machine,
@@ -329,6 +343,7 @@ Basic steps to use encryption:
 3. Create a volume definition with the `--encrypt` option
 4. Don't forget to re-enter the master passphrase after a controller restart.
 
+[[s-disable_user_security]]
 ==== Disable user security
 Disabling the user security on the `Linstor` controller is a one time operation and is
 afterwards persisted.
@@ -340,6 +355,7 @@ afterwards persisted.
 5. Start the controller again with systemd: `systemctl start linstor-controller`
 
 
+[[s-encrypt_commands]]
 ==== Encrypt commands
 Below are details about the commands.
 
@@ -380,6 +396,7 @@ create encrypted volumes.
 === Managing snapshots
 Snapshots are supported with thin LVM and ZFS storage pools.
 
+[[s-creating_a_snapshot-linstor]]
 ==== Creating a snapshot
 Assuming a resource definition named 'resource1' which has been placed on some
 nodes, a snapshot can be created as follows:
@@ -392,6 +409,7 @@ This will create snapshots on all nodes where the resource is present.
 LINSTOR will ensure that consistent snapshots are taken even when the
 resource is in active use.
 
+[[s-restoring_a_snapshot-linstor]]
 ==== Restoring a snapshot
 The following steps restore a snapshot to a new resource.
 This is possible even when the original resource has been removed
@@ -415,6 +433,7 @@ This will place the new resource on all nodes where the snapshot is present.
 The nodes on which to place the resource can also be selected explicitly;
 see the help (`linstor snapshot resource restore -h`).
 
+[[s-removing_a_snapshot-linstor]]
 ==== Removing a snapshot
 An existing snapshot can be removed as follows:
 
@@ -471,6 +490,7 @@ To use an external database there are a few additional steps to configure.
    and installed to the LINSTOR library directory.
 2. The `/etc/linstor/database.cfg` configuration file needs to be editied for your database setup.
 
+[[s-postgresql]]
 ==== Postgresql
 
 Postgresql JDBC driver can be downloaded here:
@@ -493,6 +513,7 @@ A sample Postgresql `database.cfg` looks like this:
 </properties>
 ------------------------------------------------------
 
+[[s-mariadb_mysql]]
 ==== MariaDB/Mysql
 
 MariaDB JDBC driver can be downloaded here:

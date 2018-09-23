@@ -1,0 +1,71 @@
+[[ch-docker]]
+== DockerにおけるDRBDボリューム
+
+indexterm:[Docker]本章ではDockerにおけるhttp://www.drbd.org/en/supported-projects/docker[DRBD
+Manage Dockerボリュームプラグイン]を使用したDRBDの使用方法を説明します。
+
+[[s-docker-overview]]
+=== Docker概説
+
+https://www.docker.com/[Docker]は開発者やシステム管理者向けの、アプリケーションのビルドや、販売、実行環境を提供するオープンソースプラットフォーム(Linuxコンテナ)です。
+
+通常、 'drbdmange-docker-volume'
+はsystemdがソケットを開いたデーモンです。ローカルソケットからhttpコマンドを読み取り、DRBDがレプリケーションを行うDRBD
+Manageのリソースを管理します。
+
+[[s-docker-install]]
+=== Dockerプラグインのインストール
+
+DRBD Manage Dockerボリュームプラグインをインストールする方法は、基本的に次の3通りあります。
+
+- LINBITの
+  https://launchpad.net/~linbit/+archive/ubuntu/linbit-drbd9-stack[PPA]を使用する。
+- http://www.drbd.org/en/supported-projects/docker[ソース]から 'make && sudo make
+  install' する。
+- 適切なパッケージからビルドする( 'make deb' または 'make rpm' )。
+
+PPAまたは適切なパッケージを使用する場合は、正しいバージョンのDRBD
+Manageの依存性を含んでいます。ソースからインストールする場合には、DRBD
+ManageとDockerが先にインストールされている事を確認してください。
+
+デフォルトではプラグインは自動起動しません。起動するには以下コマンドを実行してください。
+
+----------------------------
+# systemctl enable docker-drbdmanage-plugin.socket
+# systemctl start docker-drbdmanage-plugin.socket
+----------------------------
+
+プラグインを使用する前に、DRBD
+Manageクラスタが<<ch-admin-drbdmanage>>で説明している通りに設定してあるか確認してください。
+
+[[s-some_examples]]
+=== Dockerプラグイン使用例
+どのようにDockerボリュームがDRBDの下位デバイスとして使用されるかの典型的な例を示します。
+
+alphaノードにて、
+
+----------------------------
+# docker volume create -d drbdmanage --name=dmvol \
+                       --opt fs=xfs --opt size=200
+# docker run -ti --name=cont \
+  		 -v dmvol:/data --volume-driver=drbdmanage busybox sh
+# root@cont: echo "foo" > /data/test.txt
+# root@cont: exit
+# docker rm cont
+----------------------------
+
+そしてbravoにて、
+
+----------------------------
+# docker run -ti --name=cont \
+  		 -v dmvol:/data --volume-driver=drbdmanage busybox sh
+# root@cont: cat /data/test.txt
+  foo
+# root@cont: exit
+# docker rm cont
+# docker volume rm dmvol
+----------------------------
+
+高可用性Wordpressブログをデプロイするプラグインの使用方法についてのhttps://blogs.linbit.com/p/1176/persistent-and-replicated-docker-volumes-with-drbd9-and-drbd-manage/[ブログ記事]もあります。
+
+詳細については 'drbdmanage-docker-volume' のmanpageを参照してください。
