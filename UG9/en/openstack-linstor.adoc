@@ -33,7 +33,7 @@ compatibility. For more information on these two options, please see
 [[s-openstack-linstor-install]]
 === LINSTOR for Openstack Installation
 
-An initial installation and configuration of DRBD and LINSTOR must be complete
+An initial installation and configuration of DRBD and LINSTOR must be completed
 prior to installing OpenStack driver.
 Each LINSTOR node in a cluster should also have a Storage Pool defined as well.
 Details about LINSTOR installation can be found <<s-linstor-init-cluster,
@@ -41,9 +41,16 @@ here>>.
 
 ==== Here's a synopsis on quickly setting up a LINSTOR cluster on Ubuntu:
 
-===== Install DRBD and LINSTOR on Cinder node also acting as a LINSTOR node:
+===== Install DRBD and LINSTOR on Cinder node as a LINSTOR Controller node:
+
 ----
-# Install DRBD and LINSTOR packages first
+# First, set up LINBIT repository per support contract
+
+# Install DRBD and LINSTOR packages
+sudo apt-get update
+sudo apt install -y drbd-dkms lvm2
+sudo apt install -y linstor-controller linstor-satellite linstor-client
+sudo apt install -y drbdtop
 
 # Start both LINSTOR Controller and Satellite Services
 systemctl enable linstor-controller.service
@@ -51,8 +58,10 @@ systemctl start linstor-controller.service
 systemctl enable linstor-satellite.service
 systemctl start linstor-satellite.service
 
-# Create backend storage for DRBD/LINSTOR by creating a Volume Group 'drbdpool'
-# Specify appropriate volume location (/dev/vdb)
+# For Diskless Controller, skip the following two 'sudo' commands
+
+# For Diskful Controller, create backend storage for DRBD/LINSTOR by creating
+# a Volume Group 'drbdpool' and specify appropriate volume location (/dev/vdb)
 sudo vgcreate drbdpool /dev/vdb
 
 # Create a Logical Volume 'thinpool' within 'drbdpool'
@@ -62,9 +71,16 @@ sudo lvcreate -L 64G -T drbdpool/thinpool
 
 NOTE: OpenStack measures storage size in GiBs.
 
-===== Install DRBD and LINSTOR on other node(s) on the same LINSTOR cluster:
+===== Install DRBD and LINSTOR on other node(s) on the LINSTOR cluster:
+
 ----
-# Install DRBD and LINSTOR packages first
+# First, set up LINBIT repository per support contract
+
+# Install DRBD and LINSTOR packages
+sudo apt-get update
+sudo apt install -y drbd-dkms lvm2
+sudo apt install -y linstor-satellite
+sudo apt install -y drbdtop
 
 # Start only the LINSTOR Satellite service
 systemctl enable linstor-satellite.service
@@ -79,26 +95,35 @@ sudo vgcreate drbdpool /dev/vdb
 sudo lvcreate -L 64G -T drbdpool/thinpool
 ----
 
-===== Lastly, from the Cinder node, create LINSTOR Node(s) and Storage Pool(s)
+===== Lastly, from the Cinder node, create LINSTOR Satellite Node(s) and Storage Pool(s)
+
 ----
 # Create a LINSTOR cluster, including the Cinder node as one of the nodes
-# For each node, specify node name, its IP address, volume type (lvmthin) and
+# For each node, specify node name, its IP address, volume type (diskless) and
 # volume location (drbdpool/thinpool)
 
-linstor node create cinder-node-name 192.168.1.100 lvmthin drbdpool/thinpool
-linstor node create another-linstor-node 192.168.1.101 lvmthin drbdpool/thinpool
-# repeat to add more nodes in the LINSTOR cluster
+# Create the controller node as combined controller and satellite node
+linstor node create cinder-node-name 192.168.1.100 --node-type Combined
+
+# Create the satellite node(s)
+linstor node create another-node-name 192.168.1.101
+# repeat to add more satellite nodes in the LINSTOR cluster
 
 # Create LINSTOR Storage Pool on each nodes
-# For each node, specify node name, its IP address, storage pool name (DfltStorPool),
-# volume type (lvmthin) and node type (Combined)
+# For each node, specify node name, its IP address,
+# storage pool name (DfltStorPool),
+# volume type (diskless / lvmthin) and node type (Combined)
 
-linstor storage-pool create cinder-node-name DfltStorPool lvmthn drbdpool/thinpool
-linstor storage-pool create another-linstor-node DfltStorPool lvmthn drbdpool/thinpool
+# Create diskless Controller node on the Cinder controller
+linstor storage-pool create diskless cinder-node-name DfltStorPool
+
+# Create diskful Satellite nodes
+linstor storage-pool create lvmthin another-node-name DfltStorPool drbdpool/thinpool
 # repeat to add a storage pool to each node in the LINSTOR cluster
 ----
 
 ==== Install the LINSTOR driver file
+
 The _linstor driver_ will be officially available starting OpenStack Stein
 release. The latest release is located at
 https://github.com/LINBIT/openstack-cinder/blob/stein-linstor/cinder/volume/drivers/linstordrv.py[LINBIT OpenStack Repo].
@@ -109,16 +134,19 @@ Place the driver ( linstordrv.py ) in an appropriate location within your
 OpenStack Cinder node.
 
 For Devstack:
+
 ----
 /opt/stack/cinder/cinder/volume/drivers/linstordrv.py
 ----
 
 For Ubuntu:
+
 ----
 /usr/lib/python2.7/dist-packages/cinder/volume/drivers/linstordrv.py
 ----
 
 For RDO Packstack:
+
 ----
 /usr/lib/python2.7/site-packages/cinder/volume/drivers/linstordrv.py
 ----
@@ -129,7 +157,8 @@ For RDO Packstack:
 
 ==== Edit Cinder configuration file *cinder.conf* in /etc/cinder/ as follows:
 
-===== Enable LINSTOR driver by adding '*linstor*' to enabled_backends
+===== Enable LINSTOR driver by adding 'linstor' to enabled_backends
+
 ----
 [DEFAULT]
 ...
@@ -138,14 +167,11 @@ enabled_backends=lvm, linstor
 ----
 
 ===== Add the following configuration options at the end of the cinder.conf
+
 ----
 [linstor]
 volume_backend_name = linstor
 volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver
-linstor_redundancy = 1
-linstor_disk_options = {"c-min-rate": "4M"}
-linstor_net_options = {"connect-int": "4", "allow-two-primaries": "yes", "ko-count": "30", "max-buffers": "20000", "ping-timeout": "100"}
-linstor_resource_options = {"auto-promote-timeout": "300"}
 linstor_default_volume_group_name=drbdpool
 linstor_default_uri=linstor://localhost
 linstor_default_storage_pool_name=DfltStorPool
@@ -153,23 +179,18 @@ linstor_default_resource_size=1
 linstor_volume_downsize_factor=4096
 ----
 
-==== Apply a manual patch to a dependency.
-We need to manually patch a library dependency in order to suppress an error about
-missing parameter. In /usr/local/lib/python2.7/dist-packages/eventlet/green/select.py,
-starting line 77, change it to read as follows:
+==== Update Python python libraries for the driver
+
 ----
-    try:
-        for k, v in six.iteritems(ds):
-            if v.get('read'):
-                #listeners.append(hub.add(hub.READ, k, on_read, on_error, lambda x: None))
-                listeners.append(hub.add(hub.READ, k, on_read, current.throw, lambda: None))
-            if v.get('write'):
-                #listeners.append(hub.add(hub.WRITE, k, on_write, on_error, lambda x: None))
-                listeners.append(hub.add(hub.WRITE, k, on_write, current.throw, lambda: None))
+sudo pip install google --upgrade
+sudo pip install protobuf --upgrade
+sudo pip install eventlet --upgrade
 ----
 
 ==== Create a new backend type for LINSTOR
-Run these commands from the Cinder node.
+Run these commands from the Cinder node once environment variables are
+configured for OpenStack command line operation.
+
 ----
 cinder type-create linstor
 cinder type-key linstor set volume_backend_name=linstor
@@ -178,6 +199,7 @@ cinder type-key linstor set volume_backend_name=linstor
 ==== Restart the Cinder services to finalize
 
 For Devstack:
+
 ----
 sudo systemctl restart devstack@c-vol.service
 sudo systemctl restart devstack@c-api.service
@@ -185,6 +207,7 @@ sudo systemctl restart devstack@c-sch.service
 ----
 
 For RDO Packstack:
+
 ----
 sudo systemctl restart openstack-cinder-volume.service
 sudo systemctl restart openstack-cinder-api.service
@@ -192,12 +215,32 @@ sudo systemctl restart openstack-cinder-scheduler.service
 ----
 
 For full OpenStack:
+
 ----
 sudo systemctl restart cinder-volume.service
 sudo systemctl restart cinder-api.service
 sudo systemctl restart cinder-scheduler.service
 ----
 
+==== Verify proper installation:
+Once the Cinder service is restarted, a new Cinder volume with LINSTOR
+backend may be created using the Horizon GUI or command line.  Use following
+as a guide for creating a volume with the command line.
+
+----
+# Check to see if there are any recurring errors with the driver.
+# Occasional 'ERROR' keyword associated with the database is normal.
+# Use Ctrl-C to stop the log output to move on.
+sudo systemctl -f -u devstack@c-* | grep error
+
+# Create a LINSTOR test volume.  Once the volume is created, volume list
+# command should show one new Cinder volume.  The 'linstor' command then
+# should list actual resource nodes within the LINSTOR cluster backing that
+# Cinder volume.
+openstack volume create --type linstor --size 1 --availability-zone nova linstor-test-vol
+openstack volume list
+linstor resource list
+----
 
 [[s-openstack-linstor-addtl-conf]]
 ==== Additional Configuration
@@ -259,8 +302,10 @@ of failure.
 [[s-openstack-linstor-drbd-external-NOTE]]
 [NOTE]
 --
-Currently, the Cinder node must also be one of the LINSTOR resource nodes.
-Diskless option is being tested.
+Default configuration options for Cinder driver assumes the Cinder node
+to be a *Diskless* LINSTOR node.  If the node is a *Diskful* node, please
+change the 'linstor_controller_diskless=True' to
+'linstor_controller_diskless=False' and restart the Cinder services.
 --
 
 
@@ -292,7 +337,7 @@ compatibility reasons; it's just an alias to the iSCSI driver.
 
 To summarize:
 
-	* You'll need the LINSTOR Cinder driver 0.0.5 or later, and  LINSTOR 0.5.0
+	* You'll need the LINSTOR Cinder driver 0.1.0 or later, and  LINSTOR 0.6.5
 	or later.
 
 	* The <<s-openstack-linstor-drbd,DRBD transport protocol>> should be
