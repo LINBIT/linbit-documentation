@@ -125,21 +125,14 @@ HAがVMを開始する前に、すべてのホストがそのVMのストレー�
 --------------
 
 `linstor-satellite` サービスは起動時にすべてのリソースファイル (`*.res`)
-を削除し、再度それらを作成します。これはコントローラVMをスタートするために、これらを必要とする `drbd` サービスと競合します。LINSTORは
-`-k/--keep-res` オプションをサポートし、ここで指定された正規表現にマッチするファイルを消しません。必要に応じで、systemctl
-を通してサービスファイルを編集してください(ファイルを直接編集しないでください)。
+を削除し、再度それらを作成します。これはコントローラVMをスタートするために、これらを必要とする `drbd` サービスと競合しますが、
+`drbd.service` で最初にリソースを UP し、その後 `linstor-satellite.service`
+をスタートすることで対応できます。systemctl を通してサービスファイルを編集してください(ファイルを直接編集しないでください)。
 
 --------------
 systemctl edit linstor-satellite
 [Unit]
 After=drbd.service
-# "ExecStart" の行を変更し、--keep-res=vm-100 を含むようにします
-# "vm-100", 100 は VM ID です。この指定は正規表現であることに注意してください。
-# "[Service]" を含て、前の値をリセットします。
-# ファイルは以下のようになります。
-[Service]
-ExecStart=
-ExecStart=/usr/share/linstor-server/bin/Satellite --logs=/var/log/linstor-satellite --config-directory=/etc/linstor --keep-res=vm-100
 --------------
 
 `linstor-satellite.service` を再起動することを忘れないでください。
