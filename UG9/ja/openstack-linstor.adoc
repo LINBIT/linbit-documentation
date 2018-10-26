@@ -1,0 +1,323 @@
+[[ch-openstack-linstor]]
+== OpenStackでのDRBDボリューム
+
+indexterm:[Openstack]indexterm:[Cinder]indexterm:[Nova]indexterm:[LINSTOR]
+この章では、永続的で複製された高性能ブロックストレージであるDRBDの
+https://github.com/LINBIT/openstack-cinder/tree/stein-linstor[LINSTOR ドライバ]
+についてOpenstackでの使用法を説明します。
+
+
+[[s-openstack-linstor-overview]]
+=== Openstackの概要
+
+Openstackは幅広い個別のサービスで構成されています。DRBDに最も関連性の高い2つは、CinderとNovaです。 *Cinder*
+はブロックストレージサービスです。 *Nova* はVMで使用可能なボリュームを作成する計算ノードサービスです。
+
+OpenStackのLINSTORドライバは、DRBD/LINSTORクラスタを管理し、OpenStack環境、特にNova
+computeインスタンス内で使用されます。LINSTORでサポートされているCinderボリュームは、DRBD/LINSTORのすべての機能をシームレスに提供し、OpenStackはすべての配備と管理を実行できます。ドライバは、OpenStackが永続的なLINSTORボリュームの作成と削除、ボリュームスナップショットとローボリュームイメージの管理と配備を可能にします。
+
+カーネル特有のDRBDプロトコルをレプリケーションに使用する以外に、LINSTORドライバでは、LINSTORクラスタでiSCSIを使用して最大の互換性を得ることができます。これら2つのオプションの詳細については、
+<<s-openstack-linstor-transport-protocol>> を参照ください。
+
+
+[[s-openstack-linstor-install]]
+=== OpenstackのLINSTORインストレーション
+
+OpenStackドライバをインストールする前に、DRBDとLINSTORの初期インストールと設定を完了する必要があります。クラスタ内の各LINSTORノードにもストレージプールが定義されている必要があります。
+LINSTORのインストールに関する詳細は、 <<s-linstor-init-cluster, こちら>> を参照ください。
+
+[[s-here_s_a_synopsis_on_quickly_setting_up_a_linstor_cluster_on_ubuntu]]
+==== UbuntuでLINSTORクラスタをすばやく設定する方法について
+
+[[s-install_drbd_and_linstor_on_cinder_node_as_a_linstor_controller_node]]
+===== LINSTORコントローラノードとしてCinderノードにDRBDとLINSTORをインストール
+
+----
+# まず、サポート契約のLINBITリポジトリを設定します
+
+# DRBDとLINSTORパッケージをインストールします
+sudo apt-get update
+sudo apt install -y drbd-dkms lvm2
+sudo apt install -y linstor-controller linstor-satellite linstor-client
+sudo apt install -y drbdtop
+
+# LINSTORコントローラとサテライトの両方を開始します
+systemctl enable linstor-controller.service
+systemctl start linstor-controller.service
+systemctl enable linstor-satellite.service
+systemctl start linstor-satellite.service
+
+# ディスクレスコントローラの場合は、次の２つの 'sudo' コマンドはスキップします
+
+# ディスクフルコントローラの場合は、DRBD/LINSTOR のバックエンドストレージをボリュームグループ 'drbdpool' として作成します。このとき適切なボリューム (/dev/vdb) を指定します
+sudo vgcreate drbdpool /dev/vdb
+
+# 'drbdpool' に論理ボリューム 'thinpool' を作成します
+# 適切なボリュームサイズ (64G) を指定します
+sudo lvcreate -L 64G -T drbdpool/thinpool
+----
+
+NOTE: OpenStackはGiBでストレージサイズを測定します。
+
+[[s-install_drbd_and_linstor_on_other_nodes_on_the_linstor_cluster]]
+===== LINSTORクラスタの他のノードにDRBDとLINSTORをインストール
+
+----
+# まず、サポート契約のLINBITリポジトリを設定します
+
+# DRBDとLINSTORパッケージをインストールします
+sudo apt-get update
+sudo apt install -y drbd-dkms lvm2
+sudo apt install -y linstor-satellite
+sudo apt install -y drbdtop
+
+# LINSTOR サテライトサービスだけを開始します
+systemctl enable linstor-satellite.service
+systemctl start linstor-satellite.service
+
+# DRBD/LINSTOR のバックエンドストレージをボリュームグループ 'drbdpool' として作成します。このとき適切なボリューム (/dev/vdb) を指定します
+sudo vgcreate drbdpool /dev/vdb
+
+# 'drbdpool' に論理ボリューム 'thinpool' を作成します
+# 適切なボリュームサイズ (64G) を指定します
+sudo lvcreate -L 64G -T drbdpool/thinpool
+----
+
+[[s-lastly_from_the_cinder_node_create_linstor_satellite_nodes_and_storage_pools]]
+===== 最後に、Cinderノードから、LINSTOR サテライトノードとストレージプールを作成
+
+----
+# LINSTOR クラスタを作成し、ノードのうち１つに Cinder ノードを含めます
+# ノード毎にノード名、IPアドレス、ボリュームタイプ(ディスクレス)、
+# ボリュームの場所 (drbdpool/thinpool) を指定します
+
+# コントローラノードはコントローラとサテライトの combined ノードとして作成します
+linstor node create cinder-node-name 192.168.1.100 --node-type Combined
+
+# サテライトノードを作成します
+linstor node create another-node-name 192.168.1.101
+# LINSTOR クラスタにさらにサテライトがある場合は繰り返します
+
+# 各ノードで LINSTOR ストレージプールを作成します
+# ノードごとにノード名、IPアドレス
+# ストレージプール名 (DfltStorPool),
+# ボリュームタイプ (diskless / lvmthin) とノードタイプ(Combined) を指定します
+
+# Cinder コントローラでディスクレスコントローラノードを作成します
+linstor storage-pool create diskless cinder-node-name DfltStorPool
+
+# ディスクフルサテライトノードを作成します
+linstor storage-pool create lvmthin another-node-name DfltStorPool drbdpool/thinpool
+# LINSTOR クラスタにさらにサテライトがある場合は繰り返します
+----
+
+[[s-install_the_linstor_driver_file]]
+==== LINSTORドライバファイルをインストール
+
+_linstorドライバ_ は OpenStack Stein リリースから正式に利用可能になります。最新リリースは
+https://github.com/LINBIT/openstack-cinder/blob/stein-linstor/cinder/volume/drivers/linstordrv.py[LINBIT
+OpenStack Repo] にあります。 *linstordrv.py*
+という単一のPythonファイルです。OpenStackのインストール形態によっては、インストール先が異なります。
+
+ドライバ（linstordrv.py）をOpenStack Cinderノードの適切な場所にインストールします。
+
+Devstackの場合:
+
+----
+/opt/stack/cinder/cinder/volume/drivers/linstordrv.py
+----
+
+Ubuntuの場合:
+
+----
+/usr/lib/python2.7/dist-packages/cinder/volume/drivers/linstordrv.py
+----
+
+RDO Packstackの場合:
+
+----
+/usr/lib/python2.7/site-packages/cinder/volume/drivers/linstordrv.py
+----
+
+
+[[s-openstack-install]]
+=== LINSTORのCinder構成
+
+[[s-edit_cinder_configuration_file_cinder_conf_in__etc_cinder__as_follows]]
+==== /etc/cinder/ 内のCinder設定ファイル *cinder.conf* を次のように編集
+
+[[s-enable_linstor_driver_by_adding__linstor__to_enabled_backends]]
+===== enabled_backendsに 'linstor' を追加してLINSTORドライバを有効
+
+----
+[DEFAULT]
+...
+enabled_backends=lvm, linstor
+...
+----
+
+[[s-add_the_following_configuration_options_at_the_end_of_the_cinder_conf]]
+===== cinder.confの最後に次の設定オプションを追加
+
+----
+[linstor]
+volume_backend_name = linstor
+volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver
+linstor_default_volume_group_name=drbdpool
+linstor_default_uri=linstor://localhost
+linstor_default_storage_pool_name=DfltStorPool
+linstor_default_resource_size=1
+linstor_volume_downsize_factor=4096
+----
+
+[[s-update_python_python_libraries_for_the_driver]]
+==== ドライバ用のPythonのPythonライブラリを更新
+
+----
+sudo pip install google --upgrade
+sudo pip install protobuf --upgrade
+sudo pip install eventlet --upgrade
+----
+
+[[s-create_a_new_backend_type_for_linstor]]
+==== LINSTOR用の新しいバックエンドタイプを作成
+OpenStackコマンドライン用に環境変数が設定した後、これらのコマンドをCinderノードから実行します。
+
+----
+cinder type-create linstor
+cinder type-key linstor set volume_backend_name=linstor
+----
+
+[[s-restart_the_cinder_services_to_finalize]]
+==== 最後にCinderサービスを再起動
+
+Devstackの場合:
+
+----
+sudo systemctl restart devstack@c-vol.service
+sudo systemctl restart devstack@c-api.service
+sudo systemctl restart devstack@c-sch.service
+----
+
+RDO Packstackの場合:
+
+----
+sudo systemctl restart openstack-cinder-volume.service
+sudo systemctl restart openstack-cinder-api.service
+sudo systemctl restart openstack-cinder-scheduler.service
+----
+
+フルOpenStackの場合:
+
+----
+sudo systemctl restart cinder-volume.service
+sudo systemctl restart cinder-api.service
+sudo systemctl restart cinder-scheduler.service
+----
+
+[[s-verify_proper_installation]]
+==== 適切なインストールを確認
+Cinderサービスを再起動すると、Horizon
+GUIまたはコマンドラインを使用して、LINSTORバックエンドの新しいCinderボリュームを作成できます。コマンドラインを使用してボリュームを作成する際には、以下のガイドを参考にしてください。
+
+----
+# ドライバに何らかの定期的なエラーがないかどうか確認してください。
+# 特にデータベースに関連付けられている 'ERROR' キーワードが正常であるか。
+# Ctrl-C でログ出力を停止します。
+sudo systemctl -f -u devstack@c-* | grep error
+
+# LINSTOR テストボリュームを作成します。ボリュームが作成された後、volume list
+# コマンドは１つの新しい Cinder ボリュームを表示します。 'linstor' コマンドは
+# Cinder ボリュームのクラスタバッキング内に実際のリソースノードを表示します
+openstack volume create --type linstor --size 1 --availability-zone nova linstor-test-vol
+openstack volume list
+linstor resource list
+----
+
+[[s-openstack-linstor-addtl-conf]]
+==== 追加設定
+
+More to come
+
+
+[[s-openstack-linstor-transport-protocol]]
+=== トランスポートプロトコルの選択
+
+CinderでDRBD/LINSTORを実行するには、主に2つの方法があります。
+
+  * <<s-openstack-linstor-iscsi,iSCSI exports>> を使う
+
+  * <<s-openstack-linstor-drbd,the DRBD transport protocol>> を使う
+   
+
+これらは排他的ではありません。複数のバックエンドを定義し、それらのうちのいくつかはiSCSIを使用し、他のものはDRBDプロトコルを使用できます。
+
+
+[[s-openstack-linstor-iscsi]]
+==== iSCSIトランスポート
+
+Cinderボリュームをエクスポートするデフォルトの方法は、iSCSI経由です。これにより最大の互換性が得られます。iSCSIは、VMWare、Xen、HyperV、またはKVMなどのあらゆるハイパーバイザーで使用できます。
+
+欠点は、すべてのデータを（ユーザースペースの）iSCSIデーモンで処理するためにCinderノードに送信する必要があることです。これは、データがカーネル/ユーザスペース境界を通過する必要があることを意味し、パフォーマンスに影響を与えます。
+
+
+[[s-openstack-linstor-drbd]]
+==== DRBD/LINSTORトランスポート
+
+DRBDをトランスポートプロトコルとして使用してVMにデータを送信する方法もあります。これは DRBD
+9footnote:[LINSTORをCinderノードにインストールする必要があります。
+<<s-openstack-linstor-drbd-external-NOTE>>
+を参照ください。]もCinderノードにインストールする必要があることを意味します。
+
+[NOTE]
+OpenStackはLinuxのみで機能するため、DRBD/LINSTOR
+トランスポートを使用すると、現時点でKVMを搭載したLinuxホストでのみでの配備に制限されます。
+
+この解決策の1つの利点は、VMのストレージアクセス要求がDRBDカーネルモジュールを介してストレージノードに送信され、ストレージノードが割り当てられたLVに直接アクセスできることです。これは、データパス上にカーネル/ユーザスペースの遷移がないことを意味し、結果的にパフォーマンスが向上します。
+RDMA対応のハードウェアと組み合わせると、FCバックエンドに直接アクセスするVMとほぼ同じパフォーマンスが得られます。
+
+もう1つの利点は、DRBDのHAバックグラウンドから暗黙的に利益を得ることです。複数のストレージノードを使用すると、異なるネットワーク接続で使用できる可能性があり冗長性を意味し、単一障害点を回避します。
+
+
+[[s-openstack-linstor-drbd-external-NOTE]]
+[NOTE]
+--
+Cinderドライバのデフォルトの設定オプションは、CinderノードがディスクレスLINSTORノードであることを前提としています。ノードがディスクフルノードの場合は、
+'linstor_controller_diskless = True' を 'linstor_controller_diskless = False'
+に変更して、Cinderサービスを再起動してください。
+--
+
+
+[[s-openstack-linstor-conf-transport-protocol]]
+==== トランスポートプロトコルの設定
+
+`cinder.conf`
+のLINSTORセクションで、使用するトランスポートプロトコルを定義することができます。この章の冒頭で説明した初期設定では、DRBDトランスポートを使用するように設定されています。必要に応じて以下のように設定することができます。その後、Horizonfootnote:[OpenStack
+GUI]は、ボリューム作成時にこれらのストレージバックエンドを提供する必要があります。
+
+
+	* LINSTORでiSCSIを使用するには:
++
+----
+    volume_driver=cinder.volume.drivers.drbdmanagedrv.DrbdManageIscsiDriver
+----
+
+	* LINSTORでDRBDカーネルモジュールを使用するには:
++
+----
+    volume_driver=cinder.volume.drivers.drbdmanagedrv.DrbdManageDrbdDriver
+----
+
+互換性の理由から古いクラス名 "DrbdManageDriver" は当面維持されます。これは単にiSCSIドライバのエイリアスです。
+
+
+要約:
+
+	* LINSTOR Cinderドライバ0.1.0以降とLINSTOR 0.6.5以降が必要である。
+	 
+
+	* <<s-openstack-linstor-drbd,DRBD transport protocol>> を
+	推奨。iSCSIは互換性重視の場合使用する。
+
+	* ディスク容量が不足しないように、特に Thin ボリュームでは注意する。
+
