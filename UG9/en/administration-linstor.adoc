@@ -475,6 +475,45 @@ For instance, it is easy to set the DRBD protocol for a resource named
 # linstor resource-definition drbd-options --protocol C backups
 ----------------------------
 
+[[s-linstor-proxy]]
+=== DRBD Proxy with LINSTOR
+
+LINSTOR can be used to configure DRBD Proxy for long-distance replication.
+DRBD Proxy must first be installed and licensed as described in
+<<s-using-drbd-proxy>>.
+
+LINSTOR expects DRBD Proxy to be running on the nodes which are involved in the
+relevant connections. It does not currently support connections via DRBD Proxy
+on a separate node.
+
+Suppose our cluster consists of nodes 'alpha' and 'bravo' in a local network
+and 'charlie' at a remote site, with a resource definition named `backups`
+deployed to each of the nodes. Then DRBD Proxy can be enabled for the
+connections to 'charlie' as follows:
+
+----------------------------
+# linstor drbd-proxy enable alpha charlie backups
+# linstor drbd-proxy enable bravo charlie backups
+----------------------------
+
+The DRBD Proxy configuration can be tailored with commands such as:
+
+----------------------------
+# linstor drbd-proxy options backups --memlimit 100000000
+# linstor drbd-proxy compression zlib backups --level 9
+----------------------------
+
+LINSTOR does not automatically optimize the DRBD configuration for
+long-distance replication, so you will probably want to set some configuration
+options such as the protocol:
+
+----------------------------
+# linstor resource-connection drbd-options alpha charlie backups --protocol A
+# linstor resource-connection drbd-options bravo charlie backups --protocol A
+----------------------------
+
+Please contact LINBIT for assistance optimizing your configuration.
+
 [[s-linstor-rebalance]]
 === Rebalancing data with LINSTOR
 FIXME
