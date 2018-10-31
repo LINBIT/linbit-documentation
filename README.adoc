@@ -38,8 +38,8 @@ We do not publish the source of our tech guides, make sure you cloned the intern
 
 == Makefile interface/API for projects
 Projects are organized in sub directories, for example the users guide for DRBD 9 is in `UG9`. The top level
-`Makefile` contains html and pdf targets for these (e.g., `make UG9-pdf`). The final output is generated in
-`$project/$lang/output-$format-finalize` (e.g. `UG9/en/output-pdf-finalize`).
+`Makefile` contains html and pdf targets for these (e.g., `make UG9-pdf-finalize`). The final output is
+generated in `$project/$lang/output-$format-finalize` (e.g. `UG9/en/output-pdf-finalize`).
 
 Every project needs a *proper* `Makefile` that has the following targets:
 
@@ -55,15 +55,6 @@ These generate their output to `output-$format`. It is perfectly fine that these
 files like symlinks. As already written, we want proper ``Makefile``s, so if the source does not change
 re-executing these targets should only process files that changed.
 
-Sub-projects do not require "docker" targets, it is up to the user, but it is simple. At the top level
-execute:
-
---------------------
-docker run -it --rm -v $(pwd):/home/makedoc/linbit-documentation linbit-documentation /bin/sh
---------------------
-
-Then `cd` to the directory and execute `make` as usual.
-
 === pdf-finalize and html-finalize targets
 These generate their output to `output-$format-finalize`. This is the *final* output. The one that is
 published to a web page/sent to a web developer. For example this generates tar-balls for `UG9` that can be
@@ -72,6 +63,15 @@ sent to someone who puts it on the web page.
 It is usually the final target that is executed after multiple iterations of `make pdf`/`make html` and it is
 fine if that target alters the content of `output-$format` to generate `output-$format-finalize`. If possible
 it should not, but it is not a strict requirement.
+
+=== Docker targets
+The top-level ``Makefile`` also contains targets that end in "-docker". These can be used to generate the
+output with the previously describe "linbit-documentation" base image. For example one on execute
+`make UG9-html-finalize-docker`.
+
+=== Internationalization
+The English version is the default, but if you want to build the Japanese version, you have to set the `make`
+variable "lang" accordingly (e.g., `make UG9-html-finalize-docker lang=ja`).
 
 [[work-public]]
 == Working on a public project
