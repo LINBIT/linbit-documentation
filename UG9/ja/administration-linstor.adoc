@@ -405,6 +405,40 @@ DRBDのオプションはLINSTORコマンドで設定します。LINSTORによ�
 # linstor resource-definition drbd-options --protocol C backups
 ----------------------------
 
+[[s-linstor-proxy]]
+=== LINSTORによるDRBD Proxy
+
+LINSTORを使用して、遠隔地へのレプリケーション用にDRBD Proxyを構成できます。 DRBDプロキシを使用するには
+<<s-using-drbd-proxy>> に説明されている通り、別途インストールとライセンスが必要になります。
+
+LINSTORは、DRBD Proxyが接続するノード上で実行されることを期待しています。別のノードのDRBD
+Proxy経由の接続は、今のところサポートしていません。
+
+ここでクラスタが、ローカルネットワーク内のノード 'alpha' と 'bravo' とリモートサイトの 'charlie'
+で構成され、各ノードに配備されるリソースは `backups` と仮定すると、DRBD Proxyを使用した 'charlie'
+への接続を有効にするには以下のようにします。
+
+----------------------------
+# linstor drbd-proxy enable alpha charlie backups
+# linstor drbd-proxy enable bravo charlie backups
+----------------------------
+
+DRBD Proxyのオプションは、次のコマンドで設定できます。
+
+----------------------------
+# linstor drbd-proxy options backups --memlimit 100000000
+# linstor drbd-proxy compression zlib backups --level 9
+----------------------------
+
+LINSTORは遠隔地へのレプリケーション用にDRBD構成を自動的には最適化しないので、プロトコルなどのいくつかの構成オプションを設定することをお勧めします。
+
+----------------------------
+# linstor resource-connection drbd-options alpha charlie backups --protocol A
+# linstor resource-connection drbd-options bravo charlie backups --protocol A
+----------------------------
+
+設定を最適化するには、LINBITにお問い合わせください。
+
 [[s-linstor-rebalance]]
 === LINSTORでデータ再調整
 FIXME
