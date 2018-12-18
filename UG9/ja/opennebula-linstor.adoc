@@ -1,0 +1,66 @@
+[[ch-opennebula-linstor]]
+== OpenNebulaのLINSTORボリューム
+
+indexterm:[OpenNebula]この章では、OpenNebulaのDRBDについて
+https://github.com/OpenNebula/addon-linstor[LINSTOR storage driver addon]
+の使用法を説明します。
+
+詳しいインストールと設定の手順は、ドライバのソースの
+https://github.com/OpenNebula/addon-linstor/blob/master/README.md[README.md]
+を参照ください。
+
+[[s-opennebula-linstor-overview]]
+=== OpenNebulaの概要
+
+http://opennebula.org/[OpenNebula]
+は、アドオンを使用してその機能を拡張できる、柔軟でオープンソースのクラウド管理プラットフォームです。
+
+LINSTOR アドオンを使用すると、DRBD によってバックアップされ、DRBD
+プロトコルを介してネットワークに接続された高可用性イメージを持つ仮想マシンを配備できます。
+
+[[s-opennebula-linstor-install]]
+=== OpenNebulaアドオンのインストール
+
+OpenNebula用のLINSTORストレージアドオンのインストールには、動作中のOpenNebulaクラスタと動作中のLINSTORクラスタが必要です。
+
+LINBITの顧客リポジトリにアクセスすることで、addon-linstor をインストールできます。
+----------------------------
+# apt install addon-linstor
+----------------------------
+または
+----------------------------
+# yum install addon-linstor
+----------------------------
+
+LINBITのパッケージにアクセスすることができない場合は、
+https://github.com/OpenNebula/addon-linstor[GitHubページ] を確認してください。
+
+LINSTORを使用したDRBDクラスタは、このマニュアルの指示に従ってインストールおよび設定できます。詳細は
+<<s-linstor-init-cluster>> を参照してください。
+
+OpenNebulaとDRBDクラスタは、OpenNebulaのフロントエンドノードとホストノードを両方のクラスタに含める必要がありますが、これ以外は互いに独立にできます。
+
+ホストノードは、仮想マシン・イメージがネットワークを介して接続されるためローカルのLINSTORストレージプールを必要としません
+footnote:[ホストがストレージノードでもある場合は、イメージのローカルコピーを使用できます] 。
+
+[[s-opennebula-deployment-options]]
+=== 配備オプション
+
+リソースは自動的に特定のノードに配置または割り当てられます。通常、LINSTORは、ドライバが使用するように構成されたストレージプールを持っていれば、クラスタに追加されるノードが増えると自動的に割り当てられます。
+
+また、ドライバは、データストアごとにストレージプールを選択することもできます。ストレージプールが選択されていない場合は、デフォルトのストレージプールが使用されます。
+
+
+[[s-opennebula-linstor-live-migration]]
+=== ライブマイグレーション
+
+ライブマイグレーションは、sshシステムデータストアとnfs共有システムデータストアを使用してもサポートされます。
+
+[[s-opennebula-linstor-free-space]]
+=== 空き容量の計算
+
+空き容量は、リソースが自動的に配備されるか、ノードごとに配備されるかに応じて異なって計算されます。
+
+ノードごとに配置されるデータストアでは、リソースが配備されているすべてのノードの最も制限的なストレージプールに基づいて空き領域がレポートされます。たとえば、総ストレージ容量の最小値を持つノードの容量を使用してデータストアの合計サイズを決定し、空き容量が最小のノードを使用してデータストアの残りの容量を決定します。
+
+自動配置を使用するデータストアの場合、サイズと残りの領域は、LINSTORによって報告されたデータストアで使用される集約ストレージプールに基づいて決定されます。
