@@ -1,0 +1,445 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2018-09-11 08:47+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "Using GFS with DRBD"
+msgstr "DRBDでGFSを使用する"
+
+#. type: Plain text
+msgid ""
+"indexterm:[GFS]indexterm:[Global File System]This chapter outlines the steps "
+"necessary to set up a DRBD resource as a block device holding a shared "
+"Global File System (GFS). It covers both GFS and GFS2."
+msgstr ""
+"indexterm:[GFS]indexterm:[Global File System]本章では共有グローバルファイルシ"
+"ステム(GFS)のブロックデバイスをDRBDリソースとするために必要な手順を説明しま"
+"す。GFS、GFS2の両方に対応しています。"
+
+#. type: Plain text
+msgid ""
+"In order to use GFS on top of DRBD, you must configure DRBD in indexterm:"
+"[dual-primary mode]<<s-dual-primary-mode,dual-primary mode>>."
+msgstr ""
+"DRBD上でGFSを使用するためには、indexterm:[dual-primary mode]<<s-dual-primary-"
+"mode,デュアルプライマリモード>>でDRBDを設定する必要があります。"
+
+#. type: delimited block =
+msgid ""
+"All cluster file systems _require_ fencing - not only via the DRBD resource, "
+"but STONITH! A faulty member _must_ be killed."
+msgstr ""
+"全クラスタファイルシステムには fencingが_必要_ です。DRBDリソース経由だけでな"
+"くSTONITHもです。問題のあるノードは _必ず_ killされる必要があります。"
+
+#. type: delimited block =
+msgid "You'll want these settings:"
+msgstr "次のような設定がよいでしょう。"
+
+#. type: delimited block =
+#, no-wrap
+msgid ""
+"\tnet {\n"
+"\t\tfencing resource-and-stonith;\n"
+"\t}\n"
+"\thandlers {\n"
+"\t\t# Make sure the other node is confirmed\n"
+"\t\t# dead after this!\n"
+"\t\toutdate-peer \"/sbin/kill-other-node.sh\";\n"
+"\t}\n"
+msgstr ""
+"\tnet {\n"
+"\t\tfencing resource-and-stonith;\n"
+"\t}\n"
+"\thandlers {\n"
+"\t\t# Make sure the other node is confirmed\n"
+"\t\t# dead after this!\n"
+"\t\toutdate-peer \"/sbin/kill-other-node.sh\";\n"
+"\t}\n"
+
+#. type: delimited block =
+msgid ""
+"There must be _no_ volatile caches! Please see https://fedorahosted.org/"
+"cluster/wiki/DRBD_Cookbook for some more information."
+msgstr ""
+"これらは _非揮発性_ のキャッシュである必要があります。 詳細は https://"
+"fedorahosted.org/cluster/wiki/DRBD_Cookbook を参考にしてください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "GFS primer"
+msgstr "GFS基礎"
+
+#. type: Plain text
+msgid ""
+"The Red Hat Global File System (GFS) is Red Hat's implementation of a "
+"concurrent-access shared storage file system. As any such filesystem, GFS "
+"allows multiple nodes to access the same storage device, in read/write "
+"fashion, simultaneously without risking data corruption. It does so by using "
+"a Distributed Lock Manager (DLM) which manages concurrent access from "
+"cluster members."
+msgstr ""
+"Red Hat Global File System (GFS)は、同時アクセス共有ストレージファイルシステ"
+"ムのRed Hatによる実装です。同様のファイルシステムのように、GFSでも複数のノー"
+"ドが読み取り/書き込みモードで、安全に同時に同じストレージデバイスにアクセスす"
+"ることが可能です。これには、クラスタメンバからの同時アクセスを管理するDLM "
+"(Distributed Lock Manager)が使用されています。"
+
+#. type: Plain text
+msgid ""
+"GFS was designed, from the outset, for use with conventional shared storage "
+"devices. Regardless, it is perfectly possible to use DRBD, in dual-primary "
+"mode, as a replicated storage device for GFS. Applications may benefit from "
+"reduced read/write latency due to the fact that DRBD normally reads from and "
+"writes to local storage, as opposed to the SAN devices GFS is normally "
+"configured to run from. Also, of course, DRBD adds an additional physical "
+"copy to every GFS filesystem, thus adding redundancy to the concept."
+msgstr ""
+"本来、GFSは従来型の共有ストレージデバイスを管理するために設計されたものです"
+"が、デュアルプライマリモードでDRBDをGFS用のレプリケートされたストレージデバイ"
+"スとして問題なく使用することができます。アプリケーションについては、読み書き"
+"の待ち時間が短縮されるというメリットがあります。 これは、GFSが一般的に実行さ"
+"れるSANデバイスとは異なり、DRBDが通常はローカルストレージに対して読み書きを行"
+"うためです。また、DRBDは各GFSファイルシステムに物理コピーを追加して、冗長性を"
+"確保します。"
+
+#. type: Plain text
+msgid ""
+"GFS makes use of a cluster-aware variant of LVM, indexterm:[LVM]termed "
+"Cluster Logical Volume Manager or indexterm:[CLVM]CLVM. As such, some "
+"parallelism exists between using DRBD as the data storage for GFS, and using "
+"<<s-lvm-drbd-as-pv,DRBD as a Physical Volume for conventional LVM>>."
+msgstr ""
+"GFSはクラスタ対応版のindexterm:[LVM]LVMで、クラスタ化論理ボリュームマネー"
+"ジャ (indexterm:[CLVM]CLVM)を使用します。このような対応関係が、GFSのデータス"
+"トレージとしてDRBDを使用することと、<<s-lvm-drbd-as-pv,従来のLVMの物理ボ"
+"リュームとしてDRBDを使用する>>こととの間に存在します。"
+
+#. type: Plain text
+msgid ""
+"GFS file systems are usually tightly integrated with Red Hat's own cluster "
+"management framework, the indexterm:[Red Hat Cluster Suite]<<ch-rhcs,Red Hat "
+"Cluster>>. This chapter explains the use of DRBD in conjunction with GFS in "
+"the Red Hat Cluster context."
+msgstr ""
+"GFSファイルシステムは通常はRedHat独自のクラスタ管理フレームワークのindexterm:"
+"[Red Hat Cluster Suite]<<ch-rhcs,Red Hat Cluster>>と密接に結合されています。"
+"この章ではDRBDをGFSとともに使用する方法を Red Hat Clusterの観点から説明しま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"GFS, CLVM, and Red Hat Cluster are available in Red Hat Enterprise Linux "
+"(RHEL) and distributions derived from it, such as indexterm:[CentOS]CentOS. "
+"Packages built from the same sources are also available in indexterm:[Debian "
+"GNU/Linux]Debian GNU/Linux. This chapter assumes running GFS on a Red Hat "
+"Enterprise Linux system."
+msgstr ""
+"GFS、Pacemaker、Red Hat ClusterはRed Hat Enterprise Linux (RHEL)と、"
+"indexterm:[CentOS]CentOSなどの派生ディストリビューションで入手できます。同じ"
+"ソースからビルドされたパッケージがindexterm:[Debian GNU/Linux]Debian GNU/"
+"Linuxでも入手できます。この章の説明は、Red Hat Enterprise LinuxシステムでGFS"
+"を実行することを前提にしています。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Creating a DRBD resource suitable for GFS"
+msgstr "GFS用のDRBDリソースの作成"
+
+#. type: Plain text
+msgid ""
+"Since GFS is a shared cluster file system expecting concurrent read/write "
+"storage access from all cluster nodes, any DRBD resource to be used for "
+"storing a GFS filesystem must be configured in <<s-dual-primary-mode,dual-"
+"primary mode>>. Also, it is recommended to use some of DRBD's <<s-automatic-"
+"split-brain-recovery-configuration,features for automatic recovery from "
+"split brain>>. To do all this, include the following lines in the resource "
+"configuration: indexterm:[drbd.conf]"
+msgstr ""
+"GFSは共有クラスタファイルシステムで、すべてのクラスタノードからストレージに対"
+"して同時に読み取り/書き込みアクセスが行われることを前提としています。したがっ"
+"て、GFSファイルシステムを格納するために使用するDRBDリソースは<<s-dual-"
+"primary-mode,デュアルプライマリモード>>で設定する必要があります。また、<<s-"
+"automatic-split-brain-recovery-configuration,スプリットブレインからの自動回復"
+"のための機能>>を利用することをおすすめします。そのためには、以下の設定をリ"
+"ソース設定ファイルindexterm:[drbd.conf]に加えてください。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    allow-two-primaries yes;\n"
+"    after-sb-0pri discard-zero-changes;\n"
+"    after-sb-1pri discard-secondary;\n"
+"    after-sb-2pri disconnect;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+"resource <resource> {\n"
+"  net {\n"
+"    allow-two-primaries yes;\n"
+"    after-sb-0pri discard-zero-changes;\n"
+"    after-sb-1pri discard-secondary;\n"
+"    after-sb-2pri disconnect;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+
+#. type: delimited block =
+msgid ""
+"By configuring auto-recovery policies, you are configuring effectively "
+"configuring automatic data-loss! Be sure you understand the implications."
+msgstr ""
+"回復ポリシーを設定することは、事実上、自動データロス設定を行うことです。十分"
+"にご理解のうえご使用ください。"
+
+#. type: Plain text
+msgid ""
+"Once you have added these options to <<ch-configure,your freshly-configured "
+"resource>>, you may <<s-first-time-up,initialize your resource as you "
+"normally would>>. Since the indexterm:[drbd.conf]`allow-two-primaries` "
+"option is set to `yes` for this resource, you will be able to <<s-switch-"
+"resource-roles,promote the resource>>to the primary role on two nodes."
+msgstr ""
+"これらのオプションを<<ch-configure,新規に設定したリソース>>に追加したら、<<s-"
+"first-time-up,通常通りにリソースを初期化>>できます。リソースのindexterm:"
+"[drbd.conf] `allow-two-primaries` オプションが `yes` に設定されているので、両"
+"ノードの<<s-switch-resource-roles,リソースをプライマリにする>>ことができま"
+"す。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuring LVM to recognize the DRBD resource"
+msgstr "DRBDリソースを認識するようにLVMを設定する"
+
+#. type: Plain text
+msgid ""
+"GFS uses CLVM, the cluster-aware version of LVM, to manage block devices to "
+"be used by GFS. In order to use CLVM with DRBD, ensure that your LVM "
+"configuration"
+msgstr ""
+"GFSでは、ブロックデバイスを利用するためにクラスタ対応版のLVMであるCLVMを使用"
+"しています。DRBDでCLVMを使用するために、LVMの設定を確認してください。"
+
+#. type: Plain text
+msgid ""
+"uses clustered locking. To do this, set the following option in `/etc/lvm/"
+"lvm.conf`:"
+msgstr ""
+"クラスタでのロックを行いますので、 `/etc/lvm/lvm.conf` で以下のオプション設定"
+"をしてください。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "locking_type = 3\n"
+msgstr "locking_type = 3\n"
+
+#. type: Plain text
+msgid ""
+"scans your DRBD devices to recognize DRBD-based Physical Volumes (PVs). This "
+"applies as to conventional (non-clustered) LVM; see <<s-lvm-drbd-as-pv>> for "
+"details."
+msgstr ""
+"DRBDベースの物理ボリュームを認識させるためにDRBDデバイスをスキャンします。 こ"
+"れは、従来の(非クラスタの)LVMのように適用されます。 詳細は<<s-lvm-drbd-as-"
+"pv>>を参照してください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuring your cluster to support GFS"
+msgstr "GFS対応のためのクラスタ設定"
+
+#. type: Plain text
+msgid ""
+"After you have created your new DRBD resource and <<s-rhcs-config,completed "
+"your initial cluster configuration>>, you must enable and start the "
+"following system services on both nodes of your GFS cluster:"
+msgstr ""
+"新規DRBDリソースを作成し、<<s-rhcs-config,初期クラスタ設定を完了>>したら、両"
+"ノードで以下のサービスを有効にして起動する必要があります。"
+
+#. type: Plain text
+msgid "`cman` (this also starts `ccsd` and `fenced`),"
+msgstr "`cman` (同時に `ccsd` と `fenced` を起動します)"
+
+#. type: Plain text
+msgid "`clvmd`."
+msgstr "`clvmd`."
+
+#. type: Title ===
+#, no-wrap
+msgid "Creating a GFS filesystem"
+msgstr "GFSファイルシステムの作成"
+
+#. type: Plain text
+msgid ""
+"In order to create a GFS filesystem on your dual-primary DRBD resource, you "
+"must first initialize it as a <<s-lvm-primer,Logical Volume for LVM>>."
+msgstr ""
+"デュアルプライマリのDRBDリソースでGFSファイルシステムを作成するために、まず"
+"<<s-lvm-primer,LVMの論理ボリューム>>として初期化する必要があります。"
+
+#. type: Plain text
+msgid ""
+"Contrary to conventional, non-cluster-aware LVM configurations, the "
+"following steps must be completed on only one node due to the cluster-aware "
+"nature of CLVM: indexterm:[LVM]indexterm:[pvcreate (LVM command)]indexterm:"
+"[LVM]indexterm:[vgcreate (LVM command)]indexterm:[LVM]indexterm:[lvcreate "
+"(LVM command)]"
+msgstr ""
+"従来のクラスタ非対応のLVM設定とは異なり、CLVMはクラスタ対応のため以下の手順は"
+"必ず1ノードでのみ実行してください。 indexterm:[LVM]indexterm:[pvcreate (LVM "
+"command)]indexterm:[LVM]indexterm:[vgcreate (LVM command)]indexterm:"
+"[LVM]indexterm:[lvcreate (LVM command)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# pvcreate /dev/drbd/by-res/<resource>/0\n"
+"Physical volume \"/dev/drbd<num>\" successfully created\n"
+"# vgcreate <vg-name> /dev/drbd/by-res/<resource>/0\n"
+"Volume group \"<vg-name>\" successfully created\n"
+"# lvcreate --size <size> --name <lv-name> <vg-name>\n"
+"Logical volume \"<lv-name>\" created\n"
+msgstr ""
+"# pvcreate /dev/drbd/by-res/<resource>/0\n"
+"Physical volume \"/dev/drbd<num>\" successfully created\n"
+"# vgcreate <vg-name> /dev/drbd/by-res/<resource>/0\n"
+"Volume group \"<vg-name>\" successfully created\n"
+"# lvcreate --size <size> --name <lv-name> <vg-name>\n"
+"Logical volume \"<lv-name>\" created\n"
+
+#. type: Plain text
+msgid "This example assumes a single-volume resource."
+msgstr "この例ではボリュームリソースが1つの場合を前提にしています。"
+
+#. type: Plain text
+msgid ""
+"CLVM will immediately notify the peer node of these changes; indexterm:"
+"[LVM]indexterm:[lvdisplay (LVM command)]indexterm:[LVM]indexterm:[lvs (LVM "
+"command)] issuing `lvs` (or `lvdisplay`) on the peer node will list the "
+"newly created logical volume."
+msgstr ""
+"CLVMは即座に変更を対向ノードに伝えます。indexterm:[LVM]indexterm:[lvdisplay "
+"(LVM command)]indexterm:[LVM]indexterm:[lvs (LVM command)]`lvs` (または"
+"`lvdisplay`)を対向ノードで実行すれば、新規作成の論理ボリュームが表示されま"
+"す。"
+
+#. type: Plain text
+msgid "indexterm:[GFS]Now, you may proceed by creating the actual filesystem:"
+msgstr "indexterm:[GFS]ファイルシステムの作成を行います。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# mkfs -t gfs -p lock_dlm -j 2 /dev/<vg-name>/<lv-name>\n"
+msgstr "# mkfs -t gfs -p lock_dlm -j 2 /dev/<vg-name>/<lv-name>\n"
+
+#. type: Plain text
+msgid "Or, for a GFS2 filesystem:"
+msgstr "GFS2ファイルシステムの場合は以下になります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name>\n"
+"\t/dev/<vg-name>/<lv-name>\n"
+msgstr ""
+"# mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name>\n"
+"\t/dev/<vg-name>/<lv-name>\n"
+
+#. type: Plain text
+msgid ""
+"The `-j` option in this command refers to the number of journals to keep for "
+"GFS. This must be identical to the number of nodes with concurrent _Primary_ "
+"role in the GFS cluster; since DRBD does not support more than two _Primary_ "
+"nodes until DRBD 9.1, the value to set here is always 2."
+msgstr ""
+"コマンド中の `-j` オプションは、GFSで保持するジャーナルの数を指定します。これ"
+"は同時にGFSクラスタ内で同時に `プライマリ` になるノード数と同じである必要があ"
+"ります。DRBD9までは同時に2つより多い `プライマリ` ノードをサポートしていない"
+"ので、ここで設定するのは常に2です。"
+
+#. type: Plain text
+msgid ""
+"The `-t` option, applicable only for GFS2 filesystems, defines the lock "
+"table name. This follows the format _<cluster>:<name>_, where _<cluster>_ "
+"must match your cluster name as defined in `/etc/cluster/cluster.conf`. "
+"Thus, only members of that cluster will be permitted to use the filesystem. "
+"By contrast, _<name>_ is an arbitrary file system name unique in the cluster."
+msgstr ""
+"`-t` オプションはGFS2ファイルシステムでのみ使用できます。ロックテーブル名を定"
+"義します。ここでは _<cluster>:<name>_ の形式を使用し、 _<cluster>_ は `/etc/"
+"cluster/cluster.conf` で定義したクラスタ名と一致する必要があります。そのた"
+"め、そのクラスタメンバーのみがファイルシステムを使用することができます。一方"
+"で _<name>_ はクラスタ内で一意の任意のファイルシステム名を使用できます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Using your GFS filesystem"
+msgstr "GFSファイルシステムを使用する"
+
+#. type: Plain text
+msgid "After you have created your filesystem, you may add it to `/etc/fstab`:"
+msgstr "ファイルシステムを作成したら、 `/etc/fstab` に追加することができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "/dev/<vg-name>/<lv-name> <mountpoint> gfs defaults 0 0\n"
+msgstr "/dev/<vg-name>/<lv-name> <mountpoint> gfs defaults 0 0\n"
+
+#. type: Plain text
+msgid "For a GFS2 filesystem, simply change the filesystem type:"
+msgstr "GFS2の場合にはファイルシステムタイプを変更します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "/dev/<vg-name>/<lv-name> <mountpoint> gfs2 defaults 0 0\n"
+msgstr "/dev/<vg-name>/<lv-name> <mountpoint> gfs2 defaults 0 0\n"
+
+#. type: Plain text
+msgid ""
+"Do not forget to make this change on both (or, with DRBD 9.1, all) cluster "
+"nodes."
+msgstr "この変更は必ずクラスタの両ノードで行ってください。"
+
+#. type: Plain text
+msgid ""
+"After this, you may mount your new filesystem by starting the `gfs` service "
+"(on both nodes): indexterm:[GFS]"
+msgstr ""
+"設定が終わったら `gfs` サービスを(両ノードで)開始することで、新規ファイルシス"
+"テムをマウントすることができます。 indexterm:[GFS]"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# service gfs start\n"
+msgstr "# service gfs start\n"
+
+#. type: Plain text
+msgid ""
+"From then onwards, as long as you have DRBD configured to start "
+"automatically on system startup, before the RHCS services and the `gfs` "
+"service, you will be able to use this GFS file system as you would use one "
+"that is configured on traditional shared storage."
+msgstr ""
+"以降、システムの起動時にRHCSサービスと gfs サービスの前にDRBDが自動起動するよ"
+"う設定してあれば、従来の共有ストレージのようにGFSファイルシステムを使用するこ"
+"とができます。"

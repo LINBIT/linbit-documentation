@@ -1,0 +1,1073 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2018-09-04 16:19+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "Using LVM with DRBD"
+msgstr "DRBDとLVMの使用"
+
+#. type: Plain text
+msgid ""
+"indexterm:[LVM]indexterm:[Logical Volume Management]This chapter deals with "
+"managing DRBD in conjunction with LVM2. In particular, it covers"
+msgstr ""
+"indexterm:[LVM]indexterm:[Logical Volume Management]この章では、DRBDの管理と"
+"LVM2について説明します。特に、次のような項目を取り上げます。"
+
+#. type: Plain text
+msgid "using LVM Logical Volumes as backing devices for DRBD;"
+msgstr "LVM論理ボリュームをDRBDの下位デバイスとして使用する。"
+
+#. type: Plain text
+msgid "using DRBD devices as Physical Volumes for LVM;"
+msgstr "DRBDデバイスをLVMの論理ボリュームとして使用する。"
+
+#. type: Plain text
+msgid ""
+"combining these to concepts to implement a layered LVM approach using DRBD."
+msgstr "上記の2つを組み合わせ、DRBDを使用して階層構造のLVMを実装する。"
+
+#. type: Plain text
+msgid ""
+"If you happen to be unfamiliar with these terms to begin with, <<s-lvm-"
+"primer>> may serve as your LVM starting point -- although you are always "
+"encouraged, of course, to familiarize yourself with LVM in some more detail "
+"than this section provides."
+msgstr ""
+"上述の用語についてよく知らない場合は、<<s-lvm-primer>>を参照してくださいま"
+"た、ここで説明する内容にとどまらず、LVMについてさらに詳しく理解することをお勧"
+"めします。"
+
+#. type: Title ===
+#, no-wrap
+msgid "LVM primer"
+msgstr "LVMの基礎"
+
+#. type: Plain text
+msgid ""
+"LVM2 is an implementation of logical volume management in the context of the "
+"Linux device mapper framework. It has practically nothing in common, other "
+"than the name and acronym, with the original LVM implementation. The old "
+"implementation (now retroactively named \"LVM1\") is considered obsolete; it "
+"is not covered in this section."
+msgstr ""
+"LVM2は、Linuxデバイスマッパフレームワークのコンテキストにおける論理ボリューム"
+"管理の実装です。元のLVM実装とは名前と略語を除き、実際には何の共通点もありませ"
+"ん。古い実装(現在ではLVM1と呼ばれる)は時代遅れとみなされているため、ここでは"
+"取り上げません。"
+
+#. type: Plain text
+msgid ""
+"When working with LVM, it is important to understand its most basic concepts:"
+msgstr ""
+"LVMを使用する際には、次に示す基本的なコンセプトを理解することが重要です。"
+
+#. type: Block title
+#, no-wrap
+msgid "Physical Volume (PV)"
+msgstr "物理ボリューム(PV)"
+
+#. type: Plain text
+msgid ""
+"indexterm:[LVM]indexterm:[Physical Volume (LVM)]A PV is an underlying block "
+"device exclusively managed by LVM. PVs can either be entire hard disks or "
+"individual partitions. It is common practice to create a partition table on "
+"the hard disk where one partition is dedicated to the use by the Linux LVM."
+msgstr ""
+"indexterm:[LVM]indexterm:[ぶつりぼりゅーむ(LVM)@物理ボリューム(LVM)]PV "
+"(Physical Volume: 物理ボリューム)はLVMによってのみ管理される配下のブロックデ"
+"バイスです。ハードディスク全体または個々のパーティションがPVになります。ハー"
+"ドディスクにパーティションを1つだけ作成して、これを独占的にLinux LVMで使用す"
+"るのが一般的です。"
+
+#. type: Plain text
+msgid ""
+"The partition type \"Linux LVM\" (signature `0x8E`) can be used to identify "
+"partitions for exclusive use by LVM. This, however, is not required -- LVM "
+"recognizes PVs by way of a signature written to the device upon PV "
+"initialization."
+msgstr ""
+"パーティションタイプ\"Linux LVM\" (シグネチャは `0x8E` )を使用して、LVMが独占"
+"的に使用するパーティションを識別できます。ただし、これは必須ではありません。"
+"PVの初期化時にデバイスに書き込まれるシグネチャによってLVMがPVを認識します。"
+
+#. type: Block title
+#, no-wrap
+msgid "Volume Group (VG)"
+msgstr "ボリュームグループ (VG)"
+
+#. type: Plain text
+msgid ""
+"indexterm:[LVM]indexterm:[Volume Group (LVM)]A VG is the basic "
+"administrative unit of the LVM. A VG may include one or more several PVs. "
+"Every VG has a unique name. A VG may be extended during runtime by adding "
+"additional PVs, or by enlarging an existing PV."
+msgstr ""
+"indexterm:[LVM]indexterm:[ボリュームグループ(LVM)]VG (Volume Group: ボリュー"
+"ムグループ)はLVMの基本的な管理単位です。VGは1つまたは複数のPVで構成されます。"
+"各VGは一意の名前を持ちます。実行時にPVを追加したり、PVを拡張して、VGを大きく"
+"することができます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Logical Volume (LV)"
+msgstr "Logical Volume (LV)"
+
+#. type: Plain text
+msgid ""
+"indexterm:[LVM]indexterm:[Logical Volume (LVM)]LVs may be created during "
+"runtime within VGs and are available to the other parts of the kernel as "
+"regular block devices. As such, they may be used to hold a file system, or "
+"for any other purpose block devices may be used for. LVs may be resized "
+"while they are online, and they may also be moved from one PV to another (as "
+"long as the PVs are part of the same VG)."
+msgstr ""
+"indexterm:[LVM]indexterm:[ろんりぼりゅーむ(LVM)@論理ボリューム(LVM)]実行時に"
+"VG内にLV (Logical Volume: 論理ボリューム)を作成することにより、カーネルの他の"
+"部分がこれらを通常のブロックデバイスとして使用できます。このように、LVはファ"
+"イルシステムの格納をはじめ、ブロックデバイスと同様のさまざまな用途に使用でき"
+"ます。オンライン時にLVのサイズを変更したり、1つのPVから別のPVに移動したりする"
+"ことができます(PVが同じVGに含まれる場合)。"
+
+#. type: Block title
+#, no-wrap
+msgid "Snapshot Logical Volume (SLV)"
+msgstr "スナップショット論理ボリューム (SLV)"
+
+#. type: Plain text
+msgid ""
+"indexterm:[snapshots (LVM)]indexterm:[LVM]Snapshots are temporary point-in-"
+"time copies of LVs. Creating snapshots is an operation that completes almost "
+"instantly, even if the original LV (the _origin volume_) has a size of "
+"several hundred GiByte. Usually, a snapshot requires significantly less "
+"space than the original LV."
+msgstr ""
+"indexterm:[スナップショット(LVM)]indexterm:[LVM]スナップショットはLVの一時的"
+"なポイントインタイムコピーです。元のLV(コピー元ボリューム)のサイズが数百GBの"
+"場合でも、スナップショットは一瞬で作成できます。通常、スナップショットは元の"
+"LVと比べてかなり小さい領域しか必要としません。"
+
+#. type: Block title
+#, no-wrap
+msgid "LVM overview"
+msgstr "LVM overview"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/lvm.svg"
+msgstr "images/lvm.svg"
+
+#. type: Title ===
+#, no-wrap
+msgid "Using a Logical Volume as a DRBD backing device"
+msgstr "DRBDの下位デバイスとして論理ボリュームを使用する"
+
+#. type: Plain text
+msgid ""
+"indexterm:[LVM]indexterm:[Logical Volume (LVM)]Since an existing Logical "
+"Volume is simply a block device in Linux terms, you may of course use it as "
+"a DRBD backing device. To use LV's in this manner, you simply create them, "
+"and then initialize them for DRBD as you normally would."
+msgstr ""
+"indexterm:[LVM]indexterm:[ろんりぼりゅーむ(LVM)@論理ボリューム(LVM)]Linuxで"
+"は、既存の論理ボリュームは単なるブロックデバイスであるため、これをDRBDの下位"
+"デバイスとして使用できます。この方法でLVを使用する場合は、通常通りにLVを作成"
+"してDRBD用に初期化するだけです。"
+
+#. type: Plain text
+msgid ""
+"This example assumes that a Volume Group named `foo` already exists on both "
+"nodes of on your LVM-enabled system, and that you wish to create a DRBD "
+"resource named `r0` using a Logical Volume in that Volume Group."
+msgstr ""
+"次の例では、LVM対応システムの両方のノードに `foo` というボリュームグループが"
+"すでに存在します。このボリュームグループの論理ボリュームを使用して、 `r0` と"
+"いうDRBDリソースを作成します。"
+
+#. type: Plain text
+msgid ""
+"First, you create the Logical Volume: indexterm:[LVM]indexterm:[lvcreate "
+"(LVM command)]"
+msgstr ""
+"まず、次のコマンドで論理ボリュームを作成します。 indexterm:[LVM]indexterm:"
+"[lvcreate (LVMコマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"lvcreate --name bar --size 10G foo\n"
+" Logical volume \"bar\" created\n"
+msgstr ""
+"lvcreate --name bar --size 10G foo\n"
+" Logical volume \"bar\" created\n"
+
+#. type: Plain text
+msgid ""
+"Of course, you must complete this command on both nodes of your DRBD "
+"cluster. After this, you should have a block device named `/dev/foo/bar` on "
+"either node."
+msgstr ""
+"このコマンドはDRBDクラスタの両方のノードで実行する必要があります。これで、い"
+"ずれかのノードに `/dev/foo/bar` というブロックデバイスが作成されます。"
+
+#. type: Plain text
+msgid ""
+"Then, you can simply enter the newly-created volumes in your resource "
+"configuration:"
+msgstr "次に、新しく作成したボリュームをリソース構成に加えます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  ...\n"
+"  on alice {\n"
+"    device /dev/drbd0;\n"
+"    disk   /dev/foo/bar;\n"
+"    ...\n"
+"  }\n"
+"  on bob {\n"
+"    device /dev/drbd0;\n"
+"    disk   /dev/foo/bar;\n"
+"    ...\n"
+"  }\n"
+"}\n"
+msgstr ""
+"resource r0 {\n"
+"  ...\n"
+"  on alice {\n"
+"    device /dev/drbd0;\n"
+"    disk   /dev/foo/bar;\n"
+"    ...\n"
+"  }\n"
+"  on bob {\n"
+"    device /dev/drbd0;\n"
+"    disk   /dev/foo/bar;\n"
+"    ...\n"
+"  }\n"
+"}\n"
+
+#. type: Plain text
+msgid ""
+"Now you can <<s-first-time-up,continue to bring your resource up>>, just as "
+"you would if you were using non-LVM block devices."
+msgstr ""
+"これで<<s-first-time-up,リソースを起動>>できます。手順はLVM対応以外のブロック"
+"デバイスと同様です。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Using automated LVM snapshots during DRBD synchronization"
+msgstr "DRBD同期中の自動LVMスナップショットの使用"
+
+#. type: Plain text
+msgid ""
+"While DRBD is synchronizing, the __SyncTarget__'s state is _Inconsistent_ "
+"until the synchronization completes. If in this situation the _SyncSource_ "
+"happens to fail (beyond repair), this puts you in an unfortunate position: "
+"the node with good data is dead, and the surviving node has bad data."
+msgstr ""
+"DRBDが同期をしている間、 _SyncTarget_ の状態は同期が完了するまでは "
+"_Inconsistent_ (不整合)の状態です。この状況では _SyncSource_ で(修復できない)"
+"障害があった場合に残念なことになります。正常なデータを持つノードが死に、誤っ"
+"た情報を持つノードが残ってしまいます。"
+
+#. type: Plain text
+msgid ""
+"When serving DRBD off an LVM Logical Volume, you can mitigate this problem "
+"by creating an automated snapshot when synchronization starts, and "
+"automatically removing that same snapshot once synchronization has completed "
+"successfully."
+msgstr ""
+"LVM論理ボリュームをDRBDに渡す際には、同期の開始時に自動スナップショットを作成"
+"し、またこれを完了後に自動削除する方法によって、この問題を軽減することができ"
+"ます"
+
+#. type: Plain text
+msgid ""
+"In order to enable automated snapshotting during resynchronization, add the "
+"following lines to your resource configuration:"
+msgstr ""
+"再同期中に自動でスナップショットをするには、リソース設定に以下の行を追加しま"
+"す。"
+
+#. type: Block title
+#, no-wrap
+msgid "Automating snapshots before DRBD synchronization"
+msgstr "DRBD同期前の自動スナップショット作成"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  handlers {\n"
+"    before-resync-target \"/usr/lib/drbd/snapshot-resync-target-lvm.sh\";\n"
+"    after-resync-target \"/usr/lib/drbd/unsnapshot-resync-target-lvm.sh\";\n"
+"  }\n"
+"}\n"
+msgstr ""
+"resource r0 {\n"
+"  handlers {\n"
+"    before-resync-target \"/usr/lib/drbd/snapshot-resync-target-lvm.sh\";\n"
+"    after-resync-target \"/usr/lib/drbd/unsnapshot-resync-target-lvm.sh\";\n"
+"  }\n"
+"}\n"
+
+#. type: Plain text
+msgid ""
+"The two scripts parse the `$DRBD_RESOURCE$` environment variable which DRBD "
+"automatically passes to any `handler` it invokes. The `snapshot-resync-"
+"target-lvm.sh` script then creates an LVM snapshot for every volume the "
+"resources contains immediately before synchronization kicks off. In case the "
+"script fails, the synchronization _does not commence_."
+msgstr ""
+"2つのスクリプトはDRBDが呼び出したハンドラに自動で渡す `$DRBD_RESOURCE$` 環境"
+"変数を解析します。 `snapshot-resync-target-lvm.sh` スクリプトは、同期の開始前"
+"に、リソースが含んでいるすべてのボリュームのLVMスナップショットを作成します。"
+"そのスクリプトが失敗した場合、同期は開始されません。"
+
+#. type: Plain text
+msgid ""
+"Once synchronization completes, the `unsnapshot-resync-target-lvm.sh` script "
+"removes the snapshot, which is then no longer needed. In case unsnapshotting "
+"fails, the snapshot continues to linger around."
+msgstr ""
+"同期が完了すると、 `unsnapshot-resync-target-lvm.sh` スクリプトが必要のなく"
+"なったスナップショットを削除します。スナップショットの削除に失敗した場合、ス"
+"ナップショットは残り続けます。"
+
+#. type: Plain text
+msgid ""
+"You should review dangling snapshots as soon as possible. A full snapshot "
+"causes both the snapshot itself _and its origin volume_ to fail."
+msgstr ""
+"できる限り不要なスナップショットは確認するようにしてください。スナップショッ"
+"トが満杯だと、スナップショット自身と元のボリュームの障害の原因になります。"
+
+#. type: Plain text
+msgid ""
+"If at any time your _SyncSource_ does fail beyond repair and you decide to "
+"revert to your latest snapshot on the peer, you may do so by issuing the "
+"`lvconvert -M` command."
+msgstr ""
+"_SyncSource_ に修復できない障害が起きて、最新のスナップショットに復帰したいと"
+"きには、いつでも `lvconvert -M` コマンドで行えます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuring a DRBD resource as a Physical Volume"
+msgstr "DRBDリソースを物理ボリュームとして構成する"
+
+#. type: Plain text
+msgid ""
+"indexterm:[LVM]indexterm:[Physical Volume (LVM)]In order to prepare a DRBD "
+"resource for use as a Physical Volume, it is necessary to create a PV "
+"signature on the DRBD device. In order to do so, issue one of the following "
+"commands on the node where the resource is currently in the primary role: "
+"indexterm:[LVM]indexterm:[pvcreate (LVM command)]"
+msgstr ""
+"indexterm:[LVM]indexterm:[ぶつりぼりゅーむ(LVM)@物理ボリューム(LVM)]DRBDリ"
+"ソースを物理ボリュームとして使用するためには、DRBDデバイスにPVのシグネチャを"
+"作成する必要があります。リソースが現在プライマリロールになっているノードで、 "
+"次のいずれかのコマンドを実行します。 indexterm:[LVM]indexterm:[pvcreate (LVM"
+"コマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# pvcreate /dev/drbdX\n"
+msgstr "# pvcreate /dev/drbdX\n"
+
+#. type: Plain text
+msgid "or"
+msgstr "または"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# pvcreate /dev/drbd/by-res/<resource>/0\n"
+msgstr "# pvcreate /dev/drbd/by-res/<resource>/0\n"
+
+#. type: Plain text
+msgid "This example assumes a single-volume resource."
+msgstr "この例では、ボリュームリソースが1つであることを前提にしています。"
+
+#. type: Plain text
+msgid ""
+"Now, it is necessary to include this device in the list of devices LVM scans "
+"for PV signatures. In order to do this, you must edit the LVM configuration "
+"file, normally named indexterm:[LVM]`/etc/lvm/lvm.conf`. Find the line in "
+"the `devices` section that contains the `filter` keyword and edit it "
+"accordingly. If _all_ your PVs are to be stored on DRBD devices, the "
+"following is an appropriate `filter` option: indexterm:[LVM]indexterm:"
+"[filter expression (LVM)]"
+msgstr ""
+"次に、LVMがPVシグネチャをスキャンするデバイスのリストにこのデバイスを加えま"
+"す。このためには、通常はindexterm:[LVM] `/etc/lvm/lvm.conf` という名前のLVM設"
+"定ファイルを編集する必要があります。 `devices` セクションで `filter` という"
+"キーワードを含む行を見つけて編集します。すべてののPVをDRBDデバイスに格納する"
+"場合には、次ように `filter` オプションを編集します。indexterm:[LVM]indexterm:"
+"[ふぃるたひょうげん(LVM)@フィルタ表現(LVM)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid "filter = [ \"a|drbd.*|\", \"r|.*|\" ]\n"
+msgstr "filter = [ \"a|drbd.*|\", \"r|.*|\" ]\n"
+
+#. type: Plain text
+msgid ""
+"This filter expression accepts PV signatures found on any DRBD devices, "
+"while rejecting (ignoring) all others."
+msgstr ""
+"このフィルタ表現がDRBDデバイスで見つかったPVシグネチャを受け入れ、それ以外の"
+"すべてを拒否(無視)します。"
+
+#. type: Plain text
+msgid ""
+"By default, LVM scans all block devices found in `/dev` for PV signatures. "
+"This is equivalent to `filter = [ \"a|.*|\" ]`."
+msgstr ""
+"デフォルトではLVMは `/dev` にあるすべてのブロックデバイスのPVシグネチャをス"
+"キャンします。これは `filter=[\"a|.*|\"]` に相当します。"
+
+#. type: Plain text
+msgid ""
+"If you want to use stacked resources as LVM PVs, then you will need a more "
+"explicit filter configuration. You need to make sure that LVM detects PV "
+"signatures on stacked resources, while ignoring them on the corresponding "
+"lower-level resources and backing devices. This example assumes that your "
+"lower-level DRBD resources use device minors 0 through 9, whereas your "
+"stacked resources are using device minors from 10 upwards:"
+msgstr ""
+"LVMのPVでスタックリソースを使用する場合は、より明示的にフィルタ構成を指定する"
+"必要があります。対応する下位レベルリソースや下位デバイスでPVシグネチャを無視"
+"している場合、LVMはスタックリソースでPVシグネチャを検出する必要があります。次"
+"の例では、下位レベルDRBDリソースは0から9のデバイスを使用し、スタックリソース"
+"は10以上のデバイスを使用しています。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "filter = [ \"a|drbd1[0-9]|\", \"r|.*|\" ]\n"
+msgstr "filter = [ \"a|drbd1[0-9]|\", \"r|.*|\" ]\n"
+
+#. type: Plain text
+msgid ""
+"This filter expression accepts PV signatures found only on the DRBD devices "
+"`/dev/drbd10` through `/dev/drbd19`, while rejecting (ignoring) all others."
+msgstr ""
+"このフィルタ表現は、 `/dev/drbd10` から `/dev/drbd19` までのDRBDのデバイスで"
+"見つかったPVシグニチャを受け入れ、それ以外のすべてを拒否(無視)します。"
+
+#. type: Plain text
+msgid ""
+"After modifying the `lvm.conf` file, you must run the indexterm:"
+"[LVM]indexterm:[vgscan (LVM command)]`vgscan` command so LVM discards its "
+"configuration cache and re-scans devices for PV signatures."
+msgstr ""
+"`lvm.conf` ファイルを変更したらindexterm:[LVM]indexterm:[vgscan(LVMコマン"
+"ド)] `vgscan` コマンドを実行します。LVMは構成キャッシュを破棄し、デバイスを再"
+"スキャンしてPVシグネチャを見つけます。"
+
+#. type: Plain text
+msgid ""
+"You may of course use a different `filter` configuration to match your "
+"particular system configuration. What is important to remember, however, is "
+"that you need to"
+msgstr ""
+"システム構成に合わせて、別の `filter` 構成を使用することもできます。重要なの"
+"は、次の2つです。"
+
+#. type: Plain text
+msgid "Accept (include) the DRBD devices you wish to use as PVs;"
+msgstr "PVとして使用するデバイスに、DRBDのデバイスを許容する"
+
+#. type: Plain text
+msgid ""
+"Reject (exclude) the corresponding lower-level devices, so as to avoid LVM "
+"finding duplicate PV signatures."
+msgstr ""
+"対応する下位レベルデバイスを拒否(除外)して、LVMが重複したPVシグネチャを見つけ"
+"ることを回避する。"
+
+#. type: Plain text
+msgid "In addition, you should disable the LVM cache by setting:"
+msgstr "さらに、次の設定で、LVMのキャッシュを無効にする必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "write_cache_state = 0\n"
+msgstr "write_cache_state = 0\n"
+
+#. type: Plain text
+msgid ""
+"After disabling the LVM cache, make sure you remove any stale cache entries "
+"by deleting `/etc/lvm/cache/.cache`."
+msgstr ""
+"LVMのキャッシュを無効にした後、 `/etc/lvm/cache/.cache` を削除して、古い"
+"キャッシュを削除してください。"
+
+#. type: Plain text
+msgid "You must repeat the above steps on the peer node."
+msgstr "対向ノードでも、上記の手順を繰り返します。"
+
+#. type: Plain text
+msgid ""
+"If your system has its root filesystem on LVM, Volume Groups will be "
+"activated from your initial ramdisk (initrd) during boot. In doing so, the "
+"LVM tools will evaluate an `lvm.conf` file included in the initrd image. "
+"Thus, after you make any changes to your `lvm.conf`, you should be certain "
+"to update your initrd with the utility appropriate for your distribution "
+"(`mkinitrd`, `update-initramfs` etc.)."
+msgstr ""
+"システムのルートファイルシステムがLVM上にある場合、bootの際にボリュームグルー"
+"プはイニシャルRAMディスク(initrd)から起動します。そのため、LVMツールはinitrd"
+"イメージに含まれる `lvm.conf` ファイルを検査します。そのため、 `lvm.conf` に"
+"変更を加えたら、ディストリビューションに応じてユーティリティ( `mkinitrd` 、 "
+"`update-initramfs` など)で確実にアップデートしなければなりません。"
+
+#. type: Plain text
+msgid ""
+"When you have configured your new PV, you may proceed to add it to a Volume "
+"Group, or create a new Volume Group from it. The DRBD resource must, of "
+"course, be in the primary role while doing so. indexterm:[LVM]indexterm:"
+"[vgcreate (LVM command)]"
+msgstr ""
+"新しいPVを構成したら、ボリュームグループに追加するか、 新しいボリュームグルー"
+"プを作成します。このとき、DRBDリソースがプライマリロールになっている必要があ"
+"ります。indexterm:[LVM]indexterm:[vgcreate (LVMコマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# vgcreate <name> /dev/drbdX\n"
+msgstr "# vgcreate <name> /dev/drbdX\n"
+
+#. type: Plain text
+msgid ""
+"While it is possible to mix DRBD and non-DRBD Physical Volumes within the "
+"same Volume Group, doing so is not recommended and unlikely to be of any "
+"practical value."
+msgstr ""
+"同じボリュームグループ内にDRBD物理ボリュームとDRBD以外の物理ボリュームを混在"
+"させることができますが、これはお勧めできません。また、混在させても実際には意"
+"味がないでしょう。"
+
+#. type: Plain text
+msgid ""
+"When you have created your VG, you may start carving Logical Volumes out of "
+"it, using the indexterm:[LVM]indexterm:[lvcreate (LVM command)]`lvcreate` "
+"command (as with a non-DRBD-backed Volume Group)."
+msgstr ""
+"VGを作成したら、indexterm:[LVM]indexterm:[lvcreate (LVMコマンド)] `lvcreate` "
+"コマンドを使用して、(DRBD以外を使用するボリュームグループと同様に)ここから論"
+"理ボリュームを作成します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Adding a new DRBD volume to an existing Volume Group"
+msgstr "新しいDRBDボリュームを既存のボリュームグループへ追加する"
+
+#. type: Plain text
+msgid ""
+"Occasionally, you may want to add new DRBD-backed Physical Volumes to a "
+"Volume Group. Whenever you do so, a new volume should be added to an "
+"existing resource configuration. This preserves the replication stream and "
+"ensures write fidelity across all PVs in the VG."
+msgstr ""
+"新しいDRBDでバックアップした物理ボリュームを、ボリュームグループへ追加したい"
+"といった事があるでしょう。その場合には、新しいボリュームは既存のリソース設定"
+"に追加しなければなりません。そうすることでVG内の全PVのレプリケーションスト"
+"リームと書き込みの適合度が確保されます。"
+
+#. type: Plain text
+msgid ""
+"if your LVM volume group is managed by Pacemaker as explained in <<s-lvm-"
+"pacemaker>>, it is _imperative_ to place the cluster in maintenance mode "
+"prior to making changes to the DRBD configuration."
+msgstr ""
+"LVMボリュームグループを<<s-lvm-pacemaker>>で説明しているようにPacemakerで管理"
+"している場合には、DRBD設定の変更前にクラスタメンテナンスモードになっている事"
+"が必須です。"
+
+#. type: Plain text
+msgid ""
+"Extend your resource configuration to include an additional volume, as in "
+"the following example:"
+msgstr "追加ボリュームを加えるには、リソース設定を次のように拡張します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  volume 0 {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  volume 1 {\n"
+"    device    /dev/drbd2;\n"
+"    disk      /dev/sda8;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  on alice {\n"
+"    address   10.1.1.31:7789;\n"
+"  }\n"
+"  on bob {\n"
+"    address   10.1.1.32:7789;\n"
+"  }\n"
+"}\n"
+msgstr ""
+"resource r0 {\n"
+"  volume 0 {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  volume 1 {\n"
+"    device    /dev/drbd2;\n"
+"    disk      /dev/sda8;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  on alice {\n"
+"    address   10.1.1.31:7789;\n"
+"  }\n"
+"  on bob {\n"
+"    address   10.1.1.32:7789;\n"
+"  }\n"
+"}\n"
+
+#. type: Plain text
+msgid ""
+"Make sure your DRBD configuration is identical across nodes, then issue:"
+msgstr "DRBD設定が全ノード間で同じである事を確認し、次のコマンドを発行します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdadm adjust r0\n"
+msgstr "# drbdadm adjust r0\n"
+
+#. type: Plain text
+msgid ""
+"This will implicitly call `drbdsetup new-minor r0 1` to enable the new "
+"volume `1` in the resource `r0`. Once the new volume has been added to the "
+"replication stream, you may initialize and add it to the volume group:"
+msgstr ""
+"これによって、リソース `r0` の新規ボリューム `1` を有効にするため、暗黙的に "
+"`drbdsetup new-minor r0 1` が呼び出されます。新規ボリュームがレプリケーション"
+"ストリームに追加されると、イニシャライズやボリュームグループへの追加ができる"
+"ようになります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# pvcreate /dev/drbd/by-res/<resource>/1\n"
+"# vgextend <name> /dev/drbd/by-res/<resource>/1\n"
+msgstr ""
+"# pvcreate /dev/drbd/by-res/<resource>/1\n"
+"# vgextend <name> /dev/drbd/by-res/<resource>/1\n"
+
+#. type: Plain text
+msgid ""
+"This will add the new PV `/dev/drbd/by-res/<resource>/1` to the `<name>` VG, "
+"preserving write fidelity across the entire VG."
+msgstr ""
+"で新規PVの `/dev/drbd/by-res/<resource>/1` が `<name>` VGへ追加され、VG全体に"
+"わたって書き込みの忠実性を保護します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Nested LVM configuration with DRBD"
+msgstr "DRBDを使用する入れ子のLVM構成"
+
+#. type: Plain text
+msgid ""
+"It is possible, if slightly advanced, to both use indexterm:[LVM]indexterm:"
+"[Logical Volume (LVM)]Logical Volumes as backing devices for DRBD _and_ at "
+"the same time use a DRBD device itself as a indexterm:[LVM]indexterm:"
+"[Physical Volume (LVM)]Physical Volume. To provide an example, consider the "
+"following configuration:"
+msgstr ""
+"indexterm:[LVM]indexterm:[ろんりぼりゅーむ(LVM)@論理ボリューム(LVM)]論理ボ"
+"リュームをDRBDの下位デバイスとして使用し、かつ、同時にDRBDデバイス自体を"
+"indexterm:[LVM]indexterm:[ぶつりぼりゅーむ(LVM)@物理ボリューム(LVM)]物理ボ"
+"リュームとして使用することもできます。例として、次のような構成を考えてみま"
+"しょう。"
+
+#. type: Plain text
+msgid ""
+"We have two partitions, named `/dev/sda1`, and `/dev/sdb1`, which we intend "
+"to use as Physical Volumes."
+msgstr ""
+"`/dev/sda1` と `/dev/sdb1` という2つのパーティションがあり、これらを物理ボ"
+"リュームとして使用します。"
+
+#. type: Plain text
+msgid "Both of these PVs are to become part of a Volume Group named `local`."
+msgstr "2つのPVが `local` というボリュームグループに含まれます。"
+
+#. type: Plain text
+msgid "We want to create a 10-GiB Logical Volume in this VG, to be named `r0`."
+msgstr "このGVに10GiBの論理ボリュームを作成し、 `r0` という名前を付けます。"
+
+#. type: Plain text
+msgid ""
+"This LV will become the local backing device for our DRBD resource, also "
+"named `r0`, which corresponds to the device `/dev/drbd0`."
+msgstr ""
+"このLVがDRBDリソースのローカル下位デバイスになります。名前は同じ `r0` で、デ"
+"バイス `/dev/drbd0` に対応します。"
+
+#. type: Plain text
+msgid ""
+"This device will be the sole PV for another Volume Group, named `replicated`."
+msgstr ""
+"このデバイスが `replicated` というもう1つのボリュームグループの唯一のPVになり"
+"ます。"
+
+#. type: Plain text
+msgid ""
+"This VG is to contain two more logical volumes named ``foo``(4 GiB)  and "
+"``bar``(6 GiB)."
+msgstr ""
+"このVGには `foo` (4GiB)と `bar` (6GiB)というさらに2つの論理ボリュームが含まれ"
+"ます。"
+
+#. type: Plain text
+msgid "In order to enable this configuration, follow these steps:"
+msgstr "この構成を有効にするために、次の手順を行います。"
+
+#. type: Plain text
+msgid "Set an appropriate `filter` option in your `/etc/lvm/lvm.conf`:"
+msgstr "`/etc/lvm/lvm.conf` で適切な `filter` オプションを設定します:"
+
+#. type: Plain text
+msgid "indexterm:[LVM]indexterm:[filter expression (LVM)]"
+msgstr "indexterm:[LVM]indexterm:[ふぃるたひょうげん(LVM)@フィルタ表現(LVM)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid "filter = [\"a|sd.*|\", \"a|drbd.*|\", \"r|.*|\"]\n"
+msgstr "filter = [\"a|sd.*|\", \"a|drbd.*|\", \"r|.*|\"]\n"
+
+#. type: Plain text
+msgid ""
+"This filter expression accepts PV signatures found on any SCSI and DRBD "
+"devices, while rejecting (ignoring) all others."
+msgstr ""
+"このフィルタ表現が、SCSIおよびDRBDデバイスで見つかったPVシグネチャを受け入"
+"れ、その他すべてを拒否(無視)します。"
+
+#. type: Plain text
+msgid "Disable the LVM cache by setting:"
+msgstr "LVMキャッシュ無効の設定:"
+
+#. type: Plain text
+msgid ""
+"Now, you may initialize your two SCSI partitions as PVs: indexterm:"
+"[LVM]indexterm:[pvcreate (LVM command)]"
+msgstr ""
+"ここで、2つのSCSIパーティションをPVとして初期化します。 indexterm:"
+"[LVM]indexterm:[pvcreate (LVMコマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# pvcreate /dev/sda1\n"
+"Physical volume \"/dev/sda1\" successfully created\n"
+"# pvcreate /dev/sdb1\n"
+"Physical volume \"/dev/sdb1\" successfully created\n"
+msgstr ""
+"# pvcreate /dev/sda1\n"
+"Physical volume \"/dev/sda1\" successfully created\n"
+"# pvcreate /dev/sdb1\n"
+"Physical volume \"/dev/sdb1\" successfully created\n"
+
+#. type: Plain text
+msgid ""
+"The next step is creating your low-level VG named `local`, consisting of the "
+"two PVs you just initialized: indexterm:[LVM]indexterm:[vgcreate (LVM "
+"command)]"
+msgstr ""
+"次に、初期化した2つのPVを含む `local` という名前の下位レベルVGを作成します。 "
+"indexterm:[LVM]indexterm:[vgcreate (LVMコマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# vgcreate local /dev/sda1 /dev/sda2\n"
+"Volume group \"local\" successfully created\n"
+msgstr ""
+"# vgcreate local /dev/sda1 /dev/sda2\n"
+"Volume group \"local\" successfully created\n"
+
+#. type: Plain text
+msgid ""
+"Now you may create your Logical Volume to be used as DRBD's backing device: "
+"indexterm:[LVM]indexterm:[lvcreate (LVM command)]"
+msgstr ""
+"これで、DRBDの下位デバイスとして使用する論理ボリュームを作成できます。 "
+"indexterm:[LVM]indexterm:[lvcreate (LVM コマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# lvcreate --name r0 --size 10G local\n"
+"Logical volume \"r0\" created\n"
+msgstr ""
+"# lvcreate --name r0 --size 10G local\n"
+"Logical volume \"r0\" created\n"
+
+#. type: Plain text
+msgid "Repeat all steps, up to this point, on the peer node."
+msgstr "対向ノードに対して、ここまでのすべての手順を繰り返します。"
+
+#. type: Plain text
+msgid ""
+"Then, edit your `/etc/drbd.conf` to create a new resource named `r0`: "
+"indexterm:[drbd.conf]"
+msgstr ""
+"`/etc/drbd.conf` を編集して、 `r0` という名前の新しいリソースを作成します: "
+"indexterm:[drbd.conf]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  device /dev/drbd0;\n"
+"  disk /dev/local/r0;\n"
+"  meta-disk internal;\n"
+"  on <host> { address <address>:<port>; }\n"
+"  on <host> { address <address>:<port>; }\n"
+"}\n"
+msgstr ""
+"resource r0 {\n"
+"  device /dev/drbd0;\n"
+"  disk /dev/local/r0;\n"
+"  meta-disk internal;\n"
+"  on <host> { address <address>:<port>; }\n"
+"  on <host> { address <address>:<port>; }\n"
+"}\n"
+
+#. type: Plain text
+msgid ""
+"After you have created your new resource configuration, be sure to copy your "
+"`drbd.conf` contents to the peer node."
+msgstr ""
+"新しいリソース構成を作成したら、忘れずに `drbd.conf` の内容を対向ノードにコ"
+"ピーします。"
+
+#. type: Plain text
+msgid ""
+"After this, initialize your resource as described in <<s-first-time-up>>(on "
+"both nodes)."
+msgstr "<<s-first-time-up>>に従って(両方のノードの)リソースを初期化します。"
+
+#. type: Plain text
+msgid "Then, promote your resource (on one node): indexterm:[drbdadm]"
+msgstr "一方のノードリソースを昇格します。indexterm:[drbdadm]"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdadm primary r0\n"
+msgstr "# drbdadm primary r0\n"
+
+#. type: Plain text
+msgid ""
+"Now, on the node where you just promoted your resource, initialize your DRBD "
+"device as a new Physical Volume:"
+msgstr ""
+"リソースを昇格したノードで、DRBDデバイスを新しい物理ボリュームとして初期化し"
+"ます:"
+
+#. type: Plain text
+msgid "indexterm:[LVM]indexterm:[pvcreate (LVM command)]"
+msgstr "indexterm:[LVM]indexterm:[pvcreate (LVMコマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# pvcreate /dev/drbd0\n"
+"Physical volume \"/dev/drbd0\" successfully created\n"
+msgstr ""
+"# pvcreate /dev/drbd0\n"
+"Physical volume \"/dev/drbd0\" successfully created\n"
+
+#. type: Plain text
+msgid ""
+"Create your VG named `replicated`, using the PV you just initialized, on the "
+"same node: indexterm:[LVM]indexterm:[vgcreate (LVM command)]"
+msgstr ""
+"初期化したPVを使用して、同じノードに `replicated` というVGを作成します。"
+"indexterm:[LVM]indexterm:[vgcreate (LVMコマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# vgcreate replicated /dev/drbd0\n"
+"Volume group \"replicated\" successfully created\n"
+msgstr ""
+"# vgcreate replicated /dev/drbd0\n"
+"Volume group \"replicated\" successfully created\n"
+
+#. type: Plain text
+msgid "Finally, create your new Logical Volumes within this newly-created"
+msgstr "最後に、新しく作成したこのVG内に新しい論理ボリュームを作成します。"
+
+#. type: Plain text
+msgid "VG: indexterm:[LVM]indexterm:[lvcreate (LVM command)]"
+msgstr "VG: indexterm:[LVM]indexterm:[lvcreate (LVMコマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# lvcreate --name foo --size 4G replicated\n"
+"Logical volume \"foo\" created\n"
+"# lvcreate --name bar --size 6G replicated\n"
+"Logical volume \"bar\" created\n"
+msgstr ""
+"# lvcreate --name foo --size 4G replicated\n"
+"Logical volume \"foo\" created\n"
+"# lvcreate --name bar --size 6G replicated\n"
+"Logical volume \"bar\" created\n"
+
+#. type: Plain text
+msgid ""
+"The Logical Volumes `foo` and `bar` will now be available as `/dev/"
+"replicated/foo` and `/dev/replicated/bar` on the local node."
+msgstr ""
+"これで、論理ボリューム `foo` と `bar` をローカルノードで `/dev/replicated/"
+"foo` と `/dev/replicated/bar` として使用できます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Switching the VG to the other node"
+msgstr "VG を他のノードにスイッチ"
+
+#. type: Plain text
+msgid ""
+"To make them available on the other node, first issue the following sequence "
+"of commands on the primary node: indexterm:[LVM]indexterm:[vgchange (LVM "
+"command)]"
+msgstr ""
+"他のノードでも使用できるように、プライマリノードで次のコマンドを実行します。 "
+"indexterm:[LVM]indexterm:[vgchange (LVMコマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# vgchange -a n replicated\n"
+"0 logical volume(s) in volume group \"replicated\" now active\n"
+"# drbdadm secondary r0\n"
+msgstr ""
+"# vgchange -a n replicated\n"
+"0 logical volume(s) in volume group \"replicated\" now active\n"
+"# drbdadm secondary r0\n"
+
+#. type: Plain text
+msgid ""
+"Then, issue these commands on the other (still secondary) node: indexterm:"
+"[drbdadm]indexterm:[LVM]indexterm:[vgchange (LVM command)]"
+msgstr ""
+"次に他のノード(まだセカンダリの)でコマンドを発行します。 indexterm:"
+"[drbdadm]indexterm:[LVM]indexterm:[vgchange (LVMコマンド)]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdadm primary r0\n"
+"# vgchange -a y replicated\n"
+"2 logical volume(s) in volume group \"replicated\" now active\n"
+msgstr ""
+"# drbdadm primary r0\n"
+"# vgchange -a y replicated\n"
+"2 logical volume(s) in volume group \"replicated\" now active\n"
+
+#. type: Plain text
+msgid ""
+"After this, the block devices `/dev/replicated/foo` and `/dev/replicated/"
+"bar` will be available on the other (now primary) node."
+msgstr ""
+"これでブロックデバイス `/dev/replicated/foo` と `/dev/replicated/bar` が他の"
+"(現在はプライマリの)ノードで有効になります。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Highly available LVM with Pacemaker"
+msgstr "Pacemakerによる高可用性LVM"
+
+#. type: Plain text
+msgid ""
+"The process of transferring volume groups between peers and making the "
+"corresponding logical volumes available can be automated. The Pacemaker "
+"`LVM` resource agent is designed for exactly that purpose."
+msgstr ""
+"対向ノード間でのボリュームグループの転送と、対応する有効な論理ボリュームの作"
+"成のプロセスは自動化することができます。Pacemakerの `LVM` リソースエージェン"
+"トはまさにこのために作られています。"
+
+#. type: Plain text
+msgid ""
+"In order to put an existing, DRBD-backed volume group under Pacemaker "
+"management, run the following commands in the `crm` shell:"
+msgstr ""
+"既存のPacemaker管理下にあるDRBDの下位デバイスのボリュームグループをレプリケー"
+"トするために、 `crm` シェルで次のコマンドを実行してみましょう。"
+
+#. type: Block title
+#, no-wrap
+msgid "Pacemaker configuration for DRBD-backed LVM Volume Group"
+msgstr "DRBDの下位デバイスのLVMボリュームグループに関するPacemaker設定"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"primitive p_drbd_r0 ocf:linbit:drbd \\\n"
+"  params drbd_resource=\"r0\" \\\n"
+"  op monitor interval=\"29s\" role=\"Master\" \\\n"
+"  op monitor interval=\"31s\" role=\"Slave\"\n"
+"ms ms_drbd_r0 p_drbd_r0 \\\n"
+"  meta master-max=\"1\" master-node-max=\"1\" \\\n"
+"       clone-max=\"2\" clone-node-max=\"1\" \\\n"
+"       notify=\"true\"\n"
+"primitive p_lvm_r0 ocf:heartbeat:LVM \\\n"
+"  params volgrpname=\"r0\"\n"
+"colocation c_lvm_on_drbd inf: p_lvm_r0 ms_drbd_r0:Master\n"
+"order o_drbd_before_lvm inf: ms_drbd_r0:promote p_lvm_r0:start\n"
+"commit\n"
+msgstr ""
+"primitive p_drbd_r0 ocf:linbit:drbd \\\n"
+"  params drbd_resource=\"r0\" \\\n"
+"  op monitor interval=\"29s\" role=\"Master\" \\\n"
+"  op monitor interval=\"31s\" role=\"Slave\"\n"
+"ms ms_drbd_r0 p_drbd_r0 \\\n"
+"  meta master-max=\"1\" master-node-max=\"1\" \\\n"
+"       clone-max=\"2\" clone-node-max=\"1\" \\\n"
+"       notify=\"true\"\n"
+"primitive p_lvm_r0 ocf:heartbeat:LVM \\\n"
+"  params volgrpname=\"r0\"\n"
+"colocation c_lvm_on_drbd inf: p_lvm_r0 ms_drbd_r0:Master\n"
+"order o_drbd_before_lvm inf: ms_drbd_r0:promote p_lvm_r0:start\n"
+"commit\n"
+
+#. type: Plain text
+msgid ""
+"After you have committed this configuration, Pacemaker will automatically "
+"make the `r0` volume group available on whichever node currently has the "
+"Primary (Master) role for the DRBD resource."
+msgstr ""
+"この設定を反映させると、現在のDRBDリソースのプライマリ(マスター)ロールがどち"
+"らであっても、Pacemakerは自動的に `r0` ボリュームグループを有効にします。"
+
+#~ msgid "lvm"
+#~ msgstr "lvm"

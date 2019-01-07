@@ -1,0 +1,737 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2018-11-30 16:44+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "LINSTOR Volumes in Proxmox VE"
+msgstr "Proxmox VE での LINSTOR ボリューム"
+
+#. type: Plain text
+msgid ""
+"indexterm:[Proxmox]This chapter describes DRBD in Proxmox VE via the http://"
+"git.linbit.com/linstor-proxmox.git[LINSTOR Proxmox Plugin]."
+msgstr ""
+"indexterm:[Proxmox]この章はhttps://github.com/LINBIT/linstor-proxmox."
+"git[LINSTOR Proxmox Plugin]にあるProxmox VEでのDRBDについて説明します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Proxmox VE Overview"
+msgstr "Proxmox VE概要"
+
+#. type: Plain text
+msgid ""
+"http://www.proxmox.com/en/[Proxmox VE] is an easy to use, complete server "
+"virtualization environment with KVM, Linux Containers and HA."
+msgstr ""
+"http://www.proxmox.com/en/[Proxmox VE]はKVM、Linuxコンテナ、HAとともに使われ"
+"る簡単で、完全なサーバ仮想化環境を提供します。"
+
+#. (LVM volumes on DRBD)
+#. type: Plain text
+msgid ""
+"'linstor-proxmox' is a Perl plugin for Proxmox that, in combination with "
+"LINSTOR, allows to replicate VM disks on several Proxmox VE nodes. This "
+"allows to live-migrate active VMs within a few seconds and with no downtime "
+"without needing a central SAN, as the data is already replicated to multiple "
+"nodes."
+msgstr ""
+"'linstor-proxmox'がProxmox用のPerlプラグインで、Proxmox VEの複数のノードでVM"
+"ディスクの複製にLINSTORとともに使われます。これにより実行中のVMのライブマイグ"
+"レーションが無停止でかつ中央にSANディスクを用意せずに数秒で完了します。これは"
+"データがすでに複数のノードに複製をされているからです。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Proxmox Plugin Installation"
+msgstr "Proxmoxプラグインのインストール"
+
+#. type: Plain text
+msgid ""
+"LINBIT provides a dedicated public repository for Proxmox VE users. This "
+"repository not only contains the Proxmox plugin, but the whole DRBD SDS "
+"stack including a DRBD SDS kernel module and user space utilities."
+msgstr ""
+"LINBITはProxmox VEユーザのために専用のレポジトリを公開しています。ここには"
+"ProxmoxプラグインだけでなくDRBD SDSカーネルモジュールやユーザスペースユーティ"
+"リティを含むすべてのDRBD SDSスタックが含まれます。"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"The DRBD9 kernel module is installed as a `dkms` package (i.e., `drbd-dkms`), therefore you'll have to install\n"
+"`pve-headers` package, before you set up/install the software packages from LINBIT's repositories. Following\n"
+"that order, ensures that the kernel module will build properly for your kernel. If you don't plan to install\n"
+"the latest Proxmox kernel, you have to install kernel headers matching your current running kernel (e.g.,\n"
+"\t\t`pve-headers-$(uname -r)`). If you missed this step, then still you can rebuild the dkms package against\n"
+"your current kernel, (kernel headers have to be installed in advance), by issuing `apt install --reinstall\n"
+"drbd-dkms` command.\n"
+msgstr "DRBD9のカーネルモジュールは `dkms` パッケージとして( `drbd-dkms` )インストールされるので、LINBITのレポジトリからインストールする前に `pve-headers` パッケージをインストールします。これに従うことでカーネルモジュールがこの環境用に構築されることが保証されます。最新のProxmoxカーネルでない場合は、現在のカーネルのバージョンに合う( `pve-headers-$(uname -r)` )カーネルヘッダーをインストールする必要があります。あるいは、現在のカーネルに対してdkmsパッケージを再構築する(ヘッダーをインストールする必要あります)必要がある場合は、`apt install --reinstall drbd-dkms` を実行します。\n"
+
+#. type: Plain text
+msgid ""
+"LINBIT's repository can be enabled as follows, where \"$PVERS\" should be "
+"set to your Proxmox VE *major version* (e.g., \"5\", not \"5.2\"):"
+msgstr ""
+"LINBITのレポジトリは以下の操作で有効にできます。\"$PVERS\" はProxmox VEのメ"
+"ジャーバージョンを指定します(例、\"5\")。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
+"# PVERS=5 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
+"\t/etc/apt/sources.list.d/linbit.list\n"
+"# apt update && apt install linstor-proxmox\n"
+msgstr ""
+"# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
+"# PVERS=5 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
+"\t/etc/apt/sources.list.d/linbit.list\n"
+"# apt update && apt install linstor-proxmox\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "LINSTOR Configuration"
+msgstr "LINSTORの設定"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"For the  rest of this guide we assume that you have a LINSTOR cluster configured as described in\n"
+"<<s-linstor-init-cluster>>. In the most simple case you will have one storage pool definition (e.g.,\n"
+"\t\t\"drbdpool\") and the equivalent storage pools on each PVE node. If you have multiple pools, currently the\n"
+"plugin selects one of those, but as of now you can not control which one. But usually you have only one pool\n"
+"for your DRBD resources, so that shouldn't be a problem. Also make sure to setup each node as a \"Combined\"\n"
+"node. Start the \"linstor-controller\" on one node, and the \"linstor-satellite\" on all nodes.\n"
+msgstr "以下では <<s-linstor-init-cluster>> に従ってLINSTORクラスタ構成がすでになされていると仮定します。最も簡単なケースは、１つのストレージプール(例えば\"drbdpool\")とすべてのPVEノードに同等のストレージプールを持つことです。複数のストレージプールがある場合、現在はプラグインがそのうちの１つを選択します。今のところそれらを選択はできませんが、通常はDRBDリソースは１つのプールにあります。また、すべてのノードを \"Combined\" ノードで作成してください。それで \"linstor-controller\" を１つのノードで、 \"linstor-satellite\" をすべてのノードで実行してください。\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Proxmox Plugin Configuration"
+msgstr "Proxmoxプライグインの設定"
+
+#. type: Plain text
+msgid ""
+"The final step is to provide a configuration for Proxmox itself. This can be "
+"done by adding an entry in the `/etc/pve/storage.cfg` file, with the "
+"following content, assuming a three node cluster in this example:"
+msgstr ""
+"最後の手順ではProxmox自身を設定します。これは `/etc/pve/storage.cfg` に以下の"
+"設定を加えることで行います。この例では３ノードクラスタを仮定しています。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+"   controller 10.11.12.13\n"
+msgstr ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+"   controller 10.11.12.13\n"
+
+#. type: Plain text
+msgid ""
+"The \"drbd\" entry is fixed and you are not allowed to modify it, as it "
+"tells to Proxmox to use DRBD as storage backend.  The \"drbdstorage\" entry "
+"can be modified and is used as a friendly name that will be shown in the PVE "
+"web GUI to locate the DRBD storage.  The \"content\" entry is also fixed, so "
+"do not change it. The \"redundancy\" parameter specifies how many replicas "
+"of the data will be stored in the cluster. The recommendation is to set it "
+"to \"3\", assuming that you have a three node cluster as a minimum.  The "
+"data is accessible from all nodes, even if some of them do not have local "
+"copies of the data.  For example, in a 5 node cluster, all nodes will be "
+"able to access 3 copies of the data, no matter where they are stored in. The "
+"\"controller\" parameter must be set to the IP of the node that runs the "
+"LINSTOR controller service. Only one node can be set to run as LINSTOR "
+"controller at the same time.  If that node fails, start the LINSTOR "
+"controller on another node and change that value to its IP address. There "
+"are more elegant ways to deal with this problem. For more, see later in this "
+"chapter how to setup a highly available LINSTOR controller VM in Proxmox."
+msgstr ""
+"\"drbd\" は固定で変更できません。これによりProxmoxにストレージとしてDRBDを使"
+"用することを宣言します。 \"drbdstorage\" は変更可能で、Web GUI上で表示される"
+"DRBDストレージの場所を示する名前です。\"content\" は固定で変更できません。 "
+"\"redundancy\" はクラスタ内に保つ複製数を指定します。最低３つのノードをもつク"
+"ラスタを仮定すると、推奨値は３です。例えば５ノードをもつクラスタの場合、すべ"
+"のノードがデータの３つの複製にアクセスできます。\"controller\" はLINSTORコン"
+"トローラが動作するノードのIPアドレスを指定します。同時に１つのノードだけが"
+"LINSTORコントローラとして設定できます。このノードは現在動作していなければなら"
+"ず、すでに動作していない場合は、他のノードでLINSTORコントローラを動作させ、IP"
+"アドレスを変更しなければなりません。この問題を扱うより適切な方法があります。"
+"詳細はこの章の後半の「コントローラの高可用性」を参照ください。"
+
+#. type: Plain text
+msgid ""
+"Recent versions of the plugin allow to define multiple different storage "
+"pools. Such a configuration would look like this, where \"storagepool\" is "
+"set to the name of a LINSTOR storage pool definition:"
+msgstr ""
+"最新のバージョンのプラグインは複数の異なるストレージプールをサポートします。"
+"この構成は以下のようになります。ここで \"storagepool\" が LINSTOR ストレージ"
+"プール定義の名前です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+"   # Should be set, see below\n"
+"   # storagepool drbdpool\n"
+"   controller 10.11.12.13\n"
+msgstr ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+"   # Should be set, see below\n"
+"   # storagepool drbdpool\n"
+"   controller 10.11.12.13\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"drbd: fastdrbd\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+"   storagepool ssd\n"
+"   controller 10.11.12.13\n"
+msgstr ""
+"drbd: fastdrbd\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+"   storagepool ssd\n"
+"   controller 10.11.12.13\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"drbd: slowdrbd\n"
+"   content images,rootdir\n"
+"   redundancy 2\n"
+"   storagepool rotatingrust\n"
+"   controller 10.11.12.13\n"
+msgstr ""
+"drbd: slowdrbd\n"
+"   content images,rootdir\n"
+"   redundancy 2\n"
+"   storagepool rotatingrust\n"
+"   controller 10.11.12.13\n"
+
+#. type: Plain text
+msgid ""
+"Note that if you do not set a \"storagepool\", as it is the case for "
+"\"drbdstorage\", one will be selected by an internal metric. We suggest that "
+"you either have one pool where it is optional to set \"storagepool\", or you "
+"explicitly set the storage pool name for all entries."
+msgstr ""
+"\"drbdstorage\" で \"storagepool\" を設定しない場合は、どれか１つが内部的に選"
+"択されます。プールが１つの場合は、\"storagepool\" の設定はオプションでよいで"
+"すが、複数ある場合は、すべてのプールで明示的に設定することを推奨します。"
+
+#. type: Plain text
+msgid ""
+"By now, you should be able to create VMs via Proxmox's web GUI by selecting "
+"\"__drbdstorage__\", or any other of the defined pools as storage location."
+msgstr ""
+"これらの設定後、Web GUIでVMを作成し、ストレージとして \"drbdstorage\" もしく"
+"は他の定義されているプールを選択することでDRBDボリュームを使用できます。"
+
+#. type: Block title
+#, no-wrap
+msgid "NOTE: DRBD supports only the **raw** disk format at the moment."
+msgstr "注意: DRBDは現時点で **raw** ディスクフォーマットのみをサポートします。"
+
+#. type: Plain text
+msgid ""
+"At this point you can try to live migrate the VM - as all data is accessible "
+"on all nodes (even on Diskless nodes) - it will take just a few seconds. The "
+"overall process might take a bit longer if the VM is under load and if there "
+"is a lot of RAM being dirtied all the time.  But in any case, the downtime "
+"should be minimal and you will see no interruption at all."
+msgstr ""
+"この時点で、VMのライブマイグレーションができます。すべてのノード(ディスクレス"
+"ノードでも)ですべてのデータにアクセスできるため、わずか数秒で完了します。 VM"
+"に負荷がかかっていて、ダーティメモリが常に多い場合は、全体的な処理に少し時間"
+"がかかることがあります。しかし、いずれの場合でも、ダウンタイムは最小限で、中"
+"断は全く見られません。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Making the Controller Highly-Available"
+msgstr "コントローラの高可用性"
+
+#. type: Plain text
+msgid ""
+"For the rest of this guide we assume that you installed LINSTOR and the "
+"Proxmox Plugin as described in <<s-proxmox-ls-ls-configuration>>."
+msgstr ""
+"これ以降の説明では、<<s-proxmox-ls-ls-configuration>> に基づいてLINSTORと"
+"Proxmoxプラグインがすでにインストールされていると仮定します。"
+
+#. type: Plain text
+msgid ""
+"The basic idea is to execute the LINSTOR controller within a VM that is "
+"controlled by Proxmox and its HA features, where the storage resides on DRBD "
+"managed by LINSTOR itself."
+msgstr ""
+"基本的な考え方は、ProxmoxとそのHA機能によって管理されるVM内でLINSTORコント"
+"ローラを起動するということです。このVMのストレージはLINSTORによって管理される"
+"DRBDに存在します。"
+
+#. type: Plain text
+msgid ""
+"The first step is to allocate storage for the VM: Create a VM as usual and "
+"select \"Do not use any media\" on the \"OS\" section. The hard disk should "
+"of course reside on DRBD (e.g., \"drbdstorage\"). 2GB disk space should be "
+"enough, and for RAM we chose 1GB. These are the minimum requirements for the "
+"appliance LINBIT provides to its customers (see below). If you wish to set "
+"up your own controller VM, and you have enough hardware resources available, "
+"you can increase these minimum values. In the following use case, we assume "
+"that the controller VM was created with ID 100, but it is fine if this VM "
+"was created at a later time and has a different ID."
+msgstr ""
+"最初の手順はVMのストレージを割り当てることです。通常の方法でVMを作成し、OSの"
+"選択時にどのメディアも選択しません。ハードディスクはもちろんDRBD上に "
+"(\"drbdstorage\") 作成します。ディスクスペースは2GBで十分でメモリは1GBを選択"
+"します。これらはLINBITがカスタマーに供給するアプライアンスの最小の構成要件で"
+"す。もし独自のコントローラVMを設定し、リソースに成約がない場合はこれらの最小"
+"値を増やしてください。以下の例ではコントローラVMはID100で作成されたと仮定しま"
+"すが、他のVMを作成した後にこのVMを作成する場合でも問題はありません。"
+
+#. type: Plain text
+msgid ""
+"LINBIT provides an appliance for its customers that can be used to populate "
+"the created storage. For the appliance to work, we first create a \"Serial "
+"Port\". First click on \"Hardware\" and then on \"Add\" and finally on "
+"\"Serial Port\":"
+msgstr ""
+"LINBITは作成したストレージを実装するために使うことができるアプライアンスをカ"
+"スタマーに供給しています。アプライアンスを動作させるためには、最初にシリアル"
+"ポートを作成する必要があります。ハードウェアをクリックし、追加で、シリアル"
+"ポートを選択してください。"
+
+#. type: Block title
+#, no-wrap
+msgid "Adding a Serial Port"
+msgstr "シリアルポートの追加"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/pm_add_serial1_controller_vm.png"
+msgstr "images/pm_add_serial1_controller_vm.png"
+
+#. type: Plain text
+msgid ""
+"If everything worked as expected the VM definition should then look like "
+"this:"
+msgstr "すべてがうまくいくと、VMの定義は以下のようになります。"
+
+#. type: Block title
+#, no-wrap
+msgid "VM with Serial Port"
+msgstr "シリアルポート付きのVM"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/pm_add_serial2_controller_vm.png"
+msgstr "images/pm_add_serial2_controller_vm.png"
+
+#. type: Plain text
+msgid ""
+"The next step is to copy the VM appliance to the VM disk storage. This can "
+"be done with `qemu-img`."
+msgstr ""
+"次の手順ではVMアプライアンスをVMディスクストレージにコピーします。これは "
+"`qemu-img` で行います。"
+
+#. type: Plain text
+msgid "Make sure to replace the VM ID with the correct one."
+msgstr "VM IDを適切なものに変更するようにしてください。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# qemu-img dd -O raw if=/tmp/linbit-linstor-controller-amd64.img \\\n"
+"  of=/dev/drbd/by-res/vm-100-disk-1/0\n"
+msgstr ""
+"# qemu-img dd -O raw if=/tmp/linbit-linstor-controller-amd64.img \\\n"
+"  of=/dev/drbd/by-res/vm-100-disk-1/0\n"
+
+#. type: Plain text
+msgid ""
+"Once completed you can start the VM and connect to it via the Proxmox VNC "
+"viewer. The default user name and password are both \"linbit\". Note that we "
+"kept the default configuration for the ssh server, so you will not be able "
+"to log in to the VM via ssh and username/password. If you want to enable "
+"that (and/or \"root\" login), enable these settings in `/etc/ssh/"
+"sshd_config` and restart the ssh service. As this VM is based on \"Ubuntu "
+"Bionic\", you should change your network settings (e.g., static IP) in `/etc/"
+"netplan/config.yaml`.  After that you should be able to ssh to the VM:"
+msgstr ""
+"この後、VMを起動しProxmox VNCビューワ経由でVMに接続することができます。デフォ"
+"ルトのユーザ名とパスワードはどちらも \"linbit\" です。デフォルトのssh設定を維"
+"持しているので、これらのユーザ名とパスワードでsshログインできません。ログイン"
+"を有効にする場合は、`/etc/ssh/sshd_config` でこれらを有効にしsshサービスを再"
+"起動してください。このVMは \"Ubuntu Bionic\" をベースにしているので、`/etc/"
+"netplan/config.yaml` でネットワークの設定(スタティックIPなど)が変更できます。"
+"その後、VMにsshできるようになります。"
+
+#. type: Block title
+#, no-wrap
+msgid "LINBIT LINSTOR Controller Appliance"
+msgstr "LINBIT LINSTORコントローラアプライアンス"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/pm_ssh_controller_vm.png"
+msgstr "images/pm_ssh_controller_vm.png"
+
+#. type: Plain text
+msgid "In the next step you add the controller VM to the existing cluster:"
+msgstr "次の手順で、コントローラVMを既存のクラスタに追加します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor node create --node-type Controller \\\n"
+"  linstor-controller 10.43.7.254\n"
+msgstr ""
+"# linstor node create --node-type Controller \\\n"
+"  linstor-controller 10.43.7.254\n"
+
+#. type: Plain text
+msgid ""
+"As the Controller VM will be handled in a special way by the Proxmox storage "
+"plugin (comparing to the rest of VMs), we must make sure all hosts have "
+"access to its backing storage, *before* PVE HA starts the VM, otherwise the "
+"VM will fail to start. See below for the details on how to achieve this."
+msgstr ""
+"コントローラVMは他のVMと比較して、Proxmoxストレージプラグインによって特別な方"
+"法で扱われるので、PVE HAがVMを開始する前に、すべてのホストがそのVMのストレー"
+"ジにアクセスできるようにします。そうでないとVMを開始できません。詳細は以下を"
+"参照ください。"
+
+#. type: Plain text
+msgid ""
+"In our test cluster the Controller VM disk was created in DRBD storage and "
+"it was initially assigned to one host (use `linstor resource list` to check "
+"the assignments).  Then, we used `linstor resource create` command to create "
+"additional resource assignments to the other nodes of the cluster for this "
+"VM.  In our lab consisting of four nodes, we created all resource "
+"assignments as diskful, but diskless assignments are fine as well. As a rule "
+"of thumb keep the redundancy count at \"3\" (more usually does not make "
+"sense), and assign the rest as diskless."
+msgstr ""
+"我々のテストクラスタでは、コントローラVMディスクがDRBDストレージに作成され、"
+"１つのホストに割り当てられました(割り当てを確認するには `linstor resource "
+"list` を使用)。そして、 `linstor resource create` で他のノードにもリソースを"
+"追加しました。4つのノードで構成されているラボでは、すべてのノードにリソース割"
+"り当てを行いましたが、ディスクレスでの割り当てでも問題ありません。経験則とし"
+"て、冗長数を \"3\" (それ以上はあまり使われない）に保ち、残りはディスクレスに"
+"割り当てます。"
+
+#. type: Plain text
+msgid ""
+"As the storage for the Controller VM must be made available on all PVE hosts "
+"in some way, we must make sure to enable the `drbd.service` on all hosts "
+"(given that it is not controlled by LINSTOR at this stage):"
+msgstr ""
+"この特殊なVMのストレージは、なんらかの方法ですべてのPVEホストで有効になってい"
+"なければならいので、すべてのノードで `drbd.service` を実行し有効にします(この"
+"段階ではLINSTORによって制御されていない)。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# systemctl enable drbd\n"
+"# systemctl start drbd\n"
+msgstr ""
+"# systemctl enable drbd\n"
+"# systemctl start drbd\n"
+
+#. type: Plain text
+msgid ""
+"At startup, the `linstor-satellite` service deletes all of its resource "
+"files (`*.res`) and regenerates them.  This conflicts with the `drbd` "
+"services that needs these resource files to start the controller VM. It is "
+"good enough to first bring up the resources via `drbd.service` and then "
+"start `linstor-satellite.service`. To make the necessary changes, you need "
+"to create a drop-in for the `linstor-satellite.service` via systemctl (do "
+"*not* edit the file directly)."
+msgstr ""
+"`linstor-satellite` サービスは起動時にすべてのリソースファイル (`*.res`) を削"
+"除し、再度それらを作成します。これはコントローラVMをスタートするために、これ"
+"らを必要とする `drbd` サービスと競合しますが、 `drbd.service` で最初にリソー"
+"スを UP し、その後 `linstor-satellite.service` をスタートすることで対応できま"
+"す。systemctl を通してサービスファイルを編集してください(ファイルを直接編集し"
+"ないでください)。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"systemctl edit linstor-satellite\n"
+"[Unit]\n"
+"After=drbd.service\n"
+msgstr ""
+"systemctl edit linstor-satellite\n"
+"[Unit]\n"
+"After=drbd.service\n"
+
+#. type: Plain text
+msgid "Don't forget to restart the `linstor-satellite.service`."
+msgstr "`linstor-satellite.service` を再起動することを忘れないでください。"
+
+#. type: Plain text
+msgid ""
+"After that, it is time for the final steps, namely switching from the "
+"existing controller (residing on the physical host) to the new one in the "
+"VM. So let's stop the old controller service on the physical host, and copy "
+"the LINSTOR controller database to the VM host:"
+msgstr ""
+"最後の手順として、既存のコントローラから新しいコントローラに切り替えます。既"
+"存のコントローラを止めて、LINSTORコントローラデータベースをVMホストにコピーし"
+"ます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# systemctl stop linstor-controller\n"
+"# systemctl disable linstor-controller\n"
+"# scp /var/lib/linstor/* root@10.43.7.254:/var/lib/linstor/\n"
+msgstr ""
+"# systemctl stop linstor-controller\n"
+"# systemctl disable linstor-controller\n"
+"# scp /var/lib/linstor/* root@10.43.7.254:/var/lib/linstor/\n"
+
+#. type: Plain text
+msgid "Finally, we can enable the controller in the VM:"
+msgstr "最後にコントローラVMのコントローラを有効にします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# systemctl start linstor-controller # in the VM\n"
+"# systemctl enable linstor-controller # in the VM\n"
+msgstr ""
+"# systemctl start linstor-controller # in the VM\n"
+"# systemctl enable linstor-controller # in the VM\n"
+
+#. type: Plain text
+msgid ""
+"To check if everything worked as expected, you can query the cluster nodes "
+"on a physical PVE host by asking the controller in the VM: `linstor --"
+"controllers=10.43.7.254 node list`. It is perfectly fine that the controller "
+"(which is just a Controller and not a \"Combined\" host) is shown as "
+"\"OFFLINE\". This might change in the future to something more reasonable."
+msgstr ""
+"正しく動作しているか確認するには、PVE ホストで `linstor --"
+"controllers=10.43.7.254 node list` でコントローラのVMに対してクラスタノードを"
+"問い合わせることです。ここで \"OFFLINE\" と表示されることは問題ありません。こ"
+"の表示方法は将来より適切なものに変更される可能性があります。"
+
+#. type: Plain text
+msgid ""
+"As the last -- but crucial -- step, you need to add the \"controlervm\" "
+"option to `/etc/pve/storage.cfg`, and change the controller IP address to "
+"the IP address of the Controller VM:"
+msgstr ""
+"最後に重要なこととして、 `/etc/pve/storage.cfg` に \"controlervm\" を追加し、"
+"controller のIPアドレスをVMのIPアドレスに変更する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+"   controller 10.43.7.254\n"
+"   controllervm 100\n"
+msgstr ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+"   controller 10.43.7.254\n"
+"   controllervm 100\n"
+
+#. type: Plain text
+msgid ""
+"Please note the additional setting \"controllervm\". This setting is very "
+"important, as it tells to PVE to handle the Controller VM differently than "
+"the rest of VMs stored in the DRBD storage.  In specific, it will instruct "
+"PVE to NOT use LINSTOR storage plugin for handling the Controller VM, but to "
+"use other methods instead. The reason for this, is that simply LINSTOR "
+"backend is not available at this stage.  Once the Controller VM is up and "
+"running (and the associated LINSTOR controller service inside the VM), then "
+"the PVE hosts will be able to start the rest of virtual machines which are "
+"stored in the DRBD storage by using LINSTOR storage plugin. Please make sure "
+"to set the correct VM ID in the \"controllervm\" setting. In this case is "
+"set to \"100\", which represents the ID assigned to our Controller VM."
+msgstr ""
+"ここで \"controllervm\" の追加設定に注意してください。この設定は、DRBDスト"
+"レージの他のVMと異なる方法でコントローラVMを処理するようPVEに指示することで、"
+"とても重要です。具体的には、コントローラVMの処理にLINSTORストレージプラグイン"
+"を使用せず、代わりに他の方法を使用するようPVEに指示します。この理由は、単に"
+"LINSTORがこの段階では利用できないからです。コントローラVMが起動して実行される"
+"と、PVEホストはLINSTORストレージプラグインを使用してDRBDストレージに格納され"
+"ている残りの仮想マシンを起動することができます。 \"controllervm\" の設定で正"
+"しいVM IDを設定してください。この例では、コントローラVMに割り当てられたID "
+"\"100\" が設定されます。"
+
+#. type: Plain text
+msgid ""
+"It is very important to make sure that the Controller VM is up and running "
+"at all times and that you are backing it up at regular times(mostly when you "
+"do modifications to the LINSTOR cluster). Once the VM is gone, and there are "
+"no backups, the LINSTOR cluster must be recreated from scratch."
+msgstr ""
+"また、コントローラVMが常に動作していて、定期的に（通常はLINSTORクラスタに変更"
+"を加えたときに）バックアップを取っていることを確認することはとても重要です。"
+"VMがなくなってバックアップがない場合は、LINSTORクラスタをゼロから再作成する必"
+"要があります。"
+
+#. type: Plain text
+msgid ""
+"To prevent accidental deletion of the VM, you can go to the \"Options\" tab "
+"of the VM, in the PVE GUI and enable the \"Protection\" option.  If however "
+"you accidentally deleted the VM, such requests are ignored by our storage "
+"plugin, so the VM disk will NOT be deleted from the LINSTOR cluster. "
+"Therefore, it is possible to recreate the VM with the same ID as "
+"before(simply recreate the VM configuration file in PVE and assign the same "
+"DRBD storage device used by the old VM). The plugin will just return \"OK\", "
+"and the old VM with the old data can be used again. In general, be careful "
+"to not delete the controller VM and \"protect\" it accordingly."
+msgstr ""
+"VMを誤って削除してしまうのを防ぐには、PVE GUIのVMの \"Options\" タブを開い"
+"て、  \"Protection\" を有効にします。仮にVMを誤って削除してしまった場合でも、"
+"そのような要求はストレージプラグインによって無視されるため、VMディスクは"
+"LINSTORクラスタから削除されません。したがって、以前と同じIDでVMを再作成するこ"
+"とができます（PVEでVM構成ファイルを再作成し、古いVMで使用されているものと同じ"
+"DRBDストレージデバイスを割り当てるだけです）。プラグインは \"OK\" を返し、古"
+"いデータの古いVMを再び使用できます。コントローラVMを削除しないようにし、必要"
+"に応じたプロテクトをするようにしてください。"
+
+#. type: Plain text
+msgid ""
+"Currently, we have the controller executed as VM, but we should make sure "
+"that one instance of the VM is started at all times. For that we use "
+"Proxmox's HA feature. Click on the VM, then on \"More\", and then on "
+"\"Manage HA\". We set the following parameters for our controller VM:"
+msgstr ""
+"VMによって実行されるコントローラを設定しましたので、VMの１つのインスタンスが"
+"常に実行されているようにします。これにはProxmoxのHA機能を使用します。VMをク"
+"リックし \"More\" から \"Manage HA\" を選択します。以下のパラメータをコント"
+"ローラVM用に設定します。"
+
+#. type: Block title
+#, no-wrap
+msgid "HA settings for the controller VM"
+msgstr "コントローラVMのHA設定"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/pm_manage_ha_controller_vm.png"
+msgstr "images/pm_manage_ha_controller_vm.png"
+
+#. type: Plain text
+msgid ""
+"As long as there are surviving nodes in your Proxmox cluster, everything "
+"should be fine and in case the node hosting the Controller VM is shut down "
+"or lost, Proxmox HA will make sure the controller is started on another "
+"host. Obviously the IP of the controller VM should not change. It is up to "
+"you as an administrator to make sure this is the case (e.g., setting a "
+"static IP, or always providing the same IP via dhcp on the bridged "
+"interface)."
+msgstr ""
+"Proxmoxクラスタで動作しているノードがあれば、コントローラVMはどこで実行されて"
+"もよく、現在動作しているノードがシャットダウン、もしくは停止してしまった場"
+"合、Proxmox HAは他のノードでコントローラVMが起動されるのを保証します。コント"
+"ローラVMのIPアドレスはもちろん変更されてはなりません。このような場合がないよ"
+"う、管理者の責任として正しく設定しておきます（例えば、静的IPアドレスの設定、"
+"ブリッジインターフェースのDHCPを介して同じIPアドレスを割り振るなど）。"
+
+#. type: Plain text
+msgid ""
+"It is important to mention at this point that in the case that you are using "
+"a dedicated network for the LINSTOR cluster, you must make sure that the "
+"network interfaces configured for the cluster traffic, are configured as "
+"bridges (i.e vmb1,vmbr2 etc) on the PVE hosts. If they are setup as direct "
+"interfaces (i.e eth0,eth1 etc), then you will not be able to setup the "
+"Controller VM vNIC to communicate with the rest of LINSTOR nodes in the "
+"cluster, as you cannot assign direct network interfaces to the VM, but only "
+"bridged interfaces."
+msgstr ""
+"LINSTORクラスタの専用ネットワークを使用している場合、PVEホストで構成された"
+"ネットワークインターフェイスがブリッジとして構成されているか確認する必要があ"
+"ります。それらがダイレクトインタフェース（eth0、eth1など）として設定されてい"
+"る場合、クラスタ内の残りのLINSTORノードと通信するようにコントローラVM vNICを"
+"設定することはできません。ブリッジインターフェイスだけが設定できます。"
+
+#. type: Plain text
+msgid ""
+"One limitation that is not fully handled with this setup is a total cluster "
+"outage (e.g., common power supply failure) with a restart of all cluster "
+"nodes. Proxmox is unfortunately pretty limited in this regard. You can "
+"enable the \"HA Feature\" for a VM, and you can define \"Start and Shutdown "
+"Order\" constraints. But both are completely separated from each other. "
+"Therefore it is hard/impossible to guarantee that the Controller VM will be "
+"up and running, before all other VMs are started."
+msgstr ""
+"この設定で完全には扱えない1つの制限に、すべてのクラスタノードが再起動する、ク"
+"ラスタ全体の停止(例えば、共通電源障害)があります。Proxmoxはその点でかなり制限"
+"されています。VMに対して \"HA Feature\" を有効にし、 \"Start and Shutdown "
+"Order\" で制約を定義することはできます。しかし、両者は完全に分離されていま"
+"す。従って、コントローラVMを起動してから、他のすべてのVMを起動することを保証"
+"するのは困難です。"
+
+#. type: Plain text
+msgid ""
+"It might be possible to work around that by delaying VM startup in the "
+"Proxmox plugin itself until the controller VM is up (i.e., if the plugin is "
+"asked to start the controller VM it does it, otherwise it waits and pings "
+"the controller). While a nice idea, this would horribly fail in a "
+"serialized, non-concurrent VM start/plugin call event stream where some VM "
+"should be started (which then are blocked) before the Controller VM is "
+"scheduled to be started. That would obviously result in a deadlock."
+msgstr ""
+"コントローラVMが起動するまでProxmoxプラグイン自身でVMの起動を遅らせる回避策と"
+"いうのは可能かもしれません。すなわち、プラグインがコントローラVMを起動するよ"
+"うに要求された場合はそのようにする、そうでなければ、待機し、コントローラに"
+"pingを送るという方法です。一見良いアイデアのようですが、シリアライズされた並"
+"列でないVM起動環境では動作しません。コントローラVMが起動するようスケジュール"
+"される前にあるVMが起動されなければならないような環境です。これは明らかにデッ"
+"ドロックを引き起こします。"
+
+#. type: Plain text
+msgid ""
+"We will discuss these options with Proxmox, but we think the current "
+"solution is valuable in most typical use cases, as is. Especially, compared "
+"to the complexity of a pacemaker setup. Use cases where one can expect that "
+"not the whole cluster goes down at the same time are covered. And even if "
+"that is the case, only automatic startup of the VMs would not work when the "
+"whole cluster is started. In such a scenario the admin just has to wait "
+"until the Proxmox HA service starts the controller VM.  After that all VMs "
+"can be started manually/scripted on the command line."
+msgstr ""
+"Proxmox側といろいろなオプションを話し合っていますが、今回示した方法は通常の使"
+"用法では価値があり、特にpacemakerの設定の複雑さと比較して価値があると考えま"
+"す。クラスタ全体が同時にダウンしないこのようなシナリオでは、管理者はProxmox "
+"HAサービスがコントローラVMを起動するまで待つだけでよく、その後、すべてのVMが"
+"自動的に起動されます。VMはコマンドラインで手動またはスクリプトで起動すること"
+"ができます。"

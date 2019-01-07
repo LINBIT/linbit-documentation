@@ -1,0 +1,925 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2018-09-04 16:19+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "Configuring DRBD"
+msgstr "DRBDの設定"
+
+#. type: Title ===
+#, no-wrap
+msgid "Preparing your lower-level storage"
+msgstr "下位レベルストレージの準備"
+
+#. type: Plain text
+msgid ""
+"After you have installed DRBD, you must set aside a roughly identically "
+"sized storage area on both cluster nodes. This will become the _lower-level "
+"device_ for your DRBD resource. You may use any type of block device found "
+"on your system for this purpose. Typical examples include:"
+msgstr ""
+"DRBDをインストールしたら、両方のクラスタノードにほぼ同じ容量の記憶領域を用意"
+"する必要があります。これがDRBDリソースの下位レベルデバイスになります。システ"
+"ムの任意のブロックデバイスを下位レベルデバイスとして使用できます。たとえば、"
+"次のようなものがあります。"
+
+#. type: Plain text
+msgid "A hard drive partition (or a full physical hard drive),"
+msgstr "ハードドライブのパーティション(または物理ハードドライブ全体)"
+
+#. type: Plain text
+msgid "a software RAID device,"
+msgstr "ソフトウェアRAIDデバイス"
+
+#. type: Plain text
+msgid ""
+"an LVM Logical Volume or any other block device configured by the Linux "
+"device-mapper infrastructure,"
+msgstr ""
+"LVM論理ボリュームまたはLinuxデバイスマッパインフラストラクチャによって構成さ"
+"れるその他のブロックデバイス"
+
+#. type: Plain text
+msgid "any other block device type found on your system."
+msgstr "システム内のその他のブロックデバイス。"
+
+#. type: Plain text
+msgid ""
+"You may also use _resource stacking_, meaning you can use one DRBD device as "
+"a lower-level device for another. Some specific considerations apply to "
+"stacked resources; their configuration is covered in detail in <<s-three-"
+"nodes>>."
+msgstr ""
+"リソースを積み重ねることもできます。つまり、DRBDデバイスを他のDRBDデバイスの"
+"下位レベルのデバイスとして利用することができます。リソースの積み重ねにはいく"
+"つかの注意点があります。詳しくは<<s-three-nodes>>を参照ください。"
+
+#. type: Plain text
+msgid ""
+"While it is possible to use loop devices as lower-level devices for DRBD, "
+"doing so is not recommended due to deadlock issues."
+msgstr ""
+"ループデバイスをDRBDの下位レベルデバイスとして使用することもできますが、デッ"
+"ドロックの問題があるためお勧めできません。"
+
+#. type: Plain text
+msgid ""
+"It is _not_ necessary for this storage area to be empty before you create a "
+"DRBD resource from it. In fact it is a common use case to create a two-node "
+"cluster from a previously non-redundant single-server system using DRBD "
+"(some caveats apply -- please refer to <<s-metadata>> if you are planning to "
+"do this)."
+msgstr ""
+"DRBDリソースを作成する前に、そのストレージ領域を空にしておく必要はありませ"
+"ん。DRBDを使用して、非冗長のシングルサーバシステムから、2ノードのクラスタシス"
+"テムを作成することは一般的なユースケースですが、いくつか重要な注意点がありま"
+"す。(その場合には)<<s-metadata>>を参照ください)"
+
+#. type: Plain text
+msgid "For the purposes of this guide, we assume a very simple setup:"
+msgstr "本ガイドの説明は、次のようなとてもシンプルな構成を前提としています。"
+
+#. type: Plain text
+msgid "Both hosts have a free (currently unused) partition named `/dev/sda7`."
+msgstr ""
+"両ホストには使用可能な(現在未使用の) `/dev/sda7` というパーティションがある。"
+
+#. type: Plain text
+msgid "We are using <<s-internal-meta-data,internal meta data>>."
+msgstr "<<s-internal-meta-data,内部メタデータ>>を使用する。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Preparing your network configuration"
+msgstr "ネットワーク構成の準備"
+
+#. type: Plain text
+msgid ""
+"It is recommended, though not strictly required, that you run your DRBD "
+"replication over a dedicated connection. At the time of this writing, the "
+"most reasonable choice for this is a direct, back-to-back, Gigabit Ethernet "
+"connection. When DRBD is run over switches, use of redundant components and "
+"the `bonding` driver (in `active-backup` mode) is recommended."
+msgstr ""
+"必須要件ではありませんが、DRBDによるレプリケーションの実行には、専用接続を使"
+"用することをお勧めします。この書き込みには、ギガビットイーサネットどうしを"
+"ケーブルで直結した接続が最適です。DRBDをスイッチを介して使用する場合には、冗"
+"長コンポーネントと `bonding` ドライバ( `active-backup` モードで)の使用を推奨"
+"します。"
+
+#. type: Plain text
+msgid ""
+"It is generally not recommended to run DRBD replication via routers, for "
+"reasons of fairly obvious performance drawbacks (adversely affecting both "
+"throughput and latency)."
+msgstr ""
+"一般に、ルータを介してDRBDレプリケーションを行うことはお勧めできません。ス"
+"ループットと待ち時間の両方に悪影響を及ぼし、パフォーマンスが大幅に低下しま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"In terms of local firewall considerations, it is important to understand "
+"that DRBD (by convention) uses TCP ports from 7788 upwards, with every "
+"resource listening on a separate port. DRBD uses _two_ TCP connections for "
+"every resource configured. For proper DRBD functionality, it is required "
+"that these connections are allowed by your firewall configuration."
+msgstr ""
+"ローカルファイアウォールの要件として重要な点は、通常、DRBDは7788以上のTCPポー"
+"トを使用し、それぞれのTCPリソースが個別のTCPポート上で待機するということで"
+"す。設定したリソースすべてで、DRBDは2つのTCP接続を使用します。これらの接続が"
+"許可されるようにファイアウォールを設定する必要があります。"
+
+#. type: Plain text
+msgid ""
+"Security considerations other than firewalling may also apply if a Mandatory "
+"Access Control (MAC) scheme such as SELinux or AppArmor is enabled. You may "
+"have to adjust your local security policy so it does not keep DRBD from "
+"functioning properly."
+msgstr ""
+"SELinuxやAppArmorなどのMAC (Mandatory Access Control)スキーマが有効な場合は、"
+"ファイアウォール以外のセキュリティ要件も適用される場合があります。DRBDが正し"
+"く機能するように、 必要に応じてローカルセキュリティポリシーを調整してくださ"
+"い。"
+
+#. type: Plain text
+msgid ""
+"You must, of course, also ensure that the TCP ports for DRBD are not already "
+"used by another application."
+msgstr ""
+"また、DRBDに使用するTCPポートを別のアプリケーションが使用していないことも確認"
+"してください。"
+
+#. type: Plain text
+msgid ""
+"It is not possible to configure a DRBD resource to support more than one TCP "
+"connection. If you want to provide for DRBD connection load-balancing or "
+"redundancy, you can easily do so at the Ethernet level (again, using the "
+"`bonding` driver)."
+msgstr ""
+"複数のTCPポートをサポートするようにDRBDリソースを設定することはできません。"
+"DRBD接続に負荷分散や冗長性が必要な場合は、イーサネットレベルで簡単に実現でき"
+"ます(この場合もボンディングドライバを使用してください)。"
+
+#. type: Plain text
+msgid ""
+"Our two DRBD hosts each have a currently unused network interface, `eth1`, "
+"with IP addresses `10.1.1.31` and `10.1.1.32` assigned to it, respectively."
+msgstr ""
+"2つのDRBDホストそれぞれに、現在使用されていないネットワークインタフェース "
+"`eth1` が存在する(IPアドレスはそれぞれ `10.1.1.31` と `10.1.1.32` )"
+
+#. type: Plain text
+msgid "No other services are using TCP ports 7788 through 7799 on either host."
+msgstr "どちらのホストでも他のサービスがTCPポート7788〜7799を使用していない。"
+
+#. type: Plain text
+msgid ""
+"The local firewall configuration allows both inbound and outbound TCP "
+"connections between the hosts over these ports."
+msgstr ""
+"ローカルファイアウォール設定は、これらのポートを介したホスト間のインバウンド"
+"とアウトバウンドの両方のTCP接続を許可する。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuring your resource"
+msgstr "リソースの設定"
+
+#. type: Plain text
+msgid ""
+"All aspects of DRBD are controlled in its configuration file, `/etc/drbd."
+"conf`. Normally, this configuration file is just a skeleton with the "
+"following contents:"
+msgstr ""
+"DRBDのすべての機能は、設定ファイル `/etc/drbd.conf` で制御されます。通常、こ"
+"の設定ファイルは、次のような内容となっています。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"include \"/etc/drbd.d/global_common.conf\";\n"
+"include \"/etc/drbd.d/*.res\";\n"
+msgstr ""
+"include \"/etc/drbd.d/global_common.conf\";\n"
+"include \"/etc/drbd.d/*.res\";\n"
+
+#. type: Plain text
+msgid ""
+"By convention, `/etc/drbd.d/global_common.conf` contains the <<s-drbdconf-"
+"global,`global`>> and <<s-drbdconf-common,`common`>> sections of the DRBD "
+"configuration, whereas the `.res` files contain one <<s-drbdconf-resource,"
+"`resource`>> section each."
+msgstr ""
+"通例、 `/etc/drbd.d/global_common.conf` にはDRBD設定の、<<s-drbdconf-global,"
+"global>>と<<s-drbdconf-common,common>>のセクションが含まれます。また、 `."
+"res` ファイルには各<<s-drbdconf-resource,リソース>>セクションが含まれます。"
+
+#. type: Plain text
+msgid ""
+"It is also possible to use `drbd.conf` as a flat configuration file without "
+"any `include` statements at all. Such a configuration, however, quickly "
+"becomes cluttered and hard to manage, which is why the multiple-file "
+"approach is the preferred one."
+msgstr ""
+"`drbd.conf` に `include` ステートメントを使用せずにすべての設定を記載すること"
+"も可能です。しかし、設定の見やすさの観点からは、複数のファイルに分割すること"
+"をお勧めします。"
+
+#. type: Plain text
+msgid ""
+"Regardless of which approach you employ, you should always make sure that "
+"`drbd.conf`, and any other files it includes, are _exactly identical_ on all "
+"participating cluster nodes."
+msgstr ""
+"いずれにしても `drbd.conf` や、その他の設定ファイルは、すべてのクラスタノード"
+"で正確に同じである必要があります。"
+
+#. type: Plain text
+msgid ""
+"The DRBD source tarball contains an example configuration file in the "
+"`scripts` subdirectory. Binary installation packages will either install "
+"this example configuration directly in `/etc`, or in a package-specific "
+"documentation directory such as `/usr/share/doc/packages/drbd`."
+msgstr ""
+"DRBDのソースtarファイルの `scripts` サブディレクトリに、サンプル設定ファイル"
+"があります。バイナリインストールパッケージの場合、サンプル設定ファイルは直接 "
+"`/etc` にインストールされるか、 `/usr/share/doc/packages/drbd` などのパッケー"
+"ジ固有の文書ディレクトリにインストールされます。"
+
+#. type: Plain text
+msgid ""
+"This section describes only those few aspects of the configuration file "
+"which are absolutely necessary to understand in order to get DRBD up and "
+"running. The configuration file's syntax and contents are documented in "
+"great detail in the man page of `drbd.conf`."
+msgstr ""
+"このセクションは、DRBDの使用を開始するため、必ず理解しておく必要のある設定"
+"ファイルの項目についての説明です。設定ファイルの構文と内容の詳細については、 "
+"`drbd.conf` のマニュアルページを参照してください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Example configuration"
+msgstr "設定例"
+
+#. type: Plain text
+msgid ""
+"For the purposes of this guide, we assume a minimal setup in line with the "
+"examples given in the previous sections:"
+msgstr ""
+"本ガイドでの説明は、前章で挙げた例をもとした最小限の構成を前提としています。"
+
+#. type: Block title
+#, no-wrap
+msgid "Simple DRBD configuration (`/etc/drbd.d/global_common.conf`)"
+msgstr "シンプルなDRBD構成例( `/etc/drbd.d/global_common.conf` )"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"global {\n"
+"  usage-count yes;\n"
+"}\n"
+"common {\n"
+"  net {\n"
+"    protocol C;\n"
+"  }\n"
+"}\n"
+msgstr ""
+"global {\n"
+"  usage-count yes;\n"
+"}\n"
+"common {\n"
+"  net {\n"
+"    protocol C;\n"
+"  }\n"
+"}\n"
+
+#. type: Block title
+#, no-wrap
+msgid "Simple DRBD resource configuration (`/etc/drbd.d/r0.res`)"
+msgstr "シンプルなDRBDリソースの構成例( `/etc/drbd.d/r0.res` )"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  on alice {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    address   10.1.1.31:7789;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  on bob {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    address   10.1.1.32:7789;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"}\n"
+msgstr ""
+"resource r0 {\n"
+"  on alice {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    address   10.1.1.31:7789;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  on bob {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    address   10.1.1.32:7789;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"}\n"
+
+#. type: Plain text
+msgid "This example configures DRBD in the following fashion:"
+msgstr "この例では、DRBDが次のように構成されます。"
+
+#. type: Plain text
+msgid ""
+"You \"opt in\" to be included in DRBD's usage statistics (see <<fp-usage-"
+"count>>)."
+msgstr ""
+"DRBDの使用状況の統計をオプトインとして含める(<<fp-usage-count, `usage-count` "
+">>を参照)."
+
+#. type: Plain text
+msgid ""
+"Resources are configured to use fully synchronous replication (<<s-"
+"replication-protocols,Protocol C>>) unless explicitly specified otherwise."
+msgstr ""
+"完全に同期したレプリケーションを使用するようにリソースを設定する(<<s-"
+"replication-protocols,Protocol C>>)"
+
+#. type: Plain text
+msgid "Our cluster consists of two nodes, 'alice' and 'bob'."
+msgstr "クラスタには2つのノード 'alice' と 'bob' がある。"
+
+#. type: Plain text
+msgid ""
+"We have a resource arbitrarily named `r0` which uses `/dev/sda7` as the "
+"lower-level device, and is configured with <<s-internal-meta-data,internal "
+"meta data>>."
+msgstr ""
+"任意の名前 `r0` を持つリソースがあり `/dev/sda7` 下位レベルデバイスとして使用"
+"する。このリソースは、<<s-internal-meta-data,内部メタデータ>>によって設定され"
+"ている。"
+
+#. type: Plain text
+msgid ""
+"The resource uses TCP port 7789 for its network connections, and binds to "
+"the IP addresses 10.1.1.31 and 10.1.1.32, respectively."
+msgstr ""
+"リソースはネットワーク接続にTCPポート7789を使用し、それぞれIPアドレス"
+"10.1.1.31と10.1.1.32にバインドされる。"
+
+#. type: Plain text
+msgid ""
+"The configuration above implicitly creates one volume in the resource, "
+"numbered zero (`0`). For multiple volumes in one resource, modify the syntax "
+"as follows:"
+msgstr ""
+"暗黙的に、上記の設定はリソースの1つのボリュームを作成し、ゼロ( `0` )番号が付"
+"与されます。1つのリソースに複数のボリュームを設定する場合には、次のようにしま"
+"す。"
+
+#. type: Block title
+#, no-wrap
+msgid "Multi-volume DRBD resource configuration (`/etc/drbd.d/r0.res`)"
+msgstr "複数ボリュームのDRBDリソース構成例( `/etc/drbd.d/r0.res` )"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  volume 0 {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  volume 1 {\n"
+"    device    /dev/drbd2;\n"
+"    disk      /dev/sda8;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  on alice {\n"
+"    address   10.1.1.31:7789;\n"
+"  }\n"
+"  on bob {\n"
+"    address   10.1.1.32:7789;\n"
+"  }\n"
+"}\n"
+msgstr ""
+"resource r0 {\n"
+"  volume 0 {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  volume 1 {\n"
+"    device    /dev/drbd2;\n"
+"    disk      /dev/sda8;\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  on alice {\n"
+"    address   10.1.1.31:7789;\n"
+"  }\n"
+"  on bob {\n"
+"    address   10.1.1.32:7789;\n"
+"  }\n"
+"}\n"
+
+#. type: Plain text
+msgid ""
+"Volumes may also be added to existing resources on the fly. For an example "
+"see <<s-lvm-add-pv>>."
+msgstr ""
+"ボリュームは既存のデバイスの動作中にも追加できます。<<s-lvm-add-pv>>を参照く"
+"ださい。"
+
+#. type: Title ====
+#, no-wrap
+msgid "The `global` section"
+msgstr "`global` セクション"
+
+#. type: Plain text
+msgid ""
+"This section is allowed only once in the configuration. It is normally in "
+"the `/etc/drbd.d/global_common.conf` file. In a single-file configuration, "
+"it should go to the very top of the configuration file. Of the few options "
+"available in this section, only one is of relevance to most users:"
+msgstr ""
+"このセクションは設定の中で1回しか使用できません。通常この設定は `/etc/drbd.d/"
+"global_common.conf` ファイルに記述します。設定ファイルが1つの場合は、設定ファ"
+"イルの一番上に記述します。このセクションで使用できるオプションはわずかです"
+"が、ほとんどのユーザの場合、必要なのは次の1つだけです。"
+
+#. type: Block title
+#, no-wrap
+msgid "`usage-count`"
+msgstr "`usage-count`"
+
+#. type: Plain text
+msgid ""
+"The DRBD project keeps statistics about the usage of various DRBD versions. "
+"This is done by contacting an HTTP server every time a new DRBD version is "
+"installed on a system. This can be disabled by setting `usage-count no;`.  "
+"The default is `usage-count ask;` which will prompt you every time you "
+"upgrade DRBD."
+msgstr ""
+"DRBDプロジェクトはさまざまなバージョンのDRBDの使用状況について統計を取りま"
+"す。これは、システムに新規のDRBDバージョンがインストールされるたびに、HTTP"
+"サーバに接続することにより実行されます。これを無効にするには、 `usage-count "
+"no;` と指定します。デフォルトは `usage-count ask;` で、DRBDをアップグレードす"
+"るたびにプロンプトが表示されます。"
+
+#. type: Plain text
+msgid ""
+"DRBD's usage statistics are, of course, publicly available: see http://usage."
+"drbd.org."
+msgstr ""
+"DRBDの使用状況の統計は公開されています。http://usage.drbd.org[http://usage."
+"drbd.org]をご参照ください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "The `common` section"
+msgstr "`common` セクション"
+
+#. type: Plain text
+msgid ""
+"This section provides a shorthand method to define configuration settings "
+"inherited by every resource. It is normally found in `/etc/drbd.d/"
+"global_common.conf`. You may define any option you can also define on a per-"
+"resource basis."
+msgstr ""
+"このセクションで、各リソースに継承される設定を簡単に定義できます。通常この設"
+"定は `/etc/drbd.d/global_common.conf` に記述します。ここで定義するオプション"
+"は、リソースごとに定義することもできます。"
+
+#. type: Plain text
+msgid ""
+"Including a `common` section is not strictly required, but strongly "
+"recommended if you are using more than one resource. Otherwise, the "
+"configuration quickly becomes convoluted by repeatedly-used options."
+msgstr ""
+"`common` セクションは必須ではありませんが、複数のリソースを使用する場合は、記"
+"述することを強くお勧めします。これにより、オプションを繰り返し使用することに"
+"よって設定が複雑になることを回避できます。"
+
+#. type: Plain text
+msgid ""
+"In the example above, we included `net { protocol C; }` in the `common` "
+"section, so every resource configured (including `r0`)  inherits this option "
+"unless it has another `protocol` option configured explicitly. For other "
+"synchronization protocols available, see <<s-replication-protocols>>."
+msgstr ""
+"上記の例では、 `net{ protocol C;}` が `common` セクションで指定されているた"
+"め、設定されているすべてのリソース( `r0` 含む)がこのオプションを継承します。"
+"ただし、明示的に別の `protocol` オプションが指定されている場合は除きます。使"
+"用可能なその他の同期プロトコルについては、<<s-replication-protocols>>を参照し"
+"てください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "The `resource` sections"
+msgstr "`resource` セクション"
+
+#. type: Plain text
+msgid ""
+"A per-resource configuration file is usually named `/etc/drbd.d/<resource>."
+"res`.  Any DRBD resource you define must be named by specifying resource "
+"name in the configuration. You may use any arbitrary identifier, however the "
+"name must not contain characters other than those found in the US-ASCII "
+"character set, and must also not include whitespace."
+msgstr ""
+"各リソースの設定ファイルは、通常 `/etc/drbd.d/<resource>.res` という名前にし"
+"ます。定義するDRBDリソースは、設定ファイルでresource nameを指定して名前を付け"
+"る必要があります。任意の名前を使用できますが、空白を除くUS-ASCII文字セットを"
+"使う必要があります。"
+
+#. type: Plain text
+msgid ""
+"Every resource configuration must also have two `on <host>` sub-sections "
+"(one for every cluster node). All other configuration settings are either "
+"inherited from the `common` section (if it exists), or derived from DRBD's "
+"default settings."
+msgstr ""
+"各リソースには2つの `on <host>` サブセクションも必要です(各クラスタノードに1"
+"つずつ)。その他すべての設定は `common` セクション(記述した場合)から継承される"
+"か、DRBDのデフォルト設定から取得されます。"
+
+#. type: Plain text
+msgid ""
+"In addition, options with equal values on both hosts can be specified "
+"directly in the `resource` section. Thus, we can further condense our "
+"example configuration as follows:"
+msgstr ""
+"さらに、オプションの値が両方のホストで等しい場合は、直接 `resource` セクショ"
+"ンで指定することができます。このため、設定例は次のように短くすることができま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  device    /dev/drbd1;\n"
+"  disk      /dev/sda7;\n"
+"  meta-disk internal;\n"
+"  on alice {\n"
+"    address   10.1.1.31:7789;\n"
+"  }\n"
+"  on bob {\n"
+"    address   10.1.1.32:7789;\n"
+"  }\n"
+"}\n"
+msgstr ""
+"resource r0 {\n"
+"  device    /dev/drbd1;\n"
+"  disk      /dev/sda7;\n"
+"  meta-disk internal;\n"
+"  on alice {\n"
+"    address   10.1.1.31:7789;\n"
+"  }\n"
+"  on bob {\n"
+"    address   10.1.1.32:7789;\n"
+"  }\n"
+"}\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Enabling your resource for the first time"
+msgstr "リソースを初めて有効にする"
+
+#. type: Plain text
+msgid ""
+"After you have completed initial resource configuration as outlined in the "
+"previous sections, you can bring up your resource."
+msgstr ""
+"すでに述べた手順に従って最初のリソース設定を完了したら、リソースを稼働させま"
+"す。"
+
+#. type: Plain text
+msgid "Each of the following steps must be completed on both nodes."
+msgstr "両方のノードに対して、次の手順を行います。"
+
+#. type: Plain text
+msgid ""
+"Please note that with our example config snippets (`resource r0 { ... }`), "
+"`<resource>` would be `r0`."
+msgstr ""
+"さきほどの構成例( `resource r0{ ... }` )では、 `<resource>` は `r0` となりま"
+"す。"
+
+#. type: Block title
+#, no-wrap
+msgid "Create device metadata"
+msgstr "メタデータを作成する"
+
+#. type: Plain text
+msgid ""
+"This step must be completed only on initial device creation. It initializes "
+"DRBD's metadata:"
+msgstr ""
+"この手順は、最初にデバイスを作成するときにのみ必要です。これにより、DRBDのメ"
+"タデータを初期化します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdadm create-md <resource>\n"
+"v08 Magic number not found\n"
+"Writing meta data...\n"
+"initialising activity log\n"
+"NOT initializing bitmap\n"
+"New drbd meta data block sucessfully created.\n"
+msgstr ""
+"# drbdadm create-md <resource>\n"
+"v08 Magic number not found\n"
+"Writing meta data...\n"
+"initialising activity log\n"
+"NOT initializing bitmap\n"
+"New drbd meta data block sucessfully created.\n"
+
+#. type: Block title
+#, no-wrap
+msgid "Enable the resource"
+msgstr "リソースを有効にする"
+
+#. type: Plain text
+msgid ""
+"This step associates the resource with its backing device (or devices, in "
+"case of a multi-volume resource), sets replication parameters, and connects "
+"the resource to its peer:"
+msgstr ""
+"これにより、リソースとそのバッキングデバイス(マルチボリュームリソースの場合"
+"は、すべてのデバイス)とを結びつけます。また、対向ノードのリソースと接続しま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdadm up <resource>\n"
+msgstr "# drbdadm up <resource>\n"
+
+#. type: Block title
+#, no-wrap
+msgid "Observe `/proc/drbd`"
+msgstr "Observe `/proc/drbd`"
+
+#. type: Plain text
+msgid ""
+"DRBD's virtual status file in the `/proc` filesystem, `/proc/drbd`, should "
+"now contain information similar to the following:"
+msgstr ""
+"`/proc` ファイルシステムにあるDRBDの仮想状態ファイル `/proc/drbd` ,に次のよう"
+"な情報が記述されています。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# cat /proc/drbd\n"
+"version: 8.4.1 (api:1/proto:86-100)\n"
+"GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 2011-12-20 12:58:48\n"
+" 0: cs:Connected ro:Secondary/Secondary ds:Inconsistent/Inconsistent C r-----\n"
+"    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:524236\n"
+msgstr ""
+"# cat /proc/drbd\n"
+"version: 8.4.1 (api:1/proto:86-100)\n"
+"GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 2011-12-20 12:58:48\n"
+" 0: cs:Connected ro:Secondary/Secondary ds:Inconsistent/Inconsistent C r-----\n"
+"    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:524236\n"
+
+#. type: Plain text
+msgid ""
+"The __Inconsistent__/__Inconsistent__ disk state is expected at this point."
+msgstr ""
+"この時点では __Inconsistent__/__Inconsistent__ のディスク状態になっているはず"
+"です。"
+
+#. type: Plain text
+msgid ""
+"By now, DRBD has successfully allocated both disk and network resources and "
+"is ready for operation. What it does not know yet is which of your nodes "
+"should be used as the source of the initial device synchronization."
+msgstr ""
+"これで、DRBDがディスクリソースとネットワークリソースに正しく割り当てられ、稼"
+"働できるようになりました。次に、どちらのノードをデバイスの初期同期のソースと"
+"して使用するか指定する必要があります。"
+
+#. type: Title ===
+#, no-wrap
+msgid "The initial device synchronization"
+msgstr "デバイスの初期同期"
+
+#. type: Plain text
+msgid "There are two more steps required for DRBD to become fully operational:"
+msgstr "DRBDを完全に機能させるには、さらに次の2つの手順が必要です。"
+
+#. type: Block title
+#, no-wrap
+msgid "Select an initial sync source"
+msgstr "同期元を選択する"
+
+#. type: Plain text
+msgid ""
+"If you are dealing with newly-initialized, empty disk, this choice is "
+"entirely arbitrary. If one of your nodes already has valuable data that you "
+"need to preserve, however, _it is of crucial importance_ that you select "
+"that node as your synchronization source.  If you do initial device "
+"synchronization in the wrong direction, you will lose that data. Exercise "
+"caution."
+msgstr ""
+"新しく初期化した空のディスクを使用する場合は、任意のディスクを同期元にできま"
+"す。いずれかのノードにすでに重要なデータが格納されている場合は、十分注意して"
+"必ずそのノードを同期元として選択してください。デバイスの初期同期の方向が誤っ"
+"ていると、データを失うおそれがあります。慎重に行ってください。"
+
+#. type: Block title
+#, no-wrap
+msgid "Start the initial full synchronization"
+msgstr "初期フル同期を開始する"
+
+#. type: Plain text
+msgid ""
+"This step must be performed on only one node, only on initial resource "
+"configuration, and only on the node you selected as the synchronization "
+"source. To perform this step, issue this command:"
+msgstr ""
+"この手順は、最初のリソース設定の際に、同期ソースとして選択した1つのノードに対"
+"してのみ実行します。次のコマンドで実行します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdadm primary --force <resource>\n"
+msgstr "# drbdadm primary --force <resource>\n"
+
+#. type: Plain text
+msgid ""
+"After issuing this command, the initial full synchronization will commence. "
+"You will be able to monitor its progress via `/proc/drbd`. It may take some "
+"time depending on the size of the device."
+msgstr ""
+"このコマンドを指定すると、初期フル同期が開始します。 `/proc/drbd` で同期の進"
+"行状況を監視できます。デバイスのサイズによっては、同期に時間がかかる場合があ"
+"ります。"
+
+#. type: Plain text
+msgid ""
+"By now, your DRBD device is fully operational, even before the initial "
+"synchronization has completed (albeit with slightly reduced performance). "
+"You may now create a filesystem on the device, use it as a raw block device, "
+"mount it, and perform any other operation you would with an accessible block "
+"device."
+msgstr ""
+"この時点で、初期同期が完了していなくてもDRBDデバイスは完全に稼働します。(ただ"
+"し、パフォーマンスはいくらか低いです。)次に、デバイスのファイルシステムを作成"
+"します。これを下位ブロックデバイスとして使用し、マウントして、アクセス可能な"
+"ブロックデバイスでさまざまな操作を実行することができます。"
+
+#. type: Plain text
+msgid ""
+"You will now probably want to continue with <<ch-admin>>, which describes "
+"common administrative tasks to perform on your resource."
+msgstr ""
+"リソースに対して一般的な管理タスクを行う場合は、<<ch-admin>>に進んでくださ"
+"い。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Using truck based replication"
+msgstr "トラックベースのレプリケーションの使用"
+
+#. type: Plain text
+msgid ""
+"In order to preseed a remote node with data which is then to be kept "
+"synchronized, and to skip the initial device synchronization, follow these "
+"steps."
+msgstr ""
+"リモートノードに同期するデータを前もってロードし、デバイスの初期同期をスキッ"
+"プする場合は、次の手順を行います。"
+
+#. type: Plain text
+msgid ""
+"This assumes that your local node has a configured, but disconnected DRBD "
+"resource in the Primary role.  That is to say, device configuration is "
+"completed, identical `drbd.conf` copies exist on both nodes, and you have "
+"issued the commands for <<s-initial-full-sync,initial resource promotion>> "
+"on your local node -- but the remote node is not connected yet."
+msgstr ""
+"これは、ローカルノードに設定済みだが接続されていないプライマリロールのDRBDリ"
+"ソースがあることを前提とします。つまり、デバイスの設定が完了し、両方のノード"
+"に同一の `drbd.conf` のコピーが存在し<<s-initial-full-sync,最初のリソース昇格"
+">>をローカルノードで実行するコマンドを発行したが、リモートノードがまだ接続さ"
+"れていない状態です。"
+
+#. type: Plain text
+msgid "On the local node, issue the following command:"
+msgstr "ローカルノードで次のコマンドを実行します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdadm new-current-uuid --clear-bitmap <resource>\n"
+msgstr "# drbdadm new-current-uuid --clear-bitmap <resource>\n"
+
+#. type: Plain text
+msgid ""
+"Create a consistent, verbatim copy of the resource's data _and its "
+"metadata_. You may do so, for example, by removing a hot-swappable drive "
+"from a RAID-1 mirror.  You would, of course, replace it with a fresh drive, "
+"and rebuild the RAID set, to ensure continued redundancy. But the removed "
+"drive is a verbatim copy that can now be shipped off site.  If your local "
+"block device supports snapshot copies (such as when using DRBD on top of "
+"LVM), you may also create a bitwise copy of that snapshot using `dd`."
+msgstr ""
+"リソースのデータおよびそのメタデータの正確に同一のコピーを作成します。たとえ"
+"ば、ホットスワップ可能なRAID-1ドライブの一方を抜き取ります。この場合は、もち"
+"ろん新しいドライブをセットしてRAIDセットを再構築しておくべきでしょう。抜き"
+"取ったドライブは、正確なコピーとしてリモートサイトに移動できます。別の方法と"
+"しては、ローカルのブロックデバイスがスナップショットコピーをサポートする場合"
+"(LVMの上位でDRBDを使用する場合など)は、 `dd` を使用してスナップショットのビッ"
+"ト単位のコピーを作ってもかまいません。"
+
+#. type: Plain text
+msgid "On the local node, issue:"
+msgstr "ローカルノードで次のコマンドを実行します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdadm new-current-uuid <resource>\n"
+msgstr "# drbdadm new-current-uuid <resource>\n"
+
+#. type: Plain text
+msgid ""
+"Note the absence of the `--clear-bitmap` option in this second invocation."
+msgstr "この2回目のコマンドには `--clear-bitmap` がありません。"
+
+#. type: Plain text
+msgid "Physically transport the copies to the remote peer location."
+msgstr "対向ホストの設置場所にコピーを物理的に移動します。"
+
+#. type: Plain text
+msgid ""
+"Add the copies to the remote node. This may again be a matter of plugging a "
+"physical disk, or grafting a bitwise copy of your shipped data onto existing "
+"storage on the remote node.  Be sure to restore or copy not only your "
+"replicated data, but also the associated DRBD metadata. If you fail to do "
+"so, the disk shipping process is moot."
+msgstr ""
+"コピーをリモートノードに追加します。ここでも物理ディスクを接続するか、リモー"
+"トノードの既存のストレージに移動したデータのビット単位のコピーを追加します。"
+"レプリケートしたデータだけでなく、関連するDRBDメタデータも必ず復元するかコ"
+"ピーしてください。そうでない場合、ディスクの移動を正しく行うことができませ"
+"ん。"
+
+#. type: Plain text
+msgid "Bring up the resource on the remote node:"
+msgstr "リモートノードで次のコマンドを実行します。"
+
+#. type: Plain text
+msgid ""
+"After the two peers connect, they will not initiate a full device "
+"synchronization. Instead, the automatic synchronization that now commences "
+"only covers those blocks that changed since the invocation of "
+"`drbdadm{nbsp}--clear-bitmap{nbsp}new-current-uuid`."
+msgstr ""
+"2つのホストを接続しても、デバイスのフル同期は開始されません。代わりに、 "
+"`drbdadm --clear-bitmap new-current-uuid` の呼び出し以降に変更されたブロック"
+"のみを対象とする自動同期が開始します。"
+
+#. type: Plain text
+msgid ""
+"Even if there were _no_ changes whatsoever since then, there may still be a "
+"brief synchronization period due to areas covered by the <<s-activity-log,"
+"Activity Log>> being rolled back on the new Secondary. This may be mitigated "
+"by the use of <<p-checksum-sync,checksum-based synchronization>>."
+msgstr ""
+"以降、データの変更が全くない場合でも、<<s-activity-log,アクティビティログ>>の"
+"領域が含まれるため、それの同期が短時間行われます。これは<<p-checksum-sync,"
+"チェックサムベースの同期>>を使用することで緩和されます。"
+
+#. type: Plain text
+msgid ""
+"You may use this same procedure regardless of whether the resource is a "
+"regular DRBD resource, or a stacked resource. For stacked resources, simply "
+"add the `-S` or `--stacked` option to `drbdadm`."
+msgstr ""
+"この手順は、リソースが通常のDRBDリソースの場合でもスタックリソースの場合でも"
+"使用できます。スタックリソースの場合は、 `-S` または `--stacked` オプション"
+"を `drbdadm` に追加します。"

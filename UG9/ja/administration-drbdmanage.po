@@ -1,0 +1,1296 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2018-09-11 08:47+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "DRBD Manage"
+msgstr "DRBD Manage"
+
+#. type: Plain text
+msgid ""
+"DRBD Manage will reach its EoL end of 2018 and will be replaced by LINSTOR. "
+"Currently, LINSTOR is in alpha state. As soon as it is usable for customers "
+"we will add a section to the Users Guide describing LINSTOR."
+msgstr ""
+
+#. type: Plain text
+msgid ""
+"DRBD Manage is an abstraction layer which takes over management of logical "
+"volumes (LVM) and management of configuration files for DRBD. Features of "
+"DRBD Manage include creating, resizing, and removing of replicated volumes.  "
+"Additionally, DRBD Manage handles taking snapshots and creating volumes in "
+"consistency groups."
+msgstr ""
+"DRBD Manageは論理ボリューム(LVM)とDRBDの設定ファイルの管理を行う抽象化レイ"
+"ヤーです。DRBD Manageの機能には、DRBDボリュームの作成、リサイズ、削除が含まれ"
+"ます。 また、DRBD ManageはDRBD領域のスナップショット作成やボリューム作成も制"
+"御します。"
+
+#. type: Plain text
+msgid ""
+"This chapter outlines typical administrative tasks encountered during day-to-"
+"day operations. It does not cover troubleshooting tasks, these are covered "
+"in detail in <<ch-troubleshooting>>. If you plan to use 'LVM' as storage "
+"plugin, please see read section <<s-config-lvm>> *now*, and then return to "
+"this point."
+msgstr ""
+"この章では一般的なオペレーションでの管理作業を説明します。トラブルシューティ"
+"ングについては扱いません。トラブルシューティングについては<<ch-"
+"troubleshooting>>を参照ください。ストレージプラグインとして LVM を使用する場"
+"合は、<<s-config-lvm>> セクションを読んでから、ここに戻ってきてください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Initializing your cluster"
+msgstr "クラスタの初期設定"
+
+#. type: Plain text
+msgid ""
+"We assume that the following steps are accomplished on *all* cluster nodes:"
+msgstr ""
+"前提として、以下の手順が *すべての* クラスタノードで行われている必要がありま"
+"す。"
+
+#. type: Plain text
+msgid "The DRBD9 kernel module is installed and loaded"
+msgstr "DRBD9のカーネルモジュールがインストールされてロードされている。"
+
+#. type: Plain text
+msgid "`drbd-utils` are installed"
+msgstr "`drbd-utils` がインストールされている。"
+
+#. type: Plain text
+msgid "`LVM` tools are installed"
+msgstr "`LVM` toolsがインストールされている。"
+
+#. type: Plain text
+msgid "`drbdmanage` and its dependencies are installed"
+msgstr ""
+"`drbdmanage` と、その依存関係のあるパッケージがインストールされている。"
+
+#. type: Plain text
+msgid ""
+"Note that drbdmanage uses dbus-activation to start its server component when "
+"necessary, do not start the server manually."
+msgstr ""
+"サーバコンポーネントの開始が必要な場合は、DRBDmanageがDBusアクティベーション"
+"を使用して行います。手動では行わないでください。"
+
+#. type: Plain text
+msgid ""
+"The first step is to review the configuration file of `drbdmanage` (`/etc/"
+"drbdmanaged.cfg`) and to create an _LVM volume_ group with the name "
+"specified in the configuration. In the following we use the default name, "
+"which is `drbdpool`, and assume that the volume group consists of `/dev/"
+"sda6` and `/dev/sda7`. Creating the volume group is a step that has to be "
+"executed on *every* cluster node:"
+msgstr ""
+"まず最初に `drbdmanage` の設定ファイル( `/etc/drbdmanaged.cfg` )を確認し、設"
+"定ファイルで指定した名前の `LVM` ボリュームグループを作成します。以下の例では"
+"デフォルト名の `drbdpool` を使用し, `/dev/sda6` と `/dev/sda7` からなるボ"
+"リュームグループを作成しています。ボリュームグループの作成は、 *すべての* ク"
+"ラスタノードで行います。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# vgcreate drbdpool /dev/sda6 /dev/sda7\n"
+msgstr "# vgcreate drbdpool /dev/sda6 /dev/sda7\n"
+
+#. type: Plain text
+msgid ""
+"The second step is to initialize the so called control volume, which is then "
+"used to redundantly store your cluster configuration. If the node has "
+"multiple interfaces, you have to specify the IP address of the network "
+"interface that DRBD should use to communicate with other nodes in the "
+"cluster, otherwise the IP is optional. This step must only be done on "
+"exactly one cluster node."
+msgstr ""
+"次に、クラスタ設定を全クラスタノードに配布するために使用する「コントロールボ"
+"リューム」を作成します。ノードに複数のインターフェースがある場合は、DRBDが他"
+"のノードとの通信に使用するIPアドレスを指定する必要があります。そうでない場合"
+"にはIPアドレス指定は任意項目です。この作業は1つのノードで実行すれば十分です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage init 10.43.70.2\n"
+msgstr "# drbdmanage init 10.43.70.2\n"
+
+#. type: Plain text
+msgid ""
+"We recommend using 'drbdpool' as the name of your LVM volume group as it is "
+"the default value and makes your administration life easier. If, for "
+"whatever reason, you decide to use a different name, make sure that the "
+"option *drbdctrl-vg* is set accordingly in `/etc/drbdmanaged.cfg`. "
+"Configuration will be discussed in <<s-dm-set-config>>."
+msgstr ""
+"LVMボリューム名は管理者の負担も減りますので、デフォルトのまま 'drbdpool' を使"
+"用するのがよいでしょう。何らかの理由で別の名前を使用する場合には、`/etc/"
+"drbdmanaged.cfg` で正しく *drbdctrl-vg* オプションが設定されているか確認して"
+"ください。設定は<<s-dm-set-config>>で説明します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Adding nodes to your cluster"
+msgstr "ノードの追加"
+
+#. type: Plain text
+msgid ""
+"Adding nodes to your cluster is easy and requires a single command with two "
+"parameters:"
+msgstr ""
+"クラスタへのノードの追加は簡単で、コマンドを1つ、パラメータを2つ付けて実行す"
+"るだけです。"
+
+#. type: Plain text
+msgid "A node name which *must* match the output of `uname -n`"
+msgstr ""
+"パラメータの１つはノード名で、これは *必ず* `uname -n` の出力結果と一致してい"
+"なければなりません。"
+
+#. type: Plain text
+msgid "The IP address of the node."
+msgstr ""
+
+#. type: Block title
+#, no-wrap
+msgid "Note"
+msgstr "Note"
+
+#. type: Plain text
+msgid ""
+"If DNS is configured properly, the tab-completion of `drbdmanage` is able to "
+"complete the IP of the given node name."
+msgstr ""
+"DNSが適切に設定されていれば、 `drbdmanage` はノード名に対するIPアドレスをタブ"
+"補完することができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage add-node bravo 10.43.70.3\n"
+msgstr "# drbdmanage add-node bravo 10.43.70.3\n"
+
+#. type: Plain text
+msgid ""
+"Here we assume that the command was executed on node 'alpha'. If the 'root' "
+"user is allowed to execute commands as 'root' on 'bravo' via `ssh`, then the "
+"node 'bravo' will automatically join your cluster."
+msgstr ""
+"コマンドが 'alpha' ノードで実行されたものとします。このとき 'root' ユーザー"
+"が `ssh` 経由で 'bravo' ノード上で 'root' ユーザーとしてコマンドが実行できれ"
+"ば、 'bravo' ノードは自動的にクラスタに参加します。"
+
+#. type: Plain text
+msgid ""
+"If `ssh` access with public-key authentication is not possible, `drbdmanage` "
+"will print a join command that has to be executed on node 'bravo'. You can "
+"always query `drbdmanage` to output the join command for a specific node:"
+msgstr ""
+"公開鍵認証で `ssh` ログインができない場合は、 `drbdmanage` は 'bravo' ノード"
+"をクラスタに参加させるコマンドを表示しますので、これを 'bravo' ノードで実行し"
+"ます。参加させたいノードで実行するためのコマンドは、いつでも `drbdmanage` で"
+"確認することができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage howto-join bravo\n"
+"# drbdmanage join -p 6999 10.43.70.3 1 alpha 10.43.70.2 0 cOQutgNMrinBXb09A3io\n"
+msgstr ""
+"# drbdmanage howto-join bravo\n"
+"# drbdmanage join -p 6999 10.43.70.3 1 alpha 10.43.70.2 0 cOQutgNMrinBXb09A3io\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Types of DRBD Manage nodes"
+msgstr "DRBD Manageノードの種類"
+
+#. type: Plain text
+msgid ""
+"There are quite a few different types of DRBD Manage nodes; please see the "
+"diagram below."
+msgstr "DRBD Manageが扱うノードは数種類あります。以下の図を見てください。"
+
+#. type: Block title
+#, no-wrap
+msgid "DRBD Manage node types"
+msgstr "DRBDのノードの種類"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/drbdmanage-venn.svg"
+msgstr "images/drbdmanage-venn.svg"
+
+#. type: Plain text
+msgid ""
+"The rational behind the different types of nodes is as follows: Currently, a "
+"DRBD9/DRBD Manage cluster is limited to ~30 nodes. This is the current DRBD9 "
+"limit of nodes for a replicated resource. As DRBD Manage uses a DRBD volume "
+"itself (i.e., the control volume) to distribute the cluster information, "
+"DRBD Manage was also limited by the maximum number of DRBD9 nodes per "
+"resource."
+msgstr ""
+"ノードに種類がある理由は次の通りです。現在はDRBD9/DRBD Manageクラスタは30ノー"
+"ド以下という制限があります。これは現在のDRBD9のレプリケーションするノード数に"
+"対する制限です。DRBD Manageはクラスタ情報の伝播にDRBDのボリュームを使用する"
+"(コントロールボリューム)ので、DRBD ManageはリソースごとにDRBD9のノード数の制"
+"限を受けます。"
+
+#. type: Plain text
+msgid ""
+"The satellites concept relaxes that limit by splitting the cluster into:"
+msgstr ""
+"サテライトのコンセプトは、この制限をクラスタを以下のように分けることで緩和す"
+"るものです。"
+
+#. type: Plain text
+msgid "Control nodes: Nodes having direct access to the control volume."
+msgstr "コントロールノード: コントロールボリュームへ直接アクセスできる。"
+
+#. type: Plain text
+msgid ""
+"Satellite nodes: Nodes that are not directly connected to to the control "
+"volume, but are able to receive the content of the control volume via a "
+"control node."
+msgstr ""
+"サテライトノード: 直接コントロールボリュームにアクセスすることはできないが、"
+"コントロールノードを通じてコントロールボリュームの内容を受け取ることができ"
+"る。"
+
+#. type: Plain text
+msgid ""
+"In a cluster there is one special node, which we call the \"leader\". The "
+"leader is selected from the set of control nodes and it is the only node "
+"that writes data to the control volume (i.e., it has the control volume in "
+"DRBD Primary role). All the other control nodes in the cluster automatically "
+"switch their role to a \"satellite node\" and receive their cluster "
+"information via TCP/IP, like ordinary satellite nodes. If the current leader "
+"node fails, the cluster automatically selects a new leader node among the "
+"control nodes."
+msgstr ""
+"1つのコントロールノードは複数のサテライトノードに応答しますが、1つのサテライ"
+"トノードは1つのコントロールにのみ割り当てられます。当然サテライトノードも"
+"DRBD9のリソースを共有することができます。"
+
+#. type: Plain text
+#, no-wrap
+msgid "*Control nodes* have:\n"
+msgstr "*コントロールノード* には以下の特徴があります。\n"
+
+#. type: Plain text
+msgid "Direct access to the control volume"
+msgstr "コントロールボリュームへ直接接続"
+
+#. type: Plain text
+msgid "One of them is in the leader role, the rest act like satellite nodes."
+msgstr "１つがリーダーの役割を担い、残りはサテライトノードの役割を担う。"
+
+#. type: Plain text
+msgid "Local storage if it is a normal control node"
+msgstr "通常のコントロールノードであればローカルストレージを持つ"
+
+#. type: Plain text
+msgid "No local storage if it is a pure controller"
+msgstr "ピュアコントローラであればローカルストレージを持たない"
+
+#. type: Plain text
+#, no-wrap
+msgid "*Satellite nodes* have:\n"
+msgstr "*サテライトノード* には以下の特徴があります。\n"
+
+#. type: Plain text
+msgid ""
+"No direct access to the control volume, they receive a copy of the cluster "
+"configuration via TCP/IP."
+msgstr ""
+"コントロールノードへの直接のアクセスは不可。TCP/IPを通じてクラスタ設定を受け"
+"取る。"
+
+#. type: Plain text
+msgid "Local storage if it is a normal satellite node"
+msgstr "通常のサテライトノードであればローカルストレージを持つ"
+
+#. type: Plain text
+msgid "No local storage if it is a pure client"
+msgstr "ピュアクライアントであればローカルストレージを持たない"
+
+#. type: Block title
+#, no-wrap
+msgid "Cluster consisting of satellite nodes"
+msgstr "サテライトノードを使ったクラスタ構成"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/satellitecluster.svg"
+msgstr "images/satellitecluster.svg"
+
+#. type: Plain text
+#, no-wrap
+msgid "*External nodes*:\n"
+msgstr "*外部ノード* には以下の特徴があります。\n"
+
+#. type: Plain text
+msgid ""
+"Have no access to the control volume at all (no dedicated TCP/IP connection "
+"to a control node) and no local storage"
+msgstr ""
+"完全にコントロールボリュームへのコネクションがなく(コントロールノードへのコネ"
+"クション用TCP/IP経路がない)、ローカルストレージがない"
+
+#. type: Plain text
+msgid ""
+"Gets its configuration via a different channel (e.g., DRBD configuration via "
+"`scp`)"
+msgstr "別の経路から設定ファイルを入手する( `scp` など)"
+
+#. type: Plain text
+msgid ""
+"These are not the droids you are looking for, if you are not sure if you "
+"want to use that type of nodes."
+msgstr "このノードの使用方法が不明な場合は使用すべきではない"
+
+#. type: Title ====
+#, no-wrap
+msgid "Adding a control node"
+msgstr "コントロールノードの追加"
+
+#. type: Title ====
+#, no-wrap
+msgid "Adding a pure controller node"
+msgstr "ピュアコントローラーノード追加"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage add-node --no-storage bravo 10.43.70.3\n"
+msgstr "# drbdmanage add-node --no-storage bravo 10.43.70.3\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Adding a satellite node"
+msgstr "サテライトノードの追加"
+
+#. type: Plain text
+msgid ""
+"Here we assume that the node charlie was not added to the cluster so far. "
+"The following command adds charlie as a satellite node."
+msgstr ""
+"これまでCharlieノードはクラスタに追加されていなかったものとします。以下のコマ"
+"ンドではCharlieを、alphaをコントロールノードとするサテライトノードとして追加"
+"しています。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage add-node --satellite charlie 10.43.70.4\n"
+msgstr "# drbdmanage add-node --satellite charlie 10.43.70.4\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Adding a pure client node"
+msgstr "ピュアクライアントノードの追加"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage add-node --satellite --no-storage charlie 10.43.70.4\n"
+msgstr "# drbdmanage add-node --satellite --no-storage charlie 10.43.70.4\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Adding an external node"
+msgstr "外部ノードの追加"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage add-node --external delta 10.43.70.5\n"
+msgstr "# drbdmanage add-node --external delta 10.43.70.5\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Cluster configuration"
+msgstr "クラスタ設定"
+
+#. type: Plain text
+msgid ""
+"Drbdmanage knows many configuration settings like the log-level or the "
+"storage plugin that should be used (i.e., LVM, ThinLV, ThinPool, ZPool, or "
+"ThinZpool). Executing `drbdmanage modify-config` starts an editor that is "
+"used to specify theses settings. The configuration is split in several "
+"sections. If an option is specified in the `[GLOBAL]` section, this setting "
+"is used in the entire cluster. Additionally, it is possible to specify "
+"settings per node and per site. Node sections follow a syntax of `[Node:"
+"nodename]`. If an option is set globally and per node, the node setting "
+"overrules the global setting."
+msgstr ""
+"DRBD Manageは、ログレベルや使用するストレージプラグイン(LVM、ThinLV、ThinPool"
+"など)の多くの設定を行うことができます。これらの設定は `drbdmanage modify-"
+"config` を実行すると表示されるエディタで行います。設定は何項目かに分けられま"
+"す。`[GLOBAL]` セクションでオプション設定を行うと、この設定はクラスタ全体で有"
+"効になります。また、ノードごとやサイトごとの設定を行うことも可能です。ノード"
+"セクションは `[Node:nodename]` の後に書いていきます。もしオプション設定をグ"
+"ローバルセクションとノードセクションの両方に行った場合には、ノードセクション"
+"の設定が使用されます。"
+
+#. type: Plain text
+msgid ""
+"It is also possible to group nodes into *sites*. In order to make node "
+"'alpha' part of site 'mysite', you have to specify the 'site' option in "
+"alpha's node section:"
+msgstr ""
+"複数のノードを束ねて *サイト* として取り扱えます。'alpha' ノードを 'mysite' "
+"の一部にしたい場合は、alphaのノードセクションで 'site' オプションを指定してく"
+"ださい。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage modify-config\n"
+"[Node:alpha]\n"
+"site = mysite\n"
+msgstr ""
+"# drbdmanage modify-config\n"
+"[Node:alpha]\n"
+"site = mysite\n"
+
+#. type: Plain text
+msgid ""
+"It is then also possible to specify drbdmanage settings per site using "
+"`[Site:]` sections. Lets assume that you want to set the 'loglevel' option "
+"in general to 'INFO', for site 'mysite' to 'WARN' and for node alpha, which "
+"is also part of site 'mysite' to DEBUG. This would result in the following "
+"configuration:"
+msgstr ""
+"drbdmanage設定の `[Site:]` セクションを使用して指定することも可能です。基本的"
+"に 'loglevel' オプションのレベルは 'INFO' に設定しますが、 'mysite' サイトで"
+"は 'WARN' レベルに設定して、 'mysite' サイト内にあるalphaノードでは 'DEBUG' "
+"に設定したいとします。その場合には、以下のように記述します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage modify-config\n"
+"[GLOBAL]\n"
+"loglevel = INFO\n"
+msgstr ""
+"# drbdmanage modify-config\n"
+"[GLOBAL]\n"
+"loglevel = INFO\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Site:mysite]\n"
+"loglevel = WARN\n"
+msgstr ""
+"[Site:mysite]\n"
+"loglevel = WARN\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Node:alpha]\n"
+"site = mysite\n"
+"loglevel = DEBUG\n"
+msgstr ""
+"[Node:alpha]\n"
+"site = mysite\n"
+"loglevel = DEBUG\n"
+
+#. type: Plain text
+msgid ""
+"By executing `drbdmanage modify-config` without any options, you can edit "
+"global, per site and per node settings. It is also possible to execute "
+"'modify-config' for a specific node. In this per-node view, it is possible "
+"to set further per-node specific settings like the storage plugin discussed "
+"in <<s-drbdmanage-storage-plugins>>."
+msgstr ""
+"`drbdmanage modify-config` をオプションを付けずに実行すると、グローバル、サイ"
+"トごと、ノードごとの設定ができます。 'modify-config' は特定ノード用に実行する"
+"ことも可能です。このノードごとのビューでは、<<s-drbdmanage-storage-plugins>>"
+"で説明しているストレージプラグインの設定のような特定の設定も可能です。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuring storage plugins"
+msgstr "ストレージプラグインの設定"
+
+#. type: Plain text
+msgid ""
+"Storage plugins are *per* *node* settings that are set with the help of the "
+"'modify-config' sub command."
+msgstr ""
+"ストレージプラグインは *ノード* *ごと* に 'modify-config' サブコマンドで設定"
+"します。"
+
+#. type: Plain text
+msgid ""
+"Lets assume you want to use the 'ThinLV' plugin for node 'bravo', where you "
+"want to set the 'pool-name' option to 'mythinpool':"
+msgstr ""
+"'ThinLV' プラグインをノード 'bravo' に使用し、 'pool-name' オプションを "
+"'mythinpool' にしたい場合には次のようにします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage modify-config --node bravo\n"
+"[GLOBAL]\n"
+"loglevel = INFO\n"
+msgstr ""
+"# drbdmanage modify-config --node bravo\n"
+"[GLOBAL]\n"
+"loglevel = INFO\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Node:bravo]\n"
+"storage-plugin = drbdmanage.storage.lvm_thinlv.LvmThinLv\n"
+msgstr ""
+"[Node:bravo]\n"
+"storage-plugin = drbdmanage.storage.lvm_thinlv.LvmThinLv\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Plugin:ThinLV]\n"
+"pool-name = mythinpool\n"
+msgstr ""
+"[Plugin:ThinLV]\n"
+"pool-name = mythinpool\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Configuring LVM"
+msgstr "LVM の設定"
+
+#. type: Plain text
+msgid ""
+"More recent versions of the 'LVM tools' support detecting of file system "
+"signatures. Unfortunately the feature set of `lvcreate` varies a lot between "
+"distributions: Some of them support `--wipesignatures`, some support `--"
+"yes`, and that in all possible combinations. None of them supports a generic "
+"force flag. If `lvcreate` detects an existing file system signature, it "
+"prompts for input and therefore halts processing. If you use modern 'LVM "
+"tools', set this option in `/etc/lvm/lvm.conf`: "
+"`wipe_signatures_when_zeroing_new_lvs = 0`.  Drbdmanage itself executes "
+"`wipefs` on created block devices."
+msgstr ""
+"最近のバージョンの 'LVMツール' は、ファイルシステムのシグネチャ検出をサポート"
+"しています。ただ `lvcreate` の機能はディストリビューションの間で異なります。"
+"いくつかのものは `--wipesignatures` オプションをサポートし、また、いくつこの"
+"ものは `--yes` オプションをサポートしています。しかし、一般的な強制フラグをサ"
+"ポートしているものはありません。`lvcreate` が既存のファイルシステムのシグネ"
+"チャを検出すると、入力を促し処理を停止ししてしまいます。最近のバージョンの "
+"'LVMツール' を使用している場合は、 `/etc/lvm/lvm.conf` に ` "
+"wipe_signatures_when_zeroing_new_lvs = 0` を設定してください。Drbdmanage自体"
+"は、作成されたブロックデバイスに対して `wipefs` を実行します。"
+
+#. type: Plain text
+msgid ""
+"If you use a version of 'LVM' where resources from snapshots are not "
+"activated, which we saw for the 'LvmThinPool' plugin, also set "
+"`auto_set_activation_skip = 0` in `/etc/lvm/lvm.conf`."
+msgstr ""
+
+#. type: Title ====
+#, no-wrap
+msgid "Configuring ZFS"
+msgstr "ZFS の設定"
+
+#. type: Plain text
+msgid ""
+"For ZFS the same configuration steps apply, like setting the 'storage-"
+"plugin' for the node that should make use of ZFS volumes. Please note that "
+"we don't make use of ZFS as a file system, but of ZFS as a logical volume "
+"manager. The admin is then free to create any file system she/he desires on "
+"top of the DRBD device backed by a ZFS volume. It is also important to note "
+"that if you make use of the ZFS plugin, all DRBD resources are created on "
+"ZFS, but in case this node is a control node, it still needs LVM for it's "
+"control volume."
+msgstr ""
+"ZFSでも同じ手順です。ZFSボリュームを使用するノードに 'storage-plugin' と同様"
+"の設定をします。ZFSはファイルシステムとしては扱われず、論理ボリュームマネー"
+"ジャーとして扱われるという点に注意ください。そのため下位デバイスがZFSボリュー"
+"ムのDRBDデバイスの上に、どのようなファイルシステムでも作成することができま"
+"す。ZFSプラグインを使う場合には、すべてのDRBDリソースはZFS上に作成してあるこ"
+"とが重要ですが、ノードがコントロールノードである場合には、コントロールボ"
+"リューム用にLVMが必要です。"
+
+#. type: Plain text
+msgid "In the most common case only the following steps are necessary."
+msgstr "一般的な利用では以下の手順が必要です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# zpool create drbdpool /dev/sdX /dev/sdY\n"
+"# drbdmanage modify-config --node bravo\n"
+"[Node:bravo]\n"
+"storage-plugin = drbdmanage.storage.zvol2.Zvol2\n"
+msgstr ""
+"# zpool create drbdpool /dev/sdX /dev/sdY\n"
+"# drbdmanage modify-config --node bravo\n"
+"[Node:bravo]\n"
+"storage-plugin = drbdmanage.storage.zvol2.Zvol2\n"
+
+#. type: Plain text
+msgid ""
+"Currently it is not supported to switch storage plugins on the fly.  The "
+"workflow is: Add a new node, modify the configuration for that node, make "
+"use of the node. Changing other settings (like the log-level) on the fly is "
+"perfectly fine."
+msgstr ""
+"現在はストレージプラグインの稼働中の変更は未対応です。 ワークフローは、ノード"
+"の追加、そのノードの設定の実施、ノードの使用、という流れになります。ログレベ"
+"ルなどの他の設定変更は稼働中でも問題ありません。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Discussion of the storage plugins"
+msgstr "ストレージプラグインについての情報"
+
+#. type: Plain text
+msgid "indexterm:[drbdmanage, storage plugins]"
+msgstr "indexterm:[drbdmanage, storage plugins]"
+
+#. type: Plain text
+msgid "DRBD Manage has four supported storage plugins as of this writing:"
+msgstr "DRBD Manageは以下のストレージプラグインに対応しています。"
+
+#. type: Plain text
+msgid "Thick LVM (`drbdmanage.storage.lvm.Lvm`);"
+msgstr "Thick LVM (`drbdmanage.storage.lvm.Lvm`);"
+
+#. type: Plain text
+msgid ""
+"Thin LVM with a single thin pool (`drbdmanage.storage.lvm_thinlv.LvmThinLv`)"
+msgstr ""
+"Thin LVM with a single thin pool (`drbdmanage.storage.lvm_thinlv.LvmThinLv`)"
+
+#. type: Plain text
+msgid ""
+"Thin LVM with thin pools for each volume (`drbdmanage.storage.lvm_thinpool."
+"LvmThinPool`)"
+msgstr ""
+"Thin LVM with thin pools for each volume (`drbdmanage.storage.lvm_thinpool."
+"LvmThinPool`)"
+
+#. type: Plain text
+msgid "Thick ZFS (`drbdmanage.storage.zvol2.Zvol2`)"
+msgstr "Thick ZFS (`drbdmanage.storage.zvol2.Zvol2`)"
+
+#. type: Plain text
+msgid "Thin ZFS (`drbdmanage.storage.zvol2_thinlv.ZvolThinLv2`)"
+msgstr "Thin ZFS (`drbdmanage.storage.zvol2_thinlv.ZvolThinLv2`)"
+
+#. type: Plain text
+msgid ""
+"For ZFS also legacy plugins (without the \"2\") exist. New users, and users "
+"that did not uses ZFS snapshots should use/switch to the newer version. An "
+"on-the-fly storage plugin switch is supported in this particular case."
+msgstr ""
+"ZFSの場合、レガシープラグイン（\"2\"なし）も存在します。新規ユーザー、および "
+"ZFS スナップショットを使用しなかったユーザーは、新しいバージョンに切り替える"
+"べきです。ストレージプラグインの動的変更はこの特定のケースでサポートされてい"
+"ます。"
+
+#. type: Plain text
+msgid ""
+"Here's a short discussion of the relative advantages and disadvantages of "
+"these plugins."
+msgstr "以下は各プラグインの長所と短所をまとめたものです。"
+
+#. type: Block title
+#, no-wrap
+msgid "DRBD Manage storage plugins, comparison"
+msgstr "DRBD Manageストレージプラグイン比較表"
+
+#. type: delimited block |
+#, no-wrap
+msgid ""
+"|Topic | `lvm.Lvm` | `lvm_thinlv.LvmThinLv` | `lvm_thinpool.LvmThinPool`\n"
+"|Pools | the VG is the pool | a single Thin pool | one Thin pool for each volume\n"
+"|Free Space reporting | Exact | Free space goes down as per written data and snapshots, needs monitoring | Each pool carves some space out of the VG, but still needs to be monitored if snapshots are used \n"
+"|Allocation | Fully pre-allocated   2+| thinly allocated, needs nearly zero space initially\n"
+"|Snapshots | -- not supported --  2+| Fast, efficient (copy-on-write)\n"
+"|Stability | Well established, known code, very stable  2+| Some kernel versions have bugs re Thin LVs, destroying data\n"
+"|Recovery | Easiest - text editor, and/or lvm configuration archives in `/etc/lvm/`, in the worst case `dd` with offset/length | All data in one pool, might incur running `thin_check` across *everything* (needs CPU, memory, time) | Independent Pools, so not all volumes damaged at the same time, faster `thin_check` (less CPU, memory, time)\n"
+msgstr ""
+
+#. type: Title ===
+#, no-wrap
+msgid "Creating and deploying resources/volumes"
+msgstr "リソース/ボリュームの作成とデプロイ"
+
+#. type: Plain text
+msgid ""
+"In the following scenario we assume that the goal is to create a resource "
+"'backups' with a size of '500 GB' that is replicated among 3 cluster nodes.  "
+"First we show how to achieve the goal in individual steps, and then show a "
+"short-cut how to achieve it in a single step:"
+msgstr ""
+"3つのクラスタノードにレプリケートする '500 GB' の 'backups' リソースを作成す"
+"るとします。 はじめに、各手順ごとに正式な手順を示します。次に手順をショート"
+"カットする方法を示します。"
+
+#. type: Plain text
+msgid "First, we create a new resource:"
+msgstr "まず、新しいリソースを作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage add-resource backups\n"
+msgstr "# drbdmanage add-resource backups\n"
+
+#. type: Plain text
+msgid "Second, we create a new volume within that resource:"
+msgstr "次に、そのリソースの中に新しいボリュームを作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage add-volume backups 500GB\n"
+msgstr "# drbdmanage add-volume backups 500GB\n"
+
+#. type: Plain text
+msgid ""
+"In case we would not have used 'add-resource' in the first step, "
+"`drbdmanage` would have known that the resource did not exist and it would "
+"have created it."
+msgstr ""
+"最初の段階で 'add-resource' をしていなかった場合には、 `drbdmanage` はリソー"
+"スが存在しないことを検知して作成します。"
+
+#. type: Plain text
+msgid "The third step is to deploy the resource to 3 cluster nodes:"
+msgstr "そして、3つのクラスタノードにリソースをデプロイします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage deploy-resource backups 3\n"
+msgstr "# drbdmanage deploy-resource backups 3\n"
+
+#. type: Plain text
+msgid ""
+"In this case `drbdmanage` chooses 3 nodes that fit all requirements best, "
+"which is by default the set of nodes with the most free space in the "
+"`drbdpool` volume group. We will see how to manually assign resources to "
+"specific nodes in a moment."
+msgstr ""
+"この場合、 `drbdmanage` は最も要件に合致する3ノードを選択します。デフォルトで"
+"は `drbdpool` 内に空きスペースがあるものから選ばれます。手動で任意のノードに"
+"リソースを割り当てる方法も次に説明します。"
+
+#. type: Plain text
+msgid ""
+"As deploying a new resource/volume to a set of nodes is a very common task, "
+"`drbdmanage` provides the following short-cut:"
+msgstr ""
+"なお、新規リソース/ボリュームを複数ノードにデプロイする作業は頻繁にあるの"
+"で、 `drbdmanage` には次のようなショートカットがあります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage add-volume backups 500GB --deploy 3\n"
+msgstr "# drbdmanage add-volume backups 500GB --deploy 3\n"
+
+#. type: Plain text
+msgid ""
+"Manual deployment can be achieved by *assigning* a resource to specific "
+"nodes.  For example if you decide to assign the 'backups' resource to "
+"'bravo' and 'charlie', you should execute the following steps:"
+msgstr ""
+"手動デプロイは、特定ノードへ *assign* することで行えます。 'backups' リソース"
+"を 'bravo' と 'charlie' ノードにデプロイする場合には以下のようにします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage add-volume backups 500GB\n"
+"# drbdmanage assign-resource backups bravo\n"
+"# drbdmanage assign-resource backups charlie\n"
+msgstr ""
+"# drbdmanage add-volume backups 500GB\n"
+"# drbdmanage assign-resource backups bravo\n"
+"# drbdmanage assign-resource backups charlie\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Managing snapshots"
+msgstr "スナップショット管理"
+
+#. type: Plain text
+msgid ""
+"In the following we assume that the _ThinLV_ plugin is used on all nodes "
+"that have deployed resources from which snapshots should be taken. For "
+"further information on how to configure the storage plugin, please refer to "
+"<<s-dm-set-config>>."
+msgstr ""
+"スナップショットを取得をするリソースがデプロイされているノード全てで "
+"`ThinLV` プラグインを使用している事が前提になります。ストレージプラグインの設"
+"定詳細については<<s-dm-set-config>>を参照してください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Creating a snapshot"
+msgstr "スナップショットの作成"
+
+#. type: Plain text
+msgid ""
+"Here we continue the example presented in the previous sections, namely "
+"nodes 'alpha', 'bravo', 'charlie', and 'delta' with a resource 'backups' "
+"deployed on the first three nodes. The name of the snapshot will be "
+"'snap_backups', and we want the snapshot to be taken on nodes 'bravo' and "
+"'charlie'."
+msgstr ""
+"前のセクションで使用した例を使用します。 'alpha' 、 'bravo' 、 'charlie' 、 "
+"'delta' ノードがあり、最初の3つのノードに 'backups' リソースがデプロイされて"
+"います。スナップショット名が 'snap_backups' で、 'bravo' と 'charlie' にス"
+"ナップショットが欲しい場合は次のようにします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage create-snapshot snap_backups backups bravo charlie\n"
+msgstr "# drbdmanage create-snapshot snap_backups backups bravo charlie\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Restoring a snapshot"
+msgstr "スナップショットのリストア"
+
+#. type: Plain text
+msgid ""
+"In the following we want to restore the content of the snapshot "
+"'snap_backups' to a new resource named 'res_backup_from_snap'."
+msgstr ""
+"スナップショット名 'snap_backups' の内容を新規リソース "
+"'res_backup_from_snap' にリストアしたい場合は次のようにします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage restore-snapshot res_backup_from_snap backups snap_backups\n"
+msgstr "# drbdmanage restore-snapshot res_backup_from_snap backups snap_backups\n"
+
+#. type: Plain text
+msgid ""
+"This will create a new resource with the name 'res_backup_from_snap'. This "
+"resource then gets automatically deployed to these nodes where currently the "
+"resource 'backups' is deployed."
+msgstr ""
+"このコマンドで 'res_backup_from_snap' という名前のリソースが作成されます。こ"
+"のリソースは自動的に、現在 'backups' リソースがデプロイされているノードにデプ"
+"ロイされます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Removing a snapshot"
+msgstr "スナップショット削除"
+
+#. type: Plain text
+msgid "An existing snapshot can be removed as follows:"
+msgstr "既存のスナップショットは次のようにして削除できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage remove-snapshot backups snap_backups\n"
+msgstr "# drbdmanage remove-snapshot backups snap_backups\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Checking the state of your cluster"
+msgstr "クラスタ状態の確認"
+
+#. type: Plain text
+msgid ""
+"`Drbdmanage` provides various commands to check the state of your cluster.  "
+"These commands start with a 'list-' prefix and provide various filtering and "
+"sorting options. The '--groupby' option can be used to group and sort the "
+"output in multiple dimensions. Additional output can be turned on by using "
+"the '--show' option. In the following we show some typical examples:"
+msgstr ""
+"`Drbdmanage` にはクラスタの状態を確認するための様々なコマンドがあります。 こ"
+"れらのコマンドには接頭語 'list-' が付き、様々なフィルタやソートのオプションが"
+"あります。'--groupby' オプションは様々な出力をグループ分けしたりソートするた"
+"めに使用します。'--show' オプションでは詳細な出力をすることができます。代表的"
+"な使い方を以下に示します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage list-nodes\n"
+"# drbdmanage list-volumes --groupby Size\n"
+"# drbdmanage list-volumes --groupby Size --groupby Minor\n"
+"# drbdmanage list-volumes --groupby Size --show Port\n"
+msgstr ""
+"# drbdmanage list-nodes\n"
+"# drbdmanage list-volumes --groupby Size\n"
+"# drbdmanage list-volumes --groupby Size --groupby Minor\n"
+"# drbdmanage list-volumes --groupby Size --show Port\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Setting options for resources"
+msgstr "リソースのオプション設定をする"
+
+#. type: Plain text
+msgid "Currently, it is possible to set the following `drbdsetup` options:"
+msgstr "次の `drbdsetup` のオプションを設定することができます。"
+
+#. type: Plain text
+msgid "net-options"
+msgstr "net-options"
+
+#. type: Plain text
+msgid "peer-device-options"
+msgstr "peer-device-options"
+
+#. type: Plain text
+msgid "disk-options"
+msgstr "disk-options"
+
+#. type: Plain text
+msgid "resource-options"
+msgstr "resource-options"
+
+#. type: Plain text
+msgid "Additionally, it is possible to set DRBD event handler."
+msgstr "加えて、DRBDイベントハンドラを設定することもできます。"
+
+#. type: Plain text
+msgid ""
+"As for example _net-options_ are allowed in the 'common' section as well as "
+"per resource, these commands then provide the according switches."
+msgstr ""
+"リソースごとに 'common' セクションを設定するのと同じように、それらのコマンド"
+"を以下のようにして使うことができます。"
+
+#. type: Plain text
+msgid "Setting `max-buffers` for a resource 'backups' looks like this:"
+msgstr "`max-buffers` を 'backups' リソースに設定するのは次のようになります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage net-options --max-buffers 2048 --resource backups\n"
+msgstr "# drbdmanage net-options --max-buffers 2048 --resource backups\n"
+
+#. type: Plain text
+msgid "Setting this option in the common section looks like this:"
+msgstr "commonセクションにオプションを設定するのは次のようになります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage net-options --max-buffers 2048 --common\n"
+msgstr "# drbdmanage net-options --max-buffers 2048 --common\n"
+
+#. type: Plain text
+msgid ""
+"Additionally, there is always an '--unset-' option for every option that can "
+"be specified. So, unsetting `max-buffers` for a resource 'backups' looks "
+"like this:"
+msgstr ""
+"さらに、すべてのオプションに '--unset-' を付けて使用することができます。`max-"
+"buffers` を 'backups' リソースから削除するには次のようにします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage net-options --unset-max-buffers --resource backups\n"
+msgstr "# drbdmanage net-options --unset-max-buffers --resource backups\n"
+
+#. type: Plain text
+msgid ""
+"It is possible to visualize currently set options with the 'show-options' "
+"subcommand."
+msgstr ""
+"現在設定しているオプションは 'show-options' サブコマンドで表示することができ"
+"ます。"
+
+#. type: Plain text
+msgid ""
+"Setting _net-options_ per site is also supported. Lets assume 'alpha' and "
+"'bravo' should be part of site 'first' and 'charlie' and 'delta' should be "
+"part of site 'second'. Further, we want to use DRBD protocol 'C' within the "
+"two sites, and protocol 'A' between the sites 'first' and 'second'. This "
+"would be set up as follows:"
+msgstr ""
+"サイトごとに `net-options` を設定することも可能です。'alpha' と 'bravo' を "
+"'first' サイトに、 'charlie' と 'delta' を 'second' サイトにするとします。さ"
+"らに、2つのサイト内部ではDRBDのプロトコル 'C' を使用して、 'first' サイトと "
+"'second' サイトの間ではプロトコル 'A' を使用するとします。この場合は次のよう"
+"にして設定できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage modify-config\n"
+"[Node:alpha]\n"
+"site = first\n"
+msgstr ""
+"# drbdmanage modify-config\n"
+"[Node:alpha]\n"
+"site = first\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Node:bravo]\n"
+"site = first\n"
+msgstr ""
+"[Node:bravo]\n"
+"site = first\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Node:charlie]\n"
+"site = second\n"
+msgstr ""
+"[Node:charlie]\n"
+"site = second\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Node:delta]\n"
+"site = second\n"
+msgstr ""
+"[Node:delta]\n"
+"site = second\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage net-options --protocol C --sites 'first:first'\n"
+"# drbdmanage net-options --protocol C --sites 'second:second'\n"
+"# drbdmanage net-options --protocol A --sites 'first:second'\n"
+msgstr ""
+"# drbdmanage net-options --protocol C --sites 'first:first'\n"
+"# drbdmanage net-options --protocol C --sites 'second:second'\n"
+"# drbdmanage net-options --protocol A --sites 'first:second'\n"
+
+#. type: Plain text
+msgid ""
+"The '--sites' parameter follows a 'from:to' syntax, where currently 'from' "
+"and 'to' have a symetric semantic. Setting an option from 'first:second' "
+"also sets this option from 'second:first'."
+msgstr ""
+"'--sites' パラメータには 'from:to' の構文が続きます。 'from' と 'to' は左右対"
+"称の構文です。'first:second' の設定は、同時に 'second:first' の設定も行いま"
+"す。"
+
+#. type: Plain text
+msgid "DRBD event handler can be set in the 'common' section and per resource:"
+msgstr "DRBDイベントハンドラは 'common' セクションとノードごとに設定できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage handlers --common --after-resync-target /path/to/script.sh\n"
+msgstr "# drbdmanage handlers --common --after-resync-target /path/to/script.sh\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage handlers --common --unset-after-resync-target\n"
+msgstr "# drbdmanage handlers --common --unset-after-resync-target\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage handlers --resource backups --after-resync-target /path/to/script.sh\n"
+msgstr "# drbdmanage handlers --resource backups --after-resync-target /path/to/script.sh\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Rebalancing data with DRBD Manage"
+msgstr "DRBD Manageでのデータ再配置"
+
+#. type: Plain text
+msgid ""
+"indexterm:[rebalance]Rebalancing data means moving some assignments around, "
+"to make better use of the available resources. We'll discuss the same "
+"example as for the <<s-rebalance-workflow,manual workflow>>."
+msgstr ""
+"indexterm:[rebalance]データの再配置とは、利用可能なリソースの有効活用をするた"
+"めに、データの割り当てを移動することです。同様の例を<s-rebalance-workflow,"
+"manual workflow>> でも扱っています。"
+
+#. type: Plain text
+msgid ""
+"Given is an example policy that data needs to be available on 3 nodes, so "
+"you need at least 3 servers for your setup."
+msgstr ""
+"例えばデータを3ノードでレプリケーションするポリシーでは、構成するのに最低3台"
+"のサーバが必要です。"
+
+#. type: Plain text
+msgid ""
+"Now, as your storage demands grow, you will encounter the need for "
+"additional servers. Rather than having to buy 3 more servers at the same "
+"time, you can _rebalance_ your data across a single additional node."
+msgstr ""
+"しかし、データ量が増えてくると、サーバ追加の必要性に迫られます。その際には、"
+"また新たに3台のサーバを購入する必要はなく、１つのノードだけを追加をしてデータ"
+"を _再配置_ することができます。"
+
+#. type: Block title
+#, no-wrap
+msgid "DRBD data rebalancing"
+msgstr "DRBDデータ再配置"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/rebalance.svg"
+msgstr "images/rebalance.svg"
+
+#. type: Plain text
+msgid ""
+"First, you need to add the new machine to the cluster; see <<s-dm-add-node>> "
+"for the commands."
+msgstr ""
+"まず、新しいマシンをクラスタに追加します。コマンドは<<s-dm-add-node>> を参照"
+"してください。"
+
+#. type: Plain text
+msgid "The next step is to add the assignment:"
+msgstr "次にリソースに新しいノードを追加します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage assign <resource> <new-node>\n"
+msgstr "# drbdmanage assign <resource> <new-node>\n"
+
+#. type: Plain text
+msgid ""
+"Now you need to wait for the (initial) sync to finish; you can eg. use the "
+"command `drbdadm status` with (optionally) the resource name."
+msgstr ""
+"(初期)同期が完了するまでしばらく待ちます。`drbdadm status` コマンドをリソース"
+"名をオプションにして使用すると状態を確認できます。"
+
+#. type: Plain text
+msgid "One of the nodes that _still_ has the data will show a status like"
+msgstr "データが__まだ__あるノードでは以下のようにステータス表示されます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "replication:SyncSource peer-disk:Inconsistent done:5.34\n"
+msgstr "replication:SyncSource peer-disk:Inconsistent done:5.34\n"
+
+#. type: Plain text
+msgid "while the target node will have a state of _SyncTarget_."
+msgstr "ターゲットノードでは `SyncTarget` の状態になります。"
+
+#. type: Plain text
+msgid ""
+"When the target assignment reaches a state of _UpToDate_, you have a full "
+"additional copy of your data on this node; now it is safe to remove the "
+"assignment from another node:"
+msgstr ""
+"ターゲットのアサインが `UpToDate` になれば、そのノードにデータの完全な追加コ"
+"ピーが行われています。これで、他方のノードで既存のノードのリソース割り当てを"
+"解除できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdmanage unassign <resource> <old-node>\n"
+msgstr "# drbdmanage unassign <resource> <old-node>\n"
+
+#. type: Plain text
+msgid ""
+"And voilà - you moved one assignment, in twofootnote:[Or three, if you count "
+"waiting for the _UpToDate_ state.] easy steps!"
+msgstr "さあ、これでデータの再配置が完了しました。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Getting help"
+msgstr "ヘルプ"
+
+#. type: Plain text
+msgid ""
+"The easiest way to get an overview about drbdmanage's subcommands is to read "
+"the main man-page (`man drbdmanage`)."
+msgstr ""
+"もっとも簡単なDRBDmanageのサブコマンドの概要を知る方法はメインのman-"
+"page( `man drbdmanage` )を読むことです。"
+
+#. type: Plain text
+msgid ""
+"A quick way to list available commands on the command line is to type "
+"`drbdmanage list`."
+msgstr ""
+"コマンドラインで使用できるコマンドをてっとり早く表示するには `drbdmanage "
+"list` とタイプします。"
+
+#. type: Plain text
+msgid ""
+"Further information on subcommands (e.g., list-nodes) can be retrieved in "
+"three ways:"
+msgstr "サブコマンド(例:list-nodes)のより詳しい情報は3つの方法で得られます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# man drbdmanage-list-nodes\n"
+"# drbdmanage list-nodes -h\n"
+"# drbdmanage help list-nodes\n"
+msgstr ""
+"# man drbdmanage-list-nodes\n"
+"# drbdmanage list-nodes -h\n"
+"# drbdmanage help list-nodes\n"
+
+#. type: Plain text
+msgid ""
+"Using the 'help' subcommand is especially helpful when drbdmanage is "
+"executed in interactive mode (`drbdmanage interactive`)."
+msgstr ""
+"'help' サブコマンドを使用するのは、特にDRBDmanageをインタラクティブモード"
+"(drbdmanage interactive)で使用している時に便利です。"
+
+#. type: Plain text
+msgid ""
+"One of the most helpful features of drbdmanage is its rich tab-completion, "
+"which can be used to complete basically every object drbdmanage knows about "
+"(e.g., node names, IP addresses, resource names, ...).  In the following we "
+"show some possible completions, and their results:"
+msgstr ""
+"DRBDmanageの最も便利な機能の1つは強力なタブ補完です。基本的にすべての"
+"DRBDmanageが判別できる対象を補足することができます。(ノード名、IPアドレス、リ"
+"ソース名など)  以下に、補完の候補とその結果を示します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage add-node alpha 1<tab> # completes the IP address if hostname can be resolved\n"
+"# drbdmanage assign-resource b<tab> c<tab> # drbdmanage assign-resource backups charlie\n"
+msgstr ""
+"# drbdmanage add-node alpha 1<tab> # completes the IP address if hostname can be resolved\n"
+"# drbdmanage assign-resource b<tab> c<tab> # drbdmanage assign-resource backups charlie\n"
+
+#. type: Plain text
+msgid ""
+"If tab-completion does not work out of the box, please try to source the "
+"according file:"
+msgstr ""
+"そのままの状態でタブ補完ができない時には、以下のファイルを読み込んでくださ"
+"い。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# source /etc/bash_completion.d/drbdmanage # or\n"
+"# source /usr/share/bash_completion/completions/drbdmanage\n"
+msgstr ""
+"# source /etc/bash_completion.d/drbdmanage # or\n"
+"# source /usr/share/bash_completion/completions/drbdmanage\n"
+
+#~ msgid "Common administrative tasks - DRBD Manage"
+#~ msgstr "一般的な管理作業 - DRBD Manage"

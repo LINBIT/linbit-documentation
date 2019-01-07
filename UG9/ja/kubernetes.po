@@ -1,0 +1,651 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2018-11-30 16:44+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "LINSTOR Volumes in Kubernetes"
+msgstr "Kubernetes で LINSTOR ボリューム"
+
+#. type: Plain text
+msgid ""
+"indexterm:[Kubernetes]This chapter describes DRBD in Kubernetes via the "
+"tandem usage of the https://github.com/LINBIT/linstor-external-"
+"provisioner[Linstor External Provisioner] and the https://github.com/LINBIT/"
+"linstor-flexvolume[Linstor FlexVolume Provisioner]."
+msgstr ""
+"indexterm:[Kubernetes]この章では https://github.com/LINBIT/linstor-external-"
+"provisioner[Linstor External Provisioner] と https://github.com/LINBIT/"
+"linstor-flexvolume[Linstor FlexVolume Provisioner] の両方を使ってKubernetesで"
+"のDRBD使用方法を説明します。"
+
+#. type: Plain text
+msgid ""
+"The External Provisioner creates and deletes volumes, while the FlexVolume "
+"Provisioner attaches, detaches, mounts, unmounts, and creates filesystems on "
+"volumes."
+msgstr ""
+"External Provisionerはボリュームの作成と削除を行い、一方、FlexVolume "
+"Provisionerはボリュームの接続、切り離し、マウント、アンマウント、ファイルシス"
+"テムの作成を行います。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Kubernetes Overview"
+msgstr "Kubernetesの概要"
+
+#. type: Plain text
+msgid ""
+"Kubernetes is a container orchestrator (CO) made by Google. Kubernetes "
+"defines the behavior of containers and related services via declarative "
+"specifications. In this guide, we'll focus on on using kubectl to manipulate "
+"`.yaml` files that define the specifications of Kubernetes objects."
+msgstr ""
+"KubernetesはGoogleによって作成されたコンテナのオーケストレータです。"
+"Kubernetesは宣言された仕様に基づいてコンテナと関連サービスを動作を定義しま"
+"す。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Linstor External Provisioner Installation"
+msgstr "Linstor External Provisioner のインストール"
+
+#. type: Plain text
+msgid ""
+"Instructions for building the External Provisioner can be found on the "
+"https://github.com/LINBIT/linstor-external-provisioner[project's github]. "
+"This will produce a native binary with no external dependencies."
+msgstr ""
+"External Provisionerのビルド方法は https://github.com/LINBIT/linstor-"
+"external-provisioner[プロジェクトの github] を参照ください。外部依存性をもた"
+"ないネイティブバイナリが作成されます。"
+
+#. type: Plain text
+msgid ""
+"The Linstor External Provisioner can be ran on any machine where the Linstor "
+"Client is present and able to communicate with both the Linstor controller "
+"and the Kubernetes API server."
+msgstr ""
+"Linstor External ProvisionerはLinstorクライアントがあるどのマシンでも実行でき"
+"ます。そしてLinstorコントローラとKubernetes APIサーバ両方と通信します。"
+
+#. type: Plain text
+msgid ""
+"The provisioner needs to be passed a name to the `provisioner` option and it "
+"needs to be passed the location of a Kubernetes config:"
+msgstr ""
+"linstor-external-provisionerは `provisioner` オプションで名前を、 "
+"`kubeconfig` オプションでKubernetes configの場所を指定して起動します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# ./linstor-external-provisioner -provisioner=external/linstor -kubeconfig=$HOME/.kube/config\n"
+msgstr "# ./linstor-external-provisioner -provisioner=external/linstor -kubeconfig=$HOME/.kube/config\n"
+
+#. type: Plain text
+msgid "or the address of a Kubernetes master:"
+msgstr "あるいははKubernetes masterのアドレスを指定して起動します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# ./linstor-external-provisioner -provisioner=external/linstor -master=http://0.0.0.0:8080\n"
+msgstr "# ./linstor-external-provisioner -provisioner=external/linstor -master=http://0.0.0.0:8080\n"
+
+#. type: Plain text
+msgid ""
+"Once, started, the provisioner will log to `stdout` and `stderr`, so you may "
+"wish to redirect it's output to another location."
+msgstr ""
+"一度スタートすると、Provisionerは `stdout` と `stderr` を出力しますので、他の"
+"場所にリダイレクトして使用するのもよいかもしれません。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Linstor FlexVolume Provisioner Installation"
+msgstr "Linstor FlexVolume Provisioner のインストール"
+
+#. type: Plain text
+msgid ""
+"Instructions for building the FlexVolume Provisioner can be found on the "
+"https://github.com/LINBIT/linstor-flexvolume[project's github]. This will "
+"produce a native binary with no external dependencies."
+msgstr ""
+"FlexVolume Provisionerのビルド方法は、 https://github.com/LINBIT/linstor-"
+"flexvolume[プロジェクトの github] を参照ください。外部依存性をもたないネイ"
+"ティブバイナリが作成されます。"
+
+#. type: Plain text
+msgid ""
+"The resulting binary will need to be places in the following location on all "
+"kubelet nodes."
+msgstr ""
+"作成されたバイナリはすべてのkubeletノードの以下の場所にインストールする必要が"
+"あります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/linbit~linstor-flexvolume/\n"
+msgstr "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/linbit~linstor-flexvolume/\n"
+
+#. type: Plain text
+msgid ""
+"After installation, restarting kubelet process is required on each node for "
+"Kubernetes versions older than 1.8."
+msgstr ""
+"Kubernetesのバージョン1.8より前の場合は、インストール後、それぞれのノードで、"
+"kubeletプロセスを再起動する必要があります。"
+
+#. type: Plain text
+msgid ""
+"You must set the `--enable-controller-attach-detach=false` option on all "
+"kubelets and restart the kubelet process. For systemd managed kubelets this "
+"can be set in `/etc/systemd/system/kubelet.service.d/10-kubeadm.conf`"
+msgstr ""
+"すべてのkubeletsノードで `--enable-controller-attach-detach=false` オプション"
+"も設定し、プロセスを再起動する必要があります。systemdで管理されたkubeletsの場"
+"合は `/etc/systemd/system/kubelet.service.d/10-kubeadm.conf` に設定します。"
+
+#. type: Plain text
+msgid ""
+"In addition, all kubelets must have the `linstor` command in their `PATH` "
+"and the Linstor client must be able to communicate to the Linstor "
+"controller(s)  defined in the StorageClass for the volumes."
+msgstr ""
+"さらにすべてのkubeletsノードは `linstor` コマンドがPATHになければならず、"
+"LinstorクライアントはボリュームのStorageClassで定義されたコントローラと通信で"
+"きなければなりません。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Basic Configuration and Deployment"
+msgstr "基本的な構成と配備"
+
+#. type: Plain text
+msgid ""
+"With a working Linstor cluster, a running External Provisioner, and the "
+"FlexVolume Provisioner placed on all kubelets, we can now provision volumes "
+"using the usual Kubernetes workflows."
+msgstr ""
+"Linstorクライアントと動作するために、External Provisionerを実行し、すべての"
+"kubeletsノードにFlexVolume Provisionerをインストールすることで、Kubernetes"
+"ワークフローを使用してボリュームを用意できます。"
+
+#. type: Plain text
+msgid ""
+"Configuring the behavior and properties of Linstor volumes defined and "
+"deployed are accomplished via the use of Kubernetes StorageClasses. Here "
+"below is the simplest practical StorageClass that can be used to deploy "
+"volumes:"
+msgstr ""
+"定義され配備されるLinstorボリュームの挙動とプロパティの構成はKubernetes "
+"StorageClassesを使って設定されます。以下はボリュームを配備するのに使う簡単な"
+"StorageClassの例です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"apiVersion: storage.k8s.io/v1beta1\n"
+"kind: StorageClass\n"
+"metadata:\n"
+"  # The name used to identify this StorageClass.\n"
+"  name: two-replica\n"
+"  # The name used to match this StorageClass with a provisioner.\n"
+"  # This corresponds to the provisioner flag passed to the external provisioner.\n"
+"provisioner: external/linstor\n"
+"parameters:\n"
+"  # Create volumes replicated across two nodes, and place them automatically.\n"
+"  autoPlace: \"2\"\n"
+"  # Volumes will be formatted with an xfs filesystem at mount time, if not already present.\n"
+"  filesystem: \"xfs\"\n"
+"  # Linstor will provision volumes from the drbdpool storage pool.\n"
+"  storagePool: \"drbdpool\"\n"
+"  # Comma-separated list of Linstor Controller processes that will provision volumes.\n"
+"  controllers: \"192.168.10.10:8080,172.0.0.1:3366\"\n"
+msgstr ""
+"apiVersion: storage.k8s.io/v1beta1\n"
+"kind: StorageClass\n"
+"metadata:\n"
+"  # The name used to identify this StorageClass.\n"
+"  name: two-replica\n"
+"  # The name used to match this StorageClass with a provisioner.\n"
+"  # This corresponds to the provisioner flag passed to the external provisioner.\n"
+"provisioner: external/linstor\n"
+"parameters:\n"
+"  # Create volumes replicated across two nodes, and place them automatically.\n"
+"  autoPlace: \"2\"\n"
+"  # Volumes will be formatted with an xfs filesystem at mount time, if not already present.\n"
+"  filesystem: \"xfs\"\n"
+"  # Linstor will provision volumes from the drbdpool storage pool.\n"
+"  storagePool: \"drbdpool\"\n"
+"  # Comma-separated list of Linstor Controller processes that will provision volumes.\n"
+"  controllers: \"192.168.10.10:8080,172.0.0.1:3366\"\n"
+
+#. type: Plain text
+msgid ""
+"Assuming the above configuration is in a file called `two-replica-sc.yaml`, "
+"we can create the StorageClass with the following command:"
+msgstr ""
+"ファイル名は `two-replica-sc.yaml` であると仮定し、以下のコマンドで"
+"StorageClassを作成できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl create -f two-replica-sc.yaml\n"
+msgstr "kubectl create -f two-replica-sc.yaml\n"
+
+#. type: Plain text
+msgid ""
+"Now that that storage class is created, we can now use "
+"PersistentVolumeClaims to ask create volumes known both to Kubernetes and "
+"Linstor:"
+msgstr ""
+"StorageClassが作成されましたので、次はKubernetesとLinstor両方で使われるボ"
+"リュームを作成するPersistentVolumeClaimsを使います。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kind: PersistentVolumeClaim\n"
+"apiVersion: v1\n"
+"metadata:\n"
+"  name: my-first-volume\n"
+"  annotations:\n"
+"    # This line matches the PersistentVolumeClaim with our StorageClass\n"
+"    # and therefore our provisioner.\n"
+"    volume.beta.kubernetes.io/storage-class: two-replica\n"
+"  spec:\n"
+"    accessModes:\n"
+"    - ReadWriteOnce\n"
+"  resources:\n"
+"    requests:\n"
+"      storage: 500Mi\n"
+msgstr ""
+"kind: PersistentVolumeClaim\n"
+"apiVersion: v1\n"
+"metadata:\n"
+"  name: my-first-volume\n"
+"  annotations:\n"
+"    # This line matches the PersistentVolumeClaim with our StorageClass\n"
+"    # and therefore our provisioner.\n"
+"    volume.beta.kubernetes.io/storage-class: two-replica\n"
+"  spec:\n"
+"    accessModes:\n"
+"    - ReadWriteOnce\n"
+"  resources:\n"
+"    requests:\n"
+"      storage: 500Mi\n"
+
+#. type: Plain text
+msgid ""
+"Assuming the above configuration is in a file called `my-first-volume-pvc."
+"yaml`, we can create the PersistentVolumeClaim with the following command:"
+msgstr ""
+"ファイル名は `my-first-volume-pvc.yaml` であると仮定し、以下のコマンドで"
+"PersistentVolumeClaimを作成できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl create -f my-first-volume-pvc.yaml\n"
+msgstr "kubectl create -f my-first-volume-pvc.yaml\n"
+
+#. type: Plain text
+msgid ""
+"This will create a PersistentVolumeClaim known to Kubernetes, which will "
+"have a PersistentVolume bound to it, additionally Linstor will now create "
+"this volume according to the configuration defined in the two-replica "
+"StorageClass. The Linstor volume's name and the PersistentVolume's name will "
+"be the PersistentVolumeClaim name, prepended by the PVC's Kubernetes "
+"namespace. For instance, if we were in the default namespace in Kubernetes "
+"the Linstor volume we just created will be named `default-my-first-volume`. "
+"This can be confirmed by running `linstor resource list`. Once that volume "
+"is created, we can attach it to a pod in much the same way as creating it. "
+"The following pod spec will spawn a Fedora container with our volume "
+"attached that busy waits so as to not be unscheduled:"
+msgstr ""
+"これによりKubernetesに認識されてPersistentVolumeがバインドされ、"
+"PersistentVolumeClaimが作成されます。さらにLinstorがtwo-replica StorageClass"
+"で定義さらた構成にしたがってボリュームを作成します。Linstorのボリューム名と"
+"PersistentVolumenの名前はPVC's Kubernetesの名前空間によって付加された"
+"PersistentVolumeClaim名になります。例えばKubernetes今作成したLinstorボリュー"
+"ムがdefault名前空間だった場合は `default-my-first-volume` と名付けられます。"
+"これは `linstor resource list` で確認できます。一度ボリュームが作成されると同"
+"じ方法でそれをpodに割れ当てられます。以下のpod仕様はFedoraコンテナを作成し、"
+"ビジーウェイトにするので、アンスケジュールされません。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"apiVersion: v1\n"
+"kind: Pod\n"
+"metadata:\n"
+"  name: fedora\n"
+"  namespace: default\n"
+"spec:\n"
+"  containers:\n"
+"  - name: fedora\n"
+"    image: fedora\n"
+"    command: [/bin/bash]\n"
+"    args: [\"-c\", \"while true; do sleep 10; done\"]\n"
+"    volumeMounts:\n"
+"    - name: default-my-firt-volume\n"
+"      mountPath: /data\n"
+"    ports:\n"
+"    - containerPort: 80\n"
+"  volumes:\n"
+"  - name: default-my-first-volume\n"
+"    persistentVolumeClaim:\n"
+"      claimName: \"my-first-volume\"\n"
+msgstr ""
+"apiVersion: v1\n"
+"kind: Pod\n"
+"metadata:\n"
+"  name: fedora\n"
+"  namespace: default\n"
+"spec:\n"
+"  containers:\n"
+"  - name: fedora\n"
+"    image: fedora\n"
+"    command: [/bin/bash]\n"
+"    args: [\"-c\", \"while true; do sleep 10; done\"]\n"
+"    volumeMounts:\n"
+"    - name: default-my-firt-volume\n"
+"      mountPath: /data\n"
+"    ports:\n"
+"    - containerPort: 80\n"
+"  volumes:\n"
+"  - name: default-my-first-volume\n"
+"    persistentVolumeClaim:\n"
+"      claimName: \"my-first-volume\"\n"
+
+#. type: Plain text
+msgid ""
+"Running `kubectl describe pod fedora` can be used to confirm that pod "
+"scheduduling and volume attachment succeeded."
+msgstr ""
+"`kubectl describe pod fedora` を実行することでpodがスケジュールされ、ボリュー"
+"ムが正しく割り当てられたのを確認できます。"
+
+#. type: Plain text
+msgid ""
+"To remove a volume, please ensure that no pod is using it and then delete "
+"the PersistentVolumeClaim via `kubectl`. For example, to remove the volume "
+"that we just made, run the following two commands, noting that the pod must "
+"be unscheduled before the volume will be removed:"
+msgstr ""
+"ボリュームを削除するにはpodでもう使われていないことを確認してから、`kubectl` "
+"を使ってPersistentVolumeClaimを削除します。例えば、先ほど作成したボリュームを"
+"削除するには、以下のコマンドを実行します。ボリュームが削除される前にpodがアン"
+"スケジュールされていなければならないことに注意してください。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl delete pod fedora # unschedule the pod.\n"
+msgstr "kubectl delete pod fedora # podをアンスケジュール。\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl get pod -w # wait for pod to be unscheduled\n"
+msgstr "kubectl get pod -w # podがアンスケジュールされるまで待つ\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl delete pvc my-first-volume # remove the PersistentVolumeClaim, the PersistentVolume, and the Linstor Volume.\n"
+msgstr "kubectl delete pvc my-first-volume # PersistentVolumeClaim、PersistentVolume、Linstorボリュームを削除する。\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Advanced Configuration"
+msgstr "高度な設定"
+
+#. type: Plain text
+msgid ""
+"In general, all configuration for Linstor volumes in Kubernetes should be "
+"done via the storage class parameters, as seen above with the basic example. "
+"Will give all the available options an in depth treatment here."
+msgstr ""
+"KubernetesのLinstorボリュームのすべての構成は、上で使用したサンプルのように"
+"storageクラスのパラメータ経由で設定されます。以下にすべての利用なオプションの"
+"詳細を示します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "autoPlace"
+msgstr "autoPlace"
+
+#. type: Plain text
+msgid ""
+"`autoPlace` is an integer that determines the amount of replicas a volume of "
+"this StorageClass will have.  For instance, `autoPlace: 3` will produce "
+"volumes with three-way replication. If neither `autoPlace` nor `nodeList` "
+"are set, volumes will be automatically placed on one node."
+msgstr ""
+"`autoPlace` このStorageClassが持つボリュームの複製数を指定します。例えば、 "
+"`autoPlace: 3` は３つの複製をもつボリュームを生成します。`autoPlace` または "
+"`nodeList` が指定されていない場合は、１つのノード上にボリュームが生成されま"
+"す。"
+
+#. type: Plain text
+msgid "Example: `autoPlace: 2`"
+msgstr "例: `autoPlace: 2`"
+
+#. type: Title ====
+#, no-wrap
+msgid "blockSize"
+msgstr "blockSize"
+
+#. type: Plain text
+msgid ""
+"`blockSize` is an optional parameter that is used to set the block size of "
+"either xfs or ext4 filesystems on creation."
+msgstr ""
+"`blockSize` はオプションでxfsまたはext4でファイルシステム作成時のブロックサイ"
+"ズを指定します。"
+
+#. type: Plain text
+msgid "Example: `blockSize: 2048`"
+msgstr "例: `blockSize: 2048`"
+
+#. type: Title ====
+#, no-wrap
+msgid "controllers"
+msgstr "controllers"
+
+#. type: Plain text
+msgid ""
+"`controllers` is a comma separated list of Linstor controller end points and "
+"is generally required, except in such cases where the controller is running "
+"locally on the kubelet, such as in a one-node test cluster."
+msgstr ""
+"`controllers` はカンマで区切られたLinstorコントローラのリストで通常は必須パラ"
+"メータです。ただし、コントローラがkubeletノードと同じノードで動作しているよう"
+"な、１ノードのテストクラスターのような環境では必須ではありません。"
+
+#. type: Plain text
+msgid "Example: `controllers: \"192.168.10.10:8080,172.0.0.1:3366\"`"
+msgstr "例: `controllers: \"192.168.10.10:8080,172.0.0.1:3366\"`"
+
+#. type: Title ====
+#, no-wrap
+msgid "disklessStoragePool"
+msgstr "disklessStoragePool"
+
+#. type: Plain text
+msgid ""
+"`disklessStoragePool` is an optional parameter that only effects nodes being "
+"assigned disklessly to kubelets i.e., as clients. If you have a custom "
+"diskless storage pool defined in Linstor, you'll specify that here."
+msgstr ""
+"`disklessStoragePool` はオプションでノードがkubeletsにディスクレス、すなわち"
+"クライアントとして割り当てられるようにするときに使用します。Linstor でカスタ"
+"ムディスクレスストレージプールが定義されている場合は、ここで指定します。"
+
+#. type: Plain text
+msgid "Example: `disklessStoragePool: my-custom-diskless-pool`"
+msgstr "例: `disklessStoragePool: my-custom-diskless-pool`"
+
+#. type: Title ====
+#, no-wrap
+msgid "doNotPlaceWithRegex"
+msgstr "doNotPlaceWithRegex"
+
+#. type: Plain text
+msgid ""
+"`doNotPlaceWithRegex` is an optional parameter that takes a regex that will "
+"cause Linstor to _prefer_ not to place resources with other resources that "
+"match the regex. For example, if you have a PersistentVolumeClaim named "
+"`cats` and you prefer it not to be on the same nodes as your "
+"PersistentVolumeClaims named `dogs` and `doughnuts`, you'd do the following, "
+"keeping namespace prefixing in mind:"
+msgstr ""
+"`doNotPlaceWithRegex` はオプションで、Linstorが正規表現とマッチするリソースを"
+"他のリソースと一緒に置かないようにします。例えばPersistentVolumeClaimとして "
+"`cats` があり、PersistentVolumeClaims `dogs` と `doughnuts` と同じノードに置"
+"きたくない場合は、名前空間の接頭辞も考慮して次のように指定します。"
+
+#. type: Plain text
+msgid "Example: `^default-do.*`"
+msgstr "例: `^default-do.*`"
+
+#. type: Title ====
+#, no-wrap
+msgid "encryption"
+msgstr "encryption"
+
+#. type: Plain text
+msgid ""
+"`encryption` is an optional parameter that determines whether to encrypt "
+"volumes. Linstor must be properly configured for encryption for this to work "
+"properly."
+msgstr ""
+"`encryption` はオプションで、ボリュームを暗号化するかどうかを指定します。"
+"Linstorはこれが正しく動作するように適切に設定されている必要があります。"
+
+#. type: Plain text
+msgid "Example: `encryption: \"yes\"`"
+msgstr "Example: `encryption: \"yes\"`"
+
+#. type: Title ====
+#, no-wrap
+msgid "force"
+msgstr "force"
+
+#. type: Plain text
+msgid ""
+"`force` is an optional parameter that will force filesystem creation at "
+"mount time."
+msgstr ""
+"`force` はオプションで、マウント時にファイルシステムの作成を強制的に行いま"
+"す。"
+
+#. type: Plain text
+msgid "Example: `force: \"true\"`"
+msgstr "例: `force: \"true\"`"
+
+#. type: Title ====
+#, no-wrap
+msgid "nodeList"
+msgstr "nodeList"
+
+#. type: Plain text
+msgid ""
+"`nodeList` is an list of nodes for volumes to be assigned to. This will "
+"assign the volume to each node and it will be replicated amongst all of them."
+msgstr ""
+"`nodeList` ボリュームが割り当てられるノードのリストです。ボリュームがそれぞれ"
+"のノードに割り当てられそれらの間で複製が行われます。"
+
+#. type: Plain text
+msgid "Example: `nodeList: \"node-a node-b node-c\"`"
+msgstr "例: `nodeList: \"node-a node-b node-c\"`"
+
+#. type: Title ====
+#, no-wrap
+msgid "storagePool"
+msgstr "storagePool"
+
+#. type: Plain text
+msgid ""
+"`storagePool` is the name of the Linstor storage pool that will be used to "
+"provide storage to the newly-created volumes."
+msgstr ""
+"`storagePool` はLinstorのストレージプールの名前で、新規に作成されたボリューム"
+"にストレージを供給するときに使用されます。"
+
+#. type: Plain text
+msgid "Example: `storagePool: my-storage-pool`"
+msgstr "例: `storagePool: my-storage-pool`"
+
+#. type: Plain text
+msgid ""
+"`mountOpts` is an optional parameter that passes options to the volume's "
+"filesystem at mount time."
+msgstr ""
+"`mountOpts` はオプションで、マウント時にボリュームのファイルシステムに渡すオ"
+"プションを指定します。"
+
+#. type: Plain text
+msgid "Example: `mountOpts: \"sync,noatime\"`"
+msgstr "例: `mountOpts: \"sync,noatime\"`"
+
+#. type: Title ====
+#, no-wrap
+msgid "xfs Specific Parameters"
+msgstr "xfs固有のパラメータ"
+
+#. type: Plain text
+msgid ""
+"The following are optional xfs tuning parameters that take effect on "
+"filesystem creation."
+msgstr ""
+"以下はオプションで、ファイルシステム作成時に影響を与えるxfsのチューニングパラ"
+"メータです。"
+
+#. type: Plain text
+msgid "`xfsDataSU` corresponds to the `-d su` flag on mkfs.xfs."
+msgstr "`xfsDataSU` はmkfs.xfsの `-d su` に対応します。"
+
+#. type: Plain text
+msgid "Example: `xfsDataSU: \"64k\"`"
+msgstr "例: `xfsDataSU: \"64k\"`"
+
+#. type: Plain text
+msgid "`xfsDataSW` corresponds to the `-d sw` flag on mkfs.xfs."
+msgstr "`xfsDataSW` はmkfs.xfsの `-d sw` に対応します。"
+
+#. type: Plain text
+msgid "Example: `xfsDataSW: \"4\"`"
+msgstr "例: `xfsDataSW: \"4\"`"
+
+#. type: Plain text
+msgid "`xfsLogDev` corresponds to the `-l logdev` flag on mkfs.xfs."
+msgstr "`xfsLogDev` はmkfs.xfsの `-l logdev` に対応します。"
+
+#. type: Plain text
+msgid "Example: `xfsLogDev: \"/dev/example\"`"
+msgstr "例: `xfsLogDev: \"/dev/example\"`"
+
+#. type: Plain text
+msgid ""
+"`xfsdiscardblocks` corresponds to the `-K` flag on mkfs.xfs. Please note "
+"that by default, blocks will *not* be discarded, the default behavior of xfs "
+"is to discard blocks."
+msgstr ""
+"`xfsdiscardblocks` はmkfs.xfsの `-K` オプションに対応します。デフォルトはブ"
+"ロックを破棄しません。xfsのデフォルトの動作はブロックを破棄します。"
+
+#. type: Plain text
+msgid "Example: `xfsdiscardblocks: \"true\"`"
+msgstr "例: `xfsdiscardblocks: \"true\"`"

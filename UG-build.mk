@@ -1,3 +1,10 @@
+#
+# UG-build.mk
+#
+# Makefile should include this file and UG-build-adoc.mk if English document,
+# or UG-build-po.mk if localized document.
+#
+
 IN=drbd-users-guide.adoc
 OUTDIR=output
 OUTDIRPDF=$(OUTDIR)-pdf
@@ -11,22 +18,16 @@ OUTHTML=$(addsuffix .html,$(basename $(IN)))
 OUTHTMLWEBDEVS=drbd-users-guide-without-css.html
 OUTPDF=$(addsuffix .pdf,$(basename $(IN)))
 
-SRC=$(wildcard *.adoc)
 # for html
-SVGSUSED=$(shell sed -n -e 's/^image::\(.*\.svg\)\(.*\)/\1/p' *.adoc)
 SVGS=$(addprefix ../../, $(SVGSUSED))
 # output pngs from svgs
 OUTPNGSSVGS=$(patsubst $(IMGDIR)/%.svg,$(OUTDIRHTMLIMAGES)/%.png, $(SVGS))
 
-PNGSUSED=$(shell sed -n -e 's/^image::\(.*\.png\)\(.*\)/\1/p' *.adoc)
 PNGS=$(addprefix ../../, $(PNGSUSED))
 # output pngs from pngs
 OUTPNGSPNGS=$(patsubst $(IMGDIR)/%.png,$(OUTDIRHTMLIMAGES)/%.png, $(PNGS))
 
 OUTADOCS=$(addprefix $(OUTDIRHTML)/, $(SRC))
-
-%.adoc:
-	;
 
 # HTML
 $(OUTDIRHTMLIMAGES): $(IMGDIR)
@@ -74,6 +75,10 @@ pdf-finalize: pdf
 		cd $(OUTDIRPDFFINAL) && \
 		mv $(OUTPDF) $${D}.pdf
 
+CLEAN_FILES += \
+	$(OUTDIRHTML)/*.adoc $(OUTDIRHTML)/*.css $(OUTDIRHTML)/*.html \
+	$(OUTDIRHTMLIMAGES)/* $(OUTDIRPDF)/*  \
+	$(OUTDIRHTMLFINAL) $(OUTDIRPDFFINAL)
+
 clean:
-	rm -f $(OUTDIRHTML)/*.adoc $(OUTDIRHTML)/*.css $(OUTDIRHTML)/*.html $(OUTDIRHTMLIMAGES)/* $(OUTDIRPDF)/*
-	rm -rf $(OUTDIRHTMLFINAL) $(OUTDIRPDFFINAL)
+	rm -rf $(CLEAN_FILES)

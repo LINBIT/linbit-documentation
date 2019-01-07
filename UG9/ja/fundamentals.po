@@ -1,0 +1,395 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2018-09-11 08:47+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "DRBD Fundamentals"
+msgstr "DRBDの基礎"
+
+#. type: Plain text
+msgid ""
+"DRBD is a software-based, shared-nothing, replicated storage solution "
+"mirroring the content of block devices (hard disks, partitions, logical "
+"volumes etc.) between hosts."
+msgstr ""
+"Distributed Replicated Block Device (DRBD)は、ストレージのレプリケーション(複"
+"製)のためのソフトウェアで、シェアードナッシングを実現します。DRBDはサーバ間で"
+"ブロックデバイス(ハードディスク、パーティション、論理ボリュームなど)の内容を"
+"ミラーします。"
+
+#. type: Plain text
+msgid "DRBD mirrors data"
+msgstr "DRBDによるミラーは次の特徴を持ちます。"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"*in real time*. Replication occurs continuously while applications\n"
+"modify the data on the device.\n"
+msgstr ""
+"*リアルタイムレプリケーション*. 上位アプリケーションがデバイスのデータを書き換えると、\n"
+"そのデータをリアルタイムでレプリケートします。\n"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"*transparently*. Applications need not be aware that the data is stored on\n"
+"multiple hosts.\n"
+msgstr "*アプリケーションから透過的*. アプリケーションは、データが複数のホスト上に格納されていることを意識する必要はありません。\n"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"*synchronously* or *asynchronously*. With synchronous mirroring, applications\n"
+"are notified of write completions after the writes have been carried out on\n"
+"all (connected) hosts. With asynchronous mirroring, applications are notified of write\n"
+"completions when the writes have completed locally, which usually is before\n"
+"they have propagated to the other hosts.\n"
+msgstr ""
+"*同期* または *非同期* の両方に対応同期でミラーリングを行う場合には、\n"
+"すべてのホストのディスクへの書き込みが完了した後で、アプリケーションが完了通知を受け取ります。\n"
+"非同期でミラーリングを行う場合には、\n"
+"ローカルディスクへの書き込みが完了したときに、すぐにアプリケーションが完了通知を受け取ります。\n"
+"この際、他のホストへの書き込みは後で行われます。\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Kernel module"
+msgstr "カーネルモジュール"
+
+#. type: Plain text
+msgid ""
+"DRBD's core functionality is implemented by way of a Linux kernel module. "
+"Specifically, DRBD constitutes a driver for a virtual block device, so DRBD "
+"is situated right near the bottom of a system's I/O stack. Because of this, "
+"DRBD is extremely flexible and versatile, which makes it a replication "
+"solution suitable for adding high availability to just about any application."
+msgstr ""
+"DRBDのコア機能はLinuxのカーネルモジュールとして実装されています。OSのI/Oス"
+"タックの下位の階層でDRBDは仮想的なブロックデバイスを作ります。このために、"
+"DRBDは非常に柔軟で応用範囲が広く、さまざまなアプリケーションの可用性を高める"
+"ために利用できます。"
+
+#. type: Plain text
+msgid ""
+"DRBD is, by definition and as mandated by the Linux kernel architecture, "
+"agnostic of the layers above it. Thus, it is impossible for DRBD to "
+"miraculously add features to upper layers that these do not possess. For "
+"example, DRBD cannot auto-detect file system corruption or add active-active "
+"clustering capability to file systems like ext3 or XFS."
+msgstr ""
+"その定義とLinuxカーネルアーキテクチャとの関連にもとづき、DRBDは上位レイヤに関"
+"して一切関知しません。このため、DRBDは上位レイヤに対しては何ら機能を付与でき"
+"ません。たとえば、DRBDはファイルシステムの障害を検出できません。またext3やXFS"
+"などのファイルシステムに対してアクティブ-アクティブクラスタ機能を追加すること"
+"もできません。"
+
+#. type: Block title
+#, no-wrap
+msgid "DRBD's position within the Linux I/O stack"
+msgstr "LinuxのI/OスタックでのDRBDの位置"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/drbd-in-kernel.svg"
+msgstr "images/drbd-in-kernel.svg"
+
+#. type: Title ===
+#, no-wrap
+msgid "User space administration tools"
+msgstr "ユーザー空間の管理ツール"
+
+#. type: Plain text
+msgid ""
+"DRBD comes with a set of administration tools which communicate with the "
+"kernel module in order to configure and administer DRBD resources. From top-"
+"level to bottom-most these are:"
+msgstr ""
+"DRBDにはカーネルモジュールと通信を行う管理ツールがいくつか用意されています。"
+"トップレベルのものからボトムレベルの順に以下に説明します。"
+
+#. type: Block title
+#, no-wrap
+msgid "`drbdmanage`"
+msgstr "`drbdmanage`"
+
+#. type: Plain text
+msgid ""
+"Provided as a separate project, this is the recommended way to orchestrate "
+"DRBD resources in a multi-node cluster. DRBD Manage uses one DRBD 9 resource "
+"to store its cluster-wide configuration data, and offers a quick and easy "
+"way to perform the most often needed administrative tasks, by calling "
+"external programs like `lvcreate` and `drbdadm`."
+msgstr ""
+"マルチノードクラスタでDRBDリソース管理を行う場合に推奨するツールです。本ツー"
+"ルは別プロジェクトとして位置づけられています。DRBD Manageはクラスタ全体の設定"
+"情報を保存するために1つのDRBDリソースを使用し、 `lvcreate` や `drbdadm` など"
+"の外部コマンドを呼び出すことで、使用頻度の高い管理作業を簡単に素早く行うこと"
+"ができます。"
+
+#. type: Plain text
+msgid ""
+"Please see <<ch-admin-drbdmanage,the DRBD Manage entry>> in this "
+"documentation for more details."
+msgstr ""
+"詳細については<<ch-admin-drbdmanage,DRBD Manageの章>>をご参照ください。"
+
+#. type: Block title
+#, no-wrap
+msgid "`drbdadm`"
+msgstr "`drbdadm`"
+
+#. type: Plain text
+msgid ""
+"The high-level administration tool of the DRBD-utils program suite.  Obtains "
+"all DRBD configuration parameters from the configuration file `/etc/drbd."
+"conf` and acts as a front-end for `drbdsetup` and `drbdmeta`.  `drbdadm` has "
+"a _dry-run_ mode, invoked with the `-d` option, that shows which `drbdsetup` "
+"and `drbdmeta` calls `drbdadm` would issue without actually calling those "
+"commands."
+msgstr ""
+"DRBDプログラム群における高レベル管理ツールです。このコマンドは、DRBDの制御に"
+"必要なすべてのパラメータを `/etc/drbd.conf` から読み込み、 `drbdsetup` と "
+"`drbdmeta` のフロントエンドとして動作します。`drbdadm` には `-d` オプションで"
+"起動する _dry-run_ モードがあり、 実際にコマンドを実行することなく、 "
+"`drbdadm` から呼び出される `drbdsetup` や `drbdmeta` のコマンドを表示します。"
+
+#. type: Block title
+#, no-wrap
+msgid "`drbdsetup`"
+msgstr "`drbdsetup`"
+
+#. type: Plain text
+msgid ""
+"Configures the DRBD module that was loaded into the kernel. All parameters "
+"to `drbdsetup` must be passed on the command line. The separation between "
+"`drbdadm` and `drbdsetup` allows for maximum flexibility.  Most users will "
+"rarely need to use `drbdsetup` directly, if at all."
+msgstr ""
+"カーネルにロードされたDRBDモジュールを設定します。 `drbdsetup` の全パラメータ"
+"はコマンドラインで指定する必要があります。 `drbdadm` と `drbdsetup` を分離し"
+"ていることで最大限の柔軟性を確保しています。ほとんどのユーザーは `drbdsetup` "
+"を使う事はないでしょう。"
+
+#. type: Block title
+#, no-wrap
+msgid "`drbdmeta`"
+msgstr "`drbdmeta`"
+
+#. type: Plain text
+msgid ""
+"Allows to create, dump, restore, and modify DRBD meta data structures. Like "
+"`drbdsetup`, most users will only rarely need to use `drbdmeta` directly."
+msgstr ""
+"DRBDメタデータの作成、ダンプ、リストアなどを行うコマンドです。 `drbdsetup` と"
+"同様、ほとんどのユーザーはdrbdmeta を使うことはないでしょう。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Resources"
+msgstr "リソース"
+
+#. type: Plain text
+msgid ""
+"In DRBD, _resource_ is the collective term that refers to all aspects of a "
+"particular replicated data set. These include:"
+msgstr ""
+"DRBDでは、レプリケートするデータセットに関するさまざまな属性を総称して _リ"
+"ソース_ と呼びます。リソースは以下の要素で構成されます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Resource name"
+msgstr "リソース名"
+
+#. type: Plain text
+msgid ""
+"This can be any arbitrary, US-ASCII name not containing whitespace by which "
+"the resource is referred to."
+msgstr ""
+"個々のリソースを区別するために、ホワイトスペース以外のUS-ASCII文字で表される"
+"任意の名前を与えることができます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Volumes"
+msgstr "ボリューム"
+
+#. type: Plain text
+msgid ""
+"Any resource is a replication group consisting of one of more _volumes_ that "
+"share a common replication stream. DRBD ensures write fidelity across all "
+"volumes in the resource. Volumes are numbered starting with `0`, and there "
+"may be up to 65,535 volumes in one resource. A volume contains the "
+"replicated data set, and a set of metadata for DRBD internal use."
+msgstr ""
+"どのリソースも、複数のレプリケーションストリームを共有する ボリュームのうちの"
+"１つを構成するレプリケーショングループですDRBDは、リソース内のすべてのボ"
+"リューム間で書き込みの忠実性を保証します。ボリュームは `0` から番号付けされ、"
+"1つのリソースにおいて、最大で65,535ボリュームまで可能です。ボリュームにはレプ"
+"リケートされたデータセットを含み、DRBD内部で使用するメタデータのセットも含み"
+"ます。"
+
+#. type: Plain text
+msgid ""
+"At the `drbdadm` level, a volume within a resource can be addressed by the "
+"resource name and volume number as `__resource__/__volume__`."
+msgstr ""
+"`drbdadm` コマンドでは、リソース内のボリュームを、リソース名とボリューム名を "
+"`<resource>/<volume>` のように記述して指定します。"
+
+#.  At the `drbdsetup` level, a volume is addressed by its device minor number.
+#.  At the `drbdmeta` level, a volume is addressed by the name of the underlying
+#.  device.
+#.  FIXME: Users don't care which major device number is assigned to DRBD.
+#.  Likewise, they don't care about minor device numbers if they don't have to.
+#.  We refer to device as /dev/drbdX almost everywhere, so do we have to mention
+#.  minors here at all?
+#. type: Block title
+#, no-wrap
+msgid "DRBD device"
+msgstr "DRBDデバイス"
+
+#. type: Plain text
+msgid ""
+"This is a virtual block device managed by DRBD. It has a device major number "
+"of 147, and its minor numbers are numbered from 0 onwards, as is customary. "
+"Each DRBD device corresponds to a volume in a resource. The associated block "
+"device is usually named `/dev/drbd__X__`, where `_X_` is the device minor "
+"number. `udev` will typically also create symlinks containing the resource "
+"name and volume number, as in `/dev/drbd/by-res/__resource__/__vol-nr__`."
+msgstr ""
+"DRBDが管理する仮想的なブロックデバイスです。DRBDが管理する仮想的なブロックデ"
+"バイスで、147のメジャー番号を持ち、minor番号は0から順次割り振られます。各DRBD"
+"デバイスは、リソース内の1つのボリュームに該当します。関連付けられたブロックデ"
+"バイスは通常 `/dev/drbdX` の形式になり、 `X` はデバイス番号です。通常 `udev` "
+"は `#/dev/drbd/by-res/#resource/vol-nr` にあるリソース名とボリューム名を含む"
+"シンボリックリンクも作成します。"
+
+#. type: Plain text
+msgid ""
+"Very early DRBD versions hijacked NBD's device major number 43.  This is "
+"long obsolete; 147 is the http://www.lanana.org/docs/device-list/[LANANA-"
+"registered] DRBD device major."
+msgstr ""
+"初期のバージョンのDRBDは、NBDのデバイスメジャー番号43を勝手に使っていました。"
+"現在は147という番号が、DRBDデバイスメジャー番号として、http://www.lanana.org/"
+"docs/device-list/[LANANA-registered]に正式に登録されています。"
+
+#. type: Block title
+#, no-wrap
+msgid "Connection"
+msgstr "コネクション"
+
+#. type: Plain text
+msgid ""
+"A _connection_ is a communication link between two hosts that share a "
+"replicated data set.  With DRBD 9 each resource can be defined on multiple "
+"hosts; with the current versions this requires a full-meshed connection "
+"setup between these hosts (ie. each host connected to every other for that "
+"resource)"
+msgstr ""
+"_コネクション_ はレプリケートされるデータセットを共有する、2つのホスト間の通"
+"信リンクです。DRBD9では、各リソースが複数のホストで設定できますが、この場合、"
+"現在のバージョンではホスト間にフルメッシュ型の接続が必要です。つまり、リソー"
+"ス用に各ホストは他のホストへの接続が必要です。"
+
+#. type: Plain text
+msgid ""
+"At the `drbdadm` level, a connection is addressed by the resource and the "
+"connection name (the latter defaulting to the peer hostname), like "
+"`__resource__:__connection__`."
+msgstr ""
+"`drbdadm` では、コネクションはリソース名とコネクション名(デフォルトでは対向の"
+"ホスト名)で指定されます。"
+
+#.  At the `drbdsetup` level, a connection is addressed by its two replication
+#.  endpoints identified by address family (optional), address (required), and
+#.  port (optional).
+#. type: Title ===
+#, no-wrap
+msgid "Resource roles"
+msgstr "リソースのロール(役割)"
+
+#. type: Plain text
+msgid ""
+"indexterm:[Primary]indexterm:[Secondary]indexterm:[role]In DRBD, every <<s-"
+"resources,resource>> has a role, which may be _Primary_ or _Secondary_."
+msgstr ""
+"indexterm:[primary]indexterm:[secondary]indexterm:[role]DRBDのすべての<<s-"
+"resources,リソース>>は _プライマリ_ または _セカンダリ_ のどちらかのロール(役"
+"割)を持っています。"
+
+#. type: Plain text
+msgid ""
+"The choice of terms here is not arbitrary. These roles were deliberately not "
+"named \"Active\" and \"Passive\" by DRBD's creators. _Primary_ vs. "
+"_secondary_ refers to a concept related to availability of *storage*, "
+"whereas _active_ vs. _passive_ refers to the availability of an "
+"*application*. It is usually the case in a high-availability environment "
+"that the _primary_ node is also the _active_ one, but this is by no means "
+"necessary."
+msgstr ""
+"「プライマリ」と「セカンダリ」という用語は適当に選んだものではないことを理解"
+"してください。DRBD開発者は意図的に「アクティブ」と「パッシブ」という用語を避"
+"けました。_プライマリ_ と _セカンダリ_ は *ストレージ* の可用性に関する概念で"
+"す。一方、 _アクティブ_ と _パッシブ_ は *アプリケーション* の可用性に関する"
+"概念です。ハイアベイラビリティクラスタ環境では、一般的にアクティブノードの"
+"DRBDは _プライマリ_ になりますが、これが例外のないルールだということではあり"
+"ません。"
+
+#. type: Plain text
+msgid ""
+"A DRBD device in the _primary_ role can be used unrestrictedly for read and "
+"write operations. It may be used for creating and mounting file systems, raw "
+"or direct I/O to the block device, etc."
+msgstr ""
+"プライマリロールのDRBDデバイスでは、データの読み込みと書き込みが制約なく行え"
+"ます。 　この状態のストレージに対しては、ファイルシステムの作成やマウントが可"
+"能であり、 ブロックデバイスに対する下位デバイスI/OやダイレクトI/O等も可能で"
+"す。"
+
+#. type: Plain text
+msgid ""
+"A DRBD device in the _secondary_ role receives all updates from the peer "
+"node's device, but otherwise disallows access completely. It can not be used "
+"by applications, neither for read nor write access. The reason for "
+"disallowing even read-only access to the device is the necessity to maintain "
+"cache coherency, which would be impossible if a secondary resource were made "
+"accessible in any way."
+msgstr ""
+"_セカンダリ_ ロールのDRBDデバイスは、対向するノードのすべてのデータの更新を受"
+"け取りますが、 他からのアクセスは受け付けません。 つまり自ノードのアプリケー"
+"ションからのアクセスについても、読み込みと書き込みの両方とも一切受け付けませ"
+"ん。 　読み込みすら受け付けない理由は、 キャッシュの透過性を保証するためで"
+"す。 もしもセカンダリリソースが自ノードからのアクセスを受け付けると、この保証"
+"ができなくなります。"
+
+#. type: Plain text
+msgid ""
+"The resource's role can, of course, be changed, either by <<s-switch-"
+"resource-roles,manual intervention>>, by way of some automated algorithm by "
+"a cluster management application, or <<s-automatic-promotion,"
+"automatically>>. Changing the resource role from secondary to primary is "
+"referred to as _promotion_, whereas the reverse operation is termed "
+"_demotion_."
+msgstr ""
+"リソースのロールは、もちろん<<s-switch-resource-roles,手動で切り替えできる>>"
+"他に、クラスタ管理アプリケーションの何らかの自動化アルゴリズムによって、また"
+"は<<s-automatic-promotion,自動プロモーション>>でも切り替えられます。セカンダ"
+"リからプライマリへの切り替えを _昇格_ と呼びます。一方プライマリからセダンダ"
+"リの切り替えは _降格_ と呼びます。"

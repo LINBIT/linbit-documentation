@@ -1,0 +1,470 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2018-09-04 16:19+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "Using Xen with DRBD"
+msgstr "DRBDとXenの使用"
+
+#. type: Plain text
+msgid ""
+"indexterm:[Xen]This chapter outlines the use of DRBD as a Virtual Block "
+"Device (VBD) for virtualization environments using the Xen hypervisor."
+msgstr ""
+"indexterm:[Xen]この章では、Xenハイパーバイザを使用する仮想化環境のVBD "
+"(Virtual Block Device: 仮想ブロックデバイス)としてDRBDを使用する方法を説明し"
+"ます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Xen primer"
+msgstr "Xenの基礎"
+
+#. type: Plain text
+msgid ""
+"Xen is a virtualization framework originally developed at the University of "
+"Cambridge (UK), and later being maintained by XenSource, Inc. (now a part of "
+"Citrix). It is included in reasonably recent releases of most Linux "
+"distributions, such as Debian GNU/Linux (since version 4.0), SUSE Linux "
+"Enterprise Server (since release 10), Red Hat Enterprise Linux (since "
+"release 5), and many others."
+msgstr ""
+"Xenはケンブリッジ大学(英国)で開発された仮想化フレームワークで、その後は"
+"XenSource, Inc. (現在はCitrix傘下)が維持管理しています。Debian GNU/Linux "
+"(バージョン4.0以降)、SUSE Linux Enterprise Server (リリース10以降)、 Red Hat "
+"Enterprise Linux (リリース5)など、ほとんどのLinuxディストリビューションの比較"
+"的新しいリリースにはXenが含まれています。"
+
+#. type: Plain text
+msgid ""
+"Xen uses indexterm:[Xen]paravirtualization — a virtualization method "
+"involving a high degree of cooperation between the virtualization host and "
+"guest virtual machines — with selected guest operating systems for improved "
+"performance in comparison to conventional virtualization solutions (which "
+"are typically based on hardware emulation). indexterm:[Xen]Xen also supports "
+"full hardware emulation on CPUs that support the appropriate virtualization "
+"extensions, in Xen parlance, this is known as HVM ( \"hardware-assisted "
+"virtual machine\")."
+msgstr ""
+"Xenではindexterm:[Xen]準仮想化が使用されます。これは、仮想化ホストとゲスト仮"
+"想マシンの高度な協調を必要とする仮想化方式です。従来のハードウェアエミュレー"
+"ションにもとづく仮想化ソリューションよりも高いパフォーマンスを実現します。"
+"indexterm:[Xen]適切な仮想化拡張機能をサポートするCPUの場合、Xenは完全なハード"
+"ウェアエミュレーションもサポートします。これはXenの用語ではHVM (「Hardware-"
+"assisted Virtual Machine: ハードウェア支援仮想マシン」)と呼ばれます。"
+
+#. type: Plain text
+msgid ""
+"At the time of writing, CPU extensions supported by Xen for HVM are Intel's "
+"Virtualization Technology (VT, formerly codenamed \"Vanderpool\"), and AMD's "
+"Secure Virtual Machine (SVM, formerly known as \"Pacifica\")."
+msgstr ""
+"本書の執筆時点で、XenがHVM用にサポートするCPU拡張機能はIntelのVirtualization "
+"Technology (VT、以前のコードネームは「Vanderpool」)およびAMDのSecure Virtual "
+"Machine (SVM、以前の「Pacifica」)です。"
+
+#. type: Plain text
+msgid ""
+"Xen supports indexterm:[Xen]_live migration_, which refers to the capability "
+"of transferring a running guest operating system from one physical host to "
+"another, without interruption."
+msgstr ""
+"Xenはindexterm:[Xen]ライブマイグレーションをサポートします。これは、実行中の"
+"ゲストオペレーティングシステムを1つの物理ホストからもう1つへ中断なく転送する"
+"機能です。"
+
+#. type: Plain text
+msgid ""
+"When a DRBD resource is used as a replicated Virtual Block Device (VBD) for "
+"Xen, it serves to make the entire contents of a domU's virtual disk "
+"available on two servers, which can then be configured for automatic fail-"
+"over. That way, DRBD does not only provide redundancy for Linux servers (as "
+"in non-virtualized DRBD deployment scenarios), but also for any other "
+"operating system that can be virtualized under Xen — which, in essence, "
+"includes any operating system available on 32- or 64-bit Intel compatible "
+"architectures."
+msgstr ""
+"DRBDリソースをレプリケートされたXen用仮想ブロックデバイス(VBD)として設定する"
+"と、2つのサーバの両方でdomUの仮想ディスクとして使えます。さらに自動フェイル"
+"オーバさせることも可能になります。このように、DRBDは、仮想化以外の他の用途と"
+"同様に、Linuxサーバに冗長性を提供するだけでなく、Xenによって仮想化できる他の"
+"オペレーティングシステムにも冗長性を提供します。これには32ビットまたは64ビッ"
+"トIntel互換アーキテクチャで実行可能な実質上すべてのオペレーティングシステムが"
+"含まれます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Setting DRBD module parameters for use with Xen"
+msgstr "Xenとともに使用するためにDRBDモジュールパラメータを設定する"
+
+#. type: Plain text
+msgid ""
+"For Xen Domain-0 kernels, it is recommended to load the DRBD module with the "
+"option `disable_sendpage` set to `1`. To do so, create (or open) the file `/"
+"etc/modprobe.d/drbd.conf` and enter the following line:"
+msgstr ""
+"Xen Domain-0カーネルの場合は、 `disable_sendpage` を `1` に設定してDRBDモ"
+"ジュールをロードすることをお勧めします。ファイル `/etc/modprobe.d/drbd.conf` "
+"を作成するか開いて、次の行を入力します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "options drbd disable_sendpage=1\n"
+msgstr "options drbd disable_sendpage=1\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Creating a DRBD resource suitable to act as a Xen VBD"
+msgstr "Xen VBDとして適切なDRBDリソースを作成する"
+
+#. type: Plain text
+msgid ""
+"Configuring a DRBD resource that is to be used as a Virtual Block Device for "
+"Xen is fairly straightforward -- in essence, the typical configuration "
+"matches that of a DRBD resource being used for any other purpose. However, "
+"if you want to enable indexterm:[Xen]live migration for your guest instance, "
+"you need to enable indexterm:[dual-primary mode]<<s-dual-primary-mode,dual-"
+"primary mode>>for this resource:"
+msgstr ""
+"Xenの仮想ブロックデバイスとして使用するDRBDリソースの設定は比較的簡単です。基"
+"本的には、他の目的に使用するDRBDリソースの構成とほぼ同様です。ただし、ゲスト"
+"インスタンスのindexterm:[Xen]ライブマイグレーションを有効にしたい場合は、その"
+"リソースのindexterm:[デュアルプライマリモード]<<s-dual-primary-mode,デュアル"
+"プライマリモード>>を有効にする必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    allow-two-primaries yes;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+"resource <resource> {\n"
+"  net {\n"
+"    allow-two-primaries yes;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+
+#. type: Plain text
+msgid ""
+"Enabling dual-primary mode is necessary because Xen, before initiating live "
+"migration, checks for write access on all VBDs a resource is configured to "
+"use on both the source and the destination host for the migration."
+msgstr ""
+"デュアルプライマリモードを有効にするのは、Xenがライブマイグレーションを開始す"
+"る前にすべてのVBDの書き込みアクセスをチェックするためです。リソースは、移行元"
+"ホストと移行先ホストの両方で使用されるように設定されます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Using DRBD VBDs"
+msgstr "DRBD VBDの使用"
+
+#. type: Plain text
+msgid ""
+"In order to use a DRBD resource as the virtual block device, you must add a "
+"line like the following to your Xen domU configuration: indexterm:[Xen]"
+msgstr ""
+"DRBDリソースを仮想ブロックデバイスとして使用するには、Xen domU設定に次のよう"
+"な行を追加する必要があります。indexterm:[Xen]"
+
+#. type: delimited block -
+#, no-wrap
+msgid "disk = [ 'drbd:<resource>,xvda,w' ]\n"
+msgstr "disk = [ 'drbd:<resource>,xvda,w' ]\n"
+
+#. type: Plain text
+msgid ""
+"This example configuration makes the DRBD resource named _resource_ "
+"available to the domU as `/dev/xvda` in read/write mode ( `w`)."
+msgstr ""
+"この設定例では、 _resource_ という名前のDRBDリソースを読み取り/書きみモード"
+"(w)で `/dev/xvda` としてdomUで使用できるようにします。"
+
+#. type: Plain text
+msgid ""
+"Of course, you may use multiple DRBD resources with a single domU. In that "
+"case, simply add more entries like the one provided in the example to the "
+"`disk` option, separated by commas."
+msgstr ""
+"もちろん、複数のDRBDリソースを単一のdomUで使用することもできます。その場合"
+"は、上記の例のように、コンマで区切って `disk` オプションにさらに項目を追加し"
+"ます。"
+
+#. type: Plain text
+msgid ""
+"There are three sets of circumstances under which you cannot use this "
+"approach:"
+msgstr "ただし、次に示す3つの状況ではこの方法を使用できません。"
+
+#. type: Plain text
+msgid "You are configuring a fully virtualized (HVM) domU."
+msgstr "完全に仮想化された(HVM) domUを構成する場合"
+
+#. type: Plain text
+msgid ""
+"You are installing your domU using a graphical installation utility, _and_ "
+"that graphical installer does not support the `drbd:` syntax."
+msgstr ""
+"グラフィカルインストールユーティリティを使用してdomUをインストールし、さらに"
+"そのグラフィカルインストーラが `drbd:` 構文をサポートしない場合。"
+
+#. type: Plain text
+msgid ""
+"You are configuring a domU without the `kernel`, `initrd`, and `extra` "
+"options, relying instead on `bootloader` and `bootloader_args` to use a Xen "
+"pseudo-bootloader, _and_ that pseudo-bootloader does not support the `drbd:` "
+"syntax."
+msgstr ""
+"`kernel` 、 `initrd` 、 `extra` オプションを指定せずにdomUを構成し、代わりに "
+"`bootloader` と `bootloader_args` によりXen擬似ブートローダを使用するように指"
+"定し、さらにこの擬似ブートローダが `drbd:` 構文をサポートしない場合。"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"** pygrub` (prior to Xen 3.3) and `domUloader.py` (shipped with Xen on\n"
+"SUSE Linux Enterprise Server 10) are two examples of\n"
+"pseudo-bootloaders that do not support the `drbd:` virtual block device\n"
+"configuration syntax.\n"
+msgstr "** `pygrub` (Xen 3.3より前)および `domUloader.py` (SUSE Linux Enterprise Server 10のXenに同梱)は、仮想ブロックデバイス構成の `drbd:` 構文をサポートしない擬似ブートローダの例です。\n"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"** `pygrub` from Xen 3.3 forward, and the `domUloader.py` version that\n"
+"   ships with SLES 11 _do_ support this syntax.\n"
+msgstr "** Xen 3.3以降の `pygrub` およびSLES 11に同梱される `domUloader.py` のバージョンはこの構文をサポートします。\n"
+
+#. type: Plain text
+msgid ""
+"Under these circumstances, you must use the traditional `phy:` device syntax "
+"and the DRBD device name that is associated with your resource, not the "
+"resource name. That, however, requires that you manage DRBD state "
+"transitions outside Xen, which is a less flexible approach than that "
+"provided by the `drbd` resource type."
+msgstr ""
+"このような場合は、従来の `phy:` デバイス構文、およびリソース名ではなく、リ"
+"ソースに関連付けられたDRBDデバイス名を使用する必要があります。ただし、この場"
+"合はDRBDの状態遷移をXenの外部で管理する必要があるため、 `drbd` リソースタイプ"
+"を使用する場合より柔軟性が低下します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Starting, stopping, and migrating DRBD-backed domU's"
+msgstr "DRBDで保護されたdomUの開始、停止、移行"
+
+#. type: Block title
+#, no-wrap
+msgid "Starting the domU"
+msgstr "domUの開始"
+
+#. type: Plain text
+msgid ""
+"Once you have configured your DRBD-backed domU, you may start it as you "
+"would any other domU:"
+msgstr "DRBDで保護されたdomUを設定したら、通常のdomUと同様に開始できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"xm create <domU>\n"
+"Using config file \"+/etc/xen/<domU>+\".\n"
+"Started domain <domU>\n"
+msgstr ""
+"xm create <domU>\n"
+"Using config file \"+/etc/xen/<domU>+\".\n"
+"Started domain <domU>\n"
+
+#. type: Plain text
+msgid ""
+"In the process, the DRBD resource you configured as the VBD will be promoted "
+"to the primary role, and made accessible to Xen as expected."
+msgstr ""
+"このとき、VBDとして設定したDRBDリソースは、プライマリロールに昇格され、通常ど"
+"おりにXenにアクセスできるようになります。"
+
+#. type: Block title
+#, no-wrap
+msgid "Stopping the domU"
+msgstr "domUの停止"
+
+#. type: Plain text
+msgid "This is equally straightforward:"
+msgstr "これも同様に簡単です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"xm shutdown -w <domU>\n"
+"Domain <domU> terminated.\n"
+msgstr ""
+"xm shutdown -w <domU>\n"
+"Domain <domU> terminated.\n"
+
+#. type: Plain text
+msgid ""
+"Again, as you would expect, the DRBD resource is returned to the secondary "
+"role after the domU is successfully shut down."
+msgstr ""
+"この場合も、domUが正常にシャットダウンされると、DRBDリソースがセカンダリロー"
+"ルに戻ります。"
+
+#. type: Block title
+#, no-wrap
+msgid "Migrating the domU"
+msgstr "domUの移行"
+
+#. type: Plain text
+msgid "This, too, is done using the usual Xen tools:"
+msgstr "これも通常のXenツールで実行します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "xm migrate --live <domU> <destination-host>\n"
+msgstr "xm migrate --live <domU> <destination-host>\n"
+
+#. type: Plain text
+msgid ""
+"In this case, several administrative steps are automatically taken in rapid "
+"succession:"
+msgstr "この場合、短時間に連続して複数の管理ステップが自動的に実行されます。"
+
+#. type: Plain text
+msgid "The resource is promoted to the primary role on _destination-host_."
+msgstr "__destination-host__ のリソースがプライマリロールに昇格されます。"
+
+#. type: Plain text
+msgid "Live migration of _domU_ is initiated on the local host."
+msgstr "__domU__ のライブマイグレーションがローカルホストで開始します。"
+
+#. type: Plain text
+msgid ""
+"When migration to the destination host has completed, the resource is "
+"demoted to the secondary role locally."
+msgstr ""
+"移行先ホストへの移行が完了すると、ローカル側でリソースがセカンダリロールに降"
+"格されます。"
+
+#. type: Plain text
+msgid ""
+"The fact that both resources must briefly run in the primary role on both "
+"hosts is the reason for having to configure the resource in dual-primary "
+"mode in the first place."
+msgstr ""
+"最初にリソースをデュアルプライマリモードに設定するのは、両方のリソースを短時"
+"間だけ両方のホストでプライマリロールとして実行する必要があるためです。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Internals of DRBD/Xen integration"
+msgstr "DRBDとXen統合の内部"
+
+#. type: Plain text
+msgid "Xen supports two Virtual Block Device types natively:"
+msgstr "Xenはネイティブで次のタイプの仮想ブロックデバイスをサポートします。"
+
+#. type: Block title
+#, no-wrap
+msgid "`phy`"
+msgstr "`phy`"
+
+#. type: Plain text
+msgid ""
+"This device type is used to hand \"physical\" block devices, available in "
+"the host environment, off to a guest domU in an essentially transparent "
+"fashion."
+msgstr ""
+"このデバイスタイプは、ホスト環境で使用可能な「物理的な」ブロックデバイスをゲ"
+"ストdomUに基本的には透過的な方法で渡します。"
+
+#. type: Block title
+#, no-wrap
+msgid "`file`"
+msgstr "`file`"
+
+#. type: Plain text
+msgid ""
+"This device type is used to make file-based block device images available to "
+"the guest domU. It works by creating a loop block device from the original "
+"image file, and then handing that block device off to the domU in much the "
+"same fashion as the `phy` device type does."
+msgstr ""
+"このデバイスタイプは、ファイルベースのブロックデバイスイメージをゲストdomUで"
+"使用するためのものです。元のイメージファイルからループブロックデバイスを作成"
+"し、このブロックデバイスを `phy` デバイスタイプとほぼ同じ方法でdomUに渡しま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"If a Virtual Block Device configured in the `disk` option of a domU "
+"configuration uses any prefix other than `phy:`, `file:`, or no prefix at "
+"all (in which case Xen defaults to using the `phy` device type), Xen expects "
+"to find a helper script named ``block``-__prefix__ in the Xen scripts "
+"directory, commonly `/etc/xen/scripts`."
+msgstr ""
+"domU構成の `disk` オプションで設定された仮想ブロックデバイスが `phy:` と "
+"`file:` 以外の接頭辞を使用する場合、または接頭辞をまったく使用しない場合(この"
+"場合はXenのデフォルトの `phy` デバイスタイプが使用される)は、Xenスクリプト"
+"ディレクトリ(通常は `/etc/xen/scripts` )にある `block` -__prefix__ というヘル"
+"パースクリプトが使用されます。"
+
+#. type: Plain text
+msgid ""
+"The DRBD distribution provides such a script for the `drbd` device type, "
+"named `/etc/xen/scripts/block-drbd`. This script handles the necessary DRBD "
+"resource state transitions as described earlier in this chapter."
+msgstr ""
+"`DRBD` はdrbdデバイスタイプ用のスクリプト( `/etc/xen/scripts/block-drbd` )を"
+"提供しています。この章の前半で述べたように、このスクリプトは必要に応じてDRBD"
+"リソースの状態遷移を制御します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Integrating Xen with Pacemaker"
+msgstr "XenとPacemakerの統合"
+
+#. type: Plain text
+msgid ""
+"indexterm:[Xen]indexterm:[Heartbeat]In order to fully capitalize on the "
+"benefits provided by having a DRBD-backed Xen VBD's, it is recommended to "
+"have Heartbeat manage the associated domU's as Heartbeat resources."
+msgstr ""
+"indexterm:[Xen]indexterm:[Heartbeat]DRBDで保護されるXen VBDのメリットを十分に"
+"活用するためにheartbeatを使用し、関連するdomUをheartbeatリソースとして管理す"
+"ることをお勧めします。"
+
+#. type: Plain text
+msgid ""
+"You may configure a Xen domU as a Pacemaker resource, and automate resource "
+"failover. To do so, use the `Xen` OCF resource agent. If you are using the "
+"`drbd` Xen device type described in this chapter, you will _not_ need to "
+"configure any separate `drbd` resource for use by the Xen cluster resource. "
+"Instead, the `block-drbd` helper script will do all the necessary resource "
+"transitions for you."
+msgstr ""
+"Xen domUをPacemakerリソースとして構成し、フェイルオーバを自動化することができ"
+"ます。これには `Xen` OCFリソースエージェントを使用します。この章で説明したXen"
+"デバイスタイプとして `drbd` を使用している場合は、Xenクラスタリソースで使用す"
+"るために個別にdrbdリソースを設定する必要はありません。 `block-drbd` ヘルパー"
+"スクリプトによって必要なリソース移行がすべて実行されます。"
