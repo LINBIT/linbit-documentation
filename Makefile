@@ -16,18 +16,13 @@ README.html-docker: dockerimage
 # po4a v0.54 is required to make build ja adoc files.
 #
 Dockerfile:
-	@{ echo "FROM ubuntu:xenial" ;\
+	@{ echo "FROM debian:buster" ;\
 	echo "MAINTAINER Roland Kammerer <roland.kammerer@linbit.com>" ;\
 	echo "RUN groupadd --gid $$(id -g) makedoc" ;\
 	echo "RUN useradd -u $$(id -u) -g $$(id -g) makedoc" ;\
-	echo "RUN apt-get update -y && apt-get install -y make inkscape ruby" ;\
+	echo "RUN apt-get update -y && apt-get install -y make inkscape ruby po4a patch" ;\
 	echo "RUN gem install --pre asciidoctor-pdf" ;\
 	echo "RUN gem install --pre asciidoctor-pdf-cjk" ;\
-	echo "RUN apt-get install -y git perl gettext perl-modules-5.22 libtext-wrapi18n-perl libterm-readkey-perl liblocale-gettext-perl libunicode-linebreak-perl" ;\
-	echo "RUN git clone -b v0.54 https://github.com/mquinson/po4a /usr/local/po4a" ;\
-	echo "ENV LC_ALL C.UTF-8" ;\
-	echo 'ENV PATH=/usr/local/po4a:$$PATH' ;\
-	echo 'ENV PERLLIB=/usr/local/po4a/lib' ;\
 	echo "USER makedoc" ;} > $@
 
 .PHONY: dockerimage
