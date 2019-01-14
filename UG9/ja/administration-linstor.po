@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2018-11-06 04:36+0900\n"
+"POT-Creation-Date: 2019-01-14 13:37+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -139,7 +139,7 @@ msgid ""
 "services. It depends on a Java runtime environment (JRE) version 1.8 "
 "(headless) or higher. This might pull in about 100MB of dependencies."
 msgstr ""
-"_linstor-controller_ には _controller_ が、_linstor-controller_ には "
+"_linstor-controller_ には _controller_ が、_linstor-satellite_ には "
 "_satellite_ が含まれています。これらのサービスのためのsystemd関連ファイルも含"
 "みます。Java実行環境(JRE)のバージョン1.8以上に依存していて、依存関係で約100MB"
 "必要になります。"
@@ -436,10 +436,6 @@ msgstr ""
 msgid "Cluster configuration"
 msgstr "クラスタ構成"
 
-#. type: Plain text
-msgid "FIXME"
-msgstr "FIXME"
-
 #. type: Title ====
 #, no-wrap
 msgid "Available storage plugins"
@@ -450,9 +446,8 @@ msgid "indexterm:[linstor, storage plugins]"
 msgstr "indexterm:[linstor, storage plugins]"
 
 #. type: Plain text
-msgid "LINSTOR has three supported storage plugins as of this writing:"
-msgstr ""
-"LINSTORは現時点で以下の３つのストレージプラグインをサポートしています。"
+msgid "LINSTOR has the following supported storage plugins as of writing:"
+msgstr "LINSTORは以下のストレージプラグインをサポートしています。"
 
 #. type: Plain text
 msgid "Thick LVM"
@@ -463,8 +458,12 @@ msgid "Thin LVM with a single thin pool"
 msgstr "単一の thin プールの Thin LVM"
 
 #. type: Plain text
-msgid "ZFS"
-msgstr "ZFS"
+msgid "Thick ZFS"
+msgstr "Thick ZFS"
+
+#. type: Plain text
+msgid "Thin ZFS"
+msgstr "Thin ZFS"
 
 #. type: Title ===
 #, no-wrap
@@ -997,6 +996,40 @@ msgstr ""
 
 #. type: Title ====
 #, no-wrap
+msgid "Rolling back to a snapshot"
+msgstr "スナップショットへのロールバック"
+
+#. type: Plain text
+msgid ""
+"LINSTOR can roll a resource back to a snapshot state.  The resource must not "
+"be in use.  That is, it may not be mounted on any nodes.  If the resource is "
+"in use, consider whether you can achieve your goal by <<s-"
+"restoring_a_snapshot-linstor,restoring the snapshot>> instead."
+msgstr ""
+"LINSTOR はリソースをスナップショット状態にロールバックできます。リソースが使"
+"用中のものはできません。つまり、どのノードにもマウントされていないものです。"
+"リソースが使用中の場合は、 <<s-restoring_a_snapshot-linstor,restoring the "
+"snapshot>> を検討してください。"
+
+#. type: Plain text
+msgid "Rollback is performed as follows:"
+msgstr "ロールバックは次のようにして実行します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor snapshot rollback resource1 snap1\n"
+msgstr "# linstor snapshot rollback resource1 snap1\n"
+
+#. type: Plain text
+msgid ""
+"A resource can only be rolled back to the most recent snapshot.  To roll "
+"back to an older snapshot, first delete the intermediate snapshots."
+msgstr ""
+"リソースは最新のスナップショットにのみロールバックできます。古いスナップ"
+"ショットにロールバックするには、最初に途中のスナップショットを削除します。"
+
+#. type: Title ====
+#, no-wrap
 msgid "Removing a snapshot"
 msgstr "スナップショットの削除"
 
@@ -1077,6 +1110,74 @@ msgstr "# linstor resource-definition drbd-options --protocol C backups\n"
 
 #. type: Title ===
 #, no-wrap
+msgid "Adding and removing disks"
+msgstr "ディスクの追加と削除"
+
+#. type: Plain text
+msgid ""
+"LINSTOR can convert resources between diskless and having a disk.  This is "
+"achieved with the `resource toggle-disk` command, which has syntax similar "
+"to `resource create`."
+msgstr ""
+"LINSTOR はディスクレスとディスクを持つことの間でリソースを変換することができ"
+"ます。これは `resource create` に似た構文を持つ `resource toggle-disk` コマン"
+"ドを使用します。"
+
+#. type: Plain text
+msgid "For instance, add a disk to the diskless resource `backups` on 'alpha':"
+msgstr ""
+"例えば 'alpha' 上にディスクレスリソース `backups` のディスクを追加するには以"
+"下のようにします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor resource toggle-disk alpha backups --storage-pool pool_ssd\n"
+msgstr "# linstor resource toggle-disk alpha backups --storage-pool pool_ssd\n"
+
+#. type: Plain text
+msgid "Remove this disk again:"
+msgstr "このディスクを再び削除する:"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor resource toggle-disk alpha backups --diskless\n"
+msgstr "# linstor resource toggle-disk alpha backups --diskless\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Migrating disks"
+msgstr "ディスクの移行"
+
+#. type: Plain text
+msgid ""
+"In order to move a resource between nodes without reducing redundancy at any "
+"point, LINSTOR's disk migrate feature can be used.  First create a diskless "
+"resource on the target node, and then add a disk using the `--migrate-from` "
+"option.  This will wait until the data has been synced to the new disk and "
+"then remove the source disk."
+msgstr ""
+"冗長性を損なうことなくリソースをノード間で移動するには、LINSTOR のディスク移"
+"行機能を使用できます。最初にターゲットノードにディスクレスリソースを作成して"
+"から、--migrate-from オプションを使用してディスクを追加します。これは、データ"
+"が新しいディスクに同期されるまで待機してから、ソースディスクを削除します。"
+
+#. type: Plain text
+msgid "For example, to migrate a resource `backups` from 'alpha' to 'bravo':"
+msgstr ""
+"例えば、リソースの `backup` を `alpha` から `bravo` に移行するには、次のよう"
+"にします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource create bravo backups --diskless\n"
+"# linstor resource toggle-disk bravo backups --storage-pool pool_ssd --migrate-from alpha\n"
+msgstr ""
+"# linstor resource create bravo backups --diskless\n"
+"# linstor resource toggle-disk bravo backups --storage-pool pool_ssd --migrate-from alpha\n"
+
+#. type: Title ===
+#, no-wrap
 msgid "DRBD Proxy with LINSTOR"
 msgstr "LINSTORによるDRBD Proxy"
 
@@ -1154,11 +1255,6 @@ msgstr ""
 #. type: Plain text
 msgid "Please contact LINBIT for assistance optimizing your configuration."
 msgstr "設定を最適化するには、LINBITにお問い合わせください。"
-
-#. type: Title ===
-#, no-wrap
-msgid "Rebalancing data with LINSTOR"
-msgstr "LINSTORでデータ再調整"
 
 #. type: Title ===
 #, no-wrap
@@ -1366,3 +1462,12 @@ msgstr ""
 #, no-wrap
 msgid "# linstor gen-zsh-completer > /usr/share/zsh/functions/Completion/Linux/_linstor\n"
 msgstr "# linstor gen-zsh-completer > /usr/share/zsh/functions/Completion/Linux/_linstor\n"
+
+#~ msgid "FIXME"
+#~ msgstr "FIXME"
+
+#~ msgid "ZFS"
+#~ msgstr "ZFS"
+
+#~ msgid "Rebalancing data with LINSTOR"
+#~ msgstr "LINSTORでデータ再調整"
