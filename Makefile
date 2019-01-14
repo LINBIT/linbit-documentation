@@ -15,15 +15,20 @@ README.html-docker: dockerimage
 #
 # po4a v0.54 is required to make build ja adoc files.
 #
+define dockerfile=
+FROM debian:buster
+MAINTAINER Roland Kammerer <roland.kammerer@linbit.com>
+RUN groupadd --gid $(shell id -g) makedoc
+RUN useradd -u $(shell id -u) -g $(shell id -g) makedoc
+RUN apt-get update && apt-get install -y make inkscape ruby po4a patch
+RUN gem install --pre asciidoctor-pdf
+RUN gem install --pre asciidoctor-pdf-cjk
+USER makedoc
+endef
+
+export dockerfile
 Dockerfile:
-	@{ echo "FROM debian:buster" ;\
-	echo "MAINTAINER Roland Kammerer <roland.kammerer@linbit.com>" ;\
-	echo "RUN groupadd --gid $$(id -g) makedoc" ;\
-	echo "RUN useradd -u $$(id -u) -g $$(id -g) makedoc" ;\
-	echo "RUN apt-get update -y && apt-get install -y make inkscape ruby po4a patch" ;\
-	echo "RUN gem install --pre asciidoctor-pdf" ;\
-	echo "RUN gem install --pre asciidoctor-pdf-cjk" ;\
-	echo "USER makedoc" ;} > $@
+	@echo "$$dockerfile" > $@
 
 .PHONY: dockerimage
 dockerimage: Dockerfile
