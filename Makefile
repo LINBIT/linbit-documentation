@@ -84,3 +84,11 @@ tech-guides-pdf-finalize:
 
 tech-guides-pdf-finalize-docker: dockerimage
 	$(run-in-docker)
+
+.PHONY: clean clean-all
+clean:
+	$(warning this target is reserved, maybe you look for clean-all)
+
+clean-all:
+	make -C UG8.4 clean-all
+	make -C UG9 clean-all

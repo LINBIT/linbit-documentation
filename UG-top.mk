@@ -14,11 +14,14 @@ pot: en/pot
 known-targets := $(foreach l,$(languages),$(addprefix $(l)/,$(formats)))
 known-targets += $(addsuffix -finalize,$(known-targets))
 # clean targets
-known-targets += $(foreach l,$(languages),$(addprefix $(l)/,clean))
+clean-targets += $(foreach l,$(languages),$(addprefix $(l)/,clean))
+known-targets += $(clean-targets)
 # pot targets
 known-targets += en/pot
 
 $(known-targets):
 	make -C $(@D) $(@F)
 
-.PHONY: $(known-targets) html html-finalize pdf pdf-finalize clean
+clean-all: $(clean-targets)
+
+.PHONY: $(known-targets) html html-finalize pdf pdf-finalize clean clean-all
