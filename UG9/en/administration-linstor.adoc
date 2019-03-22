@@ -45,7 +45,7 @@ with support for Swordfish in progress.
 [[s-packages]]
 === Packages
 
-LINSTOR is packaged  in both the .rpm and the .deb variants:
+LINSTOR is packaged in both the .rpm and the .deb variants:
 
 . _linstor-client_ contains the command line client program. It only depends
   on python which is usually already installed.
@@ -53,6 +53,74 @@ LINSTOR is packaged  in both the .rpm and the .deb variants:
   These packages also provide systemd unit files for the services. It depends on a
   Java runtime environment (JRE) version 1.8 (headless) or higher. This might
   pull in about 100MB of dependencies.
+
+[[s-containers]]
+=== Containers
+
+LINSTOR is also available as containers. The base images are available
+in LINBIT's container registry, `drbd.io`.
+
+In order to access the images, you first have to login to the
+registry (reach out to sales@linbit.com for credentials):
+
+----------------------------
+$ docker login drbd.io
+----------------------------
+
+The containers available in this repo are:
+* drbd.io/drbd9:rhel7
+* drbd.io/drbd9:bionic
+* drbd.io/linstor-csi
+* drbd.io/linstor-controller
+* drbd.io/linstor-satellite
+* drbd.io/linstor-client
+
+To load the kernel module, needed only for LINSTOR satellites, you'll
+need to run a `drbd9` container in privileged mode:
+
+----------------------------
+$ docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7
+----------------------------
+
+IMPORTANT: For now, you must use the containerized DRBD kernel module,
+as opposed to loading a kernel module onto the host system. If you
+intend to use the containers you should not install the DRBD kernel
+module on your host systems.
+
+Then run the LINSTOR satellite container, also privileged, as a daemon:
+
+----------------------------
+$ docker run -d --name=linstor-satellite --net=host --privileged drbd.io/linstor-satellite
+----------------------------
+
+NOTE: `net=host` is required for the containerized `drbd-utils` to be
+able to communicate with the host-kernel via netlink.
+
+To run the LINSTOR controller container as a daemon, mapping ports
+`3376` and `3377` on the host to the container:
+
+----------------------------
+$ docker run -d --name=linstor-controller -p 3376:3376 -p 3377:3377 drbd.io/linstor-controller
+----------------------------
+
+To interact with the containerized LINSTOR cluster, you can either use
+a LINSTOR client installed on a system via packages, or via the
+containerized LINSTOR client. To use the LINSTOR client container:
+
+----------------------------
+$ docker run -it --rm -e LS_CONTROLLERS=<controller-host-IP-address> drbd.io/linstor-client node list
+----------------------------
+
+From this point you would use the LINSTOR client to initialize your
+cluster and begin creating resources using the typical LINSTOR
+patterns.
+
+To stop and remove a daemonized container and image:
+
+----------------------------
+$ docker stop linstor-controller
+$ docker rm linstor-controller
+----------------------------
 
 [[s-linstor-init-cluster]]
 === Initializing your cluster
