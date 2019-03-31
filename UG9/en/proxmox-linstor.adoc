@@ -188,19 +188,28 @@ enable the `drbd.service` on all hosts (given that it is not controlled by LINST
 # systemctl start drbd
 --------------
 
-At startup, the `linstor-satellite` service deletes all of its resource files (`*.res`) and regenerates them.
-This conflicts with the `drbd` services that needs these resource files to start the controller VM. It is good
-enough to first bring up the resources via `drbd.service` and then start `linstor-satellite.service`. To make
-the necessary changes, you need to create a drop-in for the `linstor-satellite.service` via systemctl (do
-*not* edit the file directly).
+At system startup, `linstor-satellite` service deletes all of its resource files (`*.res` in `/var/lib/linstor.d`)
+and regenerates them.This conflicts with the `drbd.service` that needs these resource files to start the controller VM.
+It is good enough to first start `linstor-satellite.service` and then bring up the resource(s) via the `drbd.service`.
+However, it is very important to add the additional `--keep-res` parameter at the end of the `ExecStart=` line,
+specifying the VM ID of the controller VM that you want to prevent from being deleted.To make the necessary changes,
+you need to create a drop-in for the `linstor-satellite.service` via systemctl (do **not** edit the file directly).
 
 --------------
 systemctl edit linstor-satellite
+
 [Unit]
-After=drbd.service
+Before=drbd.service
+
+[Service]
+ExecStart=
+ExecStart=/usr/share/linstor-server/bin/Satellite --logs=/var/log/linstor-satellite --config-directory=/etc/linstor
+--keep-res=vm-100
 --------------
 
-Don't forget to restart the `linstor-satellite.service`.
+In the above example, `vm-100` represents the controller VM ID, please adjust this value according to your setup.
+Don't forget to restart the `linstor-satellite.service` for settings to take effect (or reboot to confirm that the
+controller VM resource file is not deleted during startup).
 
 After that, it is time for the final steps, namely switching from the existing controller (residing on the
 physical host) to the new one in the VM. So let's stop the old controller service on the physical host, and
