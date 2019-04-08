@@ -22,7 +22,7 @@ kube-system namespace.
 
 ----
 NAME                       READY   STATUS    RESTARTS   AGE     IP              NODE
-linstor-csi-controller-0   4/4     Running   0          3h10m   191.168.1.200   kubelet-a
+linstor-csi-controller-0   5/5     Running   0          3h10m   191.168.1.200   kubelet-a
 linstor-csi-node-4fcnn     2/2     Running   0          3h10m   192.168.1.202   kubelet-c
 linstor-csi-node-f2dr7     2/2     Running   0          3h10m   192.168.1.203   kubelet-d
 linstor-csi-node-j66bc     2/2     Running   0          3h10m   192.168.1.201   kubelet-b
@@ -146,6 +146,82 @@ kubectl get pod -w # wait for pod to be unscheduled
 
 kubectl delete pvc my-first-linstor-volume # remove the PersistentVolumeClaim, the PersistentVolume, and the LINSTOR Volume.
 ----
+
+[[s-kubernetes-snapshots]]
+=== Snapshots
+
+Creating <<s-linstor-snapshots, snapshots>> and creating new volumes from
+snapshots is done via the use of __VolumeSnapshot__s, __VolumeSnapshotClass__es,
+and __PVC__s. First, you'll need to create a _VolumeSnapshotClass_:
+
+.my-first-linstor-snapshot-class.yaml
+[source,yaml]
+----
+kind: VolumeSnapshotClass
+apiVersion: snapshot.storage.k8s.io/v1alpha1
+metadata:
+  name: my-first-linstor-snapshot-class
+  namespace: kube-system
+snapshotter: io.drbd.linstor-csi
+----
+
+Create the _VolumeSnapshotClass_ with `kubectl`:
+
+----
+kubectl create -f my-first-linstor-snapshot-class.yaml
+----
+
+Now we will create a volume snapshot for the volume that we created above. This
+is done with a _VolumeSnapshot_:
+
+.my-first-linstor-snapshot.yaml
+[source,yaml]
+----
+apiVersion: snapshot.storage.k8s.io/v1alpha1
+kind: VolumeSnapshot
+metadata:
+  name: my-first-linstor-snapshot
+spec:
+  snapshotClassName: my-first-linstor-snapshot-class
+  source:
+    name: my-first-linstor-volume
+    kind: PersistentVolumeClaim
+----
+
+Create the _VolumeSnapshot_ with `kubectl`:
+
+----
+kubectl create -f my-first-linstor-snapshot.yaml
+----
+
+Finally, we'll create a new volume from the snapshot with a _PVC_.
+
+.my-first-linstor-volume-from-snapshot.yaml
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-first-linstor-volume-from-snapshot
+spec:
+  storageClassName: linstor-basic-storage-class
+  dataSource:
+    name: my-first-linstor-snapshot
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+----
+
+Create the _PVC_ with `kubectl`:
+
+----
+kubectl create -f my-first-linstor-volume-from-snapshot.yaml
+----
+
 
 [[s-kubernetes-volume-accessibility]]
 === Volume Accessibility
