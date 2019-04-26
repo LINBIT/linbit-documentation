@@ -97,7 +97,7 @@ volume according to the configuration defined in the `linstor-basic-storage-clas
 _StorageClass_. The LINSTOR volume's name will be a UUID prefixed with `csi-`
 This volume can be observed with the usual `linstor resource list`. Once that
 volume is created, we can attach it to a pod. The following _Pod_ spec will spawn
-a Fedora container with our volume attached that busy waits so it is not 
+a Fedora container with our volume attached that busy waits so it is not
 unscheduled before we can interact with it:
 
 .my-first-linstor-volume-pod.yaml
@@ -236,6 +236,9 @@ _Pod_ scheduling does not currently take volume locality into account. The
 where the underlying storage may be provisioned, if locally attached volumes
 are desired.
 
+See <<s-kubernetes-localstoragepolicy,localStoragePolicy>> to see how this
+default behavior can be modified.
+
 [[s-kubernetes-advanced-configuration]]
 === Advanced Configuration
 
@@ -320,6 +323,69 @@ Example: `replicasOnSame: "zone=z1 role=backups"`
 selection. It is the inverse of <<s-kubernetes-replicasonsame,replicasOnSame>>.
 
 Example: `replicasOnDifferent: "no-csi-volumes=true"`
+
+[[s-kubernetes-localstoragepolicy]]
+==== localStoragePolicy
+
+`localStoragePolicy` determines, via volume topology, which LINSTOR
+__Satellite__s volumes should be assigned and from where Kubernetes will
+access volumes. The behavior of each option is explained below in detail.
+
+IMPORTANT: If you specify a <<s-kubernetes-nodelist,nodeList>>, volumes will
+be created on those nodes, irrespective of the `localStoragePolicy`; however,
+the accessibility reporting will still be as described.
+
+IMPORTANT: You must set `volumeBindingMode: WaitForFirstConsumer` in the
+_StorageClass_ and the LINSTOR __Satellite__s running on the __kubelet__s must
+be able to support the diskfull placement of volumes as they are configured in
+that _StorageClass_ for <<s-kubernetes-localstoragepolicy-required,required>>
+or <<s-kubernetes-localstoragepolicy-preferred,preferred>> to work properly.
+
+TIP: Use `topologyKey: "linbit.com/hostname"` rather than `topologyKey:
+"kubernetes.io/hostname"` if you are setting `affinity` in your _Pod_ or
+_StatefulSet_ specs.
+
+Example: `localStoragePolicy: required`
+
+[[s-kubernetes-localstoragepolicy-ignore]]
+===== ignore (default)
+
+When `localStoragePolicy` is set to `ignore`, regular autoplacement
+occurs based on <<s-kubernetes-autoplace,autoplace>>,
+<<s-kubernetes-replicasonsame,replicasOnSame>>, and
+<<s-kubernetes-replicasonsame,replicasOnDifferent>>. Volume location will not
+affect _Pod_ scheduling in Kubernetes and the volumes will be accessed over
+the network if they're not local to the _kubelet_ where the _Pod_ was scheduled.
+
+[[s-kubernetes-localstoragepolicy-required]]
+===== required
+
+When `localStoragePolicy` is set to `required`, Kubernetes will report a list
+of places that it wants to schedule a _Pod_ in order of preference. The plugin
+will attempt to provision the volume(s) according to that preference. The
+number of volumes to be provisioned in total is based off of
+<<s-kubernetes-autoplace,autoplace>>.
+
+If all preferences have been attempted, but no volumes where successfully
+assigned volume creation will fail.
+
+In case of multiple replicas when all preferences have been attempted, and at
+least one has succeeded, but there are still replicas remaining to be
+provisioned, <<s-kubernetes-autoplace,autoplace>> behavior will apply for the
+remaining volumes.
+
+With this option set, Kubernetes will consider volumes that are not locally
+present on a _kubelet_ to be unaccessible from that _kubelet_.
+
+[[s-kubernetes-localstoragepolicy-preferred]]
+===== preferred
+
+When `localStoragePolicy` is set to `preferred`, volume placement behavior
+will be the same as when it's set to
+<<s-kubernetes-localstoragepolicy-required,required>> with the exception that
+volume creation will not fail if no preference was able to be satisfied.
+Volume accessibility will be the same as when set to
+<<s-kubernetes-localstoragepolicy-ignore,ignore>>.
 
 [[s-kubernetes-storagepool]]
 ==== storagePool
