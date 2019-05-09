@@ -2317,3 +2317,71 @@ resource quorum-demo {
 }
 -------------------------------------
 
+[[s-configuring-quorum-tiebreaker]]
+==== Using a diskless node as a tiebreaker
+
+A diskless node with connections to all nodes in a cluster can be utilized to break ties
+in the quorum negotiation process.
+
+Consider the following two-node cluster, where node A is the primary and node B is a secondary:
+
+image::images/quorum-tiebreaker-without.svg[]
+
+As soon as the connection between the two nodes is interrupted, they lose quorum
+and the application on top of the cluster cannot write data anymore.
+
+image::images/quorum-tiebreaker-without-disconnect.svg[]
+
+Now if we add a third node, C, to the cluster and configure it as diskless, we
+can take advantage of the tiebreaker mechanism.
+
+image::images/quorum-tiebreaker.svg[]
+
+In this case, when the primary and secondary nodes lose connection, they can
+still "see" the diskless tiebreaker. Because of this, the primary can continue
+working, while the secondary demotes its disk to Outdated and the service can
+therefore not be migrated there.
+
+image::images/quorum-tiebreaker-disconnect.svg[]
+
+There are a few special cases in case two connections fail. Consider the following
+scenario:
+
+image::images/quorum-tiebreaker-disconnect-case2.svg[]
+
+In this case, the tiebreaker node forms a partition with the primary node. The primary
+therefore keeps quorum, while the secondary becomes outdated. Note that the secondarys
+disk state will be "UpToDate", but regardless it cannot be promoted to primary because
+it lacks quorum.
+
+Let's consider the possibility of the primary losing connection to the tiebreaker:
+
+image::images/quorum-tiebreaker-disconnect-case3.svg[]
+
+In this case, the primary becomes unusable and goes into a "quorum suspended" state. This
+effectively results in the application on top of DRBD receiving I/O errors. A cluster manager
+could then promote node B to primary and keep the service running there instead.
+
+In case the diskless tiebreaker "switches sides", we need to avoid data divergence. Consider
+this scenario:
+
+image::images/quorum-tiebreaker-disconnect-case1a.svg[]
+
+The connection between the primary and secondary has failed, and the application is continuing
+to run on the primary, when the primary suddenly loses its connection to the diskless node.
+
+In this case, no node can be promoted to primary and the cluster cannot continue to operate.
+
+[NOTE]
+====================
+Protecting from data divergence always takes priority over ensuring service availability.
+====================
+
+Let's look at another scenario:
+
+image::images/quorum-tiebreaker-disconnect-case2a.svg[]
+
+Here, the application is running on the primary, while the secondary is unavailable. Then,
+the tiebreaker first loses connection to the primary, and then reconnects to the secondary.
+It is important to note here that *a node that has lost quorum cannot regain quorum by connecting
+to a diskless node*. Thus, in this case, no node has quorum and the cluster halts.
