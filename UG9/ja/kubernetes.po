@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-03-04 15:38+0900\n"
+"POT-Creation-Date: 2019-05-13 07:26+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -68,7 +68,7 @@ msgstr ""
 #, no-wrap
 msgid ""
 "NAME                       READY   STATUS    RESTARTS   AGE     IP              NODE\n"
-"linstor-csi-controller-0   4/4     Running   0          3h10m   191.168.1.200   kubelet-a\n"
+"linstor-csi-controller-0   5/5     Running   0          3h10m   191.168.1.200   kubelet-a\n"
 "linstor-csi-node-4fcnn     2/2     Running   0          3h10m   192.168.1.202   kubelet-c\n"
 "linstor-csi-node-f2dr7     2/2     Running   0          3h10m   192.168.1.203   kubelet-d\n"
 "linstor-csi-node-j66bc     2/2     Running   0          3h10m   192.168.1.201   kubelet-b\n"
@@ -76,7 +76,7 @@ msgid ""
 "linstor-csi-node-zr75z     2/2     Running   0          3h10m   192.168.1.204   kubelet-e\n"
 msgstr ""
 "NAME                       READY   STATUS    RESTARTS   AGE     IP              NODE\n"
-"linstor-csi-controller-0   4/4     Running   0          3h10m   191.168.1.200   kubelet-a\n"
+"linstor-csi-controller-0   5/5     Running   0          3h10m   191.168.1.200   kubelet-a\n"
 "linstor-csi-node-4fcnn     2/2     Running   0          3h10m   192.168.1.202   kubelet-c\n"
 "linstor-csi-node-f2dr7     2/2     Running   0          3h10m   192.168.1.203   kubelet-d\n"
 "linstor-csi-node-j66bc     2/2     Running   0          3h10m   192.168.1.201   kubelet-b\n"
@@ -120,8 +120,8 @@ msgid ""
 "  # The name used to identify this StorageClass.\n"
 "  name: linstor-basic-storage-class\n"
 "  # The name used to match this StorageClass with a provisioner.\n"
-"  # io.drbd.linstor-csi is the name that the LINSTOR CSI plugin uses to identify itself\n"
-"provisioner: io.drbd.linstor-csi\n"
+"  # linstor.csi.linbit.com is the name that the LINSTOR CSI plugin uses to identify itself\n"
+"provisioner: linstor.csi.linbit.com\n"
 "parameters:\n"
 "  # LINSTOR will provision volumes from the drbdpool storage pool configured\n"
 "  # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment\n"
@@ -133,8 +133,8 @@ msgstr ""
 "  # The name used to identify this StorageClass.\n"
 "  name: linstor-basic-storage-class\n"
 "  # The name used to match this StorageClass with a provisioner.\n"
-"  # io.drbd.linstor-csi is the name that the LINSTOR CSI plugin uses to identify itself\n"
-"provisioner: io.drbd.linstor-csi\n"
+"  # linstor.csi.linbit.com is the name that the LINSTOR CSI plugin uses to identify itself\n"
+"provisioner: linstor.csi.linbit.com\n"
 "parameters:\n"
 "  # LINSTOR will provision volumes from the drbdpool storage pool configured\n"
 "  # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment\n"
@@ -322,8 +322,153 @@ msgstr "kubectl delete pvc my-first-linstor-volume # PersistentVolumeClaim、Per
 
 #. type: Title ===
 #, no-wrap
+msgid "Snapshots"
+msgstr "スナップショット"
+
+#. type: Plain text
+msgid ""
+"Creating <<s-linstor-snapshots, snapshots>> and creating new volumes from "
+"snapshots is done via the use of __VolumeSnapshot__s, "
+"__VolumeSnapshotClass__es, and __PVC__s. First, you'll need to create a "
+"_VolumeSnapshotClass_:"
+msgstr ""
+"<<s-linstor-snapshots, スナップショット>> の作成とスナップショットから新規ボ"
+"リュームを作成するには __VolumeSnapshot__, __VolumeSnapshotClass__,  __PVC__ "
+"を通して行われます。最初に _VolumeSnapshotClass_ を作成します。"
+
+#. type: Block title
+#, no-wrap
+msgid "my-first-linstor-snapshot-class.yaml"
+msgstr "my-first-linstor-snapshot-class.yaml"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kind: VolumeSnapshotClass\n"
+"apiVersion: snapshot.storage.k8s.io/v1alpha1\n"
+"metadata:\n"
+"  name: my-first-linstor-snapshot-class\n"
+"  namespace: kube-system\n"
+"snapshotter: io.drbd.linstor-csi\n"
+msgstr ""
+"kind: VolumeSnapshotClass\n"
+"apiVersion: snapshot.storage.k8s.io/v1alpha1\n"
+"metadata:\n"
+"  name: my-first-linstor-snapshot-class\n"
+"  namespace: kube-system\n"
+"snapshotter: io.drbd.linstor-csi\n"
+
+#. type: Plain text
+msgid "Create the _VolumeSnapshotClass_ with `kubectl`:"
+msgstr "`kubectl` を使用して _VolumeSnapshotClass_ を作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl create -f my-first-linstor-snapshot-class.yaml\n"
+msgstr "kubectl create -f my-first-linstor-snapshot-class.yaml\n"
+
+#. type: Plain text
+msgid ""
+"Now we will create a volume snapshot for the volume that we created above. "
+"This is done with a _VolumeSnapshot_:"
+msgstr ""
+"次に上記で作成したボリュームのボリュームスナップショットを作成します。これは "
+"_VolumeSnapshot_ を使用します。"
+
+#. type: Block title
+#, no-wrap
+msgid "my-first-linstor-snapshot.yaml"
+msgstr "my-first-linstor-snapshot.yaml"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"apiVersion: snapshot.storage.k8s.io/v1alpha1\n"
+"kind: VolumeSnapshot\n"
+"metadata:\n"
+"  name: my-first-linstor-snapshot\n"
+"spec:\n"
+"  snapshotClassName: my-first-linstor-snapshot-class\n"
+"  source:\n"
+"    name: my-first-linstor-volume\n"
+"    kind: PersistentVolumeClaim\n"
+msgstr ""
+"apiVersion: snapshot.storage.k8s.io/v1alpha1\n"
+"kind: VolumeSnapshot\n"
+"metadata:\n"
+"  name: my-first-linstor-snapshot\n"
+"spec:\n"
+"  snapshotClassName: my-first-linstor-snapshot-class\n"
+"  source:\n"
+"    name: my-first-linstor-volume\n"
+"    kind: PersistentVolumeClaim\n"
+
+#. type: Plain text
+msgid "Create the _VolumeSnapshot_ with `kubectl`:"
+msgstr "`kubectl` を使用して _VolumeSnapshot_ を作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl create -f my-first-linstor-snapshot.yaml\n"
+msgstr "kubectl create -f my-first-linstor-snapshot.yaml\n"
+
+#. type: Plain text
+msgid "Finally, we'll create a new volume from the snapshot with a _PVC_."
+msgstr "最後にスナップショットから _PVC_ で新しいボリュームを作成します。"
+
+#. type: Block title
+#, no-wrap
+msgid "my-first-linstor-volume-from-snapshot.yaml"
+msgstr "my-first-linstor-volume-from-snapshot.yaml"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"apiVersion: v1\n"
+"kind: PersistentVolumeClaim\n"
+"metadata:\n"
+"  name: my-first-linstor-volume-from-snapshot\n"
+"spec:\n"
+"  storageClassName: linstor-basic-storage-class\n"
+"  dataSource:\n"
+"    name: my-first-linstor-snapshot\n"
+"    kind: VolumeSnapshot\n"
+"    apiGroup: snapshot.storage.k8s.io\n"
+"  accessModes:\n"
+"    - ReadWriteOnce\n"
+"  resources:\n"
+"    requests:\n"
+"      storage: 500Mi\n"
+msgstr ""
+"apiVersion: v1\n"
+"kind: PersistentVolumeClaim\n"
+"metadata:\n"
+"  name: my-first-linstor-volume-from-snapshot\n"
+"spec:\n"
+"  storageClassName: linstor-basic-storage-class\n"
+"  dataSource:\n"
+"    name: my-first-linstor-snapshot\n"
+"    kind: VolumeSnapshot\n"
+"    apiGroup: snapshot.storage.k8s.io\n"
+"  accessModes:\n"
+"    - ReadWriteOnce\n"
+"  resources:\n"
+"    requests:\n"
+"      storage: 500Mi\n"
+
+#. type: Plain text
+msgid "Create the _PVC_ with `kubectl`:"
+msgstr "`kubectl` を使用して _PVC_ を作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl create -f my-first-linstor-volume-from-snapshot.yaml\n"
+msgstr "kubectl create -f my-first-linstor-volume-from-snapshot.yaml\n"
+
+#. type: Title ===
+#, no-wrap
 msgid "Volume Accessibility"
-msgstr "ボリュームアクセシビリティ"
+msgstr "ボリュームへのアクセス"
 
 #.  This only covers DRBD volumes, section might change if linked docs are updated.
 #. type: Plain text
@@ -349,6 +494,14 @@ msgstr ""
 "kubernetes-replicasonsame,replicasOnSame>> パラメータで、ローカルに接続された"
 "ボリュームが必要な場合、ストレージをプロビジョニングできる場所を制限できま"
 "す。"
+
+#. type: Plain text
+msgid ""
+"See <<s-kubernetes-localstoragepolicy,localStoragePolicy>> to see how this "
+"default behavior can be modified."
+msgstr ""
+"このデフォルトの動作を変更するには <<s-kubernetes-localstoragepolicy,"
+"localStoragePolicy>> を参照ください。"
 
 #. type: Title ===
 #, no-wrap
@@ -379,8 +532,8 @@ msgid ""
 "flexible to use <<s-kubernetes-replicasonsame,replicasOnSame>> to select a "
 "single node."
 msgstr ""
-"`nodeList` ボリュームが割り当てられるノードのリストです。ボリュームがそれぞれ"
-"のノードに割り当てられそれらの間で複製が行われます。これはホスト名で１つの"
+"`nodeList` はボリュームが割り当てられるノードのリストです。ボリュームがそれぞ"
+"れのノードに割り当てられそれらの間で複製が行われます。これはホスト名で１つの"
 "ノードを指定できますが、 これには <<s-kubernetes-replicasonsame,"
 "replicasOnSame>> を使うほうが柔軟性があります。"
 
@@ -423,7 +576,7 @@ msgid ""
 "are set, volumes will be <<s-autoplace-linstor,automatically placed>> on one "
 "node."
 msgstr ""
-"`autoPlace` この _StorageClass_ が持つボリュームの複製数を指定します。例え"
+"`autoPlace` はこの _StorageClass_ が持つボリュームの複製数を指定します。例え"
 "ば、 `autoPlace: 3` は３つの複製をもつボリュームを生成します。 `autoPlace` ま"
 "たは `nodeList` が指定されていない場合は、１つのノード上にボリュームが生成さ"
 "れます。<<s-autoplace-linstor,自動配備>> を参照ください。"
@@ -538,12 +691,151 @@ msgid ""
 "selection. It is the inverse of <<s-kubernetes-replicasonsame,"
 "replicasOnSame>>."
 msgstr ""
-"`replicasOnDifferent` 自動配置選択として避けるための key=value のペアのリスト"
-"です。 <<s-kubernetes-replicasonsame,replicasOnSame>> の逆のものです。"
+"`replicasOnDifferent` は自動配置選択として避けるための key=value のペアのリス"
+"トです。 <<s-kubernetes-replicasonsame,replicasOnSame>> の逆のものです。"
 
 #. type: Plain text
 msgid "Example: `replicasOnDifferent: \"no-csi-volumes=true\"`"
 msgstr "例: `replicasOnDifferent: \"no-csi-volumes=true\"`"
+
+#. type: Title ====
+#, no-wrap
+msgid "localStoragePolicy"
+msgstr "localStoragePolicy"
+
+#. type: Plain text
+msgid ""
+"`localStoragePolicy` determines, via volume topology, which LINSTOR "
+"__Satellite__s volumes should be assigned and from where Kubernetes will "
+"access volumes. The behavior of each option is explained below in detail."
+msgstr ""
+"`localStoragePolicy` はボリュームトポロジを通して、どの LINSTOR _Satellite_ "
+"ボリュームを割り当てるべきか、そして Kubernetes がどこからボリュームにアクセ"
+"スするかを決定します。各オプションの動作については、後ほど詳しく説明します。"
+
+#. type: Plain text
+msgid ""
+"If you specify a <<s-kubernetes-nodelist,nodeList>>, volumes will be created "
+"on those nodes, irrespective of the `localStoragePolicy`; however, the "
+"accessibility reporting will still be as described."
+msgstr ""
+"<<s-kubernetes-nodelist,nodeList>> を指定すると、`localStoragePolicy` に関係"
+"なく、ボリュームはそれらのノード上に作成されます。ただし、アクセスに関するレ"
+"ポートでは説明どおりになります。"
+
+#. type: Plain text
+msgid ""
+"You must set `volumeBindingMode: WaitForFirstConsumer` in the _StorageClass_ "
+"and the LINSTOR __Satellite__s running on the __kubelet__s must be able to "
+"support the diskfull placement of volumes as they are configured in that "
+"_StorageClass_ for <<s-kubernetes-localstoragepolicy-required,required>> or "
+"<<s-kubernetes-localstoragepolicy-preferred,preferred>> to work properly."
+msgstr ""
+"_StorageClass_ で `volumeBindingMode：WaitForFirstConsumer` を設定する必要が"
+"あります。また、__kubelet__ 上で実行している LINSTOR __Satellite__ は、 <<s-"
+"kubernetes-localstoragepolicy-required,required>> または <<s-kubernetes-"
+"localstoragepolicy-preferred,preferred>> が正しく動作するように、その "
+"_StorageClass_ で構成されているボリュームのディスクフル配置をサポートできる必"
+"要があります。"
+
+#. type: Plain text
+msgid ""
+"Use `topologyKey: \"linbit.com/hostname\"` rather than `topologyKey: "
+"\"kubernetes.io/hostname\"` if you are setting `affinity` in your _Pod_ or "
+"_StatefulSet_ specs."
+msgstr ""
+"_Pod_ や _StatefulSet_ の spec で affinity を設定している場合、 "
+"`topologyKey：\"kubernetes.io/hostname\"` ではなく `topologyKey：\"linbit."
+"com/hostname\"` を使用してください。"
+
+#. type: Plain text
+msgid "Example: `localStoragePolicy: required`"
+msgstr "例: `localStoragePolicy: required`"
+
+#. type: Title =====
+#, no-wrap
+msgid "ignore (default)"
+msgstr "ignore (デフォルト)"
+
+#. type: Plain text
+msgid ""
+"When `localStoragePolicy` is set to `ignore`, regular autoplacement occurs "
+"based on <<s-kubernetes-autoplace,autoplace>>, <<s-kubernetes-replicasonsame,"
+"replicasOnSame>>, and <<s-kubernetes-replicasonsame,replicasOnDifferent>>. "
+"Volume location will not affect _Pod_ scheduling in Kubernetes and the "
+"volumes will be accessed over the network if they're not local to the "
+"_kubelet_ where the _Pod_ was scheduled."
+msgstr ""
+"`localStoragePolicy` が `ignore` に設定されている場合、通常の自動配置が <<s-"
+"kubernetes-autoplace,autoplace>>, <<s-kubernetes-replicasonsame,"
+"replicasOnSame>>, <<s-kubernetes-replicasonsame,replicasOnDifferent>> に基づ"
+"いて行われます。 ボリュームの場所は、Kubernetes での _Pod_ スケジューリングに"
+"影響を与えず、ボリュームが _Pod_ がスケジュールされた _kubelet_ にローカルで"
+"ない場合でも、ネットワークを介してアクセスされます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "required"
+msgstr "required"
+
+#. type: Plain text
+msgid ""
+"When `localStoragePolicy` is set to `required`, Kubernetes will report a "
+"list of places that it wants to schedule a _Pod_ in order of preference. The "
+"plugin will attempt to provision the volume(s) according to that preference. "
+"The number of volumes to be provisioned in total is based off of <<s-"
+"kubernetes-autoplace,autoplace>>."
+msgstr ""
+"`localStoragePolicy` が `required` に設定されていると、Kubernetes は設定に"
+"従って _Pod_ をスケジュールしたい場所のリストを報告します。プラグインはその設"
+"定に従ってボリュームのプロビジョニングを試みます。プロビジョニングされるボ"
+"リューム数の合計は <<s-kubernetes-autoplace,autoplace>> に基づいています。"
+
+#. type: Plain text
+msgid ""
+"If all preferences have been attempted, but no volumes where successfully "
+"assigned volume creation will fail."
+msgstr ""
+"すべての設定が試行されたが、正常に割り当てられたボリュームがない場合、ボ"
+"リュームの作成は失敗します。"
+
+#. type: Plain text
+msgid ""
+"In case of multiple replicas when all preferences have been attempted, and "
+"at least one has succeeded, but there are still replicas remaining to be "
+"provisioned, <<s-kubernetes-autoplace,autoplace>> behavior will apply for "
+"the remaining volumes."
+msgstr ""
+"複製が複数ある場合、すべての設定が試行され、少なくとも1つが成功したときに、ま"
+"だプロビジョニングされる複製が残っている場合、 <<s-kubernetes-autoplace,"
+"autoplace>> が残りのボリュームに動作が適用されます。"
+
+#. type: Plain text
+msgid ""
+"With this option set, Kubernetes will consider volumes that are not locally "
+"present on a _kubelet_ to be unaccessible from that _kubelet_."
+msgstr ""
+"このオプションを設定すると、Kubernetes は _kubelet_ にローカルに存在しないボ"
+"リュームはその _kubelet_ からアクセスできないと見なします。"
+
+#. type: Title =====
+#, no-wrap
+msgid "preferred"
+msgstr "preferred"
+
+#. type: Plain text
+msgid ""
+"When `localStoragePolicy` is set to `preferred`, volume placement behavior "
+"will be the same as when it's set to <<s-kubernetes-localstoragepolicy-"
+"required,required>> with the exception that volume creation will not fail if "
+"no preference was able to be satisfied.  Volume accessibility will be the "
+"same as when set to <<s-kubernetes-localstoragepolicy-ignore,ignore>>."
+msgstr ""
+"`localStoragePolicy` が `preferred` に設定されている場合、ボリューム配置の動"
+"作は、設定を満たすことができなかった場合でも、ボリュームの作成は失敗しないと"
+"いう点を除いて <<s-kubernetes-localstoragepolicy-required,required>> と同じで"
+"す。ボリュームへのアクセスは <<s-kubernetes-localstoragepolicy-ignore,"
+"ignore>> に設定した場合と同じになります。"
 
 #. type: Title ====
 #, no-wrap

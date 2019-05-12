@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-01-14 13:37+0900\n"
+"POT-Creation-Date: 2019-05-13 07:26+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4737,14 +4737,179 @@ msgstr ""
 "  ...\n"
 "}\n"
 
-#~ msgid ""
-#~ "_upper_: I/O _above_ the DRBD device is blocked, ie. to the filesystem. "
-#~ "Typical causes are ** I/O suspension by the administrator, see the "
-#~ "`suspend-io` command in `drbdadm`.  ** transient blocks, eg. during "
-#~ "attach/detach ** buffers depleted, see <<p-performance>> ** Waiting for "
-#~ "bitmap IO"
-#~ msgstr ""
-#~ "_uppeer_ : ファイルシステムなどDRBD _より上位_ のI/Oがブロックされている。"
-#~ "代表的なものには以下がある。 ** 管理者によるI/O中断。 `drbdadm` コマンド"
-#~ "の `suspend-io` を参照。 ** アタッチ/デタッチ時の一時的なブロック。 ** "
-#~ "バッファーの枯渇。<<p-performance>>参照。 ** ビットマップIO待ち"
+#. type: Title ====
+#, no-wrap
+msgid "Using a diskless node as a tiebreaker"
+msgstr "タイブレーカーとしてのディスクレスノードを使用"
+
+#. type: Plain text
+msgid ""
+"A diskless node with connections to all nodes in a cluster can be utilized "
+"to break ties in the quorum negotiation process."
+msgstr ""
+"クラスタ内のすべてのノードに接続されているディスクレスノードを利用して、"
+"クォーラムネゴシエーションプロセスのタイブレークを解消できます。"
+
+#. type: Plain text
+msgid ""
+"Consider the following two-node cluster, where node A is the primary and "
+"node B is a secondary:"
+msgstr ""
+"ノードAがプライマリで、ノードBがセカンダリである、次の2ノードクラスタを考えま"
+"す。"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/quorum-tiebreaker-without.svg"
+msgstr "images/quorum-tiebreaker-without.svg"
+
+#. type: Plain text
+msgid ""
+"As soon as the connection between the two nodes is interrupted, they lose "
+"quorum and the application on top of the cluster cannot write data anymore."
+msgstr ""
+"2つのノード間の接続が失われるとすぐに、2つのノードはクォーラムを失い、クラス"
+"タ上のアプリケーションはデータを書き込めなくなります。"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/quorum-tiebreaker-without-disconnect.svg"
+msgstr "images/quorum-tiebreaker-without-disconnect.svg"
+
+#. type: Plain text
+msgid ""
+"Now if we add a third node, C, to the cluster and configure it as diskless, "
+"we can take advantage of the tiebreaker mechanism."
+msgstr ""
+"3番目のノードCをクラスタに追加し、それをディスクレスとして構成すると、タイブ"
+"レーカーメカニズムを利用できます。"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/quorum-tiebreaker.svg"
+msgstr "images/quorum-tiebreaker.svg"
+
+#. type: Plain text
+msgid ""
+"In this case, when the primary and secondary nodes lose connection, they can "
+"still \"see\" the diskless tiebreaker. Because of this, the primary can "
+"continue working, while the secondary demotes its disk to Outdated and the "
+"service can therefore not be migrated there."
+msgstr ""
+"この場合、プライマリノードとセカンダリノードが接続を失っても、両ノードはディ"
+"スクレスタイブレーカーとの接続をまだ維持しています。このため、プライマリは機"
+"能し続けることができますが、セカンダリはそのディスクをOutdatedに降格させるた"
+"め、サービスをそこに移行することはできません。"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect.svg"
+msgstr "images/quorum-tiebreaker-disconnect.svg"
+
+#. type: Plain text
+msgid ""
+"There are a few special cases in case two connections fail. Consider the "
+"following scenario:"
+msgstr "同時に2つの接続が失われる場合は特別なケースであり、次に説明します。"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect-case2.svg"
+msgstr "images/quorum-tiebreaker-disconnect-case2.svg"
+
+#. type: Plain text
+msgid ""
+"In this case, the tiebreaker node forms a partition with the primary node. "
+"The primary therefore keeps quorum, while the secondary becomes outdated. "
+"Note that the secondarys disk state will be \"UpToDate\", but regardless it "
+"cannot be promoted to primary because it lacks quorum."
+msgstr ""
+"この場合、タイブレーカーノードはプライマリとパーティションを形成します。その"
+"ため、プライマリはクォーラムを維持し、セカンダリは古くなります。セカンダリの"
+"ディスクの状態は \"UpToDate\" のままですが、クォーラムがないためにプライマリ"
+"に昇格できません。"
+
+#. type: Plain text
+msgid ""
+"Let's consider the possibility of the primary losing connection to the "
+"tiebreaker:"
+msgstr "プライマリがタイブレーカーとの接続を失う可能性を考えてみます。"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect-case3.svg"
+msgstr "images/quorum-tiebreaker-disconnect-case3.svg"
+
+#. type: Plain text
+msgid ""
+"In this case, the primary becomes unusable and goes into a \"quorum suspended"
+"\" state. This effectively results in the application on top of DRBD "
+"receiving I/O errors. A cluster manager could then promote node B to primary "
+"and keep the service running there instead."
+msgstr ""
+"この場合、プライマリは使用できなくなり、\"クォーラム中断\" 状態になります。こ"
+"れにより、DRBD上のアプリケーションが I/O エラーを受信します。その後、クラスタ"
+"マネージャはノードBをプライマリに昇格させ、代わりにそこでサービスを実行し続け"
+"ることができます。"
+
+#. type: Plain text
+msgid ""
+"In case the diskless tiebreaker \"switches sides\", we need to avoid data "
+"divergence. Consider this scenario:"
+msgstr ""
+"ディスクレスタイブレーカーが \"サイドを切り替える\" 場合、データの相違を避け"
+"る必要があります。このシナリオを考えます。"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect-case1a.svg"
+msgstr "images/quorum-tiebreaker-disconnect-case1a.svg"
+
+#. type: Plain text
+msgid ""
+"The connection between the primary and secondary has failed, and the "
+"application is continuing to run on the primary, when the primary suddenly "
+"loses its connection to the diskless node."
+msgstr ""
+"プライマリとセカンダリ間の接続が失われ、プライマリのディスクレスノードへの接"
+"続が突然失われた場合でも、アプリケーションはプライマリ上で実行を継続していま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"In this case, no node can be promoted to primary and the cluster cannot "
+"continue to operate."
+msgstr ""
+"この場合は、どのノードもプライマリに昇格できず、クラスタは動作を継続できませ"
+"ん。"
+
+#. type: delimited block =
+msgid ""
+"Protecting from data divergence always takes priority over ensuring service "
+"availability."
+msgstr ""
+"データの分離を避けることは、サービスの可用性を確保することよりも常に優先され"
+"ます。"
+
+#. type: Plain text
+msgid "Let's look at another scenario:"
+msgstr "他のシナリオを見てみます。"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect-case2a.svg"
+msgstr "images/quorum-tiebreaker-disconnect-case2a.svg"
+
+#. type: Plain text
+msgid ""
+"Here, the application is running on the primary, while the secondary is "
+"unavailable. Then, the tiebreaker first loses connection to the primary, and "
+"then reconnects to the secondary.  It is important to note here that *a node "
+"that has lost quorum cannot regain quorum by connecting to a diskless node*. "
+"Thus, in this case, no node has quorum and the cluster halts."
+msgstr ""
+"ここでは、アプリケーションはプライマリで実行されていますが、セカンダリは利用"
+"できません。その後、タイブレーカーはプライマリへの接続を失い、次にセカンダリ"
+"に再接続します。ここで重要なのは、クォーラムを失ったノードは、ディスクレス"
+"ノードに接続してもクォーラムを取り戻すことはできないことです。したがって、こ"
+"の場合、どのノードもクォーラムを持たず、クラスタは停止します。"
