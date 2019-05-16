@@ -1,8 +1,6 @@
-LINSTOR is a powerful component in the DRBD SDS stack, but it is still an optional component. If you prefere
-to manage your resources manually, please check the section on manual administration: <<ch-admin-manual>>.
 
-[[s-common_administration]]
-== Common administration
+[[s-administrative-tasks-setup]]
+== Basic administrative tasks / Setup
 
 LINSTOR is a configuration management system for storage on Linux systems.
 It manages LVM logical volumes and/or ZFS ZVOLs on a cluster of nodes. It
@@ -10,9 +8,13 @@ leverages DRBD for replication between different nodes and to provide
 block storage devices to users and applications. It manages snapshots,
 encryption and caching of HDD backed data in SSDs via bcache.
 
+// Troubleshooting for LINSTOR guide?
+/////
 This chapter outlines typical administrative tasks encountered during
 day-to-day operations. It does not cover troubleshooting tasks, these
 are covered in detail in <<ch-troubleshooting>>.
+/////
+
 
 [[s-concepts_and_terms]]
 === Concepts and Terms
@@ -21,7 +23,8 @@ A LINSTOR setup has exactly one active controller and multiple satellites.
 The _linstor-controller_ contains the database that holds all configuration
 information for the whole cluster. It makes all decisions that need to have a
 view of the whole cluster. The controller is typically deployed as a HA service
-using Pacemaker and DRBD as it is a crucial part of the system.
+using Pacemaker and DRBD as it is a crucial part of the system. Multiple controllers 
+can be used for LINSTOR but as already mentioned only one can be active.
 
 The _linstor-satellite_ runs on each node where LINSTOR consumes local
 storage or provides storage to services. It is stateless; it receives
@@ -55,6 +58,103 @@ LINSTOR is packaged in both the .rpm and the .deb variants:
   Java runtime environment (JRE) version 1.8 (headless) or higher. This might
   pull in about 100MB of dependencies.
 
+NOTE: If you have a support subscription to LINBIT you will have access to the standard repositories. 
+
+[[s-installtion]]
+=== Installation
+
+IMPORTANT: If you want to use LINSTOR in containers skip this Topic and use the "Containers" section below for the installation.   
+
+
+
+[[s-ubuntu_linux]]
+==== Ubuntu Linux
+
+First we're installing the newest version of DRBD and its tools on all nodes. Furthermore we can install the lvm tools as well. 
+
+--------------------------------------------
+# apt install -y drbd-dkms drbd-utils lvm2
+--------------------------------------------
+
+Depending on wether your node is a LINSTOR controller, satellite, or both (Combined) will determine what packages
+are required on that node. For combined type nodes, we'll need both the controller and satellite LINSTOR package.
+
+Combined node:
+
+--------------------------------------------------------------------
+# apt install linstor-controller linstor-satellite  linstor-client     
+--------------------------------------------------------------------
+
+That will make our remaining nodes our Satellites, so we'll need to install the following packages on them:
+
+-------------------------------------------------
+# apt install linstor-satellite  linstor-client 
+-------------------------------------------------
+
+
+[[s-suse_linux_enterprise_server]]
+==== SUSE Linux Enterprise Server
+
+
+SLES High Availability Extension (HAE) includes DRBD.
+
+On SLES, DRBD is normally installed via the software installation component of YaST2. It comes bundled with the High Availabilty 
+package selection.
+
+As we download DRBD's newest module we can check if the LVM-tools are uptodate as well. User who prefer a command line install 
+may simply issue the following command to get the newest DRBD and LVM version:
+
+----------------------
+# zypper install drbd lvm2
+----------------------
+
+
+
+Depending on wether your node is a LINSTOR controller, satellite, or both (Combined) will determine what packages
+are required on that node. For combined type nodes, we'll need both the controller and satellite LINSTOR package.
+
+Combined node:
+
+------------------------------------------------------------------------
+# zypper install linstor-controller linstor-satellite  linstor-client  
+------------------------------------------------------------------------
+
+That will make our remaining nodes our Satellites, so we'll need to install the following packages on them:
+
+----------------------------------------------------
+# zypper install linstor-satellite  linstor-client  
+----------------------------------------------------
+
+
+[[s-centos]]
+==== CentOS
+
+CentOS has had DRBD 8 since release 5. For DRBD 9 you'll need to look at EPEL and similar sources.
+DRBD can be installed using `yum`. We can also check for the newest version of the LVM-tools as well.
+
+IMPORTANT: You will need a correct repository enabled for this to work 
+
+-----------------------------
+# yum install drbd kmod-drbd lvm2
+-----------------------------
+
+
+Depending on wether your node is a LINSTOR controller, satellite, or both (Combined) will determine what packages
+are required on that node. For combined type nodes, we'll need both the controller and satellite LINSTOR package.
+
+Combined node:
+
+-------------------------------------------------------------------
+# yum install linstor-controller linstor-satellite  linstor-client 
+-------------------------------------------------------------------
+
+That will make our remaining nodes our Satellites, so we'll need to install the following packages on them:
+
+------------------------------------------------
+# yum install linstor-satellite  linstor-client 
+------------------------------------------------
+
+
 [[s-containers]]
 === Containers
 
@@ -65,7 +165,7 @@ In order to access the images, you first have to login to the
 registry (reach out to sales@linbit.com for credentials):
 
 ----------------------------
-$ docker login drbd.io
+# docker login drbd.io
 ----------------------------
 
 The containers available in this repo are:
@@ -84,7 +184,7 @@ To load the kernel module, needed only for LINSTOR satellites, you'll
 need to run a `drbd9` container in privileged mode:
 
 ----------------------------
-$ docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7
+# docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7
 ----------------------------
 
 IMPORTANT: For now (i.e., pre DRBD 9 version "9.0.17"), you must use the containerized DRBD kernel module,
@@ -97,7 +197,7 @@ the host system, but you need to make sure to load the module with the `usermode
 Then run the LINSTOR satellite container, also privileged, as a daemon:
 
 ----------------------------
-$ docker run -d --name=linstor-satellite --net=host --privileged drbd.io/linstor-satellite
+# docker run -d --name=linstor-satellite --net=host --privileged drbd.io/linstor-satellite
 ----------------------------
 
 NOTE: `net=host` is required for the containerized `drbd-utils` to be
@@ -107,7 +207,7 @@ To run the LINSTOR controller container as a daemon, mapping ports
 `3376` and `3377` on the host to the container:
 
 ----------------------------
-$ docker run -d --name=linstor-controller -p 3376:3376 -p 3377:3377 drbd.io/linstor-controller
+# docker run -d --name=linstor-controller -p 3376:3376 -p 3377:3377 drbd.io/linstor-controller
 ----------------------------
 
 To interact with the containerized LINSTOR cluster, you can either use
@@ -115,7 +215,7 @@ a LINSTOR client installed on a system via packages, or via the
 containerized LINSTOR client. To use the LINSTOR client container:
 
 ----------------------------
-$ docker run -it --rm -e LS_CONTROLLERS=<controller-host-IP-address> drbd.io/linstor-client node list
+# docker run -it --rm -e LS_CONTROLLERS=<controller-host-IP-address> drbd.io/linstor-client node list
 ----------------------------
 
 From this point you would use the LINSTOR client to initialize your
@@ -125,8 +225,8 @@ patterns.
 To stop and remove a daemonized container and image:
 
 ----------------------------
-$ docker stop linstor-controller
-$ docker rm linstor-controller
+# docker stop linstor-controller
+# docker rm linstor-controller
 ----------------------------
 
 [[s-linstor-init-cluster]]
@@ -138,11 +238,18 @@ We assume that the following steps are accomplished on *all* cluster nodes:
 . `LVM` tools are installed
 . `linstor-controller` and/or `linstor-satellite` its dependencies are installed
 
-Start the linstor-controller service:
+Start and enable the linstor-controller service on the host where it has been installed:
 
 ----------------------------
-# systemctl start linstor-controller
+# systemctl enable --now linstor-controller
 ----------------------------
+
+If you are sure the linstor-controller service gets autimatically enabled on installation you can use the 
+following command as well:
+
+------------------------------------------
+# systemctl start linstor-controller
+------------------------------------------
 
 // FIXME: Move this whole chapter to an appendix
 /////
@@ -164,7 +271,6 @@ files, the ones from DRBDManage and the ones from LINSTOR.
 
 Obviously, you need the linstor-controller service started on one node and the linstor-satellite service on all
 nodes.
-/////
 
 ----------------------------
 # drbdmanage shutdown -qc # on all nodes
@@ -172,12 +278,15 @@ nodes.
 # mv /etc/drbd.d/drbdmanage-resources.res{,.dis} # on all nodes
 # bash dmmigrate.sh
 ----------------------------
+/////
+
 
 [[s-using_the_linstor_client]]
 === Using the LINSTOR client
 Whenever you run the LINSTOR command line client, it needs to know where your
 linstor-controller runs. If you do not specify it, it will try to reach a locally
-running linstor-controller listening on IP `127.0.0.1` port `3376`.
+running linstor-controller listening on IP `127.0.0.1` port `3376`. Therefore we 
+will use the linstor-client on the same host as the linstor-controller.  
 
 ----------------------------
 # linstor node list
@@ -197,6 +306,7 @@ file:
 Alternatively you can create the `/etc/linstor/linstor-client.conf`
 file and populate it like below.
 
+
 -----
 [global]
 controllers=alice
@@ -205,6 +315,11 @@ controllers=alice
 If you have multiple linstor-controllers configured you can simply
 specify them all in a comma separated list. The linstor-client will
 simply try them in the order listed.
+
+
+NOTE: The linstor-client commands can also be used in a much faster
+and convinient way by only writing the starting letters of the parameters
+e.g.: `linstor node list` -> `linstor n l`
 
 [[s-adding_nodes_to_your_cluster]]
 === Adding nodes to your cluster
@@ -219,11 +334,16 @@ provide:
 ----------------------------
 
 When you use `linstor node list` you will see that the new node
-is marked as offline. Now start the linstor-satellite on that node
-with:
+is marked as offline. Now start and enable the linstor-satellite on that node
+so that the service comes up on reboot as well: 
 ----------------------------
-# systemctl start linstor-satellite
+# systemctl enable --now  linstor-satellite
 ----------------------------
+
+You can also use `systemctl start linstor-satellite`
+if you are sure that the service is already enabled as default and comes up on
+reboot.
+
 About 10 seconds later you will see the status in `linstor node list`
 becoming online. Of course the satellite process may be started before
 the controller knows about the existence of the satellite node.
@@ -264,6 +384,20 @@ The listed commands create a storage pool definition implicitly.
 You can see that by using `linstor storage-pool-definition list`.
 Creating storage pool definitions explicitly is possible but
 not necessary.
+
+To list your storage-pools you can use:
+
+------
+# linstor storage-pool list 
+------
+
+or
+
+-----
+# linstor sp l
+-----
+
+if you want the short version.
 
 [[s-a_storage_pool_per_backend_device]]
 ==== A storage pool per backend device
@@ -309,6 +443,19 @@ Second, we create a new volume definition within that resource definition:
 # linstor volume-definition create backups 500G
 ----------------------------
 
+If you want to change the size of the volume-definition you can simply do that by:
+
+-------
+# linstor volume-definition set-size backups 0 100G
+-------
+
+The parameter `0` is the number of the volume in the resource `backups`. You have to provide this parameter
+, because resources can have multiple volumes and they are identified by a so called volume-number. This number
+can be found by listing the volume-defintions.
+
+IMPORTANT: The size of a volume-definition can only be decreased if it has no resource. Despite
+of that the size can be increased even with an deployed resource.
+
 So far we have only created objects in LINSTOR's database, not a single LV was
 created on the storage nodes. Now you have the choice of delegating the
 task of placement to LINSTOR or doing it yourself.
@@ -343,19 +490,58 @@ LINSTOR may select a storage pool on its own. The selection follows these rules:
 From the remaining storage pools, LINSTOR currently chooses the one with the
 most available free space.
 
+NOTE: If everything went right the DRBD-resource has now been created by LINSTOR.
+This can be checked by looking for the DRBD-blockdevice with the `lsblk`
+command which should look like `drbd0000` or similiar.  
+
+
+Now we should be able to mount the Blockdevice of our resource and start using
+LINSTOR.
+
+
+[[s-more-about-linstor]]
+== Further LINSTOR tasks
+
 [[s-drbd_clients]]
-==== DRBD clients
+=== DRBD clients
 By using the `--diskless` option instead of `--storage-pool` you can
-have a permanently diskless DRBD device on a node.
+have a permanently diskless DRBD device on a node. This means that
+the resource will appear as Blockdevice and can be mounted to the
+filesystem without an exisitng storage-device. The data of the
+resource is accessed over the network on another nodes with the
+same resource. 
 
 ----------------------------
 # linstor resource create delta backups --diskless
 ----------------------------
 
+
+[[s-linstor-drbd-conistency-group-multiple-volumes]]
+=== LINSTOR - DRBD consistency group/multiple volumes
+
+The so called consistency group is a feature from DRBD. It is mentioned in this user-guide, due to the
+fact that one of LINSTOR's main functions is to manage storage-clusters with DRBD. Multiple volumes in 
+one resource are a consistency group.
+
+This means that changes on different volumes from one resource are getting replicated in
+the same chronological order on the other Satellites.                       
+
+Therefore you dont have to worry about the timing if you have interdependet data on different volumes in a 
+resource. 
+   
+To deploy more than one volume in a LINSTOR-resource you just have to create two volume-definitions with the same name.
+
+----
+# linstor volume-definition create backups 500G
+# linstor volume-definition create backups 100G
+----
+
+
 [[s-volumes_of_one_resource_to_different_storage_pools]]
-==== Volumes of one resource to different Storage-Pools
+=== Volumes of one resource to different Storage-Pools
 This can be achieved by setting the `StorPoolName` property to the volume
 definitions before the resource is deployed to the nodes:
+
 
 ----------------------------
 # linstor resource-definition create backups
@@ -388,6 +574,71 @@ falls back to a hardcoded 'DfltStorPool' string as a storage pool.
 This also means that if you forgot to define a storage pool prior deploying a
 resource, you will get an error message that LINSTOR could not find the
 storage pool named 'DfltStorPool'.
+
+
+[[s-nvme-linstor-without-drbd]]
+=== NVMe-oF/NVMe-TCP and LINSTOR without DRBD
+
+LINSTOR can be used without DRBD as well. Without DRBD it has the only abilty to create local
+resources with LVM or ZFS. Because of that LINSTOR itself is not able to let resources 
+on different nodes communicate. To change that NVMe-oF/NVMe-TCP is being used.
+
+NVMe-oF/NVMe-TCP allows LINSTOR to connect diskless resources to a node with the same resource 
+where the data is stored. This leads to the advantage that resources can be mounted 
+without using local storage by accessing the data over the network. Remind in this
+case LINSTOR is not using DRBD. Therefore this resource has no replication feature and the data is stored on one node. 
+
+NOTE: NVMe-oF only works on RDMA-capable networks and NVMe-TCP on every network that can carry IP traffic. If you
+      want to know more about NVMe-oF/NVMe-TCP visit https://www.linbit.com/en/nvme-linstor-swordfish/ for more information. 
+
+To use NVMe-oF/NVMe-TCP with LINSTOR the package `nvme-cli` needs to be installed on every Node which acts as a Satellite
+and will use NVMe-oF/NVMe-TCP for a resource:
+
+IMPORTANT: If you are not using Ubuntu use the suitable command for installing packages on your OS - SLES: zypper - 
+CentOS: yum
+
+------
+# apt install nvme-cli
+------
+
+To make a resource which uses NVMe-oF/NVMe-TCP an additional parameter has to be given as you create the resource-definiton: 
+
+------
+# linstor resource-definition create nvmedata  -l nvme,storage
+------
+
+NOTE: As default the -l (layer-stack) parameter is set to `drbd, storage` when DRBD is used. If you want to create LINSTOR resources
+with neither NVMe nor DBRD you have to set the `-l` parameter to only `storage`. 
+
+Create the volume-definition for our resource:
+
+------
+# linstor volume-definiton create nvmedata 500G
+------
+
+Before you create the resource on your nodes you have to know where the data will be stored
+locally and which node accesses it over the network.
+
+First we create the resource on the node where our data is stored:
+
+------
+# linstor resource create alpha nvmedata --storage-pool pool_ssd
+------ 
+
+On the nodes where the resource-data is accessed over the network, the resource has to be defined as diskless:
+
+-----
+# linstor resource create beta nvmedata -d
+-----    
+
+The `-d` parameter creates the resource on this node as diskless.
+
+
+Now you can  mount the resource `nvmedata` on one of your nodes.
+
+IMPORTANT: If your nodes have more than one NIC you should force the route between them for NVMe-of/NVME-TCP, otherwise 
+multiple NIC's could cause troubles. 
+
 
 [[s-managing_network_interface_cards]]
 === Managing Network Interface Cards
@@ -711,6 +962,31 @@ A sample MariaDB `database.cfg` looks like this:
 
 NOTE: The LINSTOR schema/database is created as `LINSTOR` so make sure the mariadb connection string
 refers to the `LINSTOR` schema, as in the example above.
+
+
+[[s-linstor-rest-api]]
+=== LINSTOR REST-API
+
+To make LINSTOR's administrative tasks more accessable and also available for web-frontends a 
+REST-API has been created. The REST-API is embedded in the linstor-controller and can be configured
+by using:
+
+--------- 
+$ linstor controller set-property REST/bindAddress 127.0.0.1
+---------
+
+to set the address on which you want to reach the API and:
+
+-------
+$ linstor controller set-property REST/port 8080
+-------
+
+to set the port it should listen on.
+
+If you want to use the REST-API the current documentation can be found on the following link:
+https://app.swaggerhub.com/apis-docs/Linstor/Linstor/
+
+
 
 [[s-linstor-getting-help]]
 === Getting help
