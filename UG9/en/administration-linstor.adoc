@@ -656,39 +656,121 @@ resource, you will get an error message that LINSTOR could not find the
 storage pool named 'DfltStorPool'.
 
 
-[[s-nvme-linstor-without-drbd]]
-=== NVMe-oF/NVMe-TCP and LINSTOR without DRBD
+[[s-linstor-without-drbd]]
+=== LINSTOR without DRBD
 
-LINSTOR can be used without DRBD as well. Without DRBD it has the only ability to create local
-resources with LVM or ZFS. Because of that LINSTOR itself is not able to let resources
-on different nodes communicate. To change that NVMe-oF/NVMe-TCP is being used.
+LINSTOR can be used without DRBD as well. Without DRBD, LINSTOR is
+able to provision volumes from LVM and ZFS backed storage pools, and
+create those volumes on individual nodes in your LINSTOR cluster. 
 
-NVMe-oF/NVMe-TCP allows LINSTOR to connect diskless resources to a node with the same resource
-where the data is stored. This leads to the advantage that resources can be mounted
-without using local storage by accessing the data over the network. Remind in this
-case LINSTOR is not using DRBD. Therefore this resource has no replication feature and the data is stored on one node.
+Currently LINSTOR supports the creation of LVM and ZFS
+volumes with the option of layering some combinations of LUKS,
+DRBD, and/or NVMe-oF/NVMe-TCP on top of those volumes.
 
-NOTE: NVMe-oF only works on RDMA-capable networks and NVMe-TCP on every network that can carry IP traffic. If you
-      want to know more about NVMe-oF/NVMe-TCP visit https://www.linbit.com/en/nvme-linstor-swordfish/ for more information.
+For example, assume we have a Thin LVM backed storage pool defined in
+our LINSTOR cluster named, `thin-lvm`:
 
-To use NVMe-oF/NVMe-TCP with LINSTOR the package `nvme-cli` needs to be installed on every Node which acts as a Satellite
-and will use NVMe-oF/NVMe-TCP for a resource:
+----
+# linstor --no-utf8 storage-pool list
++--------------------------------------------------------------+
+| StoragePool | Node      | Driver   | PoolName          | ... |
+|--------------------------------------------------------------|
+| thin-lvm    | linstor-a | LVM_THIN | drbdpool/thinpool | ... |
+| thin-lvm    | linstor-b | LVM_THIN | drbdpool/thinpool | ... |
+| thin-lvm    | linstor-c | LVM_THIN | drbdpool/thinpool | ... |
+| thin-lvm    | linstor-d | LVM_THIN | drbdpool/thinpool | ... |
++--------------------------------------------------------------+
+----
 
-IMPORTANT: If you are not using Ubuntu use the suitable command for installing packages on your OS - SLES: zypper -
-CentOS: yum
+We could use LINSTOR to create a Thin LVM on `linstor-d` that's 100GiB
+in size using the following commands:
+
+----
+# linstor resource-definition create rsc-1
+# linstor volume-definition create rsc-1 100GiB
+# linstor resource create --layer-list storage \
+          --storage-pool thin-lvm linstor-d rsc-1
+----
+
+You should then see you have a new Thin LVM on `linstor-d`. You can
+extract the device path from LINSTOR by listing your linstor resources
+with the `--machine-readable` flag set:
+
+----
+# linstor --machine-readable resource list | grep device_path
+            "device_path": "/dev/drbdpool/rsc-1_00000", 
+----
+
+If you wanted to layer DRBD on top of this volume, which is the default
+`--layer-list` option in LINSTOR for ZFS or LVM backed volumes, you
+would use the following resource creation pattern instead:
+
+----
+# linstor resource-definition create rsc-1
+# linstor volume-definition create rsc-1 100GiB
+# linstor resource create --layer-list drbd,storage \
+          --storage-pool thin-lvm linstor-d rsc-1
+----
+
+You would then see that you have a new Thin LVM backing a DRBD volume
+on `linstor-d`:
+
+----
+# linstor --machine-readable resource list | grep -e device_path -e backing_disk
+            "device_path": "/dev/drbd1000", 
+            "backing_disk": "/dev/drbdpool/rsc-1_00000", 
+----
+
+The complete list of currently supported `--layer-list` combinations
+are as follows:
+
+* drbd,luks,storage
+* drbd,storage
+* luks,storage
+* nvme,storage
+* storage
+
+TIP: For information about the prerequisites for the `luks` layer,
+refer to the Encrypted Volumes section of this User's Guide.
+
+==== NVMe-oF/NVMe-TCP LINSTOR Layer
+
+NVMe-oF/NVMe-TCP allows LINSTOR to connect diskless resources to a
+node with the same resource where the data is stored over NVMe
+fabrics. This leads to the advantage that resources can be mounted
+without using local storage by accessing the data over the network.
+LINSTOR is not using DRBD in this case, and therefore NVMe resources
+provisioned by LINSTOR are not replicated, the data is stored on one
+node.
+
+NOTE: NVMe-oF only works on RDMA-capable networks and NVMe-TCP on
+every network that can carry IP traffic. If you want to know more
+about NVMe-oF/NVMe-TCP visit
+https://www.linbit.com/en/nvme-linstor-swordfish/ for more
+information.
+
+To use NVMe-oF/NVMe-TCP with LINSTOR the package `nvme-cli` needs to
+be installed on every Node which acts as a Satellite and will use
+NVMe-oF/NVMe-TCP for a resource:
+
+IMPORTANT: If you are not using Ubuntu use the suitable command for
+installing packages on your OS - SLES: zypper - CentOS: yum
 
 ------
 # apt install nvme-cli
 ------
 
-To make a resource which uses NVMe-oF/NVMe-TCP an additional parameter has to be given as you create the resource-definiton:
+To make a resource which uses NVMe-oF/NVMe-TCP an additional parameter
+has to be given as you create the resource-definiton:
 
 ------
 # linstor resource-definition create nvmedata  -l nvme,storage
 ------
 
-NOTE: As default the -l (layer-stack) parameter is set to `drbd, storage` when DRBD is used. If you want to create LINSTOR resources
-with neither NVMe nor DBRD you have to set the `-l` parameter to only `storage`.
+NOTE: As default the -l (layer-stack) parameter is set to `drbd,
+storage` when DRBD is used. If you want to create LINSTOR resources
+with neither NVMe nor DBRD you have to set the `-l` parameter to only
+`storage`.
 
 Create the volume-definition for our resource:
 
@@ -696,8 +778,9 @@ Create the volume-definition for our resource:
 # linstor volume-definiton create nvmedata 500G
 ------
 
-Before you create the resource on your nodes you have to know where the data will be stored
-locally and which node accesses it over the network.
+Before you create the resource on your nodes you have to know where
+the data will be stored locally and which node accesses it over the
+network.
 
 First we create the resource on the node where our data will be stored:
 
@@ -705,7 +788,8 @@ First we create the resource on the node where our data will be stored:
 # linstor resource create alpha nvmedata --storage-pool pool_ssd
 ------
 
-On the nodes where the resource-data will be accessed over the network, the resource has to be defined as diskless:
+On the nodes where the resource-data will be accessed over the
+network, the resource has to be defined as diskless:
 
 -----
 # linstor resource create beta nvmedata -d
@@ -716,8 +800,9 @@ The `-d` parameter creates the resource on this node as diskless.
 
 Now you can  mount the resource `nvmedata` on one of your nodes.
 
-IMPORTANT: If your nodes have more than one NIC you should force the route between them for NVMe-of/NVME-TCP, otherwise
-multiple NIC's could cause troubles.
+IMPORTANT: If your nodes have more than one NIC you should force the
+route between them for NVMe-of/NVME-TCP, otherwise multiple NIC's
+could cause troubles.
 
 
 [[s-managing_network_interface_cards]]
