@@ -24,8 +24,8 @@ High-Availability (fail-over capable) clusters.
 === Dual-primary mode
 
 In dual-primary mode, a resource is, at any given time, in the
-primary role on two cluster nodesfootnote:[Perhaps that feature 
-will be renamed to "Multi Primary" later on, when it actually 
+primary role on two cluster nodesfootnote:[Perhaps that feature
+will be renamed to "Multi Primary" later on, when it actually
 works ;)]. Since concurrent access to the
 data is thus possible, this mode requires the use of a shared cluster
 file system that utilizes a distributed lock manager. Examples include
@@ -40,7 +40,7 @@ explicitly in DRBD's configuration file.
 See <<s-enable-dual-primary>> for information on enabling dual-primary
 mode for specific resources.
 
-NOTE: With current DRBD-9.0 version running in Dual-Primary mode is not 
+NOTE: With current DRBD-9.0 version running in Dual-Primary mode is not
 recommended (because of lack of testing). +
 In DRBD-9.1 it will be possible to have more than two primaries at the
 same time.
@@ -105,7 +105,7 @@ DRBD 9 this is supported out-of-the-box for (currently) up to 16 nodes.
 (In practice, using 3-, 4- or perhaps 5-way redundancy via DRBD
 will make other things the leading cause of downtime.)
 
-The major difference to the stacking solution is that there's less performance 
+The major difference to the stacking solution is that there's less performance
 loss, because only one level of data replication is being used.
 
 // Eg. if availability for a single node is 99%, for two nodes it might
@@ -115,7 +115,7 @@ loss, because only one level of data replication is being used.
 === Automatic Promotion of Resources
 
 Prior to DRBD 9, promoting a resource would be done with the `drbdadm primary` command. With DRBD
-9, DRBD will automatically promote a resource to primary role when the `auto-promote` 
+9, DRBD will automatically promote a resource to primary role when the `auto-promote`
 option is enabled, and one of its volumes is
 mounted or opened for writing. As soon as all volumes are unmounted or closed, the role
 of the resource changes back to secondary.
@@ -476,30 +476,30 @@ performance. See <<s-disable-flushes>> for details.
 === Trim/Discard support
 
 _Trim_/_Discard_ are two names for the same feature: a request to a storage
-system, telling it that some data range is not being used anymorefootnote:[For 
+system, telling it that some data range is not being used anymorefootnote:[For
 example, a deleted file's data.] and can get recycled. +
 This call originates in Flash-based storages (SSDs, FusionIO cards, etc.),
-which cannot easily _rewrite_ a sector but instead have to _erase_ and write 
-the (new) data again (incurring some latency cost). For more details, see eg. 
+which cannot easily _rewrite_ a sector but instead have to _erase_ and write
+the (new) data again (incurring some latency cost). For more details, see eg.
 the [[https://en.wikipedia.org/wiki/Trim_%28computing%29,wikipedia page]].
 
 
-Since 8.4.3 DRBD includes support for _Trim_/_Discard_. You don't need to configure 
-or enable anything; if DRBD detects that the local (underlying) storage system 
-allows using these commands, it will transparently enable them and pass such 
+Since 8.4.3 DRBD includes support for _Trim_/_Discard_. You don't need to configure
+or enable anything; if DRBD detects that the local (underlying) storage system
+allows using these commands, it will transparently enable them and pass such
 requests through.
 
-The effect is that eg. a recent-enough `mkfs.ext4` on a multi-TB volume can 
-shorten the initial sync time to a few seconds to minutes - just by telling 
-DRBD (which will relay that information to all connected nodes) that most/all 
+The effect is that eg. a recent-enough `mkfs.ext4` on a multi-TB volume can
+shorten the initial sync time to a few seconds to minutes - just by telling
+DRBD (which will relay that information to all connected nodes) that most/all
 of the storage is now to be seen as invalidated.
 
-Nodes that connect to that resource later on will not have seen the 
-_Trim_/_Discard_ requests, and will therefore start a full resync; depending on 
-kernel version and file system a call to `fstrim` might give the wanted result, 
+Nodes that connect to that resource later on will not have seen the
+_Trim_/_Discard_ requests, and will therefore start a full resync; depending on
+kernel version and file system a call to `fstrim` might give the wanted result,
 though.
 
-NOTE: even if you don't have storage with _Trim_/_Discard_ support, some 
+NOTE: even if you don't have storage with _Trim_/_Discard_ support, some
 virtual block devices will provide you with the same feature, for example
 Thin LVM.
 
@@ -578,8 +578,8 @@ enabling protection against inadvertent use of outdated data.
 [[s-three-way-repl]]
 === Three-way replication via stacking
 
-NOTE: Available in DRBD version 8.3.0 and above; deprecated in DRBD version 
-9.x, as more nodes can be implemented on a single level. See 
+NOTE: Available in DRBD version 8.3.0 and above; deprecated in DRBD version
+9.x, as more nodes can be implemented on a single level. See
 <<s-drbdconf-conns>> for details.
 
 When using three-way replication, DRBD adds a third node to an
@@ -684,11 +684,11 @@ For more information about managing floating peer configurations, see
 [[s-rebalance]]
 === Data rebalancing (horizontal storage scaling)
 
-If your company's policy says that 3-way redundancy is needed, you need 
+If your company's policy says that 3-way redundancy is needed, you need
 at least 3 servers for your setup.
 
-Now, as your storage demands grow, you will encounter the need for 
-additional servers. Rather than having to buy 3 more servers at the same 
+Now, as your storage demands grow, you will encounter the need for
+additional servers. Rather than having to buy 3 more servers at the same
 time, you can _rebalance_ your data across a single additional node.
 
 .DRBD data rebalancing
@@ -696,11 +696,11 @@ image::images/rebalance.svg[]
 
 //[scaledwidth="75"]
 
-In the figure above you can see the _before_ and _after_ states: from 
-3 nodes with three 25TiB volumes each (for a net 75TiB), to 4 nodes, 
+In the figure above you can see the _before_ and _after_ states: from
+3 nodes with three 25TiB volumes each (for a net 75TiB), to 4 nodes,
 with net 100TiB.
 
-DRBD 9 makes it possible to do an online, live migration of the data; please see 
+DRBD 9 makes it possible to do an online, live migration of the data; please see
 <<s-rebalance-workflow>> for the exact steps needed.
 
 [[s-drbd-client]]

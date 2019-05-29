@@ -1,6 +1,7 @@
 [[ch-admin-drbdmanage]]
 == DRBD Manage
 
+
 IMPORTANT: DRBD Manage will reach its EoL end of 2018 and will be replaced by LINSTOR.
 
 DRBD Manage is an abstraction layer which takes over management of logical
@@ -62,7 +63,7 @@ Adding nodes to your cluster is easy and requires a single command with two para
 . The IP address of the node.
 
 .Note
-If DNS is configured properly, the tab-completion of `drbdmanage` is able to 
+If DNS is configured properly, the tab-completion of `drbdmanage` is able to
 complete the IP of the given node name.
 
 ----------------------------
@@ -296,7 +297,7 @@ Here's a short discussion of the relative advantages and disadvantages of these 
 |===================================
 |Topic | `lvm.Lvm` | `lvm_thinlv.LvmThinLv` | `lvm_thinpool.LvmThinPool`
 |Pools | the VG is the pool | a single Thin pool | one Thin pool for each volume
-|Free Space reporting | Exact | Free space goes down as per written data and snapshots, needs monitoring | Each pool carves some space out of the VG, but still needs to be monitored if snapshots are used 
+|Free Space reporting | Exact | Free space goes down as per written data and snapshots, needs monitoring | Each pool carves some space out of the VG, but still needs to be monitored if snapshots are used
 |Allocation | Fully pre-allocated   2+| thinly allocated, needs nearly zero space initially
 |Snapshots | -- not supported --  2+| Fast, efficient (copy-on-write)
 |Stability | Well established, known code, very stable  2+| Some kernel versions have bugs re Thin LVs, destroying data
@@ -493,7 +494,7 @@ DRBD event handler can be set in the 'common' section and per resource:
 [[s-dm-rebalance]]
 === Rebalancing data with DRBD Manage
 
-indexterm:[rebalance]Rebalancing data means moving some assignments around, to make better use of 
+indexterm:[rebalance]Rebalancing data means moving some assignments around, to make better use of
 the available resources. We'll discuss the same example as for the
 <<s-rebalance-workflow,manual workflow>>.
 
@@ -501,14 +502,14 @@ the available resources. We'll discuss the same example as for the
 Given is an example policy that data needs to be available on 3 nodes,
 so you need at least 3 servers for your setup.
 
-Now, as your storage demands grow, you will encounter the need for 
-additional servers. Rather than having to buy 3 more servers at the same 
+Now, as your storage demands grow, you will encounter the need for
+additional servers. Rather than having to buy 3 more servers at the same
 time, you can _rebalance_ your data across a single additional node.
 
 .DRBD data rebalancing
 image::images/rebalance.svg[]
 
-First, you need to add the new machine to the cluster; see <<s-dm-add-node>> 
+First, you need to add the new machine to the cluster; see <<s-dm-add-node>>
 for the commands.
 
 The next step is to add the assignment:
@@ -517,7 +518,7 @@ The next step is to add the assignment:
 # drbdmanage assign <resource> <new-node>
 ---------------------
 
-Now you need to wait for the (initial) sync to finish; you can eg. use the 
+Now you need to wait for the (initial) sync to finish; you can eg. use the
 command `drbdadm status` with (optionally) the resource name.
 
 One of the nodes that _still_ has the data will show a status like
@@ -529,15 +530,15 @@ replication:SyncSource peer-disk:Inconsistent done:5.34
 while the target node will have a state of _SyncTarget_.
 
 
-When the target assignment reaches a state of _UpToDate_, you have a full 
-additional copy of your data on this node; now it is safe to remove the 
+When the target assignment reaches a state of _UpToDate_, you have a full
+additional copy of your data on this node; now it is safe to remove the
 assignment from another node:
 
 ---------------------
 # drbdmanage unassign <resource> <old-node>
 ---------------------
 
-And voilà - you moved one assignment, in twofootnote:[Or three, if you count 
+And voilà - you moved one assignment, in twofootnote:[Or three, if you count
 waiting for the _UpToDate_ state.] easy steps!
 
 
@@ -578,5 +579,3 @@ according file:
 # source /etc/bash_completion.d/drbdmanage # or
 # source /usr/share/bash_completion/completions/drbdmanage
 ----------------------------
-
-

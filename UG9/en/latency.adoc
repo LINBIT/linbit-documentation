@@ -18,13 +18,13 @@ indexterm:[latency]For _rotating media_ the I/O subsystem latency is primarily a
 disk rotation speed. Thus, using fast-spinning disks is a valid
 approach for reducing I/O subsystem latency.
 
-For _solid state media_ (like SSDs) the Flash storage controller is the 
-determining factor; the next most important thing is the amount of unused 
-capacity. Using DRBD's <<s-trim-discard>> will help you provide the controller 
-with the needed information which blocks it can recycle. That way, when a write 
-requests comes in, it can use a block that got cleaned ahead-of-time and 
-doesn't have to wait *now* until there's space availablefootnote:[On low-end 
-hardware you can help that a bit by reserving some space - just keep 
+For _solid state media_ (like SSDs) the Flash storage controller is the
+determining factor; the next most important thing is the amount of unused
+capacity. Using DRBD's <<s-trim-discard>> will help you provide the controller
+with the needed information which blocks it can recycle. That way, when a write
+requests comes in, it can use a block that got cleaned ahead-of-time and
+doesn't have to wait *now* until there's space availablefootnote:[On low-end
+hardware you can help that a bit by reserving some space - just keep
 10% to 20% of the total space unpartitioned.].
 
 [[s-hardware-bbu]]
@@ -50,7 +50,7 @@ the order of 100 to 200 microseconds (μs) packet RTT for Gigabit Ethernet.
 
 Network latency may typically be pushed below this limit only by using
 lower-latency network protocols, such as running DRBD over Dolphin
-Express using Dolphin SuperSockets, or a 10GBe direct connection; these are 
+Express using Dolphin SuperSockets, or a 10GBe direct connection; these are
 typically in the 50µs range. Even better is InfiniBand, which provides
 even lower latencies.
 
@@ -65,8 +65,8 @@ with DRBD, there are some important natural limitations to consider:
 * DRBD latency is bound by the available network latency.
 
 The _sum_ of the two establishes the theoretical latency _minimum_
-incurred to DRBDfootnote:[for protocol C, because the other node(s) have to 
-write to stable storage, too]. DRBD then adds to that latency a slight 
+incurred to DRBDfootnote:[for protocol C, because the other node(s) have to
+write to stable storage, too]. DRBD then adds to that latency a slight
 additional latency overhead, which can be expected to be less than 1 percent.
 
 * Consider the example of a local disk subsystem with a write latency
@@ -81,28 +81,28 @@ including CPU cache misses, context switches, and others.
 [[s-latency-iops]]
 === Latency vs. IOPs
 
-indexterm:[latency]indexterm:[IOPs]_IOPs_ is the abbreviation of "__I/O 
+indexterm:[latency]indexterm:[IOPs]_IOPs_ is the abbreviation of "__I/O
 operations per second__".
 
-Marketing typically doesn't like numbers that get smaller; press releases 
-aren't written with "__Latency reduced by 10µs, from 50µs to 40µs now!__" in 
-mind, they like "__Performance increased by 25%, from 20000 to now 25000 
-IOPs__" much more. Therefore IOPs were invented - to get a number that says 
+Marketing typically doesn't like numbers that get smaller; press releases
+aren't written with "__Latency reduced by 10µs, from 50µs to 40µs now!__" in
+mind, they like "__Performance increased by 25%, from 20000 to now 25000
+IOPs__" much more. Therefore IOPs were invented - to get a number that says
 "higher is better".
 
-So, in other words, IOPs are the reciprocal of latency. What you'll have to 
+So, in other words, IOPs are the reciprocal of latency. What you'll have to
 keep in mind is that the method given in <<s-measure-latency>> gives you
-the latency resp. the number of IOPs for a purely sequential, single-threaded 
-IO load, while most other documentation will give numbers for some highly 
-parallel loadfootnote:[Like in "__16 threads, IO-depth of 32__" - this means that 512 
+the latency resp. the number of IOPs for a purely sequential, single-threaded
+IO load, while most other documentation will give numbers for some highly
+parallel loadfootnote:[Like in "__16 threads, IO-depth of 32__" - this means that 512
 I/O-requests are being done in parallel!], because this gives much "prettier"
 numbers. With that kind of trick DRBD does offer you 100000 IOPs, too!
 
-So, please don't shy away from measuring serialized, single-threaded latency. 
-If you want lots of IOPs, run the `fio` utility with `threads=8` and an 
+So, please don't shy away from measuring serialized, single-threaded latency.
+If you want lots of IOPs, run the `fio` utility with `threads=8` and an
 `iodepth=16`, or some similar settings... But please keep in mind that these
-number will not have any meaning to your setup, unless you're driving 
-a database with many tens or hundreds of client connections active at the same 
+number will not have any meaning to your setup, unless you're driving
+a database with many tens or hundreds of client connections active at the same
 time.
 
 
@@ -151,8 +151,8 @@ file, just like DRBD itself. Others include an invocation of the
 
 It makes sense to keep the DRBD threads running on the same L2/L3 caches.
 
-But: the numbering of CPUs doesn't have to correlate with the physical partitioning. 
-You can try the `lstopo` (or `hwloc-ls`) program for X11 or `hwloc-info -v -p` 
+But: the numbering of CPUs doesn't have to correlate with the physical partitioning.
+You can try the `lstopo` (or `hwloc-ls`) program for X11 or `hwloc-info -v -p`
 for console output to get an overview of the topology.
 ====================
 

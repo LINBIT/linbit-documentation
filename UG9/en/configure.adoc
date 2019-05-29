@@ -40,6 +40,7 @@ For the purposes of this guide, we assume a very simple setup:
 
 * We are using <<s-internal-meta-data,internal meta data>>.
 
+
 [[s-prepare-network]]
 ==== Preparing your network configuration
 
@@ -184,7 +185,7 @@ This example configures DRBD in the following fashion:
 
 The configuration above implicitly creates one volume in the
 resource, numbered zero (`0`). For multiple volumes in one resource,
-modify the syntax as follows (assuming that the same lower-level storage block 
+modify the syntax as follows (assuming that the same lower-level storage block
 devices are used on both nodes):
 
 .Multi-volume DRBD resource configuration (`/etc/drbd.d/r0.res`)
@@ -257,8 +258,8 @@ see <<s-replication-protocols>>.
 A per-resource configuration file is usually named
 `/etc/drbd.d/__resource__.res`.  Any DRBD resource you define must be
 named by specifying a resource name in the configuration. The convention
-is to use only letters, digits, and the underscore; while it is technically 
-possible to use other characters as well, you won't like the result if you ever 
+is to use only letters, digits, and the underscore; while it is technically
+possible to use other characters as well, you won't like the result if you ever
 happen stumble to need the more specific `__peer__@__resource__/__volume__` syntax.
 
 Every resource configuration must also have at least two `on _host_` sub-sections,
@@ -288,16 +289,16 @@ resource r0 {
 [[s-drbdconf-conns]]
 ==== Defining network connections
 
-Currently the communication links in DRBD 9 must build a full mesh, ie. in 
-every resource every node must have a direct connection to every other node 
+Currently the communication links in DRBD 9 must build a full mesh, ie. in
+every resource every node must have a direct connection to every other node
 (excluding itself, of course).
 
-For the simple case of two hosts `drbdadm` will insert the (single) network 
+For the simple case of two hosts `drbdadm` will insert the (single) network
 connection by itself, for ease of use and backwards compatibility.
 
-The net effect of this is a quadratic number of network connections over 
-hosts. For the "traditional" two nodes one connection is needed; for three hosts there are three node pairs; for four, six pairs; 
-5 hosts: 10 connections, and so on. For (the current) 
+The net effect of this is a quadratic number of network connections over
+hosts. For the "traditional" two nodes one connection is needed; for three hosts there are three node pairs; for four, six pairs;
+5 hosts: 10 connections, and so on. For (the current)
 maximum of 16 nodes there'll be 120 host pairs to connect.
 
 [[eq-connection-mesh]]
@@ -339,16 +340,16 @@ resource r0 {
 }
 -------------------------------------
 
-The port for the `address` value within 
-the `on _host_` sections is optional; but then you have to specify 
+The port for the `address` value within
+the `on _host_` sections is optional; but then you have to specify
 distinct port numbers for each connection.
 
 [NOTE]
 ==================
 For this pre-release the whole connection mesh must be defined.
 
-In the final release it will be sufficient to give each node a single 
-port, and DRBD will figure out during the handshake which peer node it 
+In the final release it will be sufficient to give each node a single
+port, and DRBD will figure out during the handshake which peer node it
 is talking to.
 ==================
 
@@ -382,9 +383,9 @@ resource r0 {
 -------------------------------------
 
 
-If you have got enough network cards in your servers, you can create direct 
+If you have got enough network cards in your servers, you can create direct
 cross-over links between server pairs.
-A single four-port ethernet card allows to have a single management interface, 
+A single four-port ethernet card allows to have a single management interface,
 and to connect 3 other servers, to get a full mesh for 4 cluster nodes.
 
 In this case you can specify a different IP address to use the direct link:
@@ -407,10 +408,10 @@ resource r0 {
 }
 --------------------------------
 
-For easier maintenance and debugging it's recommend to have different ports for 
+For easier maintenance and debugging it's recommend to have different ports for
 each endpoint - looking at a `tcpdump` trace the packets can be associated easily.
 
-The examples below will still be using two servers only; please see 
+The examples below will still be using two servers only; please see
 <<s-4node-example>> for a four-node example.
 
 
@@ -495,8 +496,8 @@ NOT initializing bitmap
 New drbd meta data block sucessfully created.
 -------------------------------------
 
-Please note that the number of bitmap slots that are allocated in the meta-data 
-depends on the number of hosts for this resource; per default the hosts in the 
+Please note that the number of bitmap slots that are allocated in the meta-data
+depends on the number of hosts for this resource; per default the hosts in the
 resource configuration are counted.
 If all hosts are specified _before_ creating the meta-data, this will "just work";
 adding bitmap slots for further nodes is possible later, but incurs some manual work.
@@ -626,8 +627,8 @@ invocation.
   or copy not only your replicated data, but also the associated DRBD
   metadata. If you fail to do so, the disk shipping process is moot.
 
-* On the new node we need to fix the node ID in the meta data, and exchange 
-  the peer-node info for the two nodes. Please see the following lines as 
+* On the new node we need to fix the node ID in the meta data, and exchange
+  the peer-node info for the two nodes. Please see the following lines as
   example for changing node id from 2 to 1 on a resource `r0` volume `0`.
 +
 --
@@ -650,7 +651,7 @@ drbdmeta --force $(drbdadm sh-minor $V) v09 $(drbdadm sh-ll-dev $V) internal res
 -----------
 
 .NOTE
-`drbdmeta` before 8.9.7 cannot cope with out-of-order `peer` sections; you'll 
+`drbdmeta` before 8.9.7 cannot cope with out-of-order `peer` sections; you'll
 need to exchange the blocks via an editor.
 
 --
@@ -683,7 +684,7 @@ simply add the `-S` or `--stacked` option to `drbdadm`.
 Here is an example for a four-node cluster.
 
 Please note that the `connection` sections (and distinct ports)
-won't be necessary for the DRBD 9.0.0 release; we will find some nice 
+won't be necessary for the DRBD 9.0.0 release; we will find some nice
 short-hand syntax.
 // the second example.
 
@@ -780,9 +781,9 @@ In case you want to see the `connection-mesh` configuration expanded, try `drbda
 
 
 [[s-connection-mesh-distinct-interfaces]]
-As another example, if the four nodes have enough interfaces to provide 
-a complete mesh via direct linksfootnote:[ie. three crossover and at least one 
-outgoing/management interface], you can specify the IP addresses of the 
+As another example, if the four nodes have enough interfaces to provide
+a complete mesh via direct linksfootnote:[ie. three crossover and at least one
+outgoing/management interface], you can specify the IP addresses of the
 interfaces:
 
 ---------------------------
@@ -821,6 +822,6 @@ resource r0 {
 }
 ---------------------------
 
-Please note the numbering scheme used for the IP addresses and ports. Another 
-resource could use the same IP addresses, but ports `71__xy__`, the next one 
+Please note the numbering scheme used for the IP addresses and ports. Another
+resource could use the same IP addresses, but ports `71__xy__`, the next one
 `72__xy__`, and so on.

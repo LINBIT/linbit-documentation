@@ -6,6 +6,7 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
+
 [[ch-admin-manual]]
 == Common administrative tasks
 
@@ -34,8 +35,8 @@ A complete overview can be found here[https://linbit.github.io/drbdtop/].
 [[s-proc-drbd]]
 ==== Status information in `/proc/drbd`
 
-NOTE: `/proc/drbd` is deprecated. While it won't be removed in the 8.4 
-series, we recommend to switch to other means, like <<s-drbdadm-status>>; or, 
+NOTE: `/proc/drbd` is deprecated. While it won't be removed in the 8.4
+series, we recommend to switch to other means, like <<s-drbdadm-status>>; or,
 for monitoring even more convenient, <<s-drbdsetup-events2>>.
 
 indexterm:[/proc/drbd]`/proc/drbd` is a virtual file displaying
@@ -105,7 +106,7 @@ home node-id:1 role:Secondary suspended:no
 
 
 Every few lines in this example form a block that is repeated
-for every node used in this resource, with small format exceptions 
+for every node used in this resource, with small format exceptions
 for the local node - see below for more details.
 
 The first line in each block shows the `node-id` (for the current
@@ -118,7 +119,7 @@ other IDs as well. This line shows the indexterm:[connection state]
 connection state in the
 `replication` item (see <<s-connection-states>> for details) and the
 remote indexterm:[disk state] disk state in `disk` (see <<s-disk-states>>).
-Then there's a line for this volume giving a bit of statistics - 
+Then there's a line for this volume giving a bit of statistics -
 data `received`, `sent`, `out-of-sync`, etc; please see
 <<s-performance-indicators>> and <<s-conn-info>> for more information.
 
@@ -146,12 +147,12 @@ The Replication protocol used by the resource. Either `A`, `B`, or `C`. See
 ==== One-shot or realtime monitoring via `drbdsetup events2`
 
 NOTE: This is available only with userspace versions 8.9.3 and up.
-// and 8.4.6 
+// and 8.4.6
 
-This is a low-level mechanism to get information out of DRBD, suitable for use 
+This is a low-level mechanism to get information out of DRBD, suitable for use
 in automated tools, like monitoring.
 
-In its simplest invocation, showing only the current status, the output looks 
+In its simplest invocation, showing only the current status, the output looks
 like this (but, when running on a terminal, will include colors):
 
 ---------------
@@ -177,7 +178,7 @@ change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Unconn
 change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connecting
 -----------------
 
-Then, for monitoring purposes, there's another argument ''--statistics'', that 
+Then, for monitoring purposes, there's another argument ''--statistics'', that
 will produce some performance counters and other facts:
 
 'drbdsetup' **verbose output** (lines broken for readability):
@@ -600,7 +601,7 @@ while the specified resource is still in the primary role on another node will
 result in an error.
 
 A resource configured to allow <<s-dual-primary-mode,dual-primary
-mode>> can be switched to the primary role on two nodes; this is eg. needed for 
+mode>> can be switched to the primary role on two nodes; this is eg. needed for
 online migration of virtual machines.
 
 
@@ -625,8 +626,8 @@ Now on the node we wish to make primary promote the resource and mount the devic
 # mount /dev/drbd/by-res/<resource>/<vol-nr> <mountpoint>
 ----------------------------
 
-If you're using the `auto-promote` feature, you don't need to change the roles 
-(_Primary_/_Secondary_) manually; only stopping of the services and umounting, 
+If you're using the `auto-promote` feature, you don't need to change the roles
+(_Primary_/_Secondary_) manually; only stopping of the services and umounting,
 respectively mounting, is necessary.
 
 
@@ -634,7 +635,7 @@ respectively mounting, is necessary.
 === Upgrading DRBD
 
 Upgrading DRBD is a fairly simple process. This section will cover
-the process of upgrading from 8.4.x to 9.0.x in great detail; for within-9 
+the process of upgrading from 8.4.x to 9.0.x in great detail; for within-9
 upgrades it gets to be much easier, see the short version <<s-upgrade-within-9,below>>.
 
 [[s-upgrade-overview]]
@@ -678,14 +679,14 @@ NOTE: You will have to populate the <hash> and <arch> variables. The
 [[s-Debian-Systems]]
 ===== Debian/Ubuntu systems
 
-Edit `/etc/apt/sources.list` (or a file in `/etc/apt/sources.d/`) to reflect the 
+Edit `/etc/apt/sources.list` (or a file in `/etc/apt/sources.d/`) to reflect the
 following changes.
 
 ----------------------------
 deb http://packages.linbit.com/<hash>/ stretch drbd-9.0
 ----------------------------
 
-In case you're not using the `stretch` release, but some other, you'll need to 
+In case you're not using the `stretch` release, but some other, you'll need to
 change that line.
 
 NOTE: You will have to populate the `<hash>` variable. The
@@ -761,7 +762,7 @@ bob# apt upgrade
 ----------------------------
 
 Once the upgrade is finished will now have the latest DRBD 9.0 kernel
-module and drbd-utils installed on your secondary node, 'bob'. 
+module and drbd-utils installed on your secondary node, 'bob'.
 
 But the kernel module is not active yet.
 
@@ -774,9 +775,9 @@ By now the DRBD module should not be in use anymore, so we unload it via
 bob# rmmod drbd
 -------------
 
-If there's a message like `ERROR: Module drbd is in use`, then not all 
+If there's a message like `ERROR: Module drbd is in use`, then not all
 resources have been correctly stopped yet. +
-Retry <<s-upgrading-drbd>>, and/or run the command `drbdadm down all` to find 
+Retry <<s-upgrading-drbd>>, and/or run the command `drbdadm down all` to find
 out which resources are still active.
 
 Typical issues that might prevent unloading are these:
@@ -787,7 +788,7 @@ Typical issues that might prevent unloading are these:
   * Device mapper using DRBD, directly or indirectly (`dmsetup ls --tree`)
   * LVM with a DRBD-PV (`pvs`)
 
-Please note that this list isn't complete - these are just the most common 
+Please note that this list isn't complete - these are just the most common
 examples.
 
 
@@ -797,9 +798,9 @@ Now we can load the new DRBD module:
 bob# modprobe drbd
 -------
 
-Now you should check the contents of `/proc/drbd` and verify that the correct 
-(new) version is loaded; if the installed packages is for the wrong kernel 
-version, the `modprobe` would be successful, but you'd be left with the old 
+Now you should check the contents of `/proc/drbd` and verify that the correct
+(new) version is loaded; if the installed packages is for the wrong kernel
+version, the `modprobe` would be successful, but you'd be left with the old
 version being active again.
 
 The output of `cat /proc/drbd` should now show 9.0.x and look similar
@@ -815,7 +816,7 @@ NOTE: On the primary node, alice, 'cat /proc/drbd' will still show the
 prior version, until you upgrade it.
 
 ////////////////////////
-At this point the cluster is running two different versions of DRBD. While this 
+At this point the cluster is running two different versions of DRBD. While this
 is not recommended to be used for longer time spans, it is inevitable for the (short) upgrade period.
 
  Stop
@@ -901,18 +902,18 @@ accordingly.
 
 ==== Changing the meta-data
 
-Now you need to convert the on-disk metadata to the new version; this is really 
+Now you need to convert the on-disk metadata to the new version; this is really
 easy, it's just running one command and
 acknowledging two questions.
 
 
-If you want to change the number of nodes, you should already have increased 
-the size of the lower level device, so that there is enough space to store the 
-additional bitmaps; in that case, you'd run the command below with an 
-additional argument `--max-peers=__<N>__`. When determining the number of 
+If you want to change the number of nodes, you should already have increased
+the size of the lower level device, so that there is enough space to store the
+additional bitmaps; in that case, you'd run the command below with an
+additional argument `--max-peers=__<N>__`. When determining the number of
 (possible) peers please take setups like the <<s-drbd-client>> into account.
 
-Upgrading the DRBD metadata is as easy as running one command, and 
+Upgrading the DRBD metadata is as easy as running one command, and
 acknowledging the two questions:
 
 -----------------
@@ -940,9 +941,9 @@ New drbd meta data block successfully created.
 success
 -----------------
 
-Of course, you can pass `all` for the resource names, too; and if you feel 
-really lucky, you can avoid the questions via a commandline like this here, 
-too. (Yes, the order is important.) 
+Of course, you can pass `all` for the resource names, too; and if you feel
+really lucky, you can avoid the questions via a commandline like this here,
+too. (Yes, the order is important.)
 
 --------
 drbdadm -v --max-peers=<N>  -- --force create-md <resources>
@@ -954,7 +955,7 @@ drbdadm -v --max-peers=<N>  -- --force create-md <resources>
 
 Now, the only thing left to do is to get the DRBD devices up and running again - a simple `drbdadm up all` should do the trick.
 
-Now, depending on whether you've got a cluster manager or keep track of your 
+Now, depending on whether you've got a cluster manager or keep track of your
 resources manually, there are two different ways again.
 
 * Manually
@@ -984,12 +985,12 @@ same steps on the cluster node still running 8.4.
 [[s-upgrade-within-9]]
 ==== From DRBD 9 to DRBD 9
 
-If you are already running 9.0, it is sufficient to 
-<<s-Upgrading-the-packages,install new package versions>>, make the cluster 
-node <<s-upgrade-pausing-the-cluster,_standby_>>, 
-<<s-upgrade-reload-kernel-mod,unload/reload>> the kernel module, 
-<<s-upgrade-start-drbd,start the resources>>, and make the cluster node 
-_online_ againfootnote:[At least that's the state at the time of writing - that's how it has been in the past, and we want to keep it that easy. But who 
+If you are already running 9.0, it is sufficient to
+<<s-Upgrading-the-packages,install new package versions>>, make the cluster
+node <<s-upgrade-pausing-the-cluster,_standby_>>,
+<<s-upgrade-reload-kernel-mod,unload/reload>> the kernel module,
+<<s-upgrade-start-drbd,start the resources>>, and make the cluster node
+_online_ againfootnote:[At least that's the state at the time of writing - that's how it has been in the past, and we want to keep it that easy. But who
 knows? Who can tell? ;)].
 
 These individual steps have been detailed above, so we won't repeat them here.
@@ -1012,11 +1013,11 @@ Additionally, as both resources are always primary, any interruption in the
 network between nodes will result in a split-brain.
 ===============================
 
-WARNING: In DRBD 9.0.x Dual-Primary mode is not supported. It might work "by 
+WARNING: In DRBD 9.0.x Dual-Primary mode is not supported. It might work "by
 accident", but don't rely on it. Because of that, changes in the configuration
-are very likely -- for example, with three Primaries the setting 
+are very likely -- for example, with three Primaries the setting
 `allow-two-primaries` is incorrect already... +
-In the 9.1 series multiple Primaries will be possible and supportedfootnote:[See also the 
+In the 9.1 series multiple Primaries will be possible and supportedfootnote:[See also the
 roadmap: http://drbd.linbit.com/home/roadmap/].
 
 [[s-enable-dual-primary-permanent]]
@@ -1140,8 +1141,8 @@ accomplished. Create a file with the following contents, named
 
 This will have `cron` invoke a device verification every Sunday at 42
 minutes past midnight; so, if you come into the office on Monday morning,
-a quick look at the resource's status would show the result. If your devices 
-are very big, and the \~32 hours were not enough, then you'll notice _VerifyS_ or 
+a quick look at the resource's status would show the result. If your devices
+are very big, and the \~32 hours were not enough, then you'll notice _VerifyS_ or
 _VerifyT_ as connection state, meaning that the `verify` is still in progress.
 
 If you have enabled on-line verification for all your resources (for
@@ -1204,14 +1205,14 @@ image::images/sync-rate-example2.svg[]
 In this case, the recommended value for the `rate` option would be
 `24M`.
 
-Similarly, for a storage speed of 800MB/s and a 10Gbe network connection, you 
+Similarly, for a storage speed of 800MB/s and a 10Gbe network connection, you
 would shoot for \~240MB/s synchronization rate.
 
 [[s-configure-sync-rate-variable]]
 ==== Variable sync rate configuration
 
 When multiple DRBD resources share a
-single replication/synchronization network, synchronization with a fixed rate 
+single replication/synchronization network, synchronization with a fixed rate
 may not be an optimal approach. So, in DRBD 8.4.0 the
 variable-rate synchronization was enabled by default. In this mode, DRBD uses an automated
 control loop algorithm to determine, and adjust, the
@@ -1242,25 +1243,25 @@ resource <resource> {
 TIP: A good starting value for `c-fill-target` is _BDP * 2_, where
 _BDP_ is your bandwidth-delay-product on the replication link.
 
-For example, when using a 1GBit/s crossover connection, you'll end up with 
-about 200µs latencyfootnote:[The rule-of-thumb is using the time reported by 
+For example, when using a 1GBit/s crossover connection, you'll end up with
+about 200µs latencyfootnote:[The rule-of-thumb is using the time reported by
 `ping`.]. +
 1GBit/s means about 120MB/s; times 200*10^-6^ seconds gives 24000 Byte. Just round that value up to the next MB, and you're good to go.
 
-Another example: a 100MBit WAN connection with 200ms latency means 12MB/s times 
-0.2s, or about 2.5MB "on the wire". Here a good starting value for 
+Another example: a 100MBit WAN connection with 200ms latency means 12MB/s times
+0.2s, or about 2.5MB "on the wire". Here a good starting value for
 `c-fill-target` would be 3MB.
 
-Please see the `drbd.conf` manual page for more details on the other 
+Please see the `drbd.conf` manual page for more details on the other
 configuration items.
 
 
 [[s-configure-sync-rate-permanent]]
 ==== Permanent fixed sync rate configuration
 
-In a few, very restricted situationsfootnote:[Like benchmarking.], it might 
+In a few, very restricted situationsfootnote:[Like benchmarking.], it might
 make sense to just use some fixed synchronization rate. In this case, first
-of all you need to turn the dynamic sync rate controller off, by using 
+of all you need to turn the dynamic sync rate controller off, by using
 `c-plan-ahead 0;`.
 
 Then, the maximum bandwidth a resource uses for background
@@ -1279,26 +1280,26 @@ resource <resource>
 }
 ----------------------------
 
-Note that the rate setting is given in _bytes_, not _bits_ per second; the 
+Note that the rate setting is given in _bytes_, not _bits_ per second; the
 default unit is _Kibibyte_, so a value of `4096` would be interpreted as `4MiB`.
 
-NOTE: This just defines a rate that DRBD tries to achieve. If there is a 
-bottleneck with lower throughput (network, storage speed), the defined speed 
+NOTE: This just defines a rate that DRBD tries to achieve. If there is a
+bottleneck with lower throughput (network, storage speed), the defined speed
 (aka the "wished-for" performance ;) won't be reached.
 
 
 [[s-some_more_hints_about_synchronization]]
 ==== Some more hints about synchronization
 
-When some amount of the to-be-synchronized data isn't really in use anymore 
+When some amount of the to-be-synchronized data isn't really in use anymore
 (eg. because files got deleted while one node wasn't connected), you
 might benefit from the <<s-trim-discard>>.
 
-Furthermore, `c-min-rate` is easy to misunderstand - it doesn't define 
-a *minimum* synchronization speed, but rather a limit below which DRBD will not 
+Furthermore, `c-min-rate` is easy to misunderstand - it doesn't define
+a *minimum* synchronization speed, but rather a limit below which DRBD will not
 slow down further *on purpose*. +
-Whether you manage to *reach* that synchronization rate depends on your network 
-and storage speed, network latency (which might be highly variable for shared 
+Whether you manage to *reach* that synchronization rate depends on your network
+and storage speed, network latency (which might be highly variable for shared
 links), and application IO (which not might be able to do anything about).
 
 
@@ -1425,9 +1426,9 @@ You may reconfigure a running resource's I/O error handling strategy
 by following this process:
 
   * Edit the resource configuration in `/etc/drbd.d/__<resource>__.res`.
-  
+
   * Copy the configuration to the peer node.
-  
+
   * Issue `drbdadm adjust _<resource>_` on both nodes.
 
 
@@ -1457,8 +1458,8 @@ If you make this change to an existing resource, as always,
 synchronize your `drbd.conf` to the peer, and run `drbdadm adjust
 _<resource>_` on both nodes.
 
-WARNING: This feature is not intended for production use. Enable only if you need to 
-diagnose data corruption problems, and want to see whether the transport path 
+WARNING: This feature is not intended for production use. Enable only if you need to
+diagnose data corruption problems, and want to see whether the transport path
 (network hardware, drivers, switches) might be at fault!
 
 [[s-resizing]]
@@ -1488,7 +1489,7 @@ This triggers a synchronization of the new section. The
 synchronization is done from the primary node to the secondary node.
 
 If the space you're adding is clean, you can skip syncing the additional
-space by using the --assume-clean option. 
+space by using the --assume-clean option.
 
 ----------------------------
 # drbdadm -- --assume-clean resize <resource>
@@ -1599,8 +1600,8 @@ You may use the usual multiplier suffixes for _<new-size>_ (K, M, G
 etc.). After you have shrunk DRBD, you may also shrink the containing
 block device (if it supports shrinking).
 
-NOTE: It might be a good idea to issue `drbdadm resize _<resource>_` after 
-resizing the lower level device, so that the DRBD metadata *really* gets 
+NOTE: It might be a good idea to issue `drbdadm resize _<resource>_` after
+resizing the lower level device, so that the DRBD metadata *really* gets
 written into the expected space at the end of the volume.
 
 [[s-shrinking-offline]]
@@ -1728,7 +1729,7 @@ settings by issuing this command on both nodes:
 ----------------------------
 
 
-In case only one of the serves has a BBWCfootnote:[For example, in the DR site 
+In case only one of the serves has a BBWCfootnote:[For example, in the DR site
 you might be using different hardware, right?], you should move the setting into a host section, like this:
 
 [source,drbd]
@@ -1892,8 +1893,8 @@ resource <resource> {
 
 A three-node setup involves one DRBD device _stacked_ atop another.
 
-NOTE: Stacking is deprecated in DRBD version 
-9.x, as more nodes can be implemented on a single level. See 
+NOTE: Stacking is deprecated in DRBD version
+9.x, as more nodes can be implemented on a single level. See
 <<s-drbdconf-conns>> for details.
 
 [[s-stacking-considerations]]
@@ -2078,22 +2079,22 @@ perhaps _resize_ (eg. for a virtual machine), you should be fine.
 indexterm:[rebalance]Given the (example) policy that data needs to be available on 3 nodes,
 you need at least 3 servers for your setup.
 
-Now, as your storage demands grow, you will encounter the need for 
-additional servers. Rather than having to buy 3 more servers at the same 
+Now, as your storage demands grow, you will encounter the need for
+additional servers. Rather than having to buy 3 more servers at the same
 time, you can _rebalance_ your data across a single additional node.
 
 
 .DRBD data rebalancing
 image::images/rebalance.svg[]
 
-In the figure above you can see the _before_ and _after_ states: from 
-3 nodes with three 25TiB volumes each (for a net 75TiB), to 4 nodes, 
+In the figure above you can see the _before_ and _after_ states: from
+3 nodes with three 25TiB volumes each (for a net 75TiB), to 4 nodes,
 with net 100TiB.
 
-To redistribute the data across your cluster you have to choose a _new_ node, 
+To redistribute the data across your cluster you have to choose a _new_ node,
 and one where you want to remove this DRBD resource. +
-Please note that removing the resource from a currently _active_ node (ie. 
-where DRBD is _Primary_) will involve either migrating the service or running 
+Please note that removing the resource from a currently _active_ node (ie.
+where DRBD is _Primary_) will involve either migrating the service or running
 this resource on this node as a <<s-drbd-client,DRBD client>>; it's easier to
 choose a node in _Secondary_ role. (Of course, that might not always be possible.)
 
@@ -2101,11 +2102,11 @@ choose a node in _Secondary_ role. (Of course, that might not always be possible
 [[s-prepare_a_bitmap_slot]]
 ==== Prepare a bitmap slot
 
-You will need to have a free <<s-quick-sync-bitmap,bitmap slot>> for 
+You will need to have a free <<s-quick-sync-bitmap,bitmap slot>> for
 temporary use, on each of the nodes that have the resource that is to be moved.
 
 You can allocate one more at
-<<s-first-time-up,`drbdadm create-md` time>>, or simply put a placeholder in 
+<<s-first-time-up,`drbdadm create-md` time>>, or simply put a placeholder in
 your configuration, so that `drbdadm` sees that it should reserve one more slot:
 
 ---------
@@ -2129,7 +2130,7 @@ you will have to
 . load the changed metadata.
 
 In a future version `drbdadm` will have a shortcut for you; most
-probably you'll be able to say `drbdadm resize --peers _N_` and have the 
+probably you'll be able to say `drbdadm resize --peers _N_` and have the
 kernel rewrite the metadata for you.
 =================
 
@@ -2139,8 +2140,8 @@ kernel rewrite the metadata for you.
 
 First of all you have to
 create the underlying storage volume on the new node (using eg. `lvcreate`).
-Then the placeholder in the configuration can be filled with the correct host 
-name, address, and storage path. Now copy the resource configuration to all 
+Then the placeholder in the configuration can be filled with the correct host
+name, address, and storage path. Now copy the resource configuration to all
 relevant nodes.
 
 
@@ -2191,8 +2192,8 @@ As soon as the new host is _UpToDate_, one of the
 other nodes in the configuration can be renamed to `for-later-rebalancing`, and
 kept for another migration.
 
-NOTE: Perhaps you want to comment the section; although that has the risk that 
-doing a `drbdadm create-md` for a new node has too few bitmap slots for the 
+NOTE: Perhaps you want to comment the section; although that has the risk that
+doing a `drbdadm create-md` for a new node has too few bitmap slots for the
 next rebalancing. +
 It might be easier to use a reserved (unused) IP address and host name.
 
@@ -2208,28 +2209,28 @@ on all nodes.
 [[s-cleaning_up]]
 ==== Cleaning up
 
-On the one node that had the data up to now, but isn't used anymore for this 
+On the one node that had the data up to now, but isn't used anymore for this
 resource, you can now take the DRBD device down by starting
 
 -------------------
 # drbdadm down <resource>
 -------------------
 
-Now the lower level storage device isn't used anymore, and can either be 
-re-used for other purposes or, if it is a logical volume, its space can be 
+Now the lower level storage device isn't used anymore, and can either be
+re-used for other purposes or, if it is a logical volume, its space can be
 returned to the volume group via `lvremove`.
 
 [[s-conclusion_and_further_steps]]
 ==== Conclusion and further steps
 
-One of the resources has been migrated to the new node. The same could be done 
+One of the resources has been migrated to the new node. The same could be done
 for one or more other resources, to free space on two or three nodes in the
 existing cluster.
 
 Then new resources can be configured, as there're enough nodes with free space
 to achieve 3-way redundancy again.
 
-Still, you might want to compare the steps above with the procedure when using 
+Still, you might want to compare the steps above with the procedure when using
 DRBD Manage: <<s-dm-rebalance>>...
 
 
