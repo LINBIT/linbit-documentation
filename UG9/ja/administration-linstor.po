@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-05-13 07:26+0900\n"
+"POT-Creation-Date: 2019-06-13 11:55+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,20 +15,10 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#. type: Plain text
-msgid ""
-"LINSTOR is a powerful component in the DRBD SDS stack, but it is still an "
-"optional component. If you prefere to manage your resources manually, please "
-"check the section on manual administration: <<ch-admin-manual>>."
-msgstr ""
-"LINSTORはDRBDのSDSスタックを扱う上でとてもパワフルな構成要素です。ただ、今の"
-"ところオプション扱いです。手動でリソースを扱う場合は、<<ch-admin-manual>> を"
-"参照ください。"
-
 #. type: Title ==
 #, no-wrap
-msgid "Common administration"
-msgstr "共通の管理"
+msgid "Basic administrative tasks / Setup"
+msgstr "基本管理タスク/設定"
 
 #. type: Plain text
 msgid ""
@@ -44,15 +34,10 @@ msgstr ""
 "ナップショット、暗号化、bcacheを通してSSDのHDDバックアップデータのキャッシュ"
 "を管理します。"
 
-#. type: Plain text
-msgid ""
-"This chapter outlines typical administrative tasks encountered during day-to-"
-"day operations. It does not cover troubleshooting tasks, these are covered "
-"in detail in <<ch-troubleshooting>>."
-msgstr ""
-"この章では日々のオペレーションで起きる典型的な管理作業を説明します。トラブル"
-"対策に関しては、<<ch-troubleshooting>> を参照ください。"
-
+#.  Troubleshooting for LINSTOR guide?
+#. This chapter outlines typical administrative tasks encountered during
+#. day-to-day operations. It does not cover troubleshooting tasks, these
+#. are covered in detail in <<ch-troubleshooting>>.
 #. type: Title ===
 #, no-wrap
 msgid "Concepts and Terms"
@@ -60,16 +45,51 @@ msgstr "概念と用語"
 
 #. type: Plain text
 msgid ""
-"A LINSTOR setup has exactly one active controller and multiple satellites.  "
+"This section goes over core concepts and terms that you will need to "
+"familiarize yourself with to understand how LINSTOR works and deploys "
+"storage. The section is laid out in a \"ground up\" approach."
+msgstr ""
+"このセクションでは、LINSTORがどのように機能し、ストレージを展開するかを理解す"
+"るために必要である基本的な概念と用語について説明します。このセクションは基礎"
+"から築く方法で構成されています。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Installable Components"
+msgstr "インストール可能コンポーネント"
+
+#. type: Title =====
+#, no-wrap
+msgid "linstor-controller"
+msgstr "linstor-controller"
+
+#. type: Plain text
+msgid ""
+"A LINSTOR setup requires at least one active controller and one or more "
+"satellites."
+msgstr ""
+"LINSTOR のセットアップでは、少なくとも1つのアクティブコントローラと1つ以上の"
+"サテライトが必要です。"
+
+#.  Once the chapter on making your controller HA is done we need to link that here
+#. type: Plain text
+msgid ""
 "The _linstor-controller_ contains the database that holds all configuration "
 "information for the whole cluster. It makes all decisions that need to have "
 "a view of the whole cluster. The controller is typically deployed as a HA "
-"service using Pacemaker and DRBD as it is a crucial part of the system."
+"service using Pacemaker and DRBD as it is a crucial part of the system. "
+"Multiple controllers can be used for LINSTOR but only one can be active."
 msgstr ""
-"LINSTORのセットアップには１つのアクティブコントローラと複数のサテライトがあり"
-"ます。_linstor-controller_ はクラスタ全体のすべての構成情報を含むデーターベー"
-"スをもちます。コントローラはシステムの重要な部分であるので、通常Pacemakerと"
-"DRBDを使ってHAサービスとして構成されます。"
+"_linstor-controller_ には、クラスター全体のすべての構成情報を保持するデータ"
+"ベースが含まれています。それはクラスタ全体の情報を持ち必要なすべての決定を下"
+"します。コントローラは、PacemakerとDRBDを使用してHAサービスとして配備されるの"
+"が一般的です。これは、システムの重要な部分だからです。 LINSTORには複数のコン"
+"トローラを使用できますが、アクティブにできるのは1つだけです。"
+
+#. type: Title =====
+#, no-wrap
+msgid "linstor-satellite"
+msgstr "linstor-satellite"
 
 #. type: Plain text
 msgid ""
@@ -83,6 +103,11 @@ msgstr ""
 "から受け取ります。`lvcreate` や `drbdadm` がそこで実行され、ノードエージェン"
 "トのように振る舞います。"
 
+#. type: Title =====
+#, no-wrap
+msgid "linstor-client"
+msgstr "linstor-client"
+
 #. type: Plain text
 msgid ""
 "The _linstor-client_ is a command line utility that you use to issue "
@@ -90,6 +115,210 @@ msgid ""
 msgstr ""
 "_linstor-client_ はコマンドラインのユーティリティで、システムにコマンドを発行"
 "したり、ステータスを取得したりします。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Objects"
+msgstr "オブジェクト"
+
+#. type: Plain text
+msgid ""
+"Objects are the end result which LINSTOR presents to the end-user or "
+"application, such as; Kubernettes/OpenShift, a replicated block device "
+"(DRBD), NVMeOF target, etc."
+msgstr ""
+"オブジェクトは、Kubernettes/OpenShift、複製ブロックデバイス(DRBD)、NVMeOFター"
+"ゲットなどLINSTORがエンドユーザーまたはアプリケーションに提示する最終結果で"
+"す。"
+
+#. type: Plain text
+#, no-wrap
+msgid "Node"
+msgstr "ノード"
+
+#. type: Plain text
+msgid ""
+"Node's are a server or container that participate in a LINSTOR cluster. The "
+"_Node_ attribute defines:"
+msgstr ""
+"ノードは、LINSTORクラスタに参加するサーバーまたはコンテナです。ノード属性は、"
+"次のものを定義します。"
+
+#. type: Plain text
+msgid "Determines which LINSTOR cluster the node participates in"
+msgstr "ノードが参加しているLINSTORクラスターを決定します"
+
+#. type: Plain text
+msgid "Sets the role of the node: Controller, Satellite, Auxiliary"
+msgstr "ノードの役割を設定します：Controller、Satellite、Auxiliary"
+
+#. type: Plain text
+#, no-wrap
+msgid "*NetInterface* objects define the node's connectivity\n"
+msgstr "*NetInterface* オブジェクトはノードの接続を定義します\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "NetInterface"
+msgstr "NetInterface"
+
+#. type: Plain text
+msgid ""
+"As the name implies, this is how you define the interface/address of a "
+"node's network interface."
+msgstr ""
+"名前が示すように、これはノードのネットワークインターフェースのインターフェー"
+"ス/アドレスを定義します。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Definitions"
+msgstr "Definitions"
+
+#. type: Plain text
+msgid ""
+"Definitions define attributes of an object, they can be thought of as "
+"profile or template. Objects created will inherit the configuration defined "
+"in the definitions. A definition must be defined prior to creating the "
+"associated object.  For example; you must create a _ResourceDefinition_ "
+"prior to creating the _Resource_"
+msgstr ""
+"Definitions はオブジェクトの属性を定義します。それらはプロファイルまたはテン"
+"プレートと考えることができます。作成されるオブジェクトは、definition で定義さ"
+"れている設定を継承します。関連オブジェクトを作成する前に definition を定義す"
+"る必要があります。例えば _Resource_ を作成する前に _ResourceDefinition_ を作"
+"成する必要があります。"
+
+#. type: Labeled list
+#, no-wrap
+msgid "StoragePoolDefinition :"
+msgstr "StoragePoolDefinition :"
+
+#. type: Plain text
+msgid "Defines the name of a storage pool"
+msgstr "ストレージプールの名前を定義します"
+
+#. type: Labeled list
+#, no-wrap
+msgid "ResourceDefinition :"
+msgstr "ResourceDefinition :"
+
+#. type: Plain text
+msgid "Resource definitions define the following attributes of a resource:"
+msgstr "ResourceDefinition は、リソースの以下の属性を定義します。"
+
+#. type: Plain text
+msgid "The name of a DRBD resource"
+msgstr "DRBDリソースの名前"
+
+#. type: Plain text
+msgid "The TCP port for DRBD to use for the resource's connection"
+msgstr "リソースの接続に使用するDRBDのTCPポート"
+
+#. type: Labeled list
+#, no-wrap
+msgid "VolumeDefinition :"
+msgstr "VolumeDefinition :"
+
+#. type: Plain text
+msgid "Volume definitions define the following:"
+msgstr "VolumeDefinition は以下を定義します。"
+
+#. type: Plain text
+msgid "A volume of a DRBD resource"
+msgstr "DRBDリソースのボリューム"
+
+#. type: Plain text
+msgid "The size of the volume"
+msgstr "ボリュームのサイズ"
+
+#. type: Plain text
+msgid "The volume number of the DRBD resource's volume"
+msgstr "DRBDリソースのボリュームのボリューム番号"
+
+#. type: Plain text
+msgid "The meta data properties of the volume"
+msgstr "ボリュームのメタデータプロパティ"
+
+#. type: Plain text
+msgid ""
+"The minor number to use for the DRBD device associated with the DRBD volume"
+msgstr "DRBDボリュームに関連付けられているDRBDデバイスで使用するマイナー番号"
+
+#. type: Title =====
+#, no-wrap
+msgid "StoragePool"
+msgstr "StoragePool"
+
+#. type: Plain text
+msgid ""
+"The _StoragePool_ identifies storage in the context of LINSTOR. It defines:"
+msgstr ""
+"_StoragePool_ は、LINSTORのコンテキストでストレージを識別し、以下を定義しま"
+"す："
+
+#. type: Plain text
+msgid "The configuration of a storage pool on a specific node"
+msgstr "特定のノード上のストレージプールの構成"
+
+#. type: Plain text
+msgid ""
+"The storage back-end driver to use for the storage pool on the cluster node "
+"(LVM, ZFS, etc)"
+msgstr ""
+"クラスタノード上のストレージプールで使用するストレージバックエンドドライバ"
+"(LVM, ZFSなど)"
+
+#. type: Plain text
+msgid "The parameters and configuration to pass to the storage backed driver"
+msgstr "ストレージバックアップドライバに渡すパラメータとその設定"
+
+#. type: Plain text
+#, no-wrap
+msgid "Resource"
+msgstr "リソース"
+
+#. type: Plain text
+msgid ""
+"LINSTOR has now has expanded its capabilities to manage a broader set of "
+"storage technologies outside of just DRBD. A _Resource_:"
+msgstr ""
+"LINSTORは、DRBDだけでなく、より幅広いストレージテクノロジを管理するように機能"
+"拡張されました。 リソースは "
+
+#. type: Plain text
+msgid ""
+"Represents the placement of a DRBD resource, as defined within the "
+"_ResourceDefinition_"
+msgstr "_ResourceDefinition_ 内で定義される DRBDリソースの配備を表します。"
+
+#. type: Plain text
+msgid "Places a resource on a node in the cluster"
+msgstr "クラスタ内のノードにリソースを配備します"
+
+#. type: Plain text
+msgid "Defines the placement of a _ResourceDefinition_ on a node"
+msgstr "ノード上の _ResourceDefinition_ の配備を定義します"
+
+#. type: Title =====
+#, no-wrap
+msgid "Volume"
+msgstr "ボリューム"
+
+#. type: Plain text
+msgid ""
+"Volumes are a subset of a _Resource_. A _Resource_ could have multiple "
+"volumes, for example you may wish to have your database stored on slower "
+"storage than your logs in your MySQL cluster.  By keeping the _volumes_ "
+"under a single _resource_ you are essentially creating a consistency group.  "
+"The _Volume_ attribute can define also define attributes on a more granular "
+"level."
+msgstr ""
+"ボリュームはリソースのサブセットです。リソースには複数のボリュームを含めるこ"
+"とができます。たとえば、データベースをMySQLクラスタ内のログよりも低速のスト"
+"レージに格納したい場合があります。ボリュームを単一のリソースの下に置くこと"
+"で、本質的にコンシステンシグループを作成します。ボリューム属性は、より詳細な"
+"レベルで属性を定義することもできます。"
 
 #. type: Title ===
 #, no-wrap
@@ -128,23 +357,199 @@ msgstr "LINSTORはRPMとDEB形式でパッケージングされています。"
 
 #. type: Plain text
 msgid ""
-"_linstor-client_ contains the command line client program. It only depends "
-"on python which is usually already installed."
+"_linstor-client_ contains the command line client program. It depends on "
+"python which is usually already installed. In RHEL 8 systems you will need "
+"to symlink python"
 msgstr ""
 "_linstor-client_ にはコマンドラインのクライアントプログラムが含まれていて、通"
-"常すでにインストールされているpythonのみに依存しています。"
+"常すでにインストールされているpythonのみに依存しています。RHEL8 システムでは "
+"python をシンボリックリンクする必要があります。"
 
 #. type: Plain text
 msgid ""
-"_linstor-controller_ contains the _controller_ and _linstor-satellite_ the "
-"_satellite_.  These packages also provide systemd unit files for the "
-"services. It depends on a Java runtime environment (JRE) version 1.8 "
-"(headless) or higher. This might pull in about 100MB of dependencies."
+"_linstor-controller_ and _linstor-satellite_ Both contain systemd unit files "
+"for the services. They depend on Java runtime environment (JRE) version 1.8 "
+"(headless) or higher."
 msgstr ""
-"_linstor-controller_ には _controller_ が、_linstor-satellite_ には "
-"_satellite_ が含まれています。これらのサービスのためのsystemd関連ファイルも含"
-"みます。Java実行環境(JRE)のバージョン1.8以上に依存していて、依存関係で約100MB"
-"必要になります。"
+"_linstor-controller_ と _linstor-satellite_ の両方に、サービス用のsystemdユ"
+"ニットファイルが含まれています。それらは Java Runtime Environment (JRE) "
+"version 1.8 (headless) 以上に依存します。"
+
+#. type: Plain text
+msgid ""
+"For further detail about these packages see the <<Installable Components,"
+"Installable Components>> section above."
+msgstr ""
+"これらのパッケージについての詳細は <<Installable Components,Installable "
+"Components>> を参照ください。"
+
+#. type: Plain text
+msgid ""
+"If you have a support subscription to LINBIT, you will have access to our "
+"certified binaries via our repositories."
+msgstr ""
+"LINBITのサポートサブスクリプションをお持ちの場合は、私たちのリポジトリを通し"
+"て認定バイナリにアクセスしてください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Installation"
+msgstr "インストール"
+
+#. type: Plain text
+msgid ""
+"If you want to use LINSTOR in containers skip this Topic and use the "
+"\"Containers\" section below for the installation."
+msgstr ""
+"コンテナでLINSTORを使用する場合は、このトピックを飛ばして、下記の「コンテナ」"
+"セクションを参照ください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Ubuntu Linux"
+msgstr "Ubuntu Linux"
+
+#. type: Plain text
+msgid ""
+"If you want to have the option of creating replicated storage using DRBD, "
+"you will need to install _drbd-dkms_ and _drbd-utils_. These packages will "
+"need to be installed on all nodes. You will also need to choose a volume "
+"manager, either ZFS or LVM, in this instance we're using LVM."
+msgstr ""
+"DRBDを使用して複製ストレージを作成したい場合は、 _drbd-dkms_ と _drbd-utils_ "
+"をインストールする必要があります。これらのパッケージはすべてのノードにインス"
+"トールする必要があります。また、ZFSかLVMのどちらかのボリュームマネージャを選"
+"択する必要があります。この例では、LVMを使用しています。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# apt install -y drbd-dkms drbd-utils lvm2\n"
+msgstr "# apt install -y drbd-dkms drbd-utils lvm2\n"
+
+#. type: Plain text
+msgid ""
+"Depending on whether your node is a LINSTOR controller, satellite, or both "
+"(Combined) will determine what packages are required on that node. For "
+"combined type nodes, we'll need both the controller and satellite LINSTOR "
+"package."
+msgstr ""
+"ノードがLINSTORコントローラ、サテライト、またはその両方(Combined)のどれである"
+"かに応じて、そのノードに必要なパッケージが決まります。Combinedノードの場合、"
+"コントローラとサテライトの両方のLINSTORパッケージが必要になります。"
+
+#. type: Plain text
+msgid "Combined node:"
+msgstr "Combinedノード"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# apt install linstor-controller linstor-satellite  linstor-client\n"
+msgstr "# apt install linstor-controller linstor-satellite  linstor-client\n"
+
+#. type: Plain text
+msgid ""
+"That will make our remaining nodes our Satellites, so we'll need to install "
+"the following packages on them:"
+msgstr ""
+"残りのノードをサテライトにする場合、以下のパッケージをインストールします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# apt install linstor-satellite  linstor-client\n"
+msgstr "# apt install linstor-satellite  linstor-client\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "SUSE Linux Enterprise Server"
+msgstr "SUSE Linux Enterprise Server"
+
+#. type: Plain text
+msgid "SLES High Availability Extension (HAE) includes DRBD."
+msgstr "SLES High Availability Extension (HAE) にDRBDが含まれています。"
+
+#. type: Plain text
+msgid ""
+"On SLES, DRBD is normally installed via the software installation component "
+"of YaST2. It comes bundled with the High Availabilty package selection."
+msgstr ""
+"SLESでは、DRBDは通常YaST2のソフトウェアインストールコンポーネントを介してイン"
+"ストールされます。 High Availabiltyパッケージにバンドルされています。"
+
+#. type: Plain text
+msgid ""
+"As we download DRBD's newest module we can check if the LVM-tools are up to "
+"date as well. User who prefer a command line install may simply issue the "
+"following command to get the newest DRBD and LVM version:"
+msgstr ""
+"DRBDの最新モジュールをダウンロードすると、LVMツールも最新のものであるかどうか"
+"を確認できます。コマンドラインでインストールする場合、次のコマンドで最新の"
+"DRBDおよびLVMバージョンを入手できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# zypper install drbd lvm2\n"
+msgstr "# zypper install drbd lvm2\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# zypper install linstor-controller linstor-satellite  linstor-client\n"
+msgstr "# zypper install linstor-controller linstor-satellite  linstor-client\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# zypper install linstor-satellite  linstor-client\n"
+msgstr "# zypper install linstor-satellite  linstor-client\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "CentOS"
+msgstr "CentOS"
+
+#. type: Plain text
+msgid ""
+"CentOS has had DRBD 8 since release 5. For DRBD 9 you'll need to look at "
+"EPEL and similar sources.  Alternatively, if you have an active support "
+"contract with LINBIT you can utilize our RHEL 8 repositories.  DRBD can be "
+"installed using `yum`. We can also check for the newest version of the LVM-"
+"tools as well."
+msgstr ""
+"CentOS はリリース5以降、DRBD 8を含んでいます。DRBD 9に関しては、EPELと同様の"
+"ソースを調べる必要があります。あるいは、LINBITとサポート契約をお持ちの場合"
+"は、RHEL 8リポジトリを利用できます。また、最新バージョンのLVMツールも確認でき"
+"ます。"
+
+#. type: Plain text
+msgid ""
+"LINSTOR *requires* DRBD 9 if you wish to have replicated storage. This "
+"requires an external repository to be configured, either LINBIT's or a 3rd "
+"parties."
+msgstr ""
+"LINSTOR で複製ストレージを使用する場合は、 *DRBD 9* が必要です。これには、"
+"LINBITまたはサードパーティのいずれかの外部リポジトリを設定する必要がありま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# yum install drbd kmod-drbd lvm2\n"
+msgstr "# yum install drbd kmod-drbd lvm2\n"
+
+#. type: Plain text
+msgid ""
+"On RHEL 8 systems you will need to install python2 for the linstor-client to "
+"work."
+msgstr ""
+"RHEL 8システムでは、linstor-clientが機能するためにpython2をインストールする必"
+"要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# yum install linstor-controller linstor-satellite  linstor-client\n"
+msgstr "# yum install linstor-controller linstor-satellite  linstor-client\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# yum install linstor-satellite  linstor-client\n"
+msgstr "# yum install linstor-satellite  linstor-client\n"
 
 #. type: Title ===
 #, no-wrap
@@ -169,8 +574,8 @@ msgstr ""
 
 #. type: delimited block -
 #, no-wrap
-msgid "$ docker login drbd.io\n"
-msgstr "$ docker login drbd.io\n"
+msgid "# docker login drbd.io\n"
+msgstr "# docker login drbd.io\n"
 
 #. type: Plain text
 msgid "The containers available in this repo are:"
@@ -220,24 +625,24 @@ msgstr ""
 
 #. type: delimited block -
 #, no-wrap
-msgid "$ docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7\n"
-msgstr "$ docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7\n"
+msgid "# docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7\n"
+msgstr "# docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7\n"
 
 #. type: Plain text
 msgid ""
 "For now (i.e., pre DRBD 9 version \"9.0.17\"), you must use the "
 "containerized DRBD kernel module, as opposed to loading a kernel module onto "
 "the host system. If you intend to use the containers you should not install "
-"the DRBD kernel module on your host systems. After version \"9.0.17\" is "
-"released, you can install the kernel module as usual on the host system, but "
+"the DRBD kernel module on your host systems. For DRBD version 9.0.17 or "
+"greater, you can install the kernel module as usual on the host system, but "
 "you need to make sure to load the module with the `usermode_helper=disabled` "
 "parameter (e.g., `modprobe drbd usermode_helper=disabled`)."
 msgstr ""
 "今のところ（DRBD9 バージョン 9.0.17 より前では）、ホストシステムにカーネルモ"
 "ジュールをロードするのではなく、コンテナ化された DRBD カーネルモジュールを使"
 "用する必要があります。コンテナを使用する場合は、DRBD カーネルモジュールをホス"
-"トシステムにインストールしないでください。バージョン 9.0.17 がリリースされた"
-"後は、ホストシステムにいつも通りカーネルモジュールをインストールできますが、 "
+"トシステムにインストールしないでください。バージョン 9.0.17 リリース以降はホ"
+"ストシステムにいつも通りカーネルモジュールをインストールできますが、 "
 "`usermode_helper = disabled` パラメータ（例えば `modprobe drbd "
 "usermode_helper=disabled ）を使ってモジュールをロードする必要があります。"
 
@@ -248,8 +653,8 @@ msgstr ""
 
 #. type: delimited block -
 #, no-wrap
-msgid "$ docker run -d --name=linstor-satellite --net=host --privileged drbd.io/linstor-satellite\n"
-msgstr "$ docker run -d --name=linstor-satellite --net=host --privileged drbd.io/linstor-satellite\n"
+msgid "# docker run -d --name=linstor-satellite --net=host --privileged drbd.io/linstor-satellite\n"
+msgstr "# docker run -d --name=linstor-satellite --net=host --privileged drbd.io/linstor-satellite\n"
 
 #. type: Plain text
 msgid ""
@@ -269,8 +674,8 @@ msgstr ""
 
 #. type: delimited block -
 #, no-wrap
-msgid "$ docker run -d --name=linstor-controller -p 3376:3376 -p 3377:3377 drbd.io/linstor-controller\n"
-msgstr "$ docker run -d --name=linstor-controller -p 3376:3376 -p 3377:3377 drbd.io/linstor-controller\n"
+msgid "# docker run -d --name=linstor-controller -p 3376:3376 -p 3377:3377 drbd.io/linstor-controller\n"
+msgstr "# docker run -d --name=linstor-controller -p 3376:3376 -p 3377:3377 drbd.io/linstor-controller\n"
 
 #. type: Plain text
 msgid ""
@@ -284,8 +689,8 @@ msgstr ""
 
 #. type: delimited block -
 #, no-wrap
-msgid "$ docker run -it --rm -e LS_CONTROLLERS=<controller-host-IP-address> drbd.io/linstor-client node list\n"
-msgstr "$ docker run -it --rm -e LS_CONTROLLERS=<controller-host-IP-address> drbd.io/linstor-client node list\n"
+msgid "# docker run -it --rm -e LS_CONTROLLERS=<controller-host-IP-address> drbd.io/linstor-client node list\n"
+msgstr "# docker run -it --rm -e LS_CONTROLLERS=<controller-host-IP-address> drbd.io/linstor-client node list\n"
 
 #. type: Plain text
 msgid ""
@@ -302,11 +707,11 @@ msgstr "デーモン化されたコンテナとイメージを停止して削除
 #. type: delimited block -
 #, no-wrap
 msgid ""
-"$ docker stop linstor-controller\n"
-"$ docker rm linstor-controller\n"
+"# docker stop linstor-controller\n"
+"# docker rm linstor-controller\n"
 msgstr ""
-"$ docker stop linstor-controller\n"
-"$ docker rm linstor-controller\n"
+"# docker stop linstor-controller\n"
+"# docker rm linstor-controller\n"
 
 #. type: Title ===
 #, no-wrap
@@ -339,8 +744,30 @@ msgstr ""
 "されている。"
 
 #. type: Plain text
-msgid "Start the linstor-controller service:"
-msgstr "linstor-controllerサービスを起動します。"
+msgid "The `linstor-client` is installed on the `linstor-controller` node"
+msgstr ""
+"`linstor-client` は `linstor-controller` ノードにインストールされてている。"
+
+#. type: Plain text
+msgid ""
+"Start and enable the linstor-controller service on the host where it has "
+"been installed:"
+msgstr ""
+"コントローラがインストールされているホストで linstor-controller サービスを起"
+"動して有効にします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# systemctl enable --now linstor-controller\n"
+msgstr "# systemctl enable --now linstor-controller\n"
+
+#. type: Plain text
+msgid ""
+"If you are sure the linstor-controller service gets automatically enabled on "
+"installation you can use the following command as well:"
+msgstr ""
+"linstor-controllerサービスがインストール時に自動的に有効になる場合は、次のコ"
+"マンドも使用できます。"
 
 #. type: delimited block -
 #, no-wrap
@@ -364,19 +791,12 @@ msgstr "# systemctl start linstor-controller\n"
 #. files, the ones from DRBDManage and the ones from LINSTOR.
 #. Obviously, you need the linstor-controller service started on one node and the linstor-satellite service on all
 #. nodes.
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# drbdmanage shutdown -qc # on all nodes\n"
-"# mv /etc/drbd.d/drbdctrl.res{,.dis} # on all nodes\n"
-"# mv /etc/drbd.d/drbdmanage-resources.res{,.dis} # on all nodes\n"
-"# bash dmmigrate.sh\n"
-msgstr ""
-"# drbdmanage shutdown -qc # すべてのノードで\n"
-"# mv /etc/drbd.d/drbdctrl.res{,.dis} # すべてのノードで\n"
-"# mv /etc/drbd.d/drbdmanage-resources.res{,.dis} # すべてのノードで\n"
-"# bash dmmigrate.sh\n"
-
+#. ----------------------------
+#. # drbdmanage shutdown -qc # on all nodes
+#. # mv /etc/drbd.d/drbdctrl.res{,.dis} # on all nodes
+#. # mv /etc/drbd.d/drbdmanage-resources.res{,.dis} # on all nodes
+#. # bash dmmigrate.sh
+#. ----------------------------
 #. type: Title ===
 #, no-wrap
 msgid "Using the LINSTOR client"
@@ -386,11 +806,24 @@ msgstr "LINSTORクライアントの使用"
 msgid ""
 "Whenever you run the LINSTOR command line client, it needs to know where "
 "your linstor-controller runs. If you do not specify it, it will try to reach "
-"a locally running linstor-controller listening on IP `127.0.0.1` port `3376`."
+"a locally running linstor-controller listening on IP `127.0.0.1` port "
+"`3376`. Therefore we will use the `linstor-client` on the same host as the "
+"`linstor-controller`."
 msgstr ""
 "LINSTORコマンドラインクライアントを実行するときは、常にlinstor-controllerがど"
 "こで実行されているか知る必要があります。何も指定してないときは、IP "
-"`127.0.0.1` port `3376` のローカルのlinstor-controllerを探しにいきます。"
+"`127.0.0.1` port `3376` のローカルのlinstor-controllerを探しにいきます。その"
+"ため `linstor-controller` と同じホスト上で `linstor-client` を使います。"
+
+#. type: Plain text
+msgid ""
+"The `linstor-satellite` requires ports 3366 and 3367. The `linstor-"
+"controller` requires ports 3376 and 3377. Make sure you have these ports "
+"allowed on your firewall."
+msgstr ""
+"`linstor-satellite` はポート3366と3367を必要とします。 `linstor-controller` "
+"はポート3376と3377を必要とします。ファイアウォールでこれらのポートが許可され"
+"ていることを確認してください。"
 
 #. type: delimited block -
 #, no-wrap
@@ -405,7 +838,7 @@ msgstr "これは空のノードリストをエラーメッセージなしで表
 msgid ""
 "You can use the `linstor` command on any other machine, but then you need to "
 "tell the client how to find the linstor-controller. As shown, this can be "
-"specified as a command line option, an environment variable or in a global "
+"specified as a command line option, an environment variable, or in a global "
 "file:"
 msgstr ""
 "`linstor` コマンドはどのマシンでも実行できます。ただし、クライアントにどのよ"
@@ -447,6 +880,15 @@ msgstr ""
 "複数のlinstorコントローラが設定されている場合は、それらをカンマ区切りで指定し"
 "ます。linstor-clientはそれらをリストされた順番で試します。"
 
+#. type: Plain text
+msgid ""
+"The linstor-client commands can also be used in a much faster and convenient "
+"way by only writing the starting letters of the parameters e.g.: `linstor "
+"node list` -> `linstor n l`"
+msgstr ""
+"linstor-clientコマンドは、パラメータの開始文字を書くだけで使える便利な方法が"
+"あります。例えば: `linstor node list` -> `linstor n l`"
+
 #. type: Title ===
 #, no-wrap
 msgid "Adding nodes to your cluster"
@@ -473,15 +915,25 @@ msgstr "# linstor node create bravo 10.43.70.3\n"
 #. type: Plain text
 msgid ""
 "When you use `linstor node list` you will see that the new node is marked as "
-"offline. Now start the linstor-satellite on that node with:"
+"offline. Now start and enable the linstor-satellite on that node so that the "
+"service comes up on reboot as well:"
 msgstr ""
 "`linstor node list` を実行したとき、新しいノードはofflineとマークされていま"
-"す。ここで、以下のコマンドでlinstor-satelliteを起動します。"
+"す。ここで、以下のコマンドでlinstor-satelliteを起動し、有効にするとこで、再起"
+"動時も起動するようになります。"
 
 #. type: delimited block -
 #, no-wrap
-msgid "# systemctl start linstor-satellite\n"
-msgstr "# systemctl start linstor-satellite\n"
+msgid "# systemctl enable --now  linstor-satellite\n"
+msgstr "# systemctl enable --now  linstor-satellite\n"
+
+#. type: Plain text
+msgid ""
+"You can also use `systemctl start linstor-satellite` if you are sure that "
+"the service is already enabled as default and comes up on reboot."
+msgstr ""
+"サービスがすでにデフォルトで有効になっていて再起動時に起動する場合は、 "
+"`systemctl start linstor-satellite` を使うこともできます。"
 
 #. type: Plain text
 msgid ""
@@ -508,15 +960,15 @@ msgstr "ストレージプール"
 
 #. type: Plain text
 msgid ""
-"_Storage pools_ identify storage in the context of LINSTOR.  To group "
-"storage pools from multiple nodes, simply use the same name on each node.  "
-"For example, one valid approach is to give all SSDs one name and all HDDs "
-"another."
+"<<StoragePool,StoragePools>> identify storage in the context of LINSTOR.  To "
+"group storage pools from multiple nodes, simply use the same name on each "
+"node.  For example, one valid approach is to give all SSDs one name and all "
+"HDDs another."
 msgstr ""
-"ストレージプールはLINSTORでストレージを識別します。複数のノードからのストレー"
-"ジプールをグループ化するために単純に各ノードで同じ名前を使います。例えば１つ"
-"の有効な方法としてすべてのSSDに１つの名前をつけ、すべてのHDDに別の名前をつけ"
-"ます。"
+"<<StoragePool,StoragePools>> はLINSTORでストレージを識別します。複数のノード"
+"からのストレージプールをグループ化するために単純に各ノードで同じ名前を使いま"
+"す。例えば１つの有効な方法としてすべてのSSDに１つの名前をつけ、すべてのHDDに"
+"別の名前をつけます。"
 
 #. type: Plain text
 msgid ""
@@ -560,6 +1012,24 @@ msgstr ""
 "はストレージプール定義を暗黙的に作成します。 `linstor storage-pool-"
 "definition list` を使って確認できます。明示的にストレージプール定義を作成する"
 "ことも可能ですが、必須ではありません。"
+
+#. type: Plain text
+msgid "To list your storage-pools you can use:"
+msgstr "ストレージプールを表示するには、次のようにします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor storage-pool list\n"
+msgstr "# linstor storage-pool list\n"
+
+#. type: Plain text
+msgid "or using the short version"
+msgstr "またはショートバージョンを使います。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor sp l\n"
+msgstr "# linstor sp l\n"
 
 #. type: Title ====
 #, no-wrap
@@ -647,6 +1117,39 @@ msgstr "# linstor volume-definition create backups 500G\n"
 
 #. type: Plain text
 msgid ""
+"If you want to change the size of the volume-definition you can simply do "
+"that by:"
+msgstr ""
+"volume-definition のサイズを変更したい場合は、次のようにして簡単に行うことが"
+"できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor volume-definition set-size backups 0 100G\n"
+msgstr "# linstor volume-definition set-size backups 0 100G\n"
+
+#. type: Plain text
+msgid ""
+"The parameter `0` is the number of the volume in the resource `backups`. You "
+"have to provide this parameter , because resources can have multiple volumes "
+"and they are identified by a so called volume-number. This number can be "
+"found by listing the volume-definitions."
+msgstr ""
+"パラメータ `0` は、リソース `backups` 内のボリュームの番号である。リソースは"
+"複数のボリュームを持つことができ、それらはボリューム番号で識別されるため、こ"
+"のパラメーターを指定する必要があります。この番号は、volume-definition をリス"
+"トすることによって見つけることができます。"
+
+#. type: Plain text
+msgid ""
+"The size of a volume-definition can only be decreased if it has no resource. "
+"Despite of that the size can be increased even with an deployed resource."
+msgstr ""
+"volume-definition のサイズは、リソースがない場合にのみ減らすことができます。"
+"増やす場合はデプロイされたリソースに対しても可能です。"
+
+#. type: Plain text
+msgid ""
 "So far we have only created objects in LINSTOR's database, not a single LV "
 "was created on the storage nodes. Now you have the choice of delegating the "
 "task of placement to LINSTOR or doing it yourself."
@@ -726,7 +1229,30 @@ msgid ""
 msgstr ""
 "残ったストレージプールから、LINSTORが最も空き領域があるものを選択します。"
 
-#. type: Title ====
+#. type: Plain text
+msgid ""
+"If everything went right the DRBD-resource has now been created by LINSTOR.  "
+"This can be checked by looking for the DRBD block device with the `lsblk` "
+"command which should look like `drbd0000` or similar."
+msgstr ""
+"すべてがうまくいくと、DRBDリソースがLINSTORによって作成されます。 `lsblk` コ"
+"マンドでDRBDブロックデバイスを探すことで確認でき、 `drbd0000` のように見える"
+"はずです。"
+
+#. type: Plain text
+msgid ""
+"Now we should be able to mount the block device of our resource and start "
+"using LINSTOR."
+msgstr ""
+"これでリソースのブロックデバイスをマウントしてLINSTORを使い始めることができる"
+"はずです。"
+
+#. type: Title ==
+#, no-wrap
+msgid "Further LINSTOR tasks"
+msgstr "LINSTOR 応用タスク"
+
+#. type: Title ===
 #, no-wrap
 msgid "DRBD clients"
 msgstr "DRBDクライアント"
@@ -734,17 +1260,72 @@ msgstr "DRBDクライアント"
 #. type: Plain text
 msgid ""
 "By using the `--diskless` option instead of `--storage-pool` you can have a "
-"permanently diskless DRBD device on a node."
+"permanently diskless DRBD device on a node. This means that the resource "
+"will appear as Blockdevice and can be mounted to the filesystem without an "
+"existing storage-device. The data of the resource is accessed over the "
+"network on another nodes with the same resource."
 msgstr ""
-"`--storage-pool` オプションに代わって `--diskless` オプションを使うことでノー"
-"ドに永続的なディスクレスDRBDデバイスを作成できます。"
+"`--storage-pool` の代わりに `--diskless` オプションを使うことで、ノード上に永"
+"続的なディスクレスのDRBDデバイスを持つことができます。これは、リソースがブ"
+"ロックデバイスとして表示され、既存のストレージデバイスなしでファイルシステム"
+"としてマウントできることを意味します。リソースのデータは、同じリソースを持つ"
+"別のノード上にネットワークを介してアクセスされます。"
 
 #. type: delimited block -
 #, no-wrap
 msgid "# linstor resource create delta backups --diskless\n"
 msgstr "# linstor resource create delta backups --diskless\n"
 
-#. type: Title ====
+#. type: Title ===
+#, no-wrap
+msgid "LINSTOR - DRBD consistency group/multiple volumes"
+msgstr "LINSTOR - DRBDコンシステンシグループ/マルチボリューム"
+
+#. type: Plain text
+msgid ""
+"The so called consistency group is a feature from DRBD. It is mentioned in "
+"this user-guide, due to the fact that one of LINSTOR's main functions is to "
+"manage storage-clusters with DRBD. Multiple volumes in one resource are a "
+"consistency group."
+msgstr ""
+"コンシステンシグループはDRBDの機能の1つです。LINSTORの主な機能の1つがDRBDを使"
+"用してストレージクラスタを管理することです。1つのリソース内の複数のボリューム"
+"がコンシステンシグループになります。"
+
+#. type: Plain text
+msgid ""
+"This means that changes on different volumes from one resource are getting "
+"replicated in the same chronological order on the other Satellites."
+msgstr ""
+"これは、1つのリソースで異なるボリュームに対する変更が他のサテライトでも同じ順"
+"番で複製されることを意味します。"
+
+#. type: Plain text
+msgid ""
+"Therefore you don't have to worry about the timing if you have "
+"interdependent data on different volumes in a resource."
+msgstr ""
+"したがって、リソース内の異なるボリュームに相互依存データがある場合は、タイミ"
+"ングを気にする必要はありません。"
+
+#. type: Plain text
+msgid ""
+"To deploy more than one volume in a LINSTOR-resource you have to create two "
+"volume-definitions with the same name."
+msgstr ""
+"LINSTORリソースに複数のボリュームを配備するには、同じ名前の volume-"
+"definitions を2つ作成する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor volume-definition create backups 500G\n"
+"# linstor volume-definition create backups 100G\n"
+msgstr ""
+"# linstor volume-definition create backups 500G\n"
+"# linstor volume-definition create backups 100G\n"
+
+#. type: Title ===
 #, no-wrap
 msgid "Volumes of one resource to different Storage-Pools"
 msgstr "1つのリソースから異なるストレージプールへのボリューム"
@@ -805,21 +1386,13 @@ msgid "Volume definition"
 msgstr "ボリューム定義"
 
 #. type: Plain text
-msgid "Resource"
-msgstr "リソース"
-
-#. type: Plain text
 msgid "Resource definition"
 msgstr "リソース定義"
 
 #. type: Plain text
-msgid "Node"
-msgstr "ノード"
-
-#. type: Plain text
 msgid ""
 "If none of those objects contain a `StorPoolName` property, the controller "
-"falls back to a hardcoded 'DfltStorPool' string as a storage pool."
+"falls back to a hard-coded 'DfltStorPool' string as a storage pool."
 msgstr ""
 "どのオブジェクトも `StorPoolName` プロパティを含んでいない場合、コントローラ"
 "はストレージプールとして 'DfltStorPool' という文字列にフォールバックします。"
@@ -833,6 +1406,312 @@ msgstr ""
 "これはまた、ストレージプール名を忘れてしまって、LINSTORが 'DfltStorPool' とい"
 "うストレージプールを見つけられなかった場合は、エラーが表示されるということを"
 "意味します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "LINSTOR without DRBD"
+msgstr "DRBDを使わないLINSTOR"
+
+#. type: Plain text
+msgid ""
+"LINSTOR can be used without DRBD as well. Without DRBD, LINSTOR is able to "
+"provision volumes from LVM and ZFS backed storage pools, and create those "
+"volumes on individual nodes in your LINSTOR cluster."
+msgstr ""
+"LINSTORはDRBDを使わずとも使用できます。 DRBDがなくても、LINSTORはLVMおよび"
+"ZFS 下位ストレージプールからボリュームをプロビジョニングし、LINSTORクラスタ内"
+"の個々のノードにそれらのボリュームを作成できます。"
+
+#. type: Plain text
+msgid ""
+"Currently LINSTOR supports the creation of LVM and ZFS volumes with the "
+"option of layering some combinations of LUKS, DRBD, and/or NVMe-oF/NVMe-TCP "
+"on top of those volumes."
+msgstr ""
+"現在LINSTORはLVMとZFSボリュームの作成をサポートしており、LUKS、DRBD、または "
+"NVMe-oF/NVMe-TCP の組み合わせをそれらのボリュームの上に重ねることもできます。"
+
+#. type: Plain text
+msgid ""
+"For example, assume we have a Thin LVM backed storage pool defined in our "
+"LINSTOR cluster named, `thin-lvm`:"
+msgstr ""
+"たとえば、Thin LVM 下位ストレージプールがクラスタ内で `thin-lvm` という名前で"
+"定義されているとします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor --no-utf8 storage-pool list\n"
+"+--------------------------------------------------------------+\n"
+"| StoragePool | Node      | Driver   | PoolName          | ... |\n"
+"|--------------------------------------------------------------|\n"
+"| thin-lvm    | linstor-a | LVM_THIN | drbdpool/thinpool | ... |\n"
+"| thin-lvm    | linstor-b | LVM_THIN | drbdpool/thinpool | ... |\n"
+"| thin-lvm    | linstor-c | LVM_THIN | drbdpool/thinpool | ... |\n"
+"| thin-lvm    | linstor-d | LVM_THIN | drbdpool/thinpool | ... |\n"
+"+--------------------------------------------------------------+\n"
+msgstr ""
+"# linstor --no-utf8 storage-pool list\n"
+"+--------------------------------------------------------------+\n"
+"| StoragePool | Node      | Driver   | PoolName          | ... |\n"
+"|--------------------------------------------------------------|\n"
+"| thin-lvm    | linstor-a | LVM_THIN | drbdpool/thinpool | ... |\n"
+"| thin-lvm    | linstor-b | LVM_THIN | drbdpool/thinpool | ... |\n"
+"| thin-lvm    | linstor-c | LVM_THIN | drbdpool/thinpool | ... |\n"
+"| thin-lvm    | linstor-d | LVM_THIN | drbdpool/thinpool | ... |\n"
+"+--------------------------------------------------------------+\n"
+
+#. type: Plain text
+msgid ""
+"We could use LINSTOR to create a Thin LVM on `linstor-d` that's 100GiB in "
+"size using the following commands:"
+msgstr ""
+"以下のコマンドで LINSTOR を使用してサイズが100Gバイトの Thin LVM を `linstor-"
+"d` 上に作成できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource-definition create rsc-1\n"
+"# linstor volume-definition create rsc-1 100GiB\n"
+"# linstor resource create --layer-list storage \\\n"
+"          --storage-pool thin-lvm linstor-d rsc-1\n"
+msgstr ""
+"# linstor resource-definition create rsc-1\n"
+"# linstor volume-definition create rsc-1 100GiB\n"
+"# linstor resource create --layer-list storage \\\n"
+"          --storage-pool thin-lvm linstor-d rsc-1\n"
+
+#. type: Plain text
+msgid ""
+"You should then see you have a new Thin LVM on `linstor-d`. You can extract "
+"the device path from LINSTOR by listing your linstor resources with the `--"
+"machine-readable` flag set:"
+msgstr ""
+"以下で `linstor-d` に新しい Thin LVM ボリュームを確認できます。linstorのリ"
+"ソースを `--machine-reader` フラグを付けてリストすることでLINSTORからデバイス"
+"パスを抽出することができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor --machine-readable resource list | grep device_path\n"
+"            \"device_path\": \"/dev/drbdpool/rsc-1_00000\", \n"
+msgstr ""
+"# linstor --machine-readable resource list | grep device_path\n"
+"            \"device_path\": \"/dev/drbdpool/rsc-1_00000\", \n"
+
+#. type: Plain text
+msgid ""
+"If you wanted to layer DRBD on top of this volume, which is the default `--"
+"layer-list` option in LINSTOR for ZFS or LVM backed volumes, you would use "
+"the following resource creation pattern instead:"
+msgstr ""
+"ZFSまたはLVM下位ボリューム用のデフォルトの `--layer-list` オプションである "
+"DRBD をこのボリューム上に階層化したい場合は、代わりに以下のリソース作成パター"
+"ンを使用します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource-definition create rsc-1\n"
+"# linstor volume-definition create rsc-1 100GiB\n"
+"# linstor resource create --layer-list drbd,storage \\\n"
+"          --storage-pool thin-lvm linstor-d rsc-1\n"
+msgstr ""
+"# linstor resource-definition create rsc-1\n"
+"# linstor volume-definition create rsc-1 100GiB\n"
+"# linstor resource create --layer-list drbd,storage \\\n"
+"          --storage-pool thin-lvm linstor-d rsc-1\n"
+
+#. type: Plain text
+msgid ""
+"You would then see that you have a new Thin LVM backing a DRBD volume on "
+"`linstor-d`:"
+msgstr ""
+"`linstor-d` に Thin LVM を下位デバイスとするDRBDボリュームがあることがわかり"
+"ます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor --machine-readable resource list | grep -e device_path -e backing_disk\n"
+"            \"device_path\": \"/dev/drbd1000\", \n"
+"            \"backing_disk\": \"/dev/drbdpool/rsc-1_00000\", \n"
+msgstr ""
+"# linstor --machine-readable resource list | grep -e device_path -e backing_disk\n"
+"            \"device_path\": \"/dev/drbd1000\", \n"
+"            \"backing_disk\": \"/dev/drbdpool/rsc-1_00000\", \n"
+
+#. type: Plain text
+msgid ""
+"The complete list of currently supported `--layer-list` combinations are as "
+"follows:"
+msgstr ""
+"現在サポートされている `--layer-list` の組み合わせのリストは以下の通りです。"
+
+#. type: Plain text
+msgid "drbd,luks,storage"
+msgstr "drbd,luks,storage"
+
+#. type: Plain text
+msgid "drbd,storage"
+msgstr "drbd,storage"
+
+#. type: Plain text
+msgid "luks,storage"
+msgstr "luks,storage"
+
+#. type: Plain text
+msgid "nvme,storage"
+msgstr "nvme,storage"
+
+#. type: Plain text
+msgid "storage"
+msgstr "storage"
+
+#. type: Plain text
+msgid ""
+"For information about the prerequisites for the `luks` layer, refer to the "
+"Encrypted Volumes section of this User's Guide."
+msgstr ""
+"`luks` レイヤの必要条件についての情報はこのユーザガイドの暗号化ボリュームの節"
+"を参照してください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "NVMe-oF/NVMe-TCP LINSTOR Layer"
+msgstr "NVMe-oF/NVMe-TCP LINSTOR レイヤ"
+
+#. type: Plain text
+msgid ""
+"NVMe-oF/NVMe-TCP allows LINSTOR to connect diskless resources to a node with "
+"the same resource where the data is stored over NVMe fabrics. This leads to "
+"the advantage that resources can be mounted without using local storage by "
+"accessing the data over the network.  LINSTOR is not using DRBD in this "
+"case, and therefore NVMe resources provisioned by LINSTOR are not "
+"replicated, the data is stored on one node."
+msgstr ""
+"NVMe-oF/NVMe-TCP により、LINSTOR はデータが NVMe ファブリックを介して格納され"
+"ているリソースを持つノードにディスクレスリソースとして接続することができま"
+"す。これにより、ネットワークを介してデータにアクセスすることで、ローカルスト"
+"レージを使用せずにリソースをマウントできるという利点が得られます。この場合、"
+"LINSTORはDRBDを使用していないため、LINSTORによってプロビジョニングされたNVMe"
+"リソースは複製されず、データは1つのノードに格納されます。"
+
+#. type: Plain text
+msgid ""
+"NVMe-oF only works on RDMA-capable networks and NVMe-TCP on every network "
+"that can carry IP traffic. If you want to know more about NVMe-oF/NVMe-TCP "
+"visit https://www.linbit.com/en/nvme-linstor-swordfish/ for more information."
+msgstr ""
+"NVMe-oF はRDMA対応ネットワークでのみ動作し、NVMe-TCP はIPトラフィックを伝送で"
+"きるすべてのネットワークで動作します。 NVMe-oF/NVMe-TCP の詳細については、"
+"https://www.linbit.com/en/nvme-linstor-swordfish/ を参照してください。"
+
+#. type: Plain text
+msgid ""
+"To use NVMe-oF/NVMe-TCP with LINSTOR the package `nvme-cli` needs to be "
+"installed on every Node which acts as a Satellite and will use NVMe-oF/NVMe-"
+"TCP for a resource:"
+msgstr ""
+"LINSTORで NVMe-oF/NVMe-TCP を使用するには、サテライトとして機能し、リソースと"
+"して NVMe-oF/NVMe-TCP を使用するすべてのノードで `nvme-cli` パッケージをイン"
+"ストールする必要があります。"
+
+#. type: Plain text
+msgid ""
+"If you are not using Ubuntu use the suitable command for installing packages "
+"on your OS - SLES: zypper - CentOS: yum"
+msgstr ""
+"Ubuntu を使用していない場合は、OS にパッケージをインストールするための適切な"
+"コマンドを使用してください -  SLES：zypper - CentOS：yum"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# apt install nvme-cli\n"
+msgstr "# apt install nvme-cli\n"
+
+#. type: Plain text
+msgid ""
+"To make a resource which uses NVMe-oF/NVMe-TCP an additional parameter has "
+"to be given as you create the resource-definiton:"
+msgstr ""
+"NVMe-oF/NVMe-TCP を使用するリソースを作成するには、resource-definiton を作成"
+"するときに追加のパラメータを指定する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor resource-definition create nvmedata  -l nvme,storage\n"
+msgstr "# linstor resource-definition create nvmedata  -l nvme,storage\n"
+
+#. type: Plain text
+msgid ""
+"As default the -l (layer-stack) parameter is set to `drbd, storage` when "
+"DRBD is used. If you want to create LINSTOR resources with neither NVMe nor "
+"DBRD you have to set the `-l` parameter to only `storage`."
+msgstr ""
+"DRBDが使用されている場合、デフォルトでは -l(layer-stack) パラメータは `drbd,"
+"storage` に設定されています。 NVMeもDBRDも使用せずにLINSTORリソースを作成した"
+"い場合は、 `-l` パラメータを `storage` だけに設定する必要があります。"
+
+#. type: Plain text
+msgid "Create the volume-definition for our resource:"
+msgstr "リソース用の volume-definition を作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor volume-definiton create nvmedata 500G\n"
+msgstr "# linstor volume-definiton create nvmedata 500G\n"
+
+#. type: Plain text
+msgid ""
+"Before you create the resource on your nodes you have to know where the data "
+"will be stored locally and which node accesses it over the network."
+msgstr ""
+"ノード上にリソースを作成する前に、データがローカルに格納される場所と、どの"
+"ノードがネットワーク経由でそれにアクセスするかを確認します。"
+
+#. type: Plain text
+msgid "First we create the resource on the node where our data will be stored:"
+msgstr "まず、データを保存するノードにリソースを作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor resource create alpha nvmedata --storage-pool pool_ssd\n"
+msgstr "# linstor resource create alpha nvmedata --storage-pool pool_ssd\n"
+
+#. type: Plain text
+msgid ""
+"On the nodes where the resource-data will be accessed over the network, the "
+"resource has to be defined as diskless:"
+msgstr ""
+"ネットワーク上でリソースデータにアクセスするノードでは、リソースをディスクレ"
+"スとして定義する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor resource create beta nvmedata -d\n"
+msgstr "# linstor resource create beta nvmedata -d\n"
+
+#. type: Plain text
+msgid "The `-d` parameter creates the resource on this node as diskless."
+msgstr ""
+"`-d` パラメータはこのノード上にディスクレスとしてリソースを作成します。"
+
+#. type: Plain text
+msgid "Now you can mount the resource `nvmedata` on one of your nodes."
+msgstr "これでリソース `nvmedata` をノードの1つにマウントできます。"
+
+#. type: Plain text
+msgid ""
+"If your nodes have more than one NIC you should force the route between them "
+"for NVMe-of/NVME-TCP, otherwise multiple NIC's could cause troubles."
+msgstr ""
+"ノードに複数のNICがある場合は、NVMe-of/NVME-TCP に対してそれらの間の経路を強"
+"制する必要があります。そうしないと、複数のNICで問題が発生する可能性がありま"
+"す。"
 
 #. type: Title ===
 #, no-wrap
@@ -1524,12 +2403,54 @@ msgstr ""
 
 #. type: Title ===
 #, no-wrap
+msgid "LINSTOR REST-API"
+msgstr "LINSTOR REST-API"
+
+#. type: Plain text
+msgid ""
+"To make LINSTOR's administrative tasks more accessable and also available "
+"for web-frontends a REST-API has been created. The REST-API is embedded in "
+"the linstor-controller and can be configured by using:"
+msgstr ""
+"LINSTORの管理タスクをよりアクセスしやすくし、Webフロントエンドでも利用できる"
+"ようにするために、REST-APIが作成されています。REST-APIはlinstor-controllerに"
+"組み込まれており、以下のようにして設定できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ linstor controller set-property REST/bindAddress 127.0.0.1\n"
+msgstr "$ linstor controller set-property REST/bindAddress 127.0.0.1\n"
+
+#. type: Plain text
+msgid "to set the address on which you want to reach the API and:"
+msgstr "APIにアクセスしたいアドレスを設定します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ linstor controller set-property REST/port 8080\n"
+msgstr "$ linstor controller set-property REST/port 8080\n"
+
+#. type: Plain text
+msgid "to set the port it should listen on."
+msgstr "待機するポートを設定します。"
+
+#. type: Plain text
+msgid ""
+"If you want to use the REST-API the current documentation can be found on "
+"the following link: https://app.swaggerhub.com/apis-docs/Linstor/Linstor/"
+msgstr ""
+"REST-APIを使用する場合 https://app.swaggerhub.com/apis-docs/Linstor/Linstor/ "
+"から現在の資料を見つけることができます。"
+
+#. type: Title ===
+#, no-wrap
 msgid "Getting help"
 msgstr "ヘルプの利用"
 
-#. type: Plain text
-msgid "WRITE MAN PAGE"
-msgstr "WRITE MAN PAGE"
+#. type: Title ====
+#, no-wrap
+msgid "From the command line"
+msgstr "コマンドラインから確認"
 
 #. type: Plain text
 msgid ""
@@ -1609,3 +2530,45 @@ msgstr ""
 #, no-wrap
 msgid "# linstor gen-zsh-completer > /usr/share/zsh/functions/Completion/Linux/_linstor\n"
 msgstr "# linstor gen-zsh-completer > /usr/share/zsh/functions/Completion/Linux/_linstor\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "From the community"
+msgstr "コミュニティの助けを借りる"
+
+#. type: Plain text
+msgid ""
+"For help from the community please subscribe to our mailing list located "
+"here: http://lists.linbit.com/listinfo/drbd-user"
+msgstr ""
+"コミュニティの助けを借りるには http://lists.linbit.com/listinfo/drbd-user に"
+"あるメーリングリストを購読してください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "GitHub"
+msgstr "GitHub"
+
+#. type: Plain text
+msgid ""
+"To file bug or feature request please check out our GitHub page https://"
+"github.com/linbit"
+msgstr ""
+"バグや機能要求を提出するには、GitHubページ https://github.com/linbit を確認し"
+"てください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Paid support and development"
+msgstr "有料のサポートと開発"
+
+#. type: Plain text
+msgid ""
+"Alternatively, if you wish to purchase remote installation services, 24/7 "
+"support, access to certified repositories, or feature development please "
+"contact us: +1-877-454-6248 (1-877-4LINBIT) , International: +43-1-8178292-0 "
+"| sales@linbit.com"
+msgstr ""
+"リモートインストールサービス、24時間365日のサポート、認定リポジトリへのアクセ"
+"ス、または機能開発をご希望の場合は、1-877-454-6248（1-877-4LINBIT）、"
+"International：43-1-8178292 -0 | sales@linbit.com にお問い合わせください。"
