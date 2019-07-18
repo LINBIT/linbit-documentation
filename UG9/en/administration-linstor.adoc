@@ -248,6 +248,7 @@ registry (reach out to sales@linbit.com for credentials):
 
 The containers available in this repo are:
 
+* drbd.io/drbd9:rhel8
 * drbd.io/drbd9:rhel7
 * drbd.io/drbd9:bionic
 * drbd.io/linstor-csi
@@ -259,11 +260,52 @@ An up to date list of available images with versions can be retrieved by opening
 browser. Make sure to access the host via "http", as the registry's images themselves are served via "https".
 
 To load the kernel module, needed only for LINSTOR satellites, you'll
-need to run a `drbd9` container in privileged mode:
+need to run a `drbd9` container in privileged mode. The kernel module containers either retrieve an official
+LINBIT package from a customer repository, or they try to build the kernel modules from source. If you intend
+to build from source, you need to have the according kernel headers (e.g., `kernel-devel`) installed on the
+host. There are 3 ways to execute such a module load container:
+
+* Specifying a LINBIT node hash and a distribution.
+* Bind-mounting an existing repository configuration.
+* Not doing one of the above to trigger a build from source.
+
+Example using a hash and a distribution:
 
 ----------------------------
-# docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7
+# docker run -it --rm --privileged -v /lib/modules:/lib/modules \
+  -e LB_DIST=rhel7.7 -e LB_HASH=ThisIsMyNodeHash \
+  drbd.io/drbd9:rhel7
 ----------------------------
+
+Example using an existing repo config.
+
+----------------------------
+# docker run -it --rm --privileged -v /lib/modules:/lib/modules \
+  -v /etc/yum.repos.d/linbit.repo:/etc/yum.repos.d/linbit.repo:ro \
+  drbd.io/drbd9:rhel7
+----------------------------
+
+IMPORTANT: In both cases (hash + distribution, as well as bind-mounting) the hash or config has to be from a
+node that has a special property set. Feel free to contact our support, and we set this property.
+
+Example building from shipped source (RHEL based):
+
+----------------------------
+# docker run -it --rm --privileged -v /lib/modules:/lib/modules \
+  -v /usr/src:/usr/src:ro
+  drbd.io/drbd9:rhel7
+----------------------------
+
+Example building from shipped source (Debian based):
+
+----------------------------
+# docker run -it --rm --privileged -v /lib/modules:/lib/modules \
+  -v /usr/src:/usr/src:ro -v /usr/lib:/usr/lib:ro
+  drbd.io/drbd9:bionic
+----------------------------
+
+Do *not* bind-mount `/usr/lib` on RHEL based systems! And do *not* forget to bind-mount it on Debian based
+ones.
 
 IMPORTANT: For now (i.e., pre DRBD 9 version "9.0.17"), you must use the containerized DRBD kernel module,
 as opposed to loading a kernel module onto the host system. If you
