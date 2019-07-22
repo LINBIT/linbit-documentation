@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-07-18 06:43+0900\n"
+"POT-Creation-Date: 2019-07-23 05:27+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -582,6 +582,10 @@ msgid "The containers available in this repo are:"
 msgstr "このリポジトリで利用可能なコンテナは以下です。"
 
 #. type: Plain text
+msgid "drbd.io/drbd9:rhel8"
+msgstr "drbd.io/drbd9:rhel8"
+
+#. type: Plain text
 msgid "drbd.io/drbd9:rhel7"
 msgstr "drbd.io/drbd9:rhel7"
 
@@ -618,15 +622,109 @@ msgstr ""
 #. type: Plain text
 msgid ""
 "To load the kernel module, needed only for LINSTOR satellites, you'll need "
-"to run a `drbd9` container in privileged mode:"
+"to run a `drbd9` container in privileged mode. The kernel module containers "
+"either retrieve an official LINBIT package from a customer repository, or "
+"they try to build the kernel modules from source. If you intend to build "
+"from source, you need to have the according kernel headers (e.g., `kernel-"
+"devel`) installed on the host. There are 3 ways to execute such a module "
+"load container:"
 msgstr ""
-"LINSTOR サテライトにのみ必要なカーネルモジュールをロードするには、 `drbd9` コ"
-"ンテナを特権モードで実行する必要があります。"
+"LINSTOR サテライトにのみ必要なカーネルモジュールをロードするには、特権モード"
+"で `drbd9` コンテナを実行する必要があります。カーネルモジュールのコンテナは、"
+"モジュールをカスタマーリポジトリの LINBIT 公式パッケージから取得するか、コン"
+"テナ内でソースからビルドします。ソースからビルドする場合、カーネルのヘッダ"
+"（`kernel-devel` ）をホストにインストールする必要があります。カーネルモジュー"
+"ルのコンテナを実行する方法は3つあります。"
+
+#. type: Plain text
+msgid "Specifying a LINBIT node hash and a distribution."
+msgstr "LINBITノードのハッシュとディストリビューションを指定する。"
+
+#. type: Plain text
+msgid "Bind-mounting an existing repository configuration."
+msgstr "既存のリポジトリ設定をバインドマウントする。"
+
+#. type: Plain text
+msgid "Not doing one of the above to trigger a build from source."
+msgstr "ソースからビルドするために上記のいずれも行わない。"
+
+#. type: Plain text
+msgid "Example using a hash and a distribution:"
+msgstr "ハッシュとディストリビューションを指定する場合:"
 
 #. type: delimited block -
 #, no-wrap
-msgid "# docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7\n"
-msgstr "# docker run -it --rm --privileged -v /lib/modules:/lib/modules drbd.io/drbd9:rhel7\n"
+msgid ""
+"# docker run -it --rm --privileged -v /lib/modules:/lib/modules \\\n"
+"  -e LB_DIST=rhel7.7 -e LB_HASH=ThisIsMyNodeHash \\\n"
+"  drbd.io/drbd9:rhel7\n"
+msgstr ""
+"# docker run -it --rm --privileged -v /lib/modules:/lib/modules \\\n"
+"  -e LB_DIST=rhel7.7 -e LB_HASH=ThisIsMyNodeHash \\\n"
+"  drbd.io/drbd9:rhel7\n"
+
+#. type: Plain text
+msgid "Example using an existing repo config."
+msgstr "既存のリポジトリ設定をバインドマウントして使う場合:"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# docker run -it --rm --privileged -v /lib/modules:/lib/modules \\\n"
+"  -v /etc/yum.repos.d/linbit.repo:/etc/yum.repos.d/linbit.repo:ro \\\n"
+"  drbd.io/drbd9:rhel7\n"
+msgstr ""
+"# docker run -it --rm --privileged -v /lib/modules:/lib/modules \\\n"
+"  -v /etc/yum.repos.d/linbit.repo:/etc/yum.repos.d/linbit.repo:ro \\\n"
+"  drbd.io/drbd9:rhel7\n"
+
+#. type: Plain text
+msgid ""
+"In both cases (hash + distribution, as well as bind-mounting) the hash or "
+"config has to be from a node that has a special property set. Feel free to "
+"contact our support, and we set this property."
+msgstr ""
+"どちらの場合でも（ハッシュ＋ディストリビューションまたは既存のリポジトリ設定"
+"をバインドマウント）、これらが設定されたノードから使用する必要があります。こ"
+"れらの設定に関してはサポートにお問い合わせください。"
+
+#. type: Plain text
+msgid "Example building from shipped source (RHEL based):"
+msgstr "ソースからビルドする場合(RHEL ベース):"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# docker run -it --rm --privileged -v /lib/modules:/lib/modules \\\n"
+"  -v /usr/src:/usr/src:ro \\\n"
+"  drbd.io/drbd9:rhel7\n"
+msgstr ""
+"# docker run -it --rm --privileged -v /lib/modules:/lib/modules \\\n"
+"  -v /usr/src:/usr/src:ro \\\n"
+"  drbd.io/drbd9:rhel7\n"
+
+#. type: Plain text
+msgid "Example building from shipped source (Debian based):"
+msgstr "ソースからビルドする場合(Debian ベース):"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# docker run -it --rm --privileged -v /lib/modules:/lib/modules \\\n"
+"  -v /usr/src:/usr/src:ro -v /usr/lib:/usr/lib:ro \\\n"
+"  drbd.io/drbd9:bionic\n"
+msgstr ""
+"# docker run -it --rm --privileged -v /lib/modules:/lib/modules \\\n"
+"  -v /usr/src:/usr/src:ro -v /usr/lib:/usr/lib:ro \\\n"
+"  drbd.io/drbd9:bionic\n"
+
+#. type: Plain text
+msgid ""
+"Do *not* bind-mount `/usr/lib` on RHEL based systems! And do *not* forget to "
+"bind-mount it on Debian based ones."
+msgstr ""
+"RHEL ベースのシステムでは `/usr/lib` をバインドマウントしないでください。"
+"Debian ベースのものはバインドマウントすることを忘れないでください。"
 
 #. type: Plain text
 msgid ""
