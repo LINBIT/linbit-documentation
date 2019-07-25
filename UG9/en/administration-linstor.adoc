@@ -372,36 +372,6 @@ following command as well:
 # systemctl start linstor-controller
 ------------------------------------------
 
-// FIXME: Move this whole chapter to an appendix
-/////
-[[s-linstor-migrate-from-dm]]
-=== Migrating resources from DRBDManage
-The LINSTOR client contains a sub-command that can generate a migration script that adds existing DRBDManage
-nodes and resources to a LINSTOR cluster. Migration can be done without downtime. If you do not plan to
-migrate existing resources, continue with the next section.
-
-The first thing to check is if the DRBDManage cluster is in a healthy state. If the output of `drbdmanage
-assignments` looks good, you can export the existing cluster database via `drbdmanage export-ctrlvol >
-ctrlvol.json`. You can then use that as input for the LINSTOR client. The client does *not* immediately
-migrate your resources, it just generates a shell script. Therefore, you can run the migration assistant
-multiple times and review/modify the generated shell script before actually executing it. Migration script
-generation is started via `linstor dm-migrate ctrlvol.json dmmmigrate.sh`. The script will ask a few questions
-and then generate the shell script. After carefully reading the script, you can then shutdown DRBDManage, and
-rename the following files.  If you do not rename them, the lower-level drbd-utils pick up both kinds of resource
-files, the ones from DRBDManage and the ones from LINSTOR.
-
-Obviously, you need the linstor-controller service started on one node and the linstor-satellite service on all
-nodes.
-
-----------------------------
-# drbdmanage shutdown -qc # on all nodes
-# mv /etc/drbd.d/drbdctrl.res{,.dis} # on all nodes
-# mv /etc/drbd.d/drbdmanage-resources.res{,.dis} # on all nodes
-# bash dmmigrate.sh
-----------------------------
-/////
-
-
 [[s-using_the_linstor_client]]
 === Using the LINSTOR client
 Whenever you run the LINSTOR command line client, it needs to know where your
