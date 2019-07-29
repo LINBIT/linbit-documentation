@@ -1158,25 +1158,53 @@ refers to the `LINSTOR` schema, as in the example above.
 === LINSTOR REST-API
 
 To make LINSTOR's administrative tasks more accessable and also available for web-frontends a
-REST-API has been created. The REST-API is embedded in the linstor-controller and can be configured
-by using:
+REST-API has been created. The REST-API is embedded in the linstor-controller
+and since LINSTOR 0.9.13 configured via the the `linstor.toml` configuration file.
 
 ---------
-$ linstor controller set-property REST/bindAddress 127.0.0.1
+[http]
+  enabled = true
+  port = 3370
+  listen_addr = 127.0.0.1  # to disable remote access
 ---------
 
-to set the address on which you want to reach the API and:
-
--------
-$ linstor controller set-property REST/port 8080
--------
-
-to set the port it should listen on.
 
 If you want to use the REST-API the current documentation can be found on the following link:
 https://app.swaggerhub.com/apis-docs/Linstor/Linstor/
 
+[[s-linstor-rest-api-https]]
+==== LINSTOR REST-API HTTPS
 
+The HTTP REST-API can also run secured by HTTPS and is highly recommended if you use any features that
+require authorization. Todo so you have to create a java keystore file with a valid certificate
+that will be used to encrypt all HTTPS traffic.
+
+Here is a simple example on how you can create a self signed certificate with the `keytool` that is included
+in the java runtime:
+
+---------
+keytool -keyalg rsa -keysize 2048 -genkey -keystore ./keystore_linstor.jks\
+ -alias linstor_controller\
+ -dname "CN=localhost, OU=SecureUnit, O=ExampleOrg, L=Vienna, ST=Austria, C=AT"
+---------
+
+`keytool` will ask for a password to secure the generated keystore file and is needed for the
+LINSTOR-controller configuration.
+In your `linstor.toml` file you have to add the following section:
+
+---------
+[http]
+  keystore = "/path/to/keystore_linstor.jks"
+  keystore_password = "linstor"
+---------
+
+Now (re)start the `linstor-controller` and the HTTPS REST-API should be available on port 3371.
+
+More information on how to import other certificates can be found here:
+https://docs.oracle.com/javase/8/docs/technotes/tools/unix/keytool.html
+
+NOTE: When HTTPS is enabled, all requests to the HTTP /v1/ REST-API will be redirected to the
+HTTPS redirect.
 
 [[s-linstor-getting-help]]
 === Getting help
