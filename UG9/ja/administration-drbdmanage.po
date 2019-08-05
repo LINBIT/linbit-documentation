@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-06-13 11:55+0900\n"
+"POT-Creation-Date: 2019-08-05 10:29+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -50,6 +50,73 @@ msgstr ""
 "ングについては扱いません。トラブルシューティングについては<<ch-"
 "troubleshooting>>を参照ください。ストレージプラグインとして LVM を使用する場"
 "合は、<<s-config-lvm>> セクションを読んでから、ここに戻ってきてください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Migrating resources from DRBDManage to LINSTOR"
+msgstr "DRBDManage から LINSTOR へリソースの移行"
+
+#. type: Plain text
+msgid ""
+"The LINSTOR client contains a sub-command that can generate a migration "
+"script that adds existing DRBDManage nodes and resources to a LINSTOR "
+"cluster. Migration can be done without downtime. If you do not plan to "
+"migrate existing resources, continue with the next section."
+msgstr ""
+"LINSTOR クライアントには、既存の DRBDManage ノードとリソースを LINSTOR クラス"
+"タに追加する移行スクリプトを生成できるサブコマンドが含まれています。移行はダ"
+"ウンタイムなしで実行できます。既存のリソースを移行する予定がない場合は、次の"
+"セクションに進んでください。"
+
+#. type: Plain text
+msgid ""
+"The first thing to check is if the DRBDManage cluster is in a healthy state. "
+"If the output of `drbdmanage assignments` looks good, you can export the "
+"existing cluster database via `drbdmanage export-ctrlvol > ctrlvol.json`. "
+"You can then use that as input for the LINSTOR client. The client does *not* "
+"immediately migrate your resources, it just generates a shell script. "
+"Therefore, you can run the migration assistant multiple times and review/"
+"modify the generated shell script before actually executing it. Migration "
+"script generation is started via `linstor dm-migrate ctrlvol.json dmmmigrate."
+"sh`. The script will ask a few questions and then generate the shell script. "
+"After carefully reading the script, you can then shutdown DRBDManage, and "
+"rename the following files.  If you do not rename them, the lower-level drbd-"
+"utils pick up both kinds of resource files, the ones from DRBDManage and the "
+"ones from LINSTOR."
+msgstr ""
+"最初に確認することは、DRBDManage クラスターが正常な状態にあるかどうかです。 "
+"`drbdmanage assignments` の出力が問題なければ、 `drbdmanage export-ctrlvol > "
+"ctrlvol.json` で既存のクラスタデータベースをエクスポートすることができます。"
+"これを LINSTOR クライアントの入力として使うことができます。クライアントはただ"
+"ちにリソースを移行するのではなく、単にシェルスクリプトを生成するだけです。し"
+"たがって、実際に実行する前に、移行アシスタントを複数回実行し、生成されたシェ"
+"ルスクリプトを確認/変更することができます。移行スクリプトの生成は `linstor "
+"dm-migrate ctrlvol.json dmmmigrate.sh` で開始します。 スクリプトはいくつかの"
+"質問をしてからシェルスクリプトを生成します。生成されたスクリプトを注意深く確"
+"認した後、DRBDManage をシャットダウンして、名前を変更しておきます。名前を変更"
+"しないと、 drbd-utils が DRBDManage と LINSTOR の両方の種類のリソースファイル"
+"を使用してしまいます。"
+
+#. type: Plain text
+msgid ""
+"Obviously, you need the linstor-controller service started on one node and "
+"the linstor-satellite service on all nodes."
+msgstr ""
+"もちろん 1 つのノードで linstor-controller サービスを開始し、すべてのノード"
+"で linstor-satellite サービスを開始する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdmanage shutdown -qc # on all nodes\n"
+"# mv /etc/drbd.d/drbdctrl.res{,.dis} # on all nodes\n"
+"# mv /etc/drbd.d/drbdmanage-resources.res{,.dis} # on all nodes\n"
+"# bash dmmigrate.sh\n"
+msgstr ""
+"# drbdmanage shutdown -qc # on all nodes\n"
+"# mv /etc/drbd.d/drbdctrl.res{,.dis} # on all nodes\n"
+"# mv /etc/drbd.d/drbdmanage-resources.res{,.dis} # on all nodes\n"
+"# bash dmmigrate.sh\n"
 
 #. type: Title ===
 #, no-wrap
@@ -161,12 +228,12 @@ msgstr ""
 
 #. type: Plain text
 msgid "The IP address of the node."
-msgstr ""
+msgstr "ノードの IP アドレス。"
 
 #. type: Block title
 #, no-wrap
 msgid "Note"
-msgstr "Note"
+msgstr "注意"
 
 #. type: Plain text
 msgid ""
