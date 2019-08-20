@@ -876,7 +876,7 @@ Basic steps to use encryption:
 
 1. Disable user security on the controller (this will be obsolete once authentication works)
 2. Create a master passphrase
-3. Create a volume definition with the `--encrypt` option
+3. Add `luks` to the layer-list
 4. Don't forget to re-enter the master passphrase after a controller restart.
 
 [[s-disable_user_security]]
@@ -889,7 +889,6 @@ afterwards persisted.
 3. In the debug console enter: `setSecLvl secLvl(NO_SECURITY)`
 4. Stop linstor-controller with the debug shutdown command: `shutdown`
 5. Start the controller again with systemd: `systemctl start linstor-controller`
-
 
 [[s-encrypt_commands]]
 ==== Encrypt commands
@@ -911,11 +910,12 @@ If you ever want to change the master passphrase this can be done with:
 # linstor encryption modify-passphrase
 ----
 
-To mark which volumes should be encrypted you have to add a flag while creating
-a volume definition, the flag is is `--encrypt` e.g.:
+The `luks` layer can be added when creating the resource-definition or the resource
+itself, whereas the former method is recommended since it will be automatically applied
+to all resource created from that resource-definition.
 
 ----
-# linstor volume-definition create crypt_rsc 1G --encrypt
+# linstor resource-definition create crypt_rsc --layer-list luks,storage
 ----
 
 To enter the master passphrase (after controller restart) use the following command:
