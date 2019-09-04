@@ -1206,6 +1206,97 @@ https://docs.oracle.com/javase/8/docs/technotes/tools/unix/keytool.html
 NOTE: When HTTPS is enabled, all requests to the HTTP /v1/ REST-API will be redirected to the
 HTTPS redirect.
 
+[[s-linstor-secure-connections]]
+=== Secure Satellite connections
+
+It is possible to have the LINSTOR use SSL secure TCP connection between controller and satellite connections.
+Without going into further details on how java's SSL engine works we will give you
+command line snippets using the `keytool` from java's runtime environement on how to configure
+a 3 node setup using secure connections.
+The node setup looks like this:
+
+Node `alpha` is the just the controller.
+Node `bravo` and node `charlie` are just satellites.
+
+
+Here are the commands to generate such a keystore setup,
+values should of course be edited for your environment.
+
+```
+# create directories to hold the key files
+mkdir -p /tmp/linstor-ssl
+cd /tmp/linstor-ssl
+mkdir alpha bravo charlie
+
+
+# create private keys for all nodes
+keytool -keyalg rsa -keysize 2048 -genkey -keystore alpha/keystore.jks\
+ -storepass linstor -keypass linstor\
+ -alias alpha\
+ -dname "CN=Max Mustermann, OU=alpha, O=Example, L=Vienna, ST=Austria, C=AT"
+
+keytool -keyalg rsa -keysize 2048 -genkey -keystore bravo/keystore.jks\
+ -storepass linstor -keypass linstor\
+ -alias bravo\
+ -dname "CN=Max Mustermann, OU=bravo, O=Example, L=Vienna, ST=Austria, C=AT"
+
+keytool -keyalg rsa -keysize 2048 -genkey -keystore charlie/keystore.jks\
+ -storepass linstor -keypass linstor\
+ -alias charlie\
+ -dname "CN=Max Mustermann, OU=charlie, O=Example, L=Vienna, ST=Austria, C=AT"
+
+# import truststore certificates for alpha (needs all satellite certificates)
+keytool -importkeystore\
+ -srcstorepass linstor -deststorepass linstor -keypass linstor\
+ -srckeystore bravo/keystore.jks -destkeystore alpha/certificates.jks
+
+keytool -importkeystore\
+ -srcstorepass linstor -deststorepass linstor -keypass linstor\
+ -srckeystore charlie/keystore.jks -destkeystore alpha/certificates.jks
+
+# import controller certificate into satellite truststores
+keytool -importkeystore\
+ -srcstorepass linstor -deststorepass linstor -keypass linstor\
+ -srckeystore alpha/keystore.jks -destkeystore bravo/certificates.jks
+
+keytool -importkeystore\
+ -srcstorepass linstor -deststorepass linstor -keypass linstor\
+ -srckeystore alpha/keystore.jks -destkeystore charlie/certificates.jks
+
+# now copy the keystore files to their host destinations
+ssh root@alpha mkdir /etc/linstor/ssl
+scp alpha/* root@alpha:/etc/linstor/ssl/
+ssh root@bravo mkdir /etc/linstor/ssl
+scp bravo/* root@bravo:/etc/linstor/ssl/
+ssh root@charlie mkdir /etc/linstor/ssl
+scp charlie/* root@charlie:/etc/linstor/ssl/
+
+# generate the satellite ssl config entry
+echo '[netcom]
+  type="ssl"
+  port=3367
+  server_certificate="ssl/keystore.jks"
+  trusted_certificates="ssl/certificates.jks"
+  key_password="linstor"
+  keystore_password="linstor"
+  truststore_password="linstor"
+  ssl_protocol="TLSv1.2"
+' | ssh root@bravo "cat > /etc/linstor/linstor_satellite.toml"
+
+echo '[netcom]
+  type="ssl"
+  port=3367
+  server_certificate="ssl/keystore.jks"
+  trusted_certificates="ssl/certificates.jks"
+  key_password="linstor"
+  keystore_password="linstor"
+  truststore_password="linstor"
+  ssl_protocol="TLSv1.2"
+' | ssh root@charlie "cat > /etc/linstor/linstor_satellite.toml"
+```
+
+Now just start controller and satellites and add the nodes with `--communication-type SSL`.
+
 [[s-linstor-getting-help]]
 === Getting help
 ==== From the command line
