@@ -2381,3 +2381,21 @@ Here, the application is running on the primary, while the secondary is unavaila
 the tiebreaker first loses connection to the primary, and then reconnects to the secondary.
 It is important to note here that *a node that has lost quorum cannot regain quorum by connecting
 to a diskless node*. Thus, in this case, no node has quorum and the cluster halts.
+
+[[s-quorum_last_man_standing]]
+==== Last man standing
+
+It needs to be mentioned that nodes that leave a cluster gracefully are counted
+different than failed nodes. In this context _leaving gracefully_ means that the leaving
+node marked it's data as Outdated, and that it was able to tell the remaining nodes
+that it's data is Outdated.
+
+In a group of nodes where all disks are Outdated no one in that group can promote to Primary
+footnote:[The exception is a manual promotion with the --force flag. We assume that
+one that uses the --force knows what he is doing.].
+
+An implication is that, if a cluster is left by all but one node, it can keep quorum as
+long as all the others left in a graceful way. If a single node leaves ungraceful,
+it has to assume that all away nodes form a patition and have access to up-to-date
+data. If the other partition might (potentially) be larger than my own partition it
+looses quorum.
