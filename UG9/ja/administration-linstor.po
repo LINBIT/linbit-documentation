@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-08-27 17:01+0900\n"
+"POT-Creation-Date: 2019-09-18 07:34+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2618,6 +2618,222 @@ msgid ""
 msgstr ""
 "HTTPS が有効な場合、HTTP /v1/ REST-API へのすべてのリクエストは HTTPS にリダ"
 "イレクトされます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Secure Satellite connections"
+msgstr "サテライトへの安全な接続"
+
+#. type: Plain text
+msgid ""
+"It is possible to have the LINSTOR use SSL secure TCP connection between "
+"controller and satellite connections.  Without going into further details on "
+"how java's SSL engine works we will give you command line snippets using the "
+"`keytool` from java's runtime environement on how to configure a 3 node "
+"setup using secure connections.  The node setup looks like this:"
+msgstr ""
+"LINSTOR でコントローラとサテライト間の接続に SSL セキュア TCP 接続を使用する"
+"ことができます。Java の SSL エンジンの動作について詳しく調査しなくても、Java "
+"の実行時環境の `keytool` を使用したコマンドラインの使用例を以下に示します。こ"
+"こでは、 安全な接続を使用して 3 ノードのセットアップを構成する方法を示しま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"Node `alpha` is the just the controller.  Node `bravo` and node `charlie` "
+"are just satellites."
+msgstr ""
+"ここで、ノード `alpha` がコントローラ、ノード bravo` と `charlie` がサテライ"
+"トとします。"
+
+#. type: Plain text
+msgid ""
+"Here are the commands to generate such a keystore setup, values should of "
+"course be edited for your environment."
+msgstr ""
+"以下にキーストア設定を生成するコマンド例を示します。環境に合わせて変更してく"
+"ださい。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# create directories to hold the key files\n"
+"mkdir -p /tmp/linstor-ssl\n"
+"cd /tmp/linstor-ssl\n"
+"mkdir alpha bravo charlie\n"
+msgstr ""
+"# create directories to hold the key files\n"
+"mkdir -p /tmp/linstor-ssl\n"
+"cd /tmp/linstor-ssl\n"
+"mkdir alpha bravo charlie\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# create private keys for all nodes\n"
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore alpha/keystore.jks\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -alias alpha\\\n"
+" -dname \"CN=Max Mustermann, OU=alpha, O=Example, L=Vienna, ST=Austria, C=AT\"\n"
+msgstr ""
+"# create private keys for all nodes\n"
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore alpha/keystore.jks\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -alias alpha\\\n"
+" -dname \"CN=Max Mustermann, OU=alpha, O=Example, L=Vienna, ST=Austria, C=AT\"\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore bravo/keystore.jks\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -alias bravo\\\n"
+" -dname \"CN=Max Mustermann, OU=bravo, O=Example, L=Vienna, ST=Austria, C=AT\"\n"
+msgstr ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore bravo/keystore.jks\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -alias bravo\\\n"
+" -dname \"CN=Max Mustermann, OU=bravo, O=Example, L=Vienna, ST=Austria, C=AT\"\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore charlie/keystore.jks\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -alias charlie\\\n"
+" -dname \"CN=Max Mustermann, OU=charlie, O=Example, L=Vienna, ST=Austria, C=AT\"\n"
+msgstr ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore charlie/keystore.jks\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -alias charlie\\\n"
+" -dname \"CN=Max Mustermann, OU=charlie, O=Example, L=Vienna, ST=Austria, C=AT\"\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# import truststore certificates for alpha (needs all satellite certificates)\n"
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore bravo/keystore.jks -destkeystore alpha/certificates.jks\n"
+msgstr ""
+"# import truststore certificates for alpha (needs all satellite certificates)\n"
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore bravo/keystore.jks -destkeystore alpha/certificates.jks\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore charlie/keystore.jks -destkeystore alpha/certificates.jks\n"
+msgstr ""
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore charlie/keystore.jks -destkeystore alpha/certificates.jks\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# import controller certificate into satellite truststores\n"
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore alpha/keystore.jks -destkeystore bravo/certificates.jks\n"
+msgstr ""
+"# import controller certificate into satellite truststores\n"
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore alpha/keystore.jks -destkeystore bravo/certificates.jks\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore alpha/keystore.jks -destkeystore charlie/certificates.jks\n"
+msgstr ""
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore alpha/keystore.jks -destkeystore charlie/certificates.jks\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# now copy the keystore files to their host destinations\n"
+"ssh root@alpha mkdir /etc/linstor/ssl\n"
+"scp alpha/* root@alpha:/etc/linstor/ssl/\n"
+"ssh root@bravo mkdir /etc/linstor/ssl\n"
+"scp bravo/* root@bravo:/etc/linstor/ssl/\n"
+"ssh root@charlie mkdir /etc/linstor/ssl\n"
+"scp charlie/* root@charlie:/etc/linstor/ssl/\n"
+msgstr ""
+"# now copy the keystore files to their host destinations\n"
+"ssh root@alpha mkdir /etc/linstor/ssl\n"
+"scp alpha/* root@alpha:/etc/linstor/ssl/\n"
+"ssh root@bravo mkdir /etc/linstor/ssl\n"
+"scp bravo/* root@bravo:/etc/linstor/ssl/\n"
+"ssh root@charlie mkdir /etc/linstor/ssl\n"
+"scp charlie/* root@charlie:/etc/linstor/ssl/\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# generate the satellite ssl config entry\n"
+"echo '[netcom]\n"
+"  type=\"ssl\"\n"
+"  port=3367\n"
+"  server_certificate=\"ssl/keystore.jks\"\n"
+"  trusted_certificates=\"ssl/certificates.jks\"\n"
+"  key_password=\"linstor\"\n"
+"  keystore_password=\"linstor\"\n"
+"  truststore_password=\"linstor\"\n"
+"  ssl_protocol=\"TLSv1.2\"\n"
+"' | ssh root@bravo \"cat > /etc/linstor/linstor_satellite.toml\"\n"
+msgstr ""
+"# generate the satellite ssl config entry\n"
+"echo '[netcom]\n"
+"  type=\"ssl\"\n"
+"  port=3367\n"
+"  server_certificate=\"ssl/keystore.jks\"\n"
+"  trusted_certificates=\"ssl/certificates.jks\"\n"
+"  key_password=\"linstor\"\n"
+"  keystore_password=\"linstor\"\n"
+"  truststore_password=\"linstor\"\n"
+"  ssl_protocol=\"TLSv1.2\"\n"
+"' | ssh root@bravo \"cat > /etc/linstor/linstor_satellite.toml\"\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"echo '[netcom]\n"
+"  type=\"ssl\"\n"
+"  port=3367\n"
+"  server_certificate=\"ssl/keystore.jks\"\n"
+"  trusted_certificates=\"ssl/certificates.jks\"\n"
+"  key_password=\"linstor\"\n"
+"  keystore_password=\"linstor\"\n"
+"  truststore_password=\"linstor\"\n"
+"  ssl_protocol=\"TLSv1.2\"\n"
+"' | ssh root@charlie \"cat > /etc/linstor/linstor_satellite.toml\"\n"
+msgstr ""
+"echo '[netcom]\n"
+"  type=\"ssl\"\n"
+"  port=3367\n"
+"  server_certificate=\"ssl/keystore.jks\"\n"
+"  trusted_certificates=\"ssl/certificates.jks\"\n"
+"  key_password=\"linstor\"\n"
+"  keystore_password=\"linstor\"\n"
+"  truststore_password=\"linstor\"\n"
+"  ssl_protocol=\"TLSv1.2\"\n"
+"' | ssh root@charlie \"cat > /etc/linstor/linstor_satellite.toml\"\n"
+
+#. type: Plain text
+msgid ""
+"Now just start controller and satellites and add the nodes with `--"
+"communication-type SSL`."
+msgstr ""
+"controller と satellites を起動し、`--communication-type SSL` でノードを追加"
+"してください。"
 
 #. type: Title ===
 #, no-wrap
