@@ -44,29 +44,29 @@ LINBIT's repository can be enabled as follows, where "$PVERS" should be set to y
 [[s-proxmox-ls-ls-configuration]]
 === LINSTOR Configuration
 For the  rest of this guide we assume that you have a LINSTOR cluster configured as described in
-<<s-linstor-init-cluster>>. In the most simple case you will have one storage pool definition (e.g.,
-		"drbdpool") and the equivalent storage pools on each PVE node. If you have multiple pools, currently the
-plugin selects one of those, but as of now you can not control which one. But usually you have only one pool
-for your DRBD resources, so that shouldn't be a problem. Also make sure to setup each node as a "Combined"
-node. Start the "linstor-controller" on one node, and the "linstor-satellite" on all nodes.
+<<s-linstor-init-cluster>>. Also make sure to setup each node as a "Combined" node. Start the
+"linstor-controller" on one node, and the "linstor-satellite" on all nodes. The preferred way to use the
+plugin, starting from version 4.1.0, is via LINSTOR resource groups and a single volume group within every
+resource group. LINSTOR resource groups are described in <<s-linstor-resource-groups>>. All the required
+LINSTOR configuration (e.g., redundancy count) has to be set on the resource group.
 
 [[s-proxmox-ls-configuration]]
 === Proxmox Plugin Configuration
 The final step is to provide a configuration for Proxmox itself. This can be done by adding an entry in the
-`/etc/pve/storage.cfg` file, with the following content, assuming a three node cluster in this example:
+`/etc/pve/storage.cfg` file, with a content similar to the following.
 
 ----------------------------
 drbd: drbdstorage
    content images,rootdir
-   redundancy 3
    controller 10.11.12.13
+   resourcegroup defaultpool
 ----------------------------
 
 The "drbd" entry is fixed and you are not allowed to modify it, as it tells to Proxmox to use DRBD as storage
 backend.  The "drbdstorage" entry can be modified and is used as a friendly name that will be shown in the PVE
-web GUI to locate the DRBD storage.  The "content" entry is also fixed, so do not change it. The "redundancy"
-parameter specifies how many replicas of the data will be stored in the cluster. The recommendation is to set it
-to "3", assuming that you have a three node cluster as a minimum.  The data is accessible from all nodes, even
+web GUI to locate the DRBD storage.  The "content" entry is also fixed, so do not change it. The redundancy
+(specified in the resource group) specifies how many replicas of the data will be stored in the cluster. The recommendation is to set it
+to 2 or 3 depending on your setup.  The data is accessible from all nodes, even
 if some of them do not have local copies of the data.  For example, in a 5 node cluster, all nodes will be
 able to access 3 copies of the data, no matter where they are stored in. The "controller" parameter must be
 set to the IP of the node that runs the LINSTOR controller service. Only one node can be set to run as LINSTOR
@@ -75,32 +75,24 @@ value to its IP address. There are more elegant ways to deal with this problem. 
 chapter how to setup a highly available LINSTOR controller VM in Proxmox.
 
 Recent versions of the plugin allow to define multiple different storage pools. Such a configuration would
-look like this, where "storagepool" is set to the name of a LINSTOR storage pool definition:
+look like this:
 
 ----------------------------
 drbd: drbdstorage
    content images,rootdir
-   redundancy 3
-   # Should be set, see below
-   # storagepool drbdpool
    controller 10.11.12.13
+   resourcegroup defaultpool
 
 drbd: fastdrbd
    content images,rootdir
-   redundancy 3
-   storagepool ssd
    controller 10.11.12.13
+   resourcegroup ssd
 
 drbd: slowdrbd
    content images,rootdir
-   redundancy 2
-   storagepool rotatingrust
    controller 10.11.12.13
+   resourcegroup backup
 ----------------------------
-
-Note that if you do not set a "storagepool", as it is the case for "drbdstorage", one will be selected by an
-internal metric. We suggest that you either have one pool where it is optional to set "storagepool", or you
-explicitly set the storage pool name for all entries.
 
 By now, you should be able to create VMs via Proxmox's web GUI by selecting "__drbdstorage__", or any other of
 the defined pools as storage location.
@@ -230,7 +222,7 @@ As the last -- but crucial -- step, you need to add the "controlervm" option to
 ----------------------------
 drbd: drbdstorage
    content images,rootdir
-   redundancy 3
+   resourcegroup defaultpool
    controller 10.43.7.254
    controllervm 100
 ----------------------------
