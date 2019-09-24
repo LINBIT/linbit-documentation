@@ -520,6 +520,92 @@ to hot-repair storage devices, you may choose a model where you create
 one storage pool per physical backing device. The advantage of this
 model is to confine failure domains to a single storage device.
 
+[[s-linstor-resource-groups]]
+=== Resource groups
+
+A resource group is a parent object of a resource definition where all
+property changes made on a resource group will be inherited by it's
+resource definition children. The resource group also stores settings
+for automatic placement rules and can spawn a resource definition
+depending on the stored rules.
+
+In simpler terms, resource groups are like templates that define
+characteristics of resources created from them. Changes to these
+pseudo templates will be applied to all resources that were created
+from the resource group, retroactively.
+
+TIP: Using resource groups to define how you'd like your resources
+provisioned should be considered the de facto method for deploying
+volumes provisioned by LINSTOR. Chapters that follow which describe
+creating each _resource_ from a _resource-definition_ and
+_volume-definition_ should only be used in special scenarios.
+
+NOTE: Even if you choose not to create and use _resource-groups_ in
+your LINSTOR cluster, all resources created from
+_resource-definitions_ and _volume-definitions_ will exist in the
+'DfltRscGrp' _resource-group_.
+
+A simple pattern for deploying resources using resource groups would
+look like this:
+
+----
+# linstor resource-group create my_ssd_group --storage-pool pool_ssd --place-count 2
+# linstor volume-group create my_ssd_group
+# linstor resource-group spawn-resources my_ssd_group my_ssd_res 20G
+----
+
+The commands above would result in a resource named 'my_ssd_res' with a
+20GB volume replicated twice being automatically provisioned from nodes who
+participate in the storage pool named 'pool_ssd'.
+
+A more useful pattern could be to create a resource group with
+settings you've determined are optimal for your use case. Perhaps
+you have to run nightly online verifications of your volumes'
+consistency, in that case, you could create a resource group with the
+'verify-alg' of your choice already set so that resources spawned from
+the group are pre-configured with 'verify-alg' set:
+
+----
+# linstor resource-group create my_verify_group --storage-pool pool_ssd --place-count 2
+# linstor resource-group drbd-options --verify-alg crc32c my_verify_group
+# linstor volume-group create my_verify_group
+# for i in {00..19}; do
+    linstor resource-group spawn-resources my_verify_group res$i 10G
+  done
+----
+
+The commands above result in twenty 10GiB resources being created each
+with the 'crc32c' 'verify-alg' pre-configured.
+
+You can tune the settings of individual resources or volumes spawned
+from resource groups by setting options on the respective
+_resource-definition_ or _volume-definition_. For example, if 'res11'
+from the example above is used by a very active database receiving
+lots of small random writes, you might want to increase the
+'al-extents' for that specific resource:
+
+----
+# linstor resource-definition drbd-options --al-extents 6007 res11
+----
+
+If you configure a setting in a _resource-definition_ that is already
+configured on the _resource-group_ it was spawned from, the value set
+in the _resource-definition_ will override the value set on the parent
+_resource-group_. For example, if the same 'res11' was required to use
+the slower but more secure 'sha256' hash algorithm in it's
+verifications, setting the 'verify-alg' on the _resource-definition_
+for 'res11' would override the value set on the _resource-group_:
+
+----
+# linstor resource-definition drbd-options --verify-alg sha256 res11
+----
+
+TIP: A rule of thumb for the hierarchy in which settings are inherited
+is the value "closer" to the resource or volume wins: _volume-definition_
+settings take precedence over _volume-group_ settings, and
+_resource-definition_ settings take precedence over _resource-group_
+settings.
+
 
 [[s-linstor-set-config]]
 === Cluster configuration
