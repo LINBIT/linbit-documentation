@@ -697,7 +697,6 @@ command which should look like `drbd0000` or similar.
 Now we should be able to mount the block device of our resource and start using
 LINSTOR.
 
-
 [[s-more-about-linstor]]
 == Further LINSTOR tasks
 
@@ -1291,6 +1290,90 @@ https://docs.oracle.com/javase/8/docs/technotes/tools/unix/keytool.html
 
 NOTE: When HTTPS is enabled, all requests to the HTTP /v1/ REST-API will be redirected to the
 HTTPS redirect.
+
+[[s-linstor-logging]]
+=== Logging
+
+Linstor uses https://www.slf4j.org/[SLF4J] with https://logback.qos.ch/[Logback] as binding. This gives
+Linstor the possibilty to distinguish between the log levels `ERROR`, `WARN`, `INFO`, `DEBUG` and `TRACE`
+(in order of increasing verbosity). In the current linstor version (1.1.2) the user has the following
+four methods to control the logging level, ordered by priority (first has highest priority):
+
+
+. `TRACE` mode can be `enabled` or `disabled` using the debug console:
++
+----
+Command ==> SetTrcMode MODE(enabled)
+SetTrcMode           Set TRACE level logging mode
+New TRACE level logging mode: ENABLED
+----
+
+. When starting the controller or satellite a command line argument can be passed:
++
+----
+java ... com.linbit.linstor.core.Controller ... --log-level INFO
+java ... com.linbit.linstor.core.Satellite  ... --log-level INFO
+----
+
+. The recommended place is the `logging` section in the `/etc/linstor/linstor.toml` file:
++
+----
+[logging]
+   level="INFO"
+----
+
+. As Linstor is using Logback as an implementation, `/usr/share/linstor-server/lib/logback.xml` can
+also be used. Currently only this approach supports different log levels for different components, like
+shown in the example below:
++
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="false" scanPeriod="60 seconds">
+<!--
+ Values for scanPeriod can be specified in units of milliseconds, seconds, minutes or hours
+ https://logback.qos.ch/manual/configuration.html
+-->
+ <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+   <!-- encoders are assigned the type
+        ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+   <encoder>
+     <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
+   </encoder>
+ </appender>
+ <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+   <file>${log.directory}/linstor-${log.module}.log</file>
+   <append>true</append>
+   <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+     <Pattern>%d{yyyy_MM_dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</Pattern>
+   </encoder>
+   <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+     <FileNamePattern>logs/linstor-${log.module}.%i.log.zip</FileNamePattern>
+     <MinIndex>1</MinIndex>
+     <MaxIndex>10</MaxIndex>
+   </rollingPolicy>
+   <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+     <MaxFileSize>2MB</MaxFileSize>
+   </triggeringPolicy>
+ </appender>
+ <logger name="LINSTOR/Controller" level="INFO" additivity="false">
+   <appender-ref ref="STDOUT" />
+   <!-- <appender-ref ref="FILE" /> -->
+ </logger>
+ <logger name="LINSTOR/Satellite" level="INFO" additivity="false">
+   <appender-ref ref="STDOUT" />
+   <!-- <appender-ref ref="FILE" /> -->
+ </logger>
+ <root level="WARN">
+   <appender-ref ref="STDOUT" />
+   <!-- <appender-ref ref="FILE" /> -->
+ </root>
+</configuration>
+----
+
+See the https://logback.qos.ch/manual/index.html[Logback Manual] to find more details about `logback.xml`.
+
+
+When none of the configuration methods above is used Linstor will default to `INFO` log level.
 
 [[s-linstor-secure-connections]]
 === Secure Satellite connections
