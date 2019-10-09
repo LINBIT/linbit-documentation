@@ -1291,6 +1291,75 @@ https://docs.oracle.com/javase/8/docs/technotes/tools/unix/keytool.html
 NOTE: When HTTPS is enabled, all requests to the HTTP /v1/ REST-API will be redirected to the
 HTTPS redirect.
 
+
+[[s-rest-api-https-restricted-client]]
+===== LINSTOR REST-API HTTPS restricted client access
+
+Client access can be restricted by using a SSL truststore on the Controller.
+Basically you create a certificate for you client and add it to your truststore and the client
+than uses this certificate for authentication.
+
+First create a client certificate:
+
+---------
+keytool -keyalg rsa -keysize 2048 -genkey -keystore client.jks\
+ -storepass linstor -keypass linstor\
+ -alias client1\
+ -dname "CN=Client Cert, OU=client, O=Example, L=Vienna, ST=Austria, C=AT"
+---------
+
+Than we import this certificate to our controller truststore:
+
+---------
+keytool -importkeystore\
+ -srcstorepass linstor -deststorepass linstor -keypass linstor\
+ -srckeystore client.jks -destkeystore trustore_client.jks
+---------
+
+And enable the truststore in the `linstor.toml` configuration file:
+
+---------
+[https]
+  keystore = "/path/to/keystore_linstor.jks"
+  keystore_password = "linstor"
+  truststore = "/path/to/trustore_client.jks"
+  truststore_password = "linstor"
+---------
+
+Now restart the Controller and it will no longer be possible to access the controller API without a
+correct certificate.
+
+The LINSTOR client needs the certificate in PEM format, so before we can use it we have to convert
+the java keystore certificate to the PEM format.
+
+---------
+# Convert to pkcs12
+keytool -importkeystore -srckeystore client.jks -destkeystore client.p12\
+ -storepass linstor -keypass linstor\
+ -srcalias client -srcstoretype jks -deststoretype pkcs12
+
+# use openssl to convert to PEM
+openssl pkcs12 -in client.p12 -out client_with_pass.pem
+---------
+
+To avoid entering the PEM file password all the time it might be convenient to remove the password.
+
+---------
+openssl rsa -in client_with_pass.pem -out client1.pem
+openssl x509 -in client_with_pass.pem >> client1.pem
+---------
+
+Now this PEM file can easily be used in the client:
+
+---------
+linstor --certfile client1.pem node list
+---------
+
+
+The `--certfile` parameter can also added to the client configuration file, see
+<<s-using_the_linstor_client>> for more details.
+
+
 [[s-linstor-logging]]
 === Logging
 
@@ -1374,6 +1443,7 @@ See the https://logback.qos.ch/manual/index.html[Logback Manual] to find more de
 
 
 When none of the configuration methods above is used Linstor will default to `INFO` log level.
+
 
 [[s-linstor-secure-connections]]
 === Secure Satellite connections
