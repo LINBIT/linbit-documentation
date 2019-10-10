@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-10-02 10:38+0900\n"
+"POT-Creation-Date: 2019-10-10 16:01+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -124,10 +124,10 @@ msgstr "オブジェクト"
 #. type: Plain text
 msgid ""
 "Objects are the end result which LINSTOR presents to the end-user or "
-"application, such as; Kubernettes/OpenShift, a replicated block device "
+"application, such as; Kubernetes/OpenShift, a replicated block device "
 "(DRBD), NVMeOF target, etc."
 msgstr ""
-"オブジェクトは、Kubernettes/OpenShift、複製ブロックデバイス(DRBD)、NVMeOFター"
+"オブジェクトは、Kubernetes/OpenShift、複製ブロックデバイス(DRBD)、NVMeOFター"
 "ゲットなどLINSTORがエンドユーザーまたはアプリケーションに提示する最終結果で"
 "す。"
 
@@ -1549,7 +1549,7 @@ msgstr "DRBDクライアント"
 msgid ""
 "By using the `--diskless` option instead of `--storage-pool` you can have a "
 "permanently diskless DRBD device on a node. This means that the resource "
-"will appear as Blockdevice and can be mounted to the filesystem without an "
+"will appear as block device and can be mounted to the filesystem without an "
 "existing storage-device. The data of the resource is accessed over the "
 "network on another nodes with the same resource."
 msgstr ""
@@ -1924,9 +1924,9 @@ msgstr "# apt install nvme-cli\n"
 #. type: Plain text
 msgid ""
 "To make a resource which uses NVMe-oF/NVMe-TCP an additional parameter has "
-"to be given as you create the resource-definiton:"
+"to be given as you create the resource-definition:"
 msgstr ""
-"NVMe-oF/NVMe-TCP を使用するリソースを作成するには、resource-definiton を作成"
+"NVMe-oF/NVMe-TCP を使用するリソースを作成するには、resource-definition を作成"
 "するときに追加のパラメータを指定する必要があります。"
 
 #. type: delimited block -
@@ -2597,7 +2597,7 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"The `/etc/linstor/linstor.toml` configuration file needs to be editied for "
+"The `/etc/linstor/linstor.toml` configuration file needs to be edited for "
 "your database setup."
 msgstr ""
 "使用するデータベースに合わせて、`/etc/linstor/linstor.toml` ファイルを更新し"
@@ -2682,7 +2682,7 @@ msgstr "LINSTOR REST-API"
 
 #. type: Plain text
 msgid ""
-"To make LINSTOR's administrative tasks more accessable and also available "
+"To make LINSTOR's administrative tasks more accessible and also available "
 "for web-frontends a REST-API has been created. The REST-API is embedded in "
 "the linstor-controller and since LINSTOR 0.9.13 configured via the the "
 "`linstor.toml` configuration file."
@@ -2761,11 +2761,11 @@ msgstr ""
 #. type: delimited block -
 #, no-wrap
 msgid ""
-"[http]\n"
+"[https]\n"
 "  keystore = \"/path/to/keystore_linstor.jks\"\n"
 "  keystore_password = \"linstor\"\n"
 msgstr ""
-"[http]\n"
+"[https]\n"
 "  keystore = \"/path/to/keystore_linstor.jks\"\n"
 "  keystore_password = \"linstor\"\n"
 
@@ -2792,6 +2792,144 @@ msgid ""
 msgstr ""
 "HTTPS が有効な場合、HTTP /v1/ REST-API へのすべてのリクエストは HTTPS にリダ"
 "イレクトされます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "LINSTOR REST-API HTTPS restricted client access"
+msgstr "LINSTOR REST-API HTTPS 制限付きクライアントアクセス"
+
+#. type: Plain text
+msgid ""
+"Client access can be restricted by using a SSL truststore on the "
+"Controller.  Basically you create a certificate for your client and add it "
+"to your truststore and the client then uses this certificate for "
+"authentication."
+msgstr ""
+"クライアントアクセスは、コントローラの SSL トラストストアを使用して制限できま"
+"す。基本的には、クライアント用の証明書を作成し、それをトラストストアに追加し"
+"ます。クライアントは認証にこの証明書を使用します。"
+
+#. type: Plain text
+msgid "First create a client certificate:"
+msgstr "最初にクライアント証明書を作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore client.jks\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -alias client1\\\n"
+" -dname \"CN=Client Cert, OU=client, O=Example, L=Vienna, ST=Austria, C=AT\"\n"
+msgstr ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore client.jks\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -alias client1\\\n"
+" -dname \"CN=Client Cert, OU=client, O=Example, L=Vienna, ST=Austria, C=AT\"\n"
+
+#. type: Plain text
+msgid "Then we import this certificate to our controller truststore:"
+msgstr "次に、この証明書をコントローラーのトラストストアにインポートします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore client.jks -destkeystore trustore_client.jks\n"
+msgstr ""
+"keytool -importkeystore\\\n"
+" -srcstorepass linstor -deststorepass linstor -keypass linstor\\\n"
+" -srckeystore client.jks -destkeystore trustore_client.jks\n"
+
+#. type: Plain text
+msgid "And enable the truststore in the `linstor.toml` configuration file:"
+msgstr "そして `linstor.toml` 設定ファイルのトラストストアを有効にします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[https]\n"
+"  keystore = \"/path/to/keystore_linstor.jks\"\n"
+"  keystore_password = \"linstor\"\n"
+"  truststore = \"/path/to/trustore_client.jks\"\n"
+"  truststore_password = \"linstor\"\n"
+msgstr ""
+"[https]\n"
+"  keystore = \"/path/to/keystore_linstor.jks\"\n"
+"  keystore_password = \"linstor\"\n"
+"  truststore = \"/path/to/trustore_client.jks\"\n"
+"  truststore_password = \"linstor\"\n"
+
+#. type: Plain text
+msgid ""
+"Now restart the Controller and it will no longer be possible to access the "
+"controller API without a correct certificate."
+msgstr ""
+"そしてコントローラを再起動することで、証明書なしではコントローラ API にアクセ"
+"スできなくなります。"
+
+#. type: Plain text
+msgid ""
+"The LINSTOR client needs the certificate in PEM format, so before we can use "
+"it we have to convert the java keystore certificate to the PEM format."
+msgstr ""
+"LINSTOR クライアントは PEM 形式の証明書が必要なので、使用する前に Java キース"
+"トア証明書を PEM 形式に変換する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# Convert to pkcs12\n"
+"keytool -importkeystore -srckeystore client.jks -destkeystore client.p12\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -srcalias client1 -srcstoretype jks -deststoretype pkcs12\n"
+msgstr ""
+"# Convert to pkcs12\n"
+"keytool -importkeystore -srckeystore client.jks -destkeystore client.p12\\\n"
+" -storepass linstor -keypass linstor\\\n"
+" -srcalias client1 -srcstoretype jks -deststoretype pkcs12\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# use openssl to convert to PEM\n"
+"openssl pkcs12 -in client.p12 -out client_with_pass.pem\n"
+msgstr ""
+"# use openssl to convert to PEM\n"
+"openssl pkcs12 -in client.p12 -out client_with_pass.pem\n"
+
+#. type: Plain text
+msgid ""
+"To avoid entering the PEM file password all the time it might be convenient "
+"to remove the password."
+msgstr ""
+"PEM ファイルのパスワードを常に入力しないようにするには、以下のようにします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"openssl rsa -in client_with_pass.pem -out client1.pem\n"
+"openssl x509 -in client_with_pass.pem >> client1.pem\n"
+msgstr ""
+"openssl rsa -in client_with_pass.pem -out client1.pem\n"
+"openssl x509 -in client_with_pass.pem >> client1.pem\n"
+
+#. type: Plain text
+msgid "Now this PEM file can easily be used in the client:"
+msgstr "これでこの PEMファイルをクライアントで使用できるようになります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "linstor --certfile client1.pem node list\n"
+msgstr "linstor --certfile client1.pem node list\n"
+
+#. type: Plain text
+msgid ""
+"The `--certfile` parameter can also added to the client configuration file, "
+"see <<s-using_the_linstor_client>> for more details."
+msgstr ""
+"`--certfile` パラメータをクライアント設定ファイルに追加することもできます。詳"
+"細は <<s-using_the_linstor_client>> を参照してください。"
 
 #. type: Title ===
 #, no-wrap
@@ -2988,8 +3126,8 @@ msgid ""
 "It is possible to have the LINSTOR use SSL secure TCP connection between "
 "controller and satellite connections.  Without going into further details on "
 "how java's SSL engine works we will give you command line snippets using the "
-"`keytool` from java's runtime environement on how to configure a 3 node "
-"setup using secure connections.  The node setup looks like this:"
+"`keytool` from java's runtime environment on how to configure a 3 node setup "
+"using secure connections.  The node setup looks like this:"
 msgstr ""
 "LINSTOR でコントローラとサテライト間の接続に SSL セキュア TCP 接続を使用する"
 "ことができます。Java の SSL エンジンの動作について詳しく調査しなくても、Java "
