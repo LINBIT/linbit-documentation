@@ -1186,12 +1186,12 @@ Please contact LINBIT for assistance optimizing your configuration.
 === External database
 
 It is possible to have LINSTOR working with an external database provider
-like Postgresql or MariaDB.
-To use an external database there are a few additional steps to configure.
+like Postgresql, MariaDB and since version 1.1.0 even ETCD key value store is supported.
 
-1. The JDBC database driver for your database needs to be downloaded
-   and installed to the LINSTOR library directory.
-2. The `/etc/linstor/linstor.toml` configuration file needs to be edited for your database setup.
+To use an external database there are a few additional steps to configure.
+External-SQL database need to download their JDBC-driver and copy it to the lib folder,
+ETCD just needs to correctly configure the LINSTOR.
+
 
 [[s-postgresql]]
 ==== Postgresql
@@ -1234,6 +1234,36 @@ connection_url = "jdbc:mariadb://localhost/LINSTOR?createDatabaseIfNotExist=true
 NOTE: The LINSTOR schema/database is created as `LINSTOR` so make sure the mariadb connection string
 refers to the `LINSTOR` schema, as in the example above.
 
+
+[[s-etcd]]
+==== ETCD
+
+ETCD is a distributed key-value store that makes it easy to keep your LINSTOR database distributed in a HA-setup.
+The ETCD driver is already included in the LINSTOR-controller package and only needs to be configured in the `linstor.toml`.
+
+More information on how to install and configure ETCD can be found here: https://etcd.io/docs[ETCD docs]
+
+And here is a sample [db] section from the `linstor.toml`:
+
+------------------------------------------------------
+[db]
+## only set user/password if you want to use authentication, only since LINSTOR 1.2.1
+# user = "linstor"
+# password = "linstor"
+
+## for etcd
+## do not set user field if no authentication required
+connection_url = "etcd://etcdhost1:2379,etcdhost2:2379,etcdhost3:2379"
+
+## if you want to use TLS, only since LINSTOR 1.2.1
+# ca_certificate = "ca.pem"
+# client_certificate = "client.pem"
+
+## if you want to use client TLS authentication too, only since LINSTOR 1.2.1
+# client_key_pcks8_pem = "client-key.pcks8"
+## set client_key_password if private key has a password
+# client_key_password = "mysecret"
+------------------------------------------------------
 
 [[s-linstor-rest-api]]
 === LINSTOR REST-API
