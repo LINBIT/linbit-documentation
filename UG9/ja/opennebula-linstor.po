@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-01-14 13:37+0900\n"
+"POT-Creation-Date: 2019-11-05 11:03+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -136,23 +136,559 @@ msgstr "配備オプション"
 
 #. type: Plain text
 msgid ""
-"Resources may be automatically placed or assigned to specific nodes.  "
-"Generally, automatic assignment is preferred as LINSTOR will automatically "
-"scale as more nodes are added to the cluster, provided they have the storage "
-"pool that matches the one that the driver is configured to use."
+"It is recommended to use LINSTOR resource groups to configure the deployment "
+"how you like it, see <<s-opennebula-resource-group>>.  Previous auto-place "
+"and deployment nodes modes are deprecated."
 msgstr ""
-"リソースは自動的に特定のノードに配置または割り当てられます。通常、LINSTORは、"
-"ドライバが使用するように構成されたストレージプールを持っていれば、クラスタに"
-"追加されるノードが増えると自動的に割り当てられます。"
+"LINSTOR リソースグループ <<s-opennebula-resource-group>> を使用して構成するこ"
+"とをお勧めします。以前の自動配置およびデプロイメントノードモードは非推奨で"
+"す。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuration"
+msgstr "構成"
+
+#. type: Title ====
+#, no-wrap
+msgid "Adding the driver to OpenNebula"
+msgstr "OpenNebula へのドライバーの追加"
+
+#. type: Plain text
+msgid "Modify the following sections of `/etc/one/oned.conf`"
+msgstr "`/etc/one/oned.conf` の以下のセクションを変更します。"
 
 #. type: Plain text
 msgid ""
-"The driver also allows for the selection of storage pools on a per-datastore "
-"basis. If no storage pool is selected, the default storage pool will be used."
+"Add linstor to the list of drivers in the `TM_MAD` and `DATASTORE_MAD` "
+"sections:"
 msgstr ""
-"また、ドライバは、データストアごとにストレージプールを選択することもできま"
-"す。ストレージプールが選択されていない場合は、デフォルトのストレージプールが"
-"使用されます。"
+"`TM_MAD` および `DATASTORE_MAD` セクションのドライバーのリストに linstor を追"
+"加します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"TM_MAD = [\n"
+"  executable = \"one_tm\",\n"
+"  arguments = \"-t 15 -d dummy,lvm,shared,fs_lvm,qcow2,ssh,vmfs,ceph,linstor\"\n"
+"]\n"
+msgstr ""
+"TM_MAD = [\n"
+"  executable = \"one_tm\",\n"
+"  arguments = \"-t 15 -d dummy,lvm,shared,fs_lvm,qcow2,ssh,vmfs,ceph,linstor\"\n"
+"]\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"DATASTORE_MAD = [\n"
+"    EXECUTABLE = \"one_datastore\",\n"
+"    ARGUMENTS  = \"-t 15 -d dummy,fs,lvm,ceph,dev,iscsi_libvirt,vcenter,linstor -s shared,ssh,ceph,fs_lvm,qcow2,linstor\"\n"
+msgstr ""
+"DATASTORE_MAD = [\n"
+"    EXECUTABLE = \"one_datastore\",\n"
+"    ARGUMENTS  = \"-t 15 -d dummy,fs,lvm,ceph,dev,iscsi_libvirt,vcenter,linstor -s shared,ssh,ceph,fs_lvm,qcow2,linstor\"\n"
+
+#. type: Plain text
+msgid "Add new TM_MAD_CONF and DS_MAD_CONF sections:"
+msgstr "TM_MAD_CONF および DS_MAD_CONF セクションを新たに追加します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"TM_MAD_CONF = [\n"
+"    NAME = \"linstor\", LN_TARGET = \"NONE\", CLONE_TARGET = \"SELF\", SHARED = \"yes\", ALLOW_ORPHANS=\"yes\",\n"
+"    TM_MAD_SYSTEM = \"ssh,shared\", LN_TARGET_SSH = \"NONE\", CLONE_TARGET_SSH = \"SELF\", DISK_TYPE_SSH = \"BLOCK\",\n"
+"    LN_TARGET_SHARED = \"NONE\", CLONE_TARGET_SHARED = \"SELF\", DISK_TYPE_SHARED = \"BLOCK\"\n"
+"]\n"
+msgstr ""
+"TM_MAD_CONF = [\n"
+"    NAME = \"linstor\", LN_TARGET = \"NONE\", CLONE_TARGET = \"SELF\", SHARED = \"yes\", ALLOW_ORPHANS=\"yes\",\n"
+"    TM_MAD_SYSTEM = \"ssh,shared\", LN_TARGET_SSH = \"NONE\", CLONE_TARGET_SSH = \"SELF\", DISK_TYPE_SSH = \"BLOCK\",\n"
+"    LN_TARGET_SHARED = \"NONE\", CLONE_TARGET_SHARED = \"SELF\", DISK_TYPE_SHARED = \"BLOCK\"\n"
+"]\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"DS_MAD_CONF = [\n"
+"    NAME = \"linstor\", REQUIRED_ATTRS = \"BRIDGE_LIST\", PERSISTENT_ONLY = \"NO\",\n"
+"    MARKETPLACE_ACTIONS = \"export\"\n"
+"]\n"
+msgstr ""
+"DS_MAD_CONF = [\n"
+"    NAME = \"linstor\", REQUIRED_ATTRS = \"BRIDGE_LIST\", PERSISTENT_ONLY = \"NO\",\n"
+"    MARKETPLACE_ACTIONS = \"export\"\n"
+"]\n"
+
+#. type: Plain text
+msgid "After making these changes, restart the opennebula service."
+msgstr "これらの変更を行った後、opennebula サービスを再起動します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Configuring the Nodes"
+msgstr "ノードの構成"
+
+#. type: Plain text
+msgid ""
+"The Front-End node issues commands to the Storage and Host nodes via Linstor"
+msgstr ""
+"フロントエンドノードは、Linstor を介してストレージノードおよびホストノードに"
+"コマンドを発行します。"
+
+#. type: Plain text
+msgid "Storage nodes hold disk images of VMs locally."
+msgstr "ストレージノードは、VM のディスクイメージをローカルに保持します。"
+
+#. type: Plain text
+msgid ""
+"Host nodes are responsible for running instantiated VMs and typically have "
+"the storage for the images they need attached across the network via Linstor "
+"diskless mode."
+msgstr ""
+"ホストノードは、インスタンス化された VM の実行を担当し、通常、必要なイメージ"
+"用のストレージを Linstor ディスクレスモードを介してネットワーク経由で接続しま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"All nodes must have DRBD9 and Linstor installed. This process is detailed in "
+"the http://docs.linbit.com/doc/users-guide-90/ch-admin-linstor/[User's Guide "
+"for DRBD9]"
+msgstr ""
+"すべてのノードに DRBD9 と Linstor がインストールされている必要があります。こ"
+"のプロセスの詳細は http://docs.linbit.com/doc/users-guide-90/ch-admin-"
+"linstor/[DRBD9 のユーザーズガイド] を参照ください。"
+
+#. type: Plain text
+msgid ""
+"It is possible to have Front-End and Host nodes act as storage nodes in "
+"addition to their primary role as long as they the meet all the requirements "
+"for both roles."
+msgstr ""
+"両方の役割のすべての要件を満たす限り、フロントエンドノードとホストノードをプ"
+"ライマリロールに加えてストレージノードとして機能させることができます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Front-End Configuration"
+msgstr "フロントエンドノードの構成"
+
+#. type: Plain text
+msgid ""
+"Please verify that the control node(s) that you hope to communicate with are "
+"reachable from the Front-End node. `linstor node list` for locally running "
+"Linstor controllers and `linstor --controllers \"<IP:PORT>\" node list` for "
+"remotely running Linstor Controllers is a handy way to test this."
+msgstr ""
+"使用するコントロールノードがフロントエンドノードから到達可能であることを確認"
+"してください。ローカルで実行される Linstor コントローラーでは `linstor node "
+"list` を、リモートで実行する Linstor コントローラーでは `linstor --"
+"controllers \"<IP:PORT>\" node list` を使用することで簡単にテストできます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Host Configuration"
+msgstr "ホストノードの構成"
+
+#. type: Plain text
+msgid ""
+"Host nodes must have Linstor satellite processes running on them and be "
+"members of the same Linstor cluster as the Front-End and Storage nodes, and "
+"may optionally have storage locally. If the `oneadmin` user is able to "
+"passwordlessly ssh between hosts then live migration may be used with the "
+"even with the ssh system datastore."
+msgstr ""
+"ホストノードでは、Linstor サテライトプロセスが実行され、フロントエンドノード"
+"およびストレージノードと同じ Linstor クラスターのメンバーである必要がありま"
+"す。また、オプションでローカルにストレージを持つことができます。 `oneadmin` "
+"ユーザーがパスワードなしでホスト間で ssh できる場合、ssh システムデータストア"
+"でもライブマイグレーションを使用できます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Storage Node Configuration"
+msgstr "ストレージノードの構成"
+
+#. type: Plain text
+msgid ""
+"Only the Front-End and Host nodes require OpenNebula to be installed, but "
+"the oneadmin user must be able to passwordlessly access storage nodes. Refer "
+"to the OpenNebula install guide for your distribution on how to manually "
+"configure the oneadmin user account."
+msgstr ""
+"フロントエンドノードとホストノードのみが OpenNebula のインストールを必要とし"
+"ますが、oneadmin ユーザーはパスワードなしでストレージノードにアクセスできる必"
+"要があります。 oneadmin ユーザーアカウントを手動で構成する方法については、"
+"ディストリビューションの OpenNebula インストールガイドを参照してください。"
+
+#. type: Plain text
+msgid ""
+"The Storage nodes must use storage pools created with a driver that's "
+"capable of making snapshots, such as the thin LVM plugin."
+msgstr ""
+"ストレージノードは、シンLVMプラグインなどのスナップショットを作成できるドライ"
+"バーで作成されたストレージプールを使用する必要があります。"
+
+#. type: Plain text
+msgid ""
+"In this example preparation of thinly-provisioned storage using LVM for "
+"Linstor, you must create a volume group and thinLV using LVM on each storage "
+"node."
+msgstr ""
+"Linstor用のLVMを使用したシンプロビジョニングされたストレージのこの例では、各"
+"ストレージノードでLVMを使用してボリュームグループとthinLVを作成する必要があり"
+"ます。"
+
+#. type: Plain text
+msgid ""
+"Example of this process using two physical volumes (/dev/sdX and /dev/sdY) "
+"and generic names for the volume group and thinpool. Make sure to set the "
+"thinLV's metadata volume to a reasonable size, once it becomes full it can "
+"be difficult to resize:"
+msgstr ""
+"以下は 2つの物理ボリューム (/dev/sdX と /dev/sdY) とボリュームグループおよび"
+"シンプールの一般名を使用したこの構成例です。 thinLVのメタデータボリュームを適"
+"切なサイズに設定してください。一度いっぱいになると、サイズ変更が困難になる場"
+"合があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"pvcreate /dev/sdX /dev/sdY\n"
+"vgcreate drbdpool /dev/sdX /dev/sdY\n"
+"lvcreate -l 95%VG --poolmetadatasize 8g -T /dev/drbdpool/drbdthinpool\n"
+msgstr ""
+"pvcreate /dev/sdX /dev/sdY\n"
+"vgcreate drbdpool /dev/sdX /dev/sdY\n"
+"lvcreate -l 95%VG --poolmetadatasize 8g -T /dev/drbdpool/drbdthinpool\n"
+
+#. type: Plain text
+msgid ""
+"Then you'll create storage pool(s) on Linstor using this as the backing "
+"storage."
+msgstr ""
+"次に、これを下位ストレージとして使用して、Linstorにストレージプールを作成しま"
+"す。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Permissions for Oneadmin"
+msgstr "Oneadminのアクセス権"
+
+#. type: Plain text
+msgid ""
+"The oneadmin user must have passwordless sudo access to the `mkfs` command "
+"on the Storage nodes"
+msgstr ""
+"oneadminユーザーには、ストレージノードで `mkfs` コマンドへのパスワードなし"
+"sudoアクセス権が必要です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "oneadmin ALL=(root) NOPASSWD: /sbin/mkfs\n"
+msgstr "oneadmin ALL=(root) NOPASSWD: /sbin/mkfs\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Groups"
+msgstr "Groups"
+
+#. type: Plain text
+msgid ""
+"Be sure to consider the groups that oneadmin should be added to in order to "
+"gain access to the devices and programs needed to access storage and "
+"instantiate VMs. For this addon, the oneadmin user must belong to the `disk` "
+"group on all nodes in order to access the DRBD devices where images are held."
+msgstr ""
+"ストレージへのアクセスとVMのインスタンス化に必要なデバイスとプログラムにアク"
+"セスするため、oneadmin に追加する必要があるグループを必ず検討してください。こ"
+"のアドオンの場合、イメージが保持されているDRBDデバイスにアクセスするには、"
+"oneadminユーザーがすべてのノードの `disk` グループに属している必要がありま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "usermod -a -G disk oneadmin\n"
+msgstr "usermod -a -G disk oneadmin\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Creating a New Linstor Datastore"
+msgstr "新しいLinstorデータストアの作成"
+
+#. type: Plain text
+msgid ""
+"Create a datastore configuration file named ds.conf and use the "
+"`onedatastore` tool to create a new datastore based on that configuration. "
+"There are two mutually exclusive deployment options: LINSTOR_AUTO_PLACE and "
+"LINSTOR_DEPLOYMENT_NODES. If both are configured, LINSTOR_AUTO_PLACE is "
+"ignored.  For both of these options, BRIDGE_LIST must be a space separated "
+"list of all storage nodes in the Linstor cluster."
+msgstr ""
+"ds.conf という名前のデータストア設定ファイルを作成し、 `onedatastore` ツール"
+"を使用して、その設定に基づいて新しいデータストアを作成します。相互に排他的な2"
+"つの配備オプション LINSTOR_AUTO_PLACE と LINSTOR_DEPLOYMENT_NODES がありま"
+"す。両方が設定されている場合、LINSTOR_AUTO_PLACE は無視されます。どちらのオプ"
+"ションでも、BRIDGE_LIST は Linstor クラスター内のすべてのストレージノードのス"
+"ペース区切りリストである必要があります。"
+
+#. type: Title ====
+#, no-wrap
+msgid "OpenNebula resource group"
+msgstr "OpenNebula リソースグループ"
+
+#. type: Plain text
+msgid ""
+"Since version 1.0.0 LINSTOR supports resource groups. A resource group is a "
+"centralized point for settings that all resources linked to that resource "
+"group share."
+msgstr ""
+"バージョン1.0.0以降、LINSTORはリソースグループをサポートしています。リソース"
+"グループは、そのリソースグループにリンクされているすべてのリソースが共有する"
+"設定の一元化されたポイントです。"
+
+#. type: Plain text
+msgid ""
+"Create a resource group and volume group for your datastore, here we create "
+"one with 2 node redundency and use a created `opennebula-storagepool`:"
+msgstr ""
+"ここでは、データストアのリソースグループとボリュームグループを作成します。2"
+"ノードの冗長性を持つリソースグループを作成し、作成した `opennebula-"
+"storagepool` を使用します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"linstor resource-group create OneRscGrp --place-count 2 --storage-pool opennebula-storagepool\n"
+"linstor volume-group create\n"
+msgstr ""
+"linstor resource-group create OneRscGrp --place-count 2 --storage-pool opennebula-storagepool\n"
+"linstor volume-group create\n"
+
+#. type: Plain text
+msgid "Now add a OpenNebula datastore using the LINSTOR plugin:"
+msgstr "LINSTOR プラグインを使用して OpenNebula データストアを追加します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"cat >ds.conf <<EOI\n"
+"NAME = linstor_datastore\n"
+"DS_MAD = linstor\n"
+"TM_MAD = linstor\n"
+"TYPE = IMAGE_DS\n"
+"DISK_TYPE = BLOCK\n"
+"LINSTOR_RESOURCE_GROUP = \"OneRscGrp\"\n"
+"COMPATIBLE_SYS_DS = 0\n"
+"BRIDGE_LIST = \"alice bob charlie\"  #node names\n"
+"EOI\n"
+msgstr ""
+"cat >ds.conf <<EOI\n"
+"NAME = linstor_datastore\n"
+"DS_MAD = linstor\n"
+"TM_MAD = linstor\n"
+"TYPE = IMAGE_DS\n"
+"DISK_TYPE = BLOCK\n"
+"LINSTOR_RESOURCE_GROUP = \"OneRscGrp\"\n"
+"COMPATIBLE_SYS_DS = 0\n"
+"BRIDGE_LIST = \"alice bob charlie\"  #node names\n"
+"EOI\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "onedatastore create ds.conf\n"
+msgstr "onedatastore create ds.conf\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Plugin attributes"
+msgstr "プラグインの属性"
+
+#. type: Title =====
+#, no-wrap
+msgid "LINSTOR_CONTROLLERS"
+msgstr "LINSTOR_CONTROLLERS"
+
+#. type: Plain text
+msgid ""
+"`LINSTOR_CONTROLLERS` can be used to pass a comma separated list of "
+"controller ips and ports to the Linstor client in the case where a Linstor "
+"controller process is not running locally on the Front-End, e.g.:"
+msgstr ""
+"Linstorコントローラープロセスがローカルで実行されていない場合、 "
+"`LINSTOR_CONTROLLERS` を使用して、コントローラーIPとポートのコンマ区切りリス"
+"トをLinstorクライアントに渡すことができます。"
+
+#. type: Plain text
+msgid "`LINSTOR_CONTROLLERS = \"192.168.1.10:8080,192.168.1.11:6000\"`"
+msgstr "`LINSTOR_CONTROLLERS = \"192.168.1.10:8080,192.168.1.11:6000\"`"
+
+#. type: Title =====
+#, no-wrap
+msgid "LINSTOR_CLONE_MODE"
+msgstr "LINSTOR_CLONE_MODE"
+
+#. type: Plain text
+msgid ""
+"Linstor supports 2 different clone modes and are set via the "
+"`LINSTOR_CLONE_MODE` attribute:"
+msgstr ""
+"Linstorは2つの異なるクローンモードをサポートし、 `LINSTOR_CLONE_MODE` 属性を"
+"介して設定します。"
+
+#. type: Plain text
+msgid "`snapshot`"
+msgstr "`snapshot`"
+
+#. type: Plain text
+msgid ""
+"The default mode is `snapshot` it uses a linstor snapshot and restores a new "
+"resource from this snapshot, which is then a clone of the image.  This mode "
+"is usually faster than using the `copy` mode as snapshots are cheap copies."
+msgstr ""
+"デフォルトのモードは `snapshot` で、linstorスナップショットを使用し、このス"
+"ナップショットから新しいリソースを復元します。このスナップショットはイメージ"
+"のクローンになります。通常、スナップショットは最低限のコピーであるため、この"
+"モードは `copy` モードを使用するよりも高速です。"
+
+#. type: Plain text
+msgid "`copy`"
+msgstr "`copy`"
+
+#. type: Plain text
+msgid ""
+"The second mode is `copy` it creates a new resource with the same size as "
+"the original and copies the data with `dd` to the new resource.  This mode "
+"will be slower than `snapshot`, but is more robust as it doesn't rely on any "
+"snapshot mechanism, it is also used if you are cloning an image into a "
+"different linstor datastore."
+msgstr ""
+"2番目のモードは `copy` モードで、元のサイズと同じサイズの新しいリソースを作成"
+"し、 `dd` でデータを新しいリソースにコピーします。このモードは `snapshot` よ"
+"りも遅くなりますが、スナップショットメカニズムに依存しないため、より堅牢で"
+"す。別のlinstorデータストアにイメージをクローンする場合にも使用されます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Deprecated attributes"
+msgstr "廃止された属性"
+
+#. type: Plain text
+msgid ""
+"The following attributes are deprecated and will be removed in version after "
+"the 1.0.0 release."
+msgstr "次の属性は非推奨であり、1.0.0リリース後のバージョンでは削除されます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "LINSTOR_STORAGE_POOL"
+msgstr "LINSTOR_STORAGE_POOL"
+
+#. type: Plain text
+msgid ""
+"`LINSTOR_STORAGE_POOL` attribute is used to select the LINSTOR storage pool "
+"your datastore should use. If resource groups are used this attribute isn't "
+"needed as the storage pool can be select by the auto select filter options.  "
+"If `LINSTOR_AUTO_PLACE` or `LINSTOR_DEPLOYMENT_NODES` is used and "
+"`LINSTOR_STORAGE_POOL` is not set, it will fallback to the `DfltStorPool` in "
+"LINSTOR."
+msgstr ""
+"`LINSTOR_STORAGE_POOL` 属性は、データストアが使用するLINSTORストレージプール"
+"を選択するために使用されます。リソースグループが使用される場合、ストレージ"
+"プールは自動選択フィルターオプションで選択できるため、この属性は必要ありませ"
+"ん。`LINSTOR_AUTO_PLACE` または `LINSTOR_DEPLOYMENT_NODES` が使用され、"
+"`LINSTOR_STORAGE_POOL` が設定されていない場合、LINSTORで `DfltStorPool` に"
+"フォールバックします。"
+
+#. type: Title =====
+#, no-wrap
+msgid "LINSTOR_AUTO_PLACE"
+msgstr "LINSTOR_AUTO_PLACE"
+
+#. type: Plain text
+msgid ""
+"The `LINSTOR_AUTO_PLACE` option takes a level of redundancy which is a "
+"number between one and the total number of storage nodes. Resources are "
+"assigned to storage nodes automatically based on the level of redundancy."
+msgstr ""
+"`LINSTOR_AUTO_PLACE` オプションは、冗長ストレージの個数を表し、1からストレー"
+"ジノードの総数の間の数値です。リソースは、冗長性の個数に基づいてストレージ"
+"ノードに自動的に割り当てられます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "LINSTOR_DEPLOYMENT_NODES"
+msgstr "LINSTOR_DEPLOYMENT_NODES"
+
+#. type: Plain text
+msgid ""
+"Using `LINSTOR_DEPLOYMENT_NODES` allows you to select a group of nodes that "
+"resources will always be assigned to. Please note that the bridge list still "
+"contains all of the storage nodes in the Linstor cluster."
+msgstr ""
+"`LINSTOR_DEPLOYMENT_NODES` を使用すると、リソースが常に割り当てられるノードの"
+"グループを選択できます。ブリッジリストには、Linstorクラスター内のすべてのスト"
+"レージノードがまだ含まれていることに注意してください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "LINSTOR as system datastore"
+msgstr "システムデータストアとしての LINSTOR"
+
+#. type: Plain text
+msgid ""
+"Linstor driver can also be used as a system datastore, configuration is "
+"pretty similar to normal datastores, with a few changes:"
+msgstr ""
+"Linstorドライバーはシステムデータストアとしても使用できます。構成は通常のデー"
+"タストアとかなり似ていますが、いくつか相違があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"cat >system_ds.conf <<EOI\n"
+"NAME = linstor_system_datastore\n"
+"TM_MAD = linstor\n"
+"TYPE = SYSTEM_DS\n"
+"LINSTOR_RESOURCE_GROUP = \"OneSysRscGrp\"\n"
+"BRIDGE_LIST = \"alice bob charlie\"  # node names\n"
+"EOI\n"
+msgstr ""
+"cat >system_ds.conf <<EOI\n"
+"NAME = linstor_system_datastore\n"
+"TM_MAD = linstor\n"
+"TYPE = SYSTEM_DS\n"
+"LINSTOR_RESOURCE_GROUP = \"OneSysRscGrp\"\n"
+"BRIDGE_LIST = \"alice bob charlie\"  # node names\n"
+"EOI\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "onedatastore create system_ds.conf\n"
+msgstr "onedatastore create system_ds.conf\n"
+
+#. type: Plain text
+msgid ""
+"Also add the new sys datastore id to the `COMPATIBLE_SYS_DS` to your image "
+"datastores (COMMA separated), otherwise the scheduler will ignore them."
+msgstr ""
+"また、新しいsysデータストアIDをイメージデータストア（COMMA区切り）の "
+"`COMPATIBLE_SYS_DS` に追加します。そうしないと、スケジューラはそれらを無視し"
+"ます。"
+
+#. type: Plain text
+msgid ""
+"If you want live migration with volatile disks you need to enable the `--"
+"unsafe` option for KVM, see: https://docs.opennebula.org/5.8/deployment/"
+"open_cloud_host_setup/kvm_driver.html#live-migration-for-other-cache-"
+"settings[opennebula-doc]"
+msgstr ""
+"揮発性ディスクを使用したライブマイグレーションが必要な場合は、KVMの `--"
+"unsafe` オプションを有効にする必要があります。https://docs.opennebula."
+"org/5.8/deployment/open_cloud_host_setup/kvm_driver.html を参照してください。"
 
 #. type: Title ===
 #, no-wrap
