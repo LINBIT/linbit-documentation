@@ -1562,6 +1562,61 @@ echo '[netcom]
 
 Now just start controller and satellites and add the nodes with `--communication-type SSL`.
 
+[[s-linstor-auto-quorum]]
+=== AutoQuorum Policies
+
+LINSTOR automatically configures quorum policies on resources *when
+quorum is achievable*. This means, whenever you have at least two diskful and one
+or more diskless resource assignments, or three or more diskful
+resource assignments, LINSTOR will enable quorum policies for your
+resources automatically.
+
+Inversely, LINSTOR will automatically disable quorum policies whenever
+there are less than the minimum required resource assignments to
+achieve quorum.
+
+This is controlled via the, `DrbdOptions/auto-quorum`, property which
+can be applied to the _linstor-controller_, _resource-group_, and
+_resource-definition_. Accepted values for the
+`DrbdOptions/auto-quorum` property are `disabled`, `suspend-io`, and
+`io-error`.
+
+Setting the `DrbdOptions/auto-quorum` property to `disabled` will
+allow you to manually, or more granularly, control the quorum policies
+of your resources should you so desire.
+
+TIP: The default policies for `DrbdOptions/auto-quorum` are `quorum
+majority`, and `on-no-quorum io-error`. For more information on DRBD's
+quorum features and their behavior, please refer to the
+{url-drbd-ug}#s-feature-quorum[quorum section of the DRBD user's guide].
+
+IMPORTANT: The `DrbdOptions/auto-quorum` policies will override any
+manually configured properties if `DrbdOptions/auto-quorum` is not disabled.
+
+For example, to manually set the quorum policies of a _resource-group_
+named `my_ssd_group`, you would use the following commands:
+
+----
+# linstor resource-group set-property my_ssd_group DrbdOptions/auto-quorum disabled
+# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/quorum majority
+# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/on-no-quorum suspend-io
+----
+
+You may wish to disable DRBD's quorum features completely. To do that,
+you would need to first disable `DrbdOptions/auto-quorum` on the
+appropriate LINSTOR object, and then set the DRBD quorum features
+accordingly. For example, use the following commands to disable quorum
+entirely on the `my_ssd_group` _resource-group_:
+
+----
+# linstor resource-group set-property my_ssd_group DrbdOptions/auto-quorum disabled
+# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/quorum off
+# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/on-no-quorum
+----
+
+NOTE: Setting `DrbdOptions/Resource/on-no-quorum` to an empty value
+in the commands above deletes the property from the object entirely.
+
 [[s-linstor-getting-help]]
 === Getting help
 ==== From the command line
