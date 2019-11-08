@@ -180,17 +180,23 @@ enable the `drbd.service` on all hosts (given that it is not controlled by LINST
 # systemctl start drbd
 --------------
 
-At startup, the `linstor-satellite` service deletes all of its resource files (`*.res`) and regenerates them.
-This conflicts with the `drbd` services that needs these resource files to start the controller VM. It is good
-enough to first bring up the resources via `drbd.service` and then start `linstor-satellite.service`. To make
-the necessary changes, you need to create a drop-in for the `linstor-satellite.service` via systemctl (do
-*not* edit the file directly).
+By default, at startup the `linstor-satellite` service deletes all of its resource files (`*.res`) and
+regenerates them.  This conflicts with the `drbd` services that needs these resource files to start the
+controller VM. It is good enough to first bring up the resources via `drbd.service` and ensure that the
+`linstor-satellite.service`, which brings up the controller resource never deletes the according `res` file.
+To make the necessary changes, you need to create a drop-in for the `linstor-satellite.service` via
+`systemctl` (do *not* edit the file directly).
 
 --------------
 systemctl edit linstor-satellite
+[Service]
+Environment=LS_KEEP_RES=vm-100-disk
 [Unit]
 After=drbd.service
 --------------
+
+Of course adapt the name of the controller VM in the `LS_KEEP_RES` variable. Note that the value given is
+interpreted as regex, so you don't need to specify the exact name.
 
 Don't forget to restart the `linstor-satellite.service`.
 
