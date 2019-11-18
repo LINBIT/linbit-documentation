@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-11-05 11:03+0900\n"
+"POT-Creation-Date: 2019-11-18 13:45+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -751,8 +751,8 @@ msgstr ""
 
 #. type: delimited block -
 #, no-wrap
-msgid "# docker run -d --name=linstor-satellite --net=host --privileged drbd.io/linstor-satellite\n"
-msgstr "# docker run -d --name=linstor-satellite --net=host --privileged drbd.io/linstor-satellite\n"
+msgid "# docker run -d --name=linstor-satellite --net=host -v /dev:/dev --privileged drbd.io/linstor-satellite\n"
+msgstr "# docker run -d --name=linstor-satellite --net=host -v /dev:/dev --privileged drbd.io/linstor-satellite\n"
 
 #. type: Plain text
 msgid ""
@@ -3391,6 +3391,124 @@ msgid ""
 msgstr ""
 "controller と satellites を起動し、`--communication-type SSL` でノードを追加"
 "してください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "AutoQuorum Policies"
+msgstr "自動クォーラムポリシー"
+
+#. type: Plain text
+msgid ""
+"LINSTOR automatically configures quorum policies on resources *when quorum "
+"is achievable*. This means, whenever you have at least two diskful and one "
+"or more diskless resource assignments, or three or more diskful resource "
+"assignments, LINSTOR will enable quorum policies for your resources "
+"automatically."
+msgstr ""
+"LINSTORは、リソースにクォーラムポリシーを自動的に構成します（クォーラムが利用"
+"可能な場合）。つまり、少なくとも2つのディスクフルと1つ以上のディスクレスリ"
+"ソースがある場合、または3つ以上のディスクフルリソースがある場合 、LINSTORはリ"
+"ソースのクォーラムポリシーを自動的に有効にします。"
+
+#. type: Plain text
+msgid ""
+"Inversely, LINSTOR will automatically disable quorum policies whenever there "
+"are less than the minimum required resource assignments to achieve quorum."
+msgstr ""
+"逆に、LINSTORは、クォーラムを使用するのに必要な最低限のリソース割り当てを満た"
+"さない場合は、クォーラムポリシーを自動的に無効にします。"
+
+#. type: Plain text
+msgid ""
+"This is controlled via the, `DrbdOptions/auto-quorum`, property which can be "
+"applied to the _linstor-controller_, _resource-group_, and _resource-"
+"definition_. Accepted values for the `DrbdOptions/auto-quorum` property are "
+"`disabled`, `suspend-io`, and `io-error`."
+msgstr ""
+"これは、_linstor-controller_ 、_resource-group_、および _resource-"
+"definition_ に適用できる `DrbdOptions/auto-quorum` プロパティで制御されま"
+"す。  `DrbdOptions/auto-quorum` プロパティには、 `disabled` 、  `suspend-"
+"io` 、および `io-error` を設定できます。"
+
+#. type: Plain text
+msgid ""
+"Setting the `DrbdOptions/auto-quorum` property to `disabled` will allow you "
+"to manually, or more granularly, control the quorum policies of your "
+"resources should you so desire."
+msgstr ""
+"`DrbdOptions/auto-quorum` プロパティを `disabled` に設定すると、リソースの"
+"クォーラムポリシーを手動で、必要に応じてより詳細に制御できます。"
+
+#. type: Plain text
+msgid ""
+"The default policies for `DrbdOptions/auto-quorum` are `quorum majority`, "
+"and `on-no-quorum io-error`. For more information on DRBD's quorum features "
+"and their behavior, please refer to the {url-drbd-ug}#s-feature-"
+"quorum[quorum section of the DRBD user's guide]."
+msgstr ""
+"`DrbdOptions/auto-quorum` のデフォルトのポリシーは `quorum majority` および "
+"`on-no-quorum io-error` です。 DRBDのクォーラム機能とその動作の詳細について"
+"は、 {url-drbd-ug}#s-feature-quorum[DRBDユーザーズガイドのクォーラム] を参照"
+"してください。"
+
+#. type: Plain text
+msgid ""
+"The `DrbdOptions/auto-quorum` policies will override any manually configured "
+"properties if `DrbdOptions/auto-quorum` is not disabled."
+msgstr ""
+"`Drbdoptions/auto-quorum` が有効な場合、 `Drbdoptions/auto-quorum` ポリシーは"
+"手動で設定されたプロパティを上書きします。"
+
+#. type: Plain text
+msgid ""
+"For example, to manually set the quorum policies of a _resource-group_ named "
+"`my_ssd_group`, you would use the following commands:"
+msgstr ""
+"たとえば、 `my_ssd_group` という名前の _resource-group_ のクォーラムポリシー"
+"を手動で設定するには、次のコマンドを使用します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource-group set-property my_ssd_group DrbdOptions/auto-quorum disabled\n"
+"# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/quorum majority\n"
+"# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/on-no-quorum suspend-io\n"
+msgstr ""
+"# linstor resource-group set-property my_ssd_group DrbdOptions/auto-quorum disabled\n"
+"# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/quorum majority\n"
+"# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/on-no-quorum suspend-io\n"
+
+#. type: Plain text
+msgid ""
+"You may wish to disable DRBD's quorum features completely. To do that, you "
+"would need to first disable `DrbdOptions/auto-quorum` on the appropriate "
+"LINSTOR object, and then set the DRBD quorum features accordingly. For "
+"example, use the following commands to disable quorum entirely on the "
+"`my_ssd_group` _resource-group_:"
+msgstr ""
+"DRBDのクォーラム機能を完全に無効にすることもできます。これを行うには、まず適"
+"切なLINSTORオブジェクトで `DrbdOptions/auto-quorum` を無効にします。そしてこ"
+"こにDRBDクォーラム機能を設定します。例えば `my_ssd_group` の _resource-"
+"group_ でクォーラムを完全に無効にするコマンドは次のコマンドを使用します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource-group set-property my_ssd_group DrbdOptions/auto-quorum disabled\n"
+"# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/quorum off\n"
+"# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/on-no-quorum\n"
+msgstr ""
+"# linstor resource-group set-property my_ssd_group DrbdOptions/auto-quorum disabled\n"
+"# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/quorum off\n"
+"# linstor resource-group set-property my_ssd_group DrbdOptions/Resource/on-no-quorum\n"
+
+#. type: Plain text
+msgid ""
+"Setting `DrbdOptions/Resource/on-no-quorum` to an empty value in the "
+"commands above deletes the property from the object entirely."
+msgstr ""
+"上記のコマンドで `DrbdOptions/Resource/on-no-quorum` を空の値に設定すると、プ"
+"ロパティがオブジェクトから完全に削除されます。"
 
 #. type: Title ===
 #, no-wrap
