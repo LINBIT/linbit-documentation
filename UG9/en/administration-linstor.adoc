@@ -839,14 +839,20 @@ on `linstor-d`:
             "backing_disk": "/dev/drbdpool/rsc-1_00000",
 ----
 
-The complete list of currently supported `--layer-list` combinations
-are as follows:
+The following table shows which layer can be followed by which child-layer:
 
-* drbd,luks,storage
-* drbd,storage
-* luks,storage
-* nvme,storage
-* storage
+[cols=">1,<10"]
+|===
+| Layer | Child layer
+
+| DRBD | WRITECACHE, NVME, LUKS, STORAGE
+| WRITECACHE | NVME, LUKS, STORAGE
+| NVME | WRITACACHE, LUKS, STORAGE
+| LUKS | STORAGE
+| STORAGE | -
+|===
+
+NOTE: One layer can only occur once in the layer-list
 
 TIP: For information about the prerequisites for the `luks` layer,
 refer to the Encrypted Volumes section of this User's Guide.
@@ -922,6 +928,43 @@ IMPORTANT: If your nodes have more than one NIC you should force the
 route between them for NVMe-of/NVME-TCP, otherwise multiple NIC's
 could cause troubles.
 
+
+==== Writecache Layer
+
+A https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/writecache.html[DM-Writecache]
+device is composed by two devices, one storage device and one cache device.
+LINSTOR can setup such a writecache device, but needs some additional information, like
+the storage pool and the size of the cache device.
+
+------
+# linstor storage-pool create lvm node1 lvmpool drbdpool
+# linstor storage-pool create lvm node1 pmempool pmempool
+
+# linstor resource-definition create r1
+# linstor volume-definition create r1 100G
+
+# linstor volume-definition set-property r1 0 Writecache/PoolName pmempool
+# linstor volume-definition set-property r1 0 Writecache/Size 1%
+
+# linstor resource create node1 r1 --storage-pool lvmpool --layer-list WRITECACHE,STORAGE
+------
+
+The two properties set in the examples are mandatory, but can also be set on
+controller level which would act as a default for all resources with `WRITECACHE` in their
+`--layer-list`. However, please note that the `Writecache/PoolName` referes to
+the corresponding node. If the node does not have a storge-pool named `pmempool` you will
+get an error message.
+
+The 4 mandatory parameters required by
+https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/writecache.html[DM-Writecache]
+are either configured via property or figured out by LINSTOR.
+The optional properties listed in the mentioned link can also be set via property.
+Please see `linstor controller set-property --help` for a list of `Writecache/*`
+property-keys.
+
+Using `--layer-list DRBD,WRITECACHE,STORAGE` while having DRBD configured to use
+external metadata, only the backing device will use a writecache, not the
+device holding the external metadata.
 
 [[s-managing_network_interface_cards]]
 === Managing Network Interface Cards
