@@ -301,7 +301,10 @@ resource <resource> {
   }
   handlers {
     fence-peer "/usr/lib/drbd/crm-fence-peer.9.sh";
-    after-resync-target "/usr/lib/drbd/crm-unfence-peer.9.sh";
+    unfence-peer "/usr/lib/drbd/crm-unfence-peer.9.sh";
+    # Note: we used to abuse the after-resync-target handler to do the
+    # unfence, but since 2016 have a dedicated unfence-peer handler.
+    # Using the after-resync-target handler is wrong in some corner cases.
     ...
   }
   ...
@@ -316,7 +319,6 @@ any node other than the currently active one. Conversely, when the
 connection is re-established and DRBD completes its synchronization
 process, then that constraint is removed and the cluster manager is
 free to promote the resource on any node again.
-
 
 [[s-pacemaker-stacked-resources]]
 === Using stacked DRBD resources in Pacemaker clusters
