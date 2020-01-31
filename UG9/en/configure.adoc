@@ -307,6 +307,7 @@ image::images/connection-mesh.svg[]
 
 
 An example configuration file for three hosts would be this:
+
 -------------------------------------
 resource r0 {
   device    /dev/drbd1;
@@ -317,69 +318,17 @@ resource r0 {
     node-id   0;
   }
   on bob {
-    address   10.1.1.32:7001;
+    address   10.1.1.32:7000;
     node-id   1;
   }
   on charlie {
-    address   10.1.1.33:7002;
-    node-id   2;
-  }
-  connection {
-    host alice   port 7010;
-    host bob     port 7001;
-  }
-  connection {
-    host alice   port 7020;
-    host charlie port 7002;
-  }
-  connection {
-    host bob     port 7012;
-    host charlie port 7021;
-  }
-
-}
--------------------------------------
-
-The port for the `address` value within
-the `on _host_` sections is optional; but then you have to specify
-distinct port numbers for each connection.
-
-[NOTE]
-==================
-For this pre-release the whole connection mesh must be defined.
-
-In the final release it will be sufficient to give each node a single
-port, and DRBD will figure out during the handshake which peer node it
-is talking to.
-==================
-
-Alternatively, using the `connection-mesh` option, the same three node configuration:
--------------------------------------
-resource r0 {
-  device    /dev/drbd1;
-  disk      /dev/sda7;
-  meta-disk internal;
-  on alice {
-    address   10.1.1.31:7000;
-    node-id   0;
-  }
-  on bob {
-    address   10.1.1.32:7001;
-    node-id   1;
-  }
-  on charlie {
-    address   10.1.1.33:7002;
+    address   10.1.1.33:7000;
     node-id   2;
   }
   connection-mesh {
     hosts alice bob charlie;
-    net {
-        use-rle no;
-    }
   }
-
 }
-
 -------------------------------------
 
 
@@ -683,71 +632,7 @@ simply add the `-S` or `--stacked` option to `drbdadm`.
 
 Here is an example for a four-node cluster.
 
-Please note that the `connection` sections (and distinct ports)
-won't be necessary for the DRBD 9.0.0 release; we will find some nice
-short-hand syntax.
-// the second example.
-
--------------------------------------
-resource r0 {
-  device      /dev/drbd0;
-  disk        /dev/vg/r0;
-  meta-disk   internal;
-
-  on store1 {
-    address   10.1.10.1:7100;
-    node-id   1;
-  }
-  on store2 {
-    address   10.1.10.2:7100;
-    node-id   2;
-  }
-  on store3 {
-    address   10.1.10.3:7100;
-    node-id   3;
-  }
-  on store4 {
-    address   10.1.10.4:7100;
-    node-id   4;
-  }
-
-  # All connections involving store1
-  connection {
-    host store1  port 7012;
-    host store2  port 7021;
-  }
-  connection {
-    host store1  port 7013;
-    host store3  port 7031;
-  }
-  connection {
-    host store1  port 7014;
-    host store4  port 7041;
-  }
-
-  # All remaining connections involving store2
-  connection {
-    host store2  port 7023;
-    host store3  port 7032;
-  }
-  connection {
-    host store2  port 7024;
-    host store4  port 7042;
-  }
-
-  # All remaining connections involving store3
-  connection {
-    host store3  port 7034;
-    host store4  port 7043;
-  }
-
-  # store4 already done.
-}
--------------------------------------
-
-
 [[s-connection-mesh]]
-In contrast, the same configuration will be written like this:
 ----------------------
 resource r0 {
   device      /dev/drbd0;
