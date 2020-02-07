@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-11-18 13:45+0900\n"
+"POT-Creation-Date: 2020-02-07 11:55+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -339,9 +339,7 @@ msgstr ""
 "の各章を参照ください。"
 
 #. type: Plain text
-msgid ""
-"The southbound drivers used by LINSTOR are LVM, thinLVM and ZFS with support "
-"for Swordfish in progress."
+msgid "The southbound drivers used by LINSTOR are LVM, thinLVM and ZFS."
 msgstr ""
 "LINSTORのサウスバウンドドライバには、LVM、thinLVM、ZFSがあり、Swordfishのサ"
 "ポートも現在開発中です。"
@@ -553,6 +551,65 @@ msgstr "# yum install linstor-satellite  linstor-client\n"
 
 #. type: Title ===
 #, no-wrap
+msgid "Upgrading"
+msgstr "アップグレード"
+
+#. type: Plain text
+msgid ""
+"LINSTOR doesn't support rolling upgrade, controller and satellites must have "
+"the same version, otherwise the controller with discard the satellite with a "
+"`VERSION_MISMATCH`.  But this isn't a problem, as the satellite won't do any "
+"actions as long it isn't connected to a controller and DRBD will not be "
+"disrupted by any means."
+msgstr ""
+"LINSTORはローリングアップグレードをサポートしておらず、コントローラーとサテラ"
+"イトは同じバージョンでなければなりません。そうでない場合、コントローラーはサ"
+"テライトを `VERSION_MISMATCH` と認識して接続ができません。しかしこの場合は"
+"データの同期には問題はありません。サテライトがコントローラーに接続しなければ"
+"何もアクションを起こさず、DRBDの動作が中断することもありません。"
+
+#. type: Plain text
+msgid ""
+"If you are using the embedded default H2 database and the linstor-controller "
+"package is upgraded an automatic backup file of the database will be created "
+"in the default `/var/lib/linstor` directory.  This file is a good restore "
+"point if for any reason a linstor-controller database migration should fail, "
+"than it is recommended to report the error to Linbit and restore the old "
+"database file and downgrade to your previous controller version."
+msgstr ""
+"組み込みのデフォルトH2データベースを使用していて、linstor-controllerパッケー"
+"ジがアップグレードされている場合は、デ ータベースの自動バックアップファイルが"
+"デフォルトの `/var/lib/linstor` ディレクトリに作成されます。このファイルは、"
+"何らかの理由でlinstor-controllerデータベースの移行が失敗した場合の適切な復元"
+"ポイントです。エラーをLINBITに 報告し、古いデータベースファイルを使って、以前"
+"のコントローラーバージョンにダウングレードすることをお勧めします。"
+
+#. type: Plain text
+msgid ""
+"If you use any external database or etcd, it is recommended to do a manually "
+"backup of your current database to have a restore point."
+msgstr ""
+"外部データベースまたはetcdを使用する場合は、現在のデータベースを手動でバック"
+"アップして復元ポイントを作成することをお勧めします。"
+
+#. type: Plain text
+msgid ""
+"So first upgrade the `linstor-controller`, `linstor-client` package on you "
+"controller host and restart the `linstor-controller`, the controller should "
+"start and all of it's client should show `OFFLINE(VERSION_MISMATCH)`.  After "
+"that you can continue upgrading `linstor-satellite` on all satellite nodes "
+"and restart them, after a short reconnection time they should all show "
+"`ONLINE` again and your upgrade is finished."
+msgstr ""
+"したがって、最初にコントローラーホストの `linstor-controller` 、`linstor-"
+"client` パッケージをアップグレードし、 `linstor-controller` を再起動すること"
+"で、すべてのクライアントが `OFFLINE（VERSION_MISMATCH）` を表示します。その後"
+"すべてのサテライトノードで `linstor-satellite` のアップグレードを続行して再起"
+"動することで、すべてのノードで再び `ONLINE` が表示され、アップグレードが完了"
+"します。"
+
+#. type: Title ===
+#, no-wrap
 msgid "Containers"
 msgstr "コンテナ"
 
@@ -742,7 +799,7 @@ msgstr ""
 "トシステムにインストールしないでください。バージョン 9.0.17 リリース以降はホ"
 "ストシステムにいつも通りカーネルモジュールをインストールできますが、 "
 "`usermode_helper = disabled` パラメータ（例えば `modprobe drbd "
-"usermode_helper=disabled ）を使ってモジュールをロードする必要があります。"
+"usermode_helper=disabled` ）を使ってモジュールをロードする必要があります。"
 
 #. type: Plain text
 msgid "Then run the LINSTOR satellite container, also privileged, as a daemon:"
@@ -838,7 +895,7 @@ msgid ""
 "`linstor-controller` and/or `linstor-satellite` its dependencies are "
 "installed"
 msgstr ""
-"`linstor-controller`, `linstor-satellite` とその依存パッケージがインストール"
+"`linstor-controller` , `linstor-satellite` とその依存パッケージがインストール"
 "されている。"
 
 #. type: Plain text
@@ -1547,22 +1604,30 @@ msgstr "DRBDクライアント"
 
 #. type: Plain text
 msgid ""
-"By using the `--diskless` option instead of `--storage-pool` you can have a "
-"permanently diskless DRBD device on a node. This means that the resource "
-"will appear as block device and can be mounted to the filesystem without an "
-"existing storage-device. The data of the resource is accessed over the "
-"network on another nodes with the same resource."
+"By using the `--drbd-diskless` option instead of `--storage-pool` you can "
+"have a permanently diskless DRBD device on a node. This means that the "
+"resource will appear as block device and can be mounted to the filesystem "
+"without an existing storage-device. The data of the resource is accessed "
+"over the network on another nodes with the same resource."
 msgstr ""
-"`--storage-pool` の代わりに `--diskless` オプションを使うことで、ノード上に永"
-"続的なディスクレスのDRBDデバイスを持つことができます。これは、リソースがブ"
-"ロックデバイスとして表示され、既存のストレージデバイスなしでファイルシステム"
-"としてマウントできることを意味します。リソースのデータは、同じリソースを持つ"
-"別のノード上にネットワークを介してアクセスされます。"
+"`--storage-pool` の代わりに `--drbd-diskless` オプションを使うことで、ノード"
+"上に永続的なディスクレスのDRBDデバイスを持つことができます。これは、リソース"
+"がブロックデバイスとして表示され、既存のストレージデバイスなしでファイルシス"
+"テムとしてマウントできることを意味します。リソースのデータは、同じリソースを"
+"持つ別のノード上にネットワークを介してアクセスされます。"
 
 #. type: delimited block -
 #, no-wrap
-msgid "# linstor resource create delta backups --diskless\n"
-msgstr "# linstor resource create delta backups --diskless\n"
+msgid "# linstor resource create delta backups --drbd-diskless\n"
+msgstr "# linstor resource create delta backups --drbd-diskless\n"
+
+#. type: Plain text
+msgid ""
+"The option `--diskless` was deprecated. Please use `--drbd-diskless` or `--"
+"nvme-initiator` instead."
+msgstr ""
+"オプション `--diskless` は廃止されました。代わりに、 `--drbd-diskless` また"
+"は `--nvme-initiator` を使用してください 。"
 
 #. type: Title ===
 #, no-wrap
@@ -1665,7 +1730,7 @@ msgid ""
 "pool, LINSTOR queries the properties of the following objects in the "
 "following order:"
 msgstr ""
-"ここでの 'resource create' は`--storage-pool` オプションを必要としません。こ"
+"ここでの 'resource create' は `--storage-pool` オプションを必要としません。こ"
 "の場合LINSTORはストレージプールのフォールバックを使用します。LINSTORは以下の"
 "オブジェクトに対してこの順番で問い合わせを行います。"
 
@@ -1834,30 +1899,31 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"The complete list of currently supported `--layer-list` combinations are as "
-"follows:"
+"The following table shows which layer can be followed by which child-layer:"
+msgstr "次の表は、どのレイヤーの後にどの子レイヤーが続くかを示しています。"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"| Layer | Child layer\n"
+"\n"
+"| DRBD | WRITECACHE, NVME, LUKS, STORAGE\n"
+"| WRITECACHE | NVME, LUKS, STORAGE\n"
+"| NVME | WRITACACHE, LUKS, STORAGE\n"
+"| LUKS | STORAGE\n"
+"| STORAGE | -\n"
 msgstr ""
-"現在サポートされている `--layer-list` の組み合わせのリストは以下の通りです。"
+"| Layer | Child layer\n"
+"\n"
+"| DRBD | WRITECACHE, NVME, LUKS, STORAGE\n"
+"| WRITECACHE | NVME, LUKS, STORAGE\n"
+"| NVME | WRITACACHE, LUKS, STORAGE\n"
+"| LUKS | STORAGE\n"
+"| STORAGE | -\n"
 
 #. type: Plain text
-msgid "drbd,luks,storage"
-msgstr "drbd,luks,storage"
-
-#. type: Plain text
-msgid "drbd,storage"
-msgstr "drbd,storage"
-
-#. type: Plain text
-msgid "luks,storage"
-msgstr "luks,storage"
-
-#. type: Plain text
-msgid "nvme,storage"
-msgstr "nvme,storage"
-
-#. type: Plain text
-msgid "storage"
-msgstr "storage"
+msgid "One layer can only occur once in the layer-list"
+msgstr "1つのレイヤーは、layer-list で1回しか使用できません。"
 
 #. type: Plain text
 msgid ""
@@ -2000,6 +2066,97 @@ msgstr ""
 "ノードに複数のNICがある場合は、NVMe-of/NVME-TCP に対してそれらの間の経路を強"
 "制する必要があります。そうしないと、複数のNICで問題が発生する可能性がありま"
 "す。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Writecache Layer"
+msgstr "書き込みキャッシュレイヤー"
+
+#. type: Plain text
+msgid ""
+"A https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/"
+"writecache.html[DM-Writecache] device is composed by two devices, one "
+"storage device and one cache device.  LINSTOR can setup such a writecache "
+"device, but needs some additional information, like the storage pool and the "
+"size of the cache device."
+msgstr ""
+"https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/writecache."
+"html[DM-Writecache] デバイスは、ストレージデバイスとキャッシュデバイスの2つの"
+"デバイスで構成されます。 LINSTORはそのような書き込みキャッシュデバイスをセッ"
+"トアップできますが、ストレージプールやキャッシュデバイスのサイズなどの追加情"
+"報が必要です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor storage-pool create lvm node1 lvmpool drbdpool\n"
+"# linstor storage-pool create lvm node1 pmempool pmempool\n"
+msgstr ""
+"# linstor storage-pool create lvm node1 lvmpool drbdpool\n"
+"# linstor storage-pool create lvm node1 pmempool pmempool\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource-definition create r1\n"
+"# linstor volume-definition create r1 100G\n"
+msgstr ""
+"# linstor resource-definition create r1\n"
+"# linstor volume-definition create r1 100G\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor volume-definition set-property r1 0 Writecache/PoolName pmempool\n"
+"# linstor volume-definition set-property r1 0 Writecache/Size 1%\n"
+msgstr ""
+"# linstor volume-definition set-property r1 0 Writecache/PoolName pmempool\n"
+"# linstor volume-definition set-property r1 0 Writecache/Size 1%\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor resource create node1 r1 --storage-pool lvmpool --layer-list WRITECACHE,STORAGE\n"
+msgstr "# linstor resource create node1 r1 --storage-pool lvmpool --layer-list WRITECACHE,STORAGE\n"
+
+#. type: Plain text
+msgid ""
+"The two properties set in the examples are mandatory, but can also be set on "
+"controller level which would act as a default for all resources with "
+"`WRITECACHE` in their `--layer-list`. However, please note that the "
+"`Writecache/PoolName` referes to the corresponding node. If the node does "
+"not have a storge-pool named `pmempool` you will get an error message."
+msgstr ""
+"例で設定されている2つのプロパティは必須ですが、コントローラレベルで設定するこ"
+"ともできます。これは、 `--layer-list` に `WRITECACHE` が含まれるすべてのリ"
+"ソースのデフォルトとして機能します。ただし、 `Writecache/PoolName` は対応する"
+"ノードを指すことに注意してください。ノードに `pmempool` という名前のストレー"
+"ジプールがない場合は、エラーメッセージが表示されます。"
+
+#. type: Plain text
+msgid ""
+"The 4 mandatory parameters required by https://www.kernel.org/doc/html/"
+"latest/admin-guide/device-mapper/writecache.html[DM-Writecache] are either "
+"configured via property or figured out by LINSTOR.  The optional properties "
+"listed in the mentioned link can also be set via property.  Please see "
+"`linstor controller set-property --help` for a list of `Writecache/*` "
+"property-keys."
+msgstr ""
+"https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/writecache."
+"html[DM-Writecache] に必要な4つの必須 パラメーターは、プロパティを介して設定"
+"されるか、LINSTORによって計算されます。上記のリンクにリストされているオプショ"
+"ンのプロパティは、プロパティを介して設定することもできます。 `Writecache/*` "
+"プロパティキーのリストについては、 `linstor controller set-property --help` "
+"を参照してください。"
+
+#. type: Plain text
+msgid ""
+"Using `--layer-list DRBD,WRITECACHE,STORAGE` while having DRBD configured to "
+"use external metadata, only the backing device will use a writecache, not "
+"the device holding the external metadata."
+msgstr ""
+"外部メタデータを使用するようにDRBDを設定しているときに `--layer-list DRBD、"
+"WRITECACHE、STORAGE` を使用すると、外部メタデータを保持するデバイスではなく、"
+"バッキングデバイスのみが書き込みキャッシュを使用します。"
 
 #. type: Title ===
 #, no-wrap
@@ -2486,10 +2643,10 @@ msgstr ""
 #. type: delimited block -
 #, no-wrap
 msgid ""
-"# linstor resource create bravo backups --diskless\n"
+"# linstor resource create bravo backups --drbd-diskless\n"
 "# linstor resource toggle-disk bravo backups --storage-pool pool_ssd --migrate-from alpha\n"
 msgstr ""
-"# linstor resource create bravo backups --diskless\n"
+"# linstor resource create bravo backups --drbd-diskless\n"
 "# linstor resource toggle-disk bravo backups --storage-pool pool_ssd --migrate-from alpha\n"
 
 #. type: Title ===
@@ -3200,7 +3357,7 @@ msgid ""
 "Node `alpha` is the just the controller.  Node `bravo` and node `charlie` "
 "are just satellites."
 msgstr ""
-"ここで、ノード `alpha` がコントローラ、ノード bravo` と `charlie` がサテライ"
+"ここで、ノード `alpha` がコントローラ、ノード `bravo` と `charlie` がサテライ"
 "トとします。"
 
 #. type: Plain text
@@ -3509,6 +3666,47 @@ msgid ""
 msgstr ""
 "上記のコマンドで `DrbdOptions/Resource/on-no-quorum` を空の値に設定すると、プ"
 "ロパティがオブジェクトから完全に削除されます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "QoS Settings"
+msgstr "QoS設定"
+
+#. type: Title ====
+#, no-wrap
+msgid "Sysfs"
+msgstr "Sysfs"
+
+#. type: Plain text
+msgid "LINSTOR is able to set the following Sysfs settings:"
+msgstr "LINSTORは、次のSysfsの設定ができます。"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"| SysFs | Linstor property\n"
+"\n"
+"| `/sys/fs/cgroup/blkio/blkio.throttle.read_bps_device` | `sys/fs/blkio_throttle_read`\n"
+"| `/sys/fs/cgroup/blkio/blkio.throttle.write_bps_device` | `sys/fs/blkio_throttle_write`\n"
+msgstr ""
+"| SysFs | Linstor property\n"
+"\n"
+"| `/sys/fs/cgroup/blkio/blkio.throttle.read_bps_device` | `sys/fs/blkio_throttle_read`\n"
+"| `/sys/fs/cgroup/blkio/blkio.throttle.write_bps_device` | `sys/fs/blkio_throttle_write`\n"
+
+#. type: Plain text
+msgid ""
+"If a LINSTOR volume is composed of multiple \"stacked\" volume (for example "
+"DRBD with external metadata will have 3 devices: backing (storage) device, "
+"metadata device and the resulting DRBD device), setting a `sys/fs/\\*` "
+"property for a Volume, **all** affected devices will receive the "
+"corresponding `/sys/fs/cgroup/...` setting"
+msgstr ""
+"LINSTORボリュームが複数の \"スタック\" ボリュームで構成されている場合（たとえ"
+"ば、外部メタデータを持つDRBDには、バッキング（ストレージ）デバイス、メタデー"
+"タデバイス、結果のDRBDデバイスの3つのデバイスがあります）、 `sys/fs/*` ボ"
+"リュームのプロパティ、**すべて** 影響を受けるデバイスは、対応する `/sys/fs/"
+"cgroup/...` 設定を受け取ります。"
 
 #. type: Title ===
 #, no-wrap
