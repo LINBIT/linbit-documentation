@@ -2,7 +2,7 @@
 == LINSTOR Volumes in Docker
 
 indexterm:[docker]This chapter describes LINSTOR volumes in Docker as
-managed by the https://github.com/LINBIT/linstor-docker-volume[LINSTOR
+managed by the https://github.com/LINBIT/linstor-docker-volume-go[LINSTOR
 Docker Volume Plugin].
 
 [[s-docker-linstor-overview]]
@@ -13,7 +13,7 @@ applications in the form of Linux containers. For stateful
 applications that require data persistence, Docker supports
 the use of persistent _volumes_ and _volume_drivers_.
 
-The https://github.com/LINBIT/linstor-docker-volume[LINSTOR
+The https://github.com/LINBIT/linstor-docker-volume-go[LINSTOR
 Docker Volume Plugin] is a volume driver that provisions persistent
 volumes from a LINSTOR cluster for Docker containers.
 
@@ -21,35 +21,15 @@ volumes from a LINSTOR cluster for Docker containers.
 === LINSTOR Plugin for Docker Installation
 
 To install the `linstor-docker-volume` package provided by LINBIT, you'll
-need to have LINBIT's `drbd-9.0` repository enabled. Once enabled, use
-your package manager to install the `linstor-docker-volume` package:
+need to have a woring LINSTOR cluster. After that the plugin can be installed from the public docker hub, or
+LINBIT's customer registry.
 
 ----
-# yum install linstor-docker-volume
+# docker plugin install linbit/linstor-docker-volume
 
   -- OR --
 
-# apt install linstor-docker-volume
-----
-
-Alternatively, you can build and install from source:
-
-----
-# git clone https://github.com/LINBIT/linstor-docker-volume
-# cd ./linstor-docker-volume
-# make
-  ..snip..
-# make doc
-  ..snip..
-# make install
-  ..snip..
-----
-
-Once installed, _enable_ and _start_ the `linstor-docker-volume.socket`
-and `linstor-docker-volume.service` via `systemd`:
-
-----
-# systemctl enable linstor-docker-volume.socket linstor-docker-volume.service --now
+# docker plugin install drbd.io/linstor-docker-volume
 ----
 
 [[s-docker-linstor-configuration]]
@@ -65,8 +45,8 @@ LINSTOR Controller node in it's configuration file:
 controllers = linstor://hostnameofcontroller
 ----
 
-It is also possible to set all of the command line options found in
-`man linstor-docker-volume` in the `docker-volume.conf`. For example:
+
+A more extensive example could look like this:
 
 ----
 # cat /etc/linstor/docker-volume.conf
@@ -76,13 +56,7 @@ fs = ext4
 fsopts = -E discard
 size = 100MB
 replicas = 2
-nodes = alpha,bravo,charlie
 ----
-
-NOTE: If neither _replicas_ or _nodes_ is defined, the default of
-_replicas_ will be used, which is two diskful replicas. If both
-_replicas_ and _nodes_ are defined, _nodes_ will be used and
-_replicas_ will be ignored.
 
 === Example Usage
 
@@ -93,7 +67,6 @@ In the following we expect a cluster consisting of three nodes
 
 
 ==== Example 1 - typical docker pattern
-
 
 On node alpha:
 
@@ -120,7 +93,7 @@ $ docker volume rm lsvol
 ==== Example 2 - one diskfull assignment by name, two nodes diskless
 
 ----
-$ docker volume create -d linstor --opt hosts=bravo lsvol
+$ docker volume create -d linstor --opt nodes=bravo lsvol
 ----
 
 ==== Example 3 - one diskfull assignment, no matter where, two nodes diskless
@@ -132,19 +105,11 @@ $ docker volume create -d linstor --opt replicas=1 lsvol
 ==== Example 4 - two diskfull assignments by name, charlie diskless
 
 ----
-$ docker volume create -d linstor --opt hosts=alpha,bravo lsvol
+$ docker volume create -d linstor --opt nodes=alpha,bravo lsvol
 ----
 
 ==== Example 5 - two diskfull assignments, no matter where, one node diskless
 
 ----
 $ docker volume create -d linstor --opt replicas=2 lsvol
-----
-
-==== Example 6 - using curl without docker, useful for developers
-
-----
-$ curl --unix-socket /run/docker/plugins/linstor.sock \
-          -X POST -H "Content-Type: application/json"
-          -d '{"Name":"linstorvol"}' http://localhost/VolumeDriver.List
 ----
