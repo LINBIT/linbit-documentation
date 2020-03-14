@@ -1,0 +1,1419 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2020-03-02 15:09+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: administration-drbdmanage.adoc:2
+#, no-wrap
+msgid "DRBD Manage"
+msgstr "DRBD Manage"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:6
+msgid ""
+"DRBD Manage will reach its EoL end of 2018 and will be replaced by LINSTOR."
+msgstr "DRBD Manage将于2018年底结束，并将由LINSTOR取代。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:12
+msgid ""
+"DRBD Manage is an abstraction layer which takes over management of logical "
+"volumes (LVM) and management of configuration files for DRBD. Features of "
+"DRBD Manage include creating, resizing, and removing of replicated volumes."
+"  Additionally, DRBD Manage handles taking snapshots and creating volumes in"
+" consistency groups."
+msgstr ""
+"DRBD-Manage是一个抽象层，它接管了DRBD的逻辑卷（LVM）管理和配置文件管理。DRBD "
+"Manage的功能包括创建、调整大小和删除复制卷。此外，DRBD Manage还处理在一致性组中创建快照和卷的操作。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:17
+msgid ""
+"This chapter outlines typical administrative tasks encountered during day-"
+"to-day operations. It does not cover troubleshooting tasks, these are "
+"covered in detail in <<ch-troubleshooting>>. If you plan to use 'LVM' as "
+"storage plugin, please see read section <<s-config-lvm>> *now*, and then "
+"return to this point."
+msgstr ""
+"本章概述了日常运营中遇到的典型管理任务。它不包括故障排除任务，这些任务在<<ch-"
+"troubleshooting>>中有详细介绍。如果您打算使用 `LVM` 作为存储插件，请参阅阅读部分<<s-config-"
+"lvm>>，然后返回到这里。"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:19
+#, no-wrap
+msgid "Migrating resources from DRBDManage to LINSTOR"
+msgstr "将资源从DRBDManage迁移到LINSTOR"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:23
+msgid ""
+"The LINSTOR client contains a sub-command that can generate a migration "
+"script that adds existing DRBDManage nodes and resources to a LINSTOR "
+"cluster. Migration can be done without downtime. If you do not plan to "
+"migrate existing resources, continue with the next section."
+msgstr ""
+"LINSTOR客户机包含一个子命令，可以生成一个迁移脚本，该脚本将现有DRBDManage节点和资源添加到LINSTOR集群。迁移可以在不停机的情况下完成。如果不打算迁移现有资源，请继续下一节。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:33
+msgid ""
+"The first thing to check is if the DRBDManage cluster is in a healthy state."
+" If the output of `drbdmanage assignments` looks good, you can export the "
+"existing cluster database via `drbdmanage export-ctrlvol > ctrlvol.json`. "
+"You can then use that as input for the LINSTOR client. The client does *not*"
+" immediately migrate your resources, it just generates a shell script. "
+"Therefore, you can run the migration assistant multiple times and "
+"review/modify the generated shell script before actually executing it. "
+"Migration script generation is started via `linstor dm-migrate ctrlvol.json "
+"dmmmigrate.sh`. The script will ask a few questions and then generate the "
+"shell script. After carefully reading the script, you can then shutdown "
+"DRBDManage, and rename the following files.  If you do not rename them, the "
+"lower-level drbd-utils pick up both kinds of resource files, the ones from "
+"DRBDManage and the ones from LINSTOR."
+msgstr ""
+"首先要检查的是DRBDManage集群是否处于正常状态。如果 `drbdmanage "
+"assignments` 的输出看起来不错，那么可以通过 `drbdmanage export "
+"ctrlvol>ctrlvol.json` 导出现有的集群数据库。然后可以将其用作LINSTOR客户机的输入。客户端 *不会* 立即迁移您的资源，"
+"它只是生成一个shell脚本。因此，您可以多次运行迁移助手，并在实际执行之前检查/修改生成的shell脚本。迁移脚本生成通过 `linstor dm-migrate ctrlvol.json dmmmigrate.sh` "
+" 启动。脚本将提出几个问题，然后生成shell脚本。仔细阅读脚本后，可以关闭DRBDManage并重命名以下文件。如果不重命名它们，低级drbd实用程序将同时获取两种资源文件，一种来自DRBDManage，另一种来自LINSTOR。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:36
+msgid ""
+"Obviously, you need the linstor-controller service started on one node and "
+"the linstor-satellite service on all nodes."
+msgstr "显然，您需要在一个节点上启动linstor controller服务，并在所有节点上启动linstor satellites服务。"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:42
+#, no-wrap
+msgid ""
+"# drbdmanage shutdown -qc # on all nodes\n"
+"# mv /etc/drbd.d/drbdctrl.res{,.dis} # on all nodes\n"
+"# mv /etc/drbd.d/drbdmanage-resources.res{,.dis} # on all nodes\n"
+"# bash dmmigrate.sh\n"
+msgstr ""
+"# drbdmanage shutdown -qc # on all nodes\n"
+"# mv /etc/drbd.d/drbdctrl.res{,.dis} # on all nodes\n"
+"# mv /etc/drbd.d/drbdmanage-resources.res{,.dis} # on all nodes\n"
+"# bash dmmigrate.sh\n"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:45
+#, no-wrap
+msgid "Initializing your cluster"
+msgstr "初始化集群"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:47
+msgid ""
+"We assume that the following steps are accomplished on *all* cluster nodes:"
+msgstr "我们假设在 *所有* 集群节点上完成以下步骤："
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:49
+msgid "The DRBD9 kernel module is installed and loaded"
+msgstr "DRBD9内核模块已安装并加载"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:50
+msgid "`drbd-utils` are installed"
+msgstr "已安装 `drbd-utils` "
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:51
+msgid "`LVM` tools are installed"
+msgstr "`LVM` tools已安装"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:52
+msgid "`drbdmanage` and its dependencies are installed"
+msgstr "`drbdmanage` 及其依赖项已安装"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:55
+msgid ""
+"Note that drbdmanage uses dbus-activation to start its server component when"
+" necessary, do not start the server manually."
+msgstr "注意，drbdmanage在必要时使用dbus激活来启动其服务器组件，不要手动启动服务器。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:62
+msgid ""
+"The first step is to review the configuration file of `drbdmanage` "
+"(`/etc/drbdmanaged.cfg`) and to create an _LVM volume_ group with the name "
+"specified in the configuration. In the following we use the default name, "
+"which is `drbdpool`, and assume that the volume group consists of "
+"`/dev/sda6` and `/dev/sda7`. Creating the volume group is a step that has to"
+" be executed on *every* cluster node:"
+msgstr ""
+"第一步是检查 `drbdmanage` （`/etc/drbdmanaged.cfg`）的配置文件，并使用配置中指定的名称创建一个LVM卷组。在下面的代码中，我们使用默认名称 `drbdpool` ，并假设卷组由 `/dev/sda6` 和 `/dev/sda7` 组成。创建卷组是必须在 *每个* 集群节点上执行的步骤："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:65
+#, no-wrap
+msgid "# vgcreate drbdpool /dev/sda6 /dev/sda7\n"
+msgstr "# vgcreate drbdpool /dev/sda6 /dev/sda7\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:72
+msgid ""
+"The second step is to initialize the so called control volume, which is then"
+" used to redundantly store your cluster configuration. If the node has "
+"multiple interfaces, you have to specify the IP address of the network "
+"interface that DRBD should use to communicate with other nodes in the "
+"cluster, otherwise the IP is optional. This step must only be done on "
+"exactly one cluster node."
+msgstr ""
+"第二步是初始化所谓的控制卷，然后使用它来冗余地存储集群配置。如果节点有多个接口，则必须指定DRBD用于与集群中其他节点通信的网络接口的IP地址，否则IP是可选的。此步骤只能在一个集群节点上执行。"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:75
+#, no-wrap
+msgid "# drbdmanage init 10.43.70.2\n"
+msgstr "# drbdmanage init 10.43.70.2\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:82
+msgid ""
+"We recommend using 'drbdpool' as the name of your LVM volume group as it is "
+"the default value and makes your administration life easier. If, for "
+"whatever reason, you decide to use a different name, make sure that the "
+"option *drbdctrl-vg* is set accordingly in `/etc/drbdmanaged.cfg`. "
+"Configuration will be discussed in <<s-dm-set-config>>."
+msgstr ""
+"我们建议使用'drbdpool'作为LVM卷组的名称，因为它是默认值，使您的管理工作更轻松。无论出于什么原因，如果您决定使用不同的名称，请确保在 `/etc/drbdmanaged.cfg` 中相应地设置了选项 *drbdctrl"
+" vg* 。配置将在<<s-dm-set-config>>中讨论。"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:84
+#, no-wrap
+msgid "Adding nodes to your cluster"
+msgstr "向集群添加节点"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:86
+msgid ""
+"Adding nodes to your cluster is easy and requires a single command with two "
+"parameters:"
+msgstr "将节点添加到集群很简单，需要一个带有两个参数的命令："
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:88
+msgid "A node name which *must* match the output of `uname -n`"
+msgstr "一个节点名，*必须* 匹配 `uname-n` 的输出`"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:89
+msgid "The IP address of the node."
+msgstr "节点的IP地址。"
+
+#. type: Block title
+#: administration-drbdmanage.adoc:90
+#, no-wrap
+msgid "Note"
+msgstr "注意"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:93
+msgid ""
+"If DNS is configured properly, the tab-completion of `drbdmanage` is able to"
+" complete the IP of the given node name."
+msgstr "如果DNS配置正确，则 `drbdmanage` 的tab补全可以完成给定节点名的IP。"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:96 administration-drbdmanage.adoc:163
+#, no-wrap
+msgid "# drbdmanage add-node bravo 10.43.70.3\n"
+msgstr "# drbdmanage add-node bravo 10.43.70.3\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:101
+msgid ""
+"Here we assume that the command was executed on node 'alpha'. If the 'root' "
+"user is allowed to execute commands as 'root' on 'bravo' via `ssh`, then the"
+" node 'bravo' will automatically join your cluster."
+msgstr ""
+"这里我们假设命令是在节点alpha上执行的。如果允许 `root` 用户通过 `ssh` 在 `bravo` 上以 `root` 身份执行命令，则节点 `bravo` 将自动加入集群。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:105
+msgid ""
+"If `ssh` access with public-key authentication is not possible, `drbdmanage`"
+" will print a join command that has to be executed on node 'bravo'. You can "
+"always query `drbdmanage` to output the join command for a specific node:"
+msgstr ""
+"如果无法使用公钥身份验证进行 `ssh` 访问， `drbdmanage` 将打印必须在节点 `bravo` 上执行的连接命令。您始终可以查询 `drbdmanage` 以输出特定节点的join命令："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:109
+#, no-wrap
+msgid ""
+"# drbdmanage howto-join bravo\n"
+"# drbdmanage join -p 6999 10.43.70.3 1 alpha 10.43.70.2 0 cOQutgNMrinBXb09A3io\n"
+msgstr ""
+"# drbdmanage howto-join bravo\n"
+"# drbdmanage join -p 6999 10.43.70.3 1 alpha 10.43.70.2 0 cOQutgNMrinBXb09A3io\n"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:112
+#, no-wrap
+msgid "Types of DRBD Manage nodes"
+msgstr "DRBD管理节点的类型"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:115
+msgid ""
+"There are quite a few different types of DRBD Manage nodes; please see the "
+"diagram below."
+msgstr "有很多不同类型的DRBD管理节点；请参见下图。"
+
+#. type: Block title
+#: administration-drbdmanage.adoc:116
+#, no-wrap
+msgid "DRBD Manage node types"
+msgstr "DRBD管理节点类型"
+
+#. type: Target for macro image
+#: administration-drbdmanage.adoc:117
+#, no-wrap
+msgid "images/drbdmanage-venn.svg"
+msgstr "images/drbdmanage-venn.svg"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:123
+msgid ""
+"The rational behind the different types of nodes is as follows: Currently, a"
+" DRBD9/DRBD Manage cluster is limited to ~30 nodes. This is the current "
+"DRBD9 limit of nodes for a replicated resource. As DRBD Manage uses a DRBD "
+"volume itself (i.e., the control volume) to distribute the cluster "
+"information, DRBD Manage was also limited by the maximum number of DRBD9 "
+"nodes per resource."
+msgstr ""
+"不同类型节点背后的原因是：目前，DRBD9/DRBD管理集群的节点数限制在30个左右。这是复制资源的当前DRBD9节点限制。由于DRBD "
+"Manage使用DRBD卷本身（即控制卷）来分发集群信息，DRBD Manage也受到每个资源的DRBD9节点的最大数目的限制。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:125
+msgid ""
+"The satellites concept relaxes that limit by splitting the cluster into:"
+msgstr "satellite概念通过将集群划分为以下几类来放宽这一限制："
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:127
+msgid "Control nodes: Nodes having direct access to the control volume."
+msgstr "Controller节点：直接访问控制卷的节点。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:129
+msgid ""
+"Satellite nodes: Nodes that are not directly connected to to the control "
+"volume, but are able to receive the content of the control volume via a "
+"control node."
+msgstr "Satellite节点：没有直接连接到控制卷的节点，但是能够通过Controller节点接收控制卷的内容。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:135
+msgid ""
+"In a cluster there is one special node, which we call the \"leader\". The "
+"leader is selected from the set of control nodes and it is the only node "
+"that writes data to the control volume (i.e., it has the control volume in "
+"DRBD Primary role). All the other control nodes in the cluster automatically"
+" switch their role to a \"satellite node\" and receive their cluster "
+"information via TCP/IP, like ordinary satellite nodes. If the current leader"
+" node fails, the cluster automatically selects a new leader node among the "
+"control nodes."
+msgstr ""
+"在集群中有一个特殊的节点，我们称之为 `leader` 。从控制节点集中选择leader，它是唯一将数据写入控制卷的节点（即，它具有DRBD "
+"Primary角色中的控制卷）。集群中的所有其他控制节点自动将其角色切换到 `Satellite节点` ，并像普通satellite节点一样通过TCP/IP接收集群信息。如果当前的leader节点失败，集群将自动在conotroller节点中选择一个新的leader节点。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:137
+#, no-wrap
+msgid "*Control nodes* have:\n"
+msgstr "*Control nodes* have:\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:139
+msgid "Direct access to the control volume"
+msgstr "直接访问控制卷"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:140
+msgid "One of them is in the leader role, the rest act like satellite nodes."
+msgstr "其中一个leader角色，其余的像satellite节点。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:141
+msgid "Local storage if it is a normal control node"
+msgstr "本地存储（如果是正常控制节点）"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:142
+msgid "No local storage if it is a pure controller"
+msgstr "如果是纯controller，则没有本地存储"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:144
+#, no-wrap
+msgid "*Satellite nodes* have:\n"
+msgstr "*Satellite nodes* have:\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:146
+msgid ""
+"No direct access to the control volume, they receive a copy of the cluster "
+"configuration via TCP/IP."
+msgstr "无法直接访问控制卷，它们通过TCP/IP接收集群配置的副本。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:147
+msgid "Local storage if it is a normal satellite node"
+msgstr "本地存储（如果是普通satellite节点）"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:148
+msgid "No local storage if it is a pure client"
+msgstr "如果是纯客户端，则没有本地存储"
+
+#. type: Block title
+#: administration-drbdmanage.adoc:149
+#, no-wrap
+msgid "Cluster consisting of satellite nodes"
+msgstr "由satellite节点组成的集群"
+
+#. type: Target for macro image
+#: administration-drbdmanage.adoc:150
+#, no-wrap
+msgid "images/satellitecluster.svg"
+msgstr "images/satellitecluster.svg"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:153
+#, no-wrap
+msgid "*External nodes*:\n"
+msgstr "*External nodes*:\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:155
+msgid ""
+"Have no access to the control volume at all (no dedicated TCP/IP connection "
+"to a control node) and no local storage"
+msgstr "完全没有对控制卷的访问权限（没有到控制节点的专用TCP/IP连接）并且没有本地存储"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:156
+msgid ""
+"Gets its configuration via a different channel (e.g., DRBD configuration via"
+" `scp`)"
+msgstr "通过不同的通道获取其配置（例如，通过 `scp` 进行DRBD配置）"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:157
+msgid ""
+"These are not the droids you are looking for, if you are not sure if you "
+"want to use that type of nodes."
+msgstr "如果你不确定是否要使用这种类型的节点，尽量不要使用这样的节点。"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:159
+#, no-wrap
+msgid "Adding a control node"
+msgstr "添加controller节点"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:166
+#, no-wrap
+msgid "Adding a pure controller node"
+msgstr "添加纯controller节点"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:170
+#, no-wrap
+msgid "# drbdmanage add-node --no-storage bravo 10.43.70.3\n"
+msgstr "# drbdmanage add-node --no-storage bravo 10.43.70.3\n"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:173
+#, no-wrap
+msgid "Adding a satellite node"
+msgstr "添加satellite节点"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:176
+msgid ""
+"Here we assume that the node charlie was not added to the cluster so far. "
+"The following command adds charlie as a satellite node."
+msgstr "这里我们假设charlie节点到目前为止还没有添加到集群中。下面的命令将charlie添加为satellite节点。"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:179
+#, no-wrap
+msgid "# drbdmanage add-node --satellite charlie 10.43.70.4\n"
+msgstr "# drbdmanage add-node --satellite charlie 10.43.70.4\n"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:182
+#, no-wrap
+msgid "Adding a pure client node"
+msgstr "添加纯客户端节点"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:186
+#, no-wrap
+msgid "# drbdmanage add-node --satellite --no-storage charlie 10.43.70.4\n"
+msgstr "# drbdmanage add-node --satellite --no-storage charlie 10.43.70.4\n"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:189
+#, no-wrap
+msgid "Adding an external node"
+msgstr "添加外部节点"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:193
+#, no-wrap
+msgid "# drbdmanage add-node --external delta 10.43.70.5\n"
+msgstr "# drbdmanage add-node --external delta 10.43.70.5\n"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:197
+#, no-wrap
+msgid "Cluster configuration"
+msgstr "集群配置"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:206
+msgid ""
+"Drbdmanage knows many configuration settings like the log-level or the "
+"storage plugin that should be used (i.e., LVM, ThinLV, ThinPool, ZPool, or "
+"ThinZpool). Executing `drbdmanage modify-config` starts an editor that is "
+"used to specify theses settings. The configuration is split in several "
+"sections. If an option is specified in the `[GLOBAL]` section, this setting "
+"is used in the entire cluster. Additionally, it is possible to specify "
+"settings per node and per site. Node sections follow a syntax of "
+"`[Node:nodename]`. If an option is set globally and per node, the node "
+"setting overrules the global setting."
+msgstr ""
+"Drbdmanage知道许多配置设置，如日志级别或应该使用的存储插件（即LVM、ThinLV、ThinPool、ZPool或ThinZpool）。执行 `drbdmanage"
+" modify-config ` "
+"将启动一个用于指定这些设置的编辑器。配置分为几个部分。如果在 `[GLOBAL]` 部分中指定了选项，则在整个集群中使用此设置。此外，还可以指定每个节点和每个站点的设置。节点部分遵循 `[Node:nodename]` 的语法。如果选项是全局和每个节点设置的，则节点设置将否决全局设置。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:210
+msgid ""
+"It is also possible to group nodes into *sites*. In order to make node "
+"'alpha' part of site 'mysite', you have to specify the 'site' option in "
+"alpha's node section:"
+msgstr "也可以将节点分组到 *站点* 。要使节点 `alpha` 成为站点 `mysite` 的一部分，必须在alpha的节点部分指定 `site` 选项："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:215
+#, no-wrap
+msgid ""
+"# drbdmanage modify-config\n"
+"[Node:alpha]\n"
+"site = mysite\n"
+msgstr ""
+"# drbdmanage modify-config\n"
+"[Node:alpha]\n"
+"site = mysite\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:222
+msgid ""
+"It is then also possible to specify drbdmanage settings per site using "
+"`[Site:]` sections. Lets assume that you want to set the 'loglevel' option "
+"in general to 'INFO', for site 'mysite' to 'WARN' and for node alpha, which "
+"is also part of site 'mysite' to DEBUG. This would result in the following "
+"configuration:"
+msgstr ""
+"然后还可以使用 `[Site:]` 部分指定每个站点的drbdmanage设置。假设您希望将 `loglevel` 选项一般设置为 `INFO` ，将站点 `mysite` 设置为 `WARN` ，并将节点alpha设置为要调试的站点 `mysite` 的一部分。这将导致以下配置："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:227
+#, no-wrap
+msgid ""
+"# drbdmanage modify-config\n"
+"[GLOBAL]\n"
+"loglevel = INFO\n"
+msgstr ""
+"# drbdmanage modify-config\n"
+"[GLOBAL]\n"
+"loglevel = INFO\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:230
+#, no-wrap
+msgid ""
+"[Site:mysite]\n"
+"loglevel = WARN\n"
+msgstr ""
+"[Site:mysite]\n"
+"loglevel = WARN\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:234
+#, no-wrap
+msgid ""
+"[Node:alpha]\n"
+"site = mysite\n"
+"loglevel = DEBUG\n"
+msgstr ""
+"[Node:alpha]\n"
+"site = mysite\n"
+"loglevel = DEBUG\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:241
+msgid ""
+"By executing `drbdmanage modify-config` without any options, you can edit "
+"global, per site and per node settings. It is also possible to execute "
+"'modify-config' for a specific node. In this per-node view, it is possible "
+"to set further per-node specific settings like the storage plugin discussed "
+"in <<s-drbdmanage-storage-plugins>>."
+msgstr ""
+"通过执行不带任何选项的 `drbdmanage modify-config` ，可以编辑全局、每个站点和每个节点的设置。还可以为特定节点执行 `modify-"
+"config` 。在每个节点视图中，可以进一步设置每个节点的特定设置，如<<s-drbdmanage-storage-plugins>>中讨论的存储插件。"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:243
+#, no-wrap
+msgid "Configuring storage plugins"
+msgstr "配置存储插件"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:245
+msgid ""
+"Storage plugins are *per* *node* settings that are set with the help of the "
+"'modify-config' sub command."
+msgstr "存储插件是通过 `modify-config` 子命令设置的 *每个*  *节点* 设置。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:248
+msgid ""
+"Lets assume you want to use the 'ThinLV' plugin for node 'bravo', where you "
+"want to set the 'pool-name' option to 'mythinpool':"
+msgstr "假设您想为节点 `bravo` 使用 `ThinLV` 插件，在这里您想将 `pool-name` 选项设置为 `mythinpool` ："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:253
+#, no-wrap
+msgid ""
+"# drbdmanage modify-config --node bravo\n"
+"[GLOBAL]\n"
+"loglevel = INFO\n"
+msgstr ""
+"# drbdmanage modify-config --node bravo\n"
+"[GLOBAL]\n"
+"loglevel = INFO\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:256
+#, no-wrap
+msgid ""
+"[Node:bravo]\n"
+"storage-plugin = drbdmanage.storage.lvm_thinlv.LvmThinLv\n"
+msgstr ""
+"[Node:bravo]\n"
+"storage-plugin = drbdmanage.storage.lvm_thinlv.LvmThinLv\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:259
+#, no-wrap
+msgid ""
+"[Plugin:ThinLV]\n"
+"pool-name = mythinpool\n"
+msgstr ""
+"[Plugin:ThinLV]\n"
+"pool-name = mythinpool\n"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:262
+#, no-wrap
+msgid "Configuring LVM"
+msgstr "配置LVM"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:269
+msgid ""
+"More recent versions of the 'LVM tools' support detecting of file system "
+"signatures. Unfortunately the feature set of `lvcreate` varies a lot between"
+" distributions: Some of them support `--wipesignatures`, some support "
+"`--yes`, and that in all possible combinations. None of them supports a "
+"generic force flag. If `lvcreate` detects an existing file system signature,"
+" it prompts for input and therefore halts processing. If you use modern 'LVM"
+" tools', set this option in `/etc/lvm/lvm.conf`: "
+"`wipe_signatures_when_zeroing_new_lvs = 0`.  Drbdmanage itself executes "
+"`wipefs` on created block devices."
+msgstr ""
+"`LVM tools` 的最新版本支持检测文件系统签名。不幸的是， `lvcreate` 的特性集在不同"
+"的发行版之间有很大的不同：有些发行版支持 `--wipesignatures` ，有些发行版支持 `--yes` ，"
+"还有一些发行版支持所有可能的组合。它们都不支持通用的force标志。"
+"如果 `lvcreate` 检测到现有的文件系统签名，它将提示输入，并因此停止处理。"
+"如果使用更新版本的 `LVM tools` ，请在 `/etc/lvm/lvm.conf` 中设置此选项："
+" `wipe_signatures_when_zeroing_new_lvs = 0`. "
+"Drbdmanage本身会在创建的块设备上执行 `wipefs` 。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:272
+msgid ""
+"If you use a version of 'LVM' where resources from snapshots are not "
+"activated, which we saw for the 'LvmThinPool' plugin, also set "
+"`auto_set_activation_skip = 0` in `/etc/lvm/lvm.conf`."
+msgstr ""
+"如果您使用的 'LVM' 版本，其中没有激活快照中的资源，我们会在 'LvmThinPool' 插件中看到了这个版本，那么也可以在 `/etc/lvm/lvm.conf' "
+"中设置 `auto_set_activation_skip = 0`。"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:274
+#, no-wrap
+msgid "Configuring ZFS"
+msgstr "配置ZFS"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:280
+msgid ""
+"For ZFS the same configuration steps apply, like setting the 'storage-"
+"plugin' for the node that should make use of ZFS volumes. Please note that "
+"we don't make use of ZFS as a file system, but of ZFS as a logical volume "
+"manager. The admin is then free to create any file system she/he desires on "
+"top of the DRBD device backed by a ZFS volume. It is also important to note "
+"that if you make use of the ZFS plugin, all DRBD resources are created on "
+"ZFS, but in case this node is a control node, it still needs LVM for it's "
+"control volume."
+msgstr ""
+"对于ZFS，同样的配置步骤也适用，比如为应该使用ZFS卷的节点设置 `storage-plugin` 。"
+"请注意，我们没有将ZFS用作文件系统，而是将ZFS用作逻辑卷管理器。"
+"然后，管理员可以在ZFS卷支持的DRBD设备上自由创建所需的任何文件系统。"
+"还需要注意的是，如果使用ZFS插件，所有DRBD资源都是在ZFS上创建的，"
+"但是如果这个节点是controller节点，那么它的控制卷仍然需要LVM。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:282
+msgid "In the most common case only the following steps are necessary."
+msgstr "在最常见的情况下，只需要以下步骤。"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:288
+#, no-wrap
+msgid ""
+"# zpool create drbdpool /dev/sdX /dev/sdY\n"
+"# drbdmanage modify-config --node bravo\n"
+"[Node:bravo]\n"
+"storage-plugin = drbdmanage.storage.zvol2.Zvol2\n"
+msgstr ""
+"# zpool create drbdpool /dev/sdX /dev/sdY\n"
+"# drbdmanage modify-config --node bravo\n"
+"[Node:bravo]\n"
+"storage-plugin = drbdmanage.storage.zvol2.Zvol2\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:294
+msgid ""
+"Currently it is not supported to switch storage plugins on the fly.  The "
+"workflow is: Add a new node, modify the configuration for that node, make "
+"use of the node. Changing other settings (like the log-level) on the fly is "
+"perfectly fine."
+msgstr "目前不支持动态切换存储插件。工作流是：添加一个新的节点，"
+"修改该节点的配置，利用该节点。动态更改其他设置（如日志级别）是非常好的。"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:296
+#, no-wrap
+msgid "Discussion of the storage plugins"
+msgstr "关于存储插件的讨论"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:299
+msgid "indexterm:[drbdmanage, storage plugins]"
+msgstr "indexterm:[drbdmanage, storage plugins]"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:301
+msgid "DRBD Manage has four supported storage plugins as of this writing:"
+msgstr "DRBD Manage在撰写本文时有四个受支持的存储插件："
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:303
+msgid "Thick LVM (`drbdmanage.storage.lvm.Lvm`);"
+msgstr "Thick LVM (`drbdmanage.storage.lvm.Lvm`);"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:305
+msgid ""
+"Thin LVM with a single thin pool (`drbdmanage.storage.lvm_thinlv.LvmThinLv`)"
+msgstr ""
+"Thin LVM with a single thin pool (`drbdmanage.storage.lvm_thinlv.LvmThinLv`)"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:307
+msgid ""
+"Thin LVM with thin pools for each volume "
+msgstr ""
+"Thin LVM with thin pools for each volume "
+"(`drbdmanage.storage.lvm_thinpool.LvmThinPool`)"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:309
+msgid "Thick ZFS (`drbdmanage.storage.zvol2.Zvol2`)"
+msgstr "Thick ZFS (`drbdmanage.storage.zvol2.Zvol2`)"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:311
+msgid "Thin ZFS (`drbdmanage.storage.zvol2_thinlv.ZvolThinLv2`)"
+msgstr "Thin ZFS (`drbdmanage.storage.zvol2_thinlv.ZvolThinLv2`)"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:315
+msgid ""
+"For ZFS also legacy plugins (without the \"2\") exist. New users, and users "
+"that did not uses ZFS snapshots should use/switch to the newer version. An "
+"on-the-fly storage plugin switch is supported in this particular case."
+msgstr "对于ZFS，还存在遗留插件（不带 \"2\" ）。新用户和未使用ZFS快照的用户应使用/切换到新版本。在这种特殊情况下，支持动态存储插件开关。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:317
+msgid ""
+"Here's a short discussion of the relative advantages and disadvantages of "
+"these plugins."
+msgstr "下面简要讨论一下这些插件的相对优缺点。"
+
+#. type: Block title
+#: administration-drbdmanage.adoc:320
+#, no-wrap
+msgid "DRBD Manage storage plugins, comparison"
+msgstr "DRBD管理存储插件比较"
+
+#. type: Table
+#: administration-drbdmanage.adoc:330
+#, no-wrap
+msgid ""
+"|Topic | `lvm.Lvm` | `lvm_thinlv.LvmThinLv` | `lvm_thinpool.LvmThinPool`\n"
+"|Pools | the VG is the pool | a single Thin pool | one Thin pool for each volume\n"
+"|Free Space reporting | Exact | Free space goes down as per written data and snapshots, needs monitoring | Each pool carves some space out of the VG, but still needs to be monitored if snapshots are used\n"
+"|Allocation | Fully pre-allocated   2+| thinly allocated, needs nearly zero space initially\n"
+"|Snapshots | -- not supported --  2+| Fast, efficient (copy-on-write)\n"
+"|Stability | Well established, known code, very stable  2+| Some kernel versions have bugs re Thin LVs, destroying data\n"
+"|Recovery | Easiest - text editor, and/or lvm configuration archives in `/etc/lvm/`, in the worst case `dd` with offset/length | All data in one pool, might incur running `thin_check` across *everything* (needs CPU, memory, time) | Independent Pools, so not all volumes damaged at the same time, faster `thin_check` (less CPU, memory, time)\n"
+msgstr ""
+"|Topic | `lvm.Lvm` | `lvm_thinlv.LvmThinLv` | `lvm_thinpool.LvmThinPool`\n"
+"|Pools | the VG is the pool | a single Thin pool | one Thin pool for each volume\n"
+"|Free Space reporting | Exact | Free space goes down as per written data and snapshots, needs monitoring | Each pool carves some space out of the VG, but still needs to be monitored if snapshots are used\n"
+"|Allocation | Fully pre-allocated   2+| thinly allocated, needs nearly zero space initially\n"
+"|Snapshots | -- not supported --  2+| Fast, efficient (copy-on-write)\n"
+"|Stability | Well established, known code, very stable  2+| Some kernel versions have bugs re Thin LVs, destroying data\n"
+"|Recovery | Easiest - text editor, and/or lvm configuration archives in `/etc/lvm/`, in the worst case `dd` with offset/length | All data in one pool, might incur running `thin_check` across *everything* (needs CPU, memory, time) | Independent Pools, so not all volumes damaged at the same time, faster `thin_check` (less CPU, memory, time)\n"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:334
+#, no-wrap
+msgid "Creating and deploying resources/volumes"
+msgstr "创建和部署资源/卷"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:339
+msgid ""
+"In the following scenario we assume that the goal is to create a resource "
+"'backups' with a size of '500 GB' that is replicated among 3 cluster nodes."
+"  First we show how to achieve the goal in individual steps, and then show a"
+" short-cut how to achieve it in a single step:"
+msgstr ""
+"在下面的场景中，我们假设目标是创建一个大小为 `500 "
+"GB` 的资源 `备份` ，该资源在3个集群节点之间复制。首先，我们将展示如何在各个步骤中实现目标，然后展示如何在单个步骤中实现目标的捷径："
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:341
+msgid "First, we create a new resource:"
+msgstr "首先，我们创建一个新资源："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:344
+#, no-wrap
+msgid "# drbdmanage add-resource backups\n"
+msgstr "# drbdmanage add-resource backups\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:347
+msgid "Second, we create a new volume within that resource:"
+msgstr "其次，我们在该资源中创建一个新卷："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:350
+#, no-wrap
+msgid "# drbdmanage add-volume backups 500GB\n"
+msgstr "# drbdmanage add-volume backups 500GB\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:353
+msgid ""
+"In case we would not have used 'add-resource' in the first step, "
+"`drbdmanage` would have known that the resource did not exist and it would "
+"have created it."
+msgstr "如果我们在第一步中不使用 `add resource` ，那么 `drbdmanage` 将知道该资源不存在，并且它将创建该资源。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:355
+msgid "The third step is to deploy the resource to 3 cluster nodes:"
+msgstr "第三步是将资源部署到3个集群节点："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:358
+#, no-wrap
+msgid "# drbdmanage deploy-resource backups 3\n"
+msgstr "# drbdmanage deploy-resource backups 3\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:364
+msgid ""
+"In this case `drbdmanage` chooses 3 nodes that fit all requirements best, "
+"which is by default the set of nodes with the most free space in the "
+"`drbdpool` volume group. We will see how to manually assign resources to "
+"specific nodes in a moment."
+msgstr ""
+"在本例中， `drbdmanage` 选择3个最符合所有要求的节点，这是默认情况下 `drbdpool` 卷组中可用空间最大的节点集。我们稍后将看到如何手动将资源分配给特定节点。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:367
+msgid ""
+"As deploying a new resource/volume to a set of nodes is a very common task, "
+"`drbdmanage` provides the following short-cut:"
+msgstr "由于将新资源/卷部署到一组节点是一项非常常见的任务， `drbdmanage` 提供了以下捷径："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:370
+#, no-wrap
+msgid "# drbdmanage add-volume backups 500GB --deploy 3\n"
+msgstr "# drbdmanage add-volume backups 500GB --deploy 3\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:375
+msgid ""
+"Manual deployment can be achieved by *assigning* a resource to specific "
+"nodes.  For example if you decide to assign the 'backups' resource to "
+"'bravo' and 'charlie', you should execute the following steps:"
+msgstr ""
+"手动部署可以通过将资源分配给特定节点来实现。例如，如果决定将 `backups` 资源分配给 `bravo` 和 `charlie` ，则应执行以下步骤："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:380
+#, no-wrap
+msgid ""
+"# drbdmanage add-volume backups 500GB\n"
+"# drbdmanage assign-resource backups bravo\n"
+"# drbdmanage assign-resource backups charlie\n"
+msgstr ""
+"# drbdmanage add-volume backups 500GB\n"
+"# drbdmanage assign-resource backups bravo\n"
+"# drbdmanage assign-resource backups charlie\n"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:383
+#, no-wrap
+msgid "Managing snapshots"
+msgstr "管理快照"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:388
+msgid ""
+"In the following we assume that the _ThinLV_ plugin is used on all nodes "
+"that have deployed resources from which snapshots should be taken. For "
+"further information on how to configure the storage plugin, please refer to "
+"<<s-dm-set-config>>."
+msgstr ""
+"在下面的代码中，我们假设在所有部署了资源的节点上都使用了ThinLV插件，应该从中获取快照。有关如何配置存储插件的更多信息，请参阅<<s-dm-set-"
+"config>>。"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:390
+#, no-wrap
+msgid "Creating a snapshot"
+msgstr "创建快照"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:395
+msgid ""
+"Here we continue the example presented in the previous sections, namely "
+"nodes 'alpha', 'bravo', 'charlie', and 'delta' with a resource 'backups' "
+"deployed on the first three nodes. The name of the snapshot will be "
+"'snap_backups', and we want the snapshot to be taken on nodes 'bravo' and "
+"'charlie'."
+msgstr ""
+"在这里，我们继续前面部分中的示例，即节点 `alpha` 、 `bravo` 、 `charlie` 和 `delta` ，在前三个节点上部署了资源 `backups` 。快照的名称将为 `快照备份` ，我们希望在节点 `bravo` 和 `charlie` 上创建快照。"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:398
+#, no-wrap
+msgid "# drbdmanage create-snapshot snap_backups backups bravo charlie\n"
+msgstr "# drbdmanage create-snapshot snap_backups backups bravo charlie\n"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:401
+#, no-wrap
+msgid "Restoring a snapshot"
+msgstr "还原快照"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:404
+msgid ""
+"In the following we want to restore the content of the snapshot "
+"'snap_backups' to a new resource named 'res_backup_from_snap'."
+msgstr "在下面，我们要将快照 `快照备份` 的内容还原到名为 `res_backup_from_snap` 的新资源。"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:407
+#, no-wrap
+msgid ""
+"# drbdmanage restore-snapshot res_backup_from_snap backups snap_backups\n"
+msgstr ""
+"# drbdmanage restore-snapshot res_backup_from_snap backups snap_backups\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:412
+msgid ""
+"This will create a new resource with the name 'res_backup_from_snap'. This "
+"resource then gets automatically deployed to these nodes where currently the"
+" resource 'backups' is deployed."
+msgstr "这将创建名为 `res_backup_from_snap` 的新资源。然后，此资源将自动部署到当前部署资源 `备份` 的这些节点。"
+
+#. type: Title ====
+#: administration-drbdmanage.adoc:414
+#, no-wrap
+msgid "Removing a snapshot"
+msgstr "删除快照"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:416
+msgid "An existing snapshot can be removed as follows:"
+msgstr "可以按如下方式删除现有快照："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:419
+#, no-wrap
+msgid "# drbdmanage remove-snapshot backups snap_backups\n"
+msgstr "# drbdmanage remove-snapshot backups snap_backups\n"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:423
+#, no-wrap
+msgid "Checking the state of your cluster"
+msgstr "检查集群状态"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:429
+msgid ""
+"`Drbdmanage` provides various commands to check the state of your cluster.  "
+"These commands start with a 'list-' prefix and provide various filtering and"
+" sorting options. The '--groupby' option can be used to group and sort the "
+"output in multiple dimensions. Additional output can be turned on by using "
+"the '--show' option. In the following we show some typical examples:"
+msgstr ""
+"`Drbdmanage` 提供各种命令来检查集群的状态。这些命令以 `list-` 前缀开头，并提供各种筛选和排序选项。 `--groupby` 选项可用于按多个维度对输出进行分组和排序。使用 `--show` 选项可以打开其他输出。以下是一些典型的例子："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:435
+#, no-wrap
+msgid ""
+"# drbdmanage list-nodes\n"
+"# drbdmanage list-volumes --groupby Size\n"
+"# drbdmanage list-volumes --groupby Size --groupby Minor\n"
+"# drbdmanage list-volumes --groupby Size --show Port\n"
+msgstr ""
+"# drbdmanage list-nodes\n"
+"# drbdmanage list-volumes --groupby Size\n"
+"# drbdmanage list-volumes --groupby Size --groupby Minor\n"
+"# drbdmanage list-volumes --groupby Size --show Port\n"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:438
+#, no-wrap
+msgid "Setting options for resources"
+msgstr "设置资源选项"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:440
+msgid "Currently, it is possible to set the following `drbdsetup` options:"
+msgstr "目前，可以设置以下 `drbdsetup` 选项："
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:442
+msgid "net-options"
+msgstr "net-options"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:443
+msgid "peer-device-options"
+msgstr "peer-device-options"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:444
+msgid "disk-options"
+msgstr "disk-options"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:445
+msgid "resource-options"
+msgstr "resource-options"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:447
+msgid "Additionally, it is possible to set DRBD event handler."
+msgstr "此外，还可以设置DRBD事件处理程序。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:450
+msgid ""
+"As for example _net-options_ are allowed in the 'common' section as well as "
+"per resource, these commands then provide the according switches."
+msgstr "例如，在 `common` 部分和每个资源中都允许使用 `net-options` ，然后这些命令提供相应的开关。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:452
+msgid "Setting `max-buffers` for a resource 'backups' looks like this:"
+msgstr "为资源 `backups` 设置 `max buffers` 如下："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:455
+#, no-wrap
+msgid "# drbdmanage net-options --max-buffers 2048 --resource backups\n"
+msgstr "# drbdmanage net-options --max-buffers 2048 --resource backups\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:458
+msgid "Setting this option in the common section looks like this:"
+msgstr "在common部分中设置此选项如下所示："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:461
+#, no-wrap
+msgid "# drbdmanage net-options --max-buffers 2048 --common\n"
+msgstr "# drbdmanage net-options --max-buffers 2048 --common\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:466
+msgid ""
+"Additionally, there is always an '--unset-' option for every option that can"
+" be specified. So, unsetting `max-buffers` for a resource 'backups' looks "
+"like this:"
+msgstr "此外，对于每个可以指定的选项，总是有一个 `--unset-` 选项。因此，为资源 `backups` 设置 `max buffers` 如下："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:469
+#, no-wrap
+msgid "# drbdmanage net-options --unset-max-buffers --resource backups\n"
+msgstr "# drbdmanage net-options --unset-max-buffers --resource backups\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:473
+msgid ""
+"It is possible to visualize currently set options with the 'show-options' "
+"subcommand."
+msgstr "可以使用 `show options` 子命令可视化当前设置的选项。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:478
+msgid ""
+"Setting _net-options_ per site is also supported. Lets assume 'alpha' and "
+"'bravo' should be part of site 'first' and 'charlie' and 'delta' should be "
+"part of site 'second'. Further, we want to use DRBD protocol 'C' within the "
+"two sites, and protocol 'A' between the sites 'first' and 'second'. This "
+"would be set up as follows:"
+msgstr ""
+"也支持为每个站点设置网络选项。假设 `alpha` 和 `bravo` 应该是站点 `first` 的一部分， `charlie` 和 `delta` 应该是站点 `second` 的一部分。此外，我们希望在两个站点中使用DRBD协议 `C` ，在站点 `first` 和 `second` 之间使用协议 `A` 。其设置如下："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:483
+#, no-wrap
+msgid ""
+"# drbdmanage modify-config\n"
+"[Node:alpha]\n"
+"site = first\n"
+msgstr ""
+"# drbdmanage modify-config\n"
+"[Node:alpha]\n"
+"site = first\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:486
+#, no-wrap
+msgid ""
+"[Node:bravo]\n"
+"site = first\n"
+msgstr ""
+"[Node:bravo]\n"
+"site = first\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:489
+#, no-wrap
+msgid ""
+"[Node:charlie]\n"
+"site = second\n"
+msgstr ""
+"[Node:charlie]\n"
+"site = second\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:492
+#, no-wrap
+msgid ""
+"[Node:delta]\n"
+"site = second\n"
+msgstr ""
+"[Node:delta]\n"
+"site = second\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:498
+#, no-wrap
+msgid ""
+"# drbdmanage net-options --protocol C --sites 'first:first'\n"
+"# drbdmanage net-options --protocol C --sites 'second:second'\n"
+"# drbdmanage net-options --protocol A --sites 'first:second'\n"
+msgstr ""
+"# drbdmanage net-options --protocol C --sites 'first:first'\n"
+"# drbdmanage net-options --protocol C --sites 'second:second'\n"
+"# drbdmanage net-options --protocol A --sites 'first:second'\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:503
+msgid ""
+"The '--sites' parameter follows a 'from:to' syntax, where currently 'from' "
+"and 'to' have a symetric semantic. Setting an option from 'first:second' "
+"also sets this option from 'second:first'."
+msgstr ""
+"`--sites` 参数遵循 `from:to` 语法，其中当前 `from` 和 `to` 具有符号语义。从 `first:second` 设置选项也从 `second:first` 设置此选项。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:505
+msgid ""
+"DRBD event handler can be set in the 'common' section and per resource:"
+msgstr "可以在 `common` 部分和每个资源中设置DRBD事件处理程序："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:508
+#, no-wrap
+msgid ""
+"# drbdmanage handlers --common --after-resync-target /path/to/script.sh\n"
+msgstr ""
+"# drbdmanage handlers --common --after-resync-target /path/to/script.sh\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:512
+#, no-wrap
+msgid "# drbdmanage handlers --common --unset-after-resync-target\n"
+msgstr "# drbdmanage handlers --common --unset-after-resync-target\n"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:516
+#, no-wrap
+msgid ""
+"# drbdmanage handlers --resource backups --after-resync-target "
+"/path/to/script.sh\n"
+msgstr ""
+"# drbdmanage handlers --resource backups --after-resync-target "
+"/path/to/script.sh\n"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:520
+#, no-wrap
+msgid "Rebalancing data with DRBD Manage"
+msgstr "使用DRBD Manage重新平衡数据"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:525
+msgid ""
+"indexterm:[rebalance]Rebalancing data means moving some assignments around, "
+"to make better use of the available resources. We'll discuss the same "
+"example as for the <<s-rebalance-workflow,manual workflow>>."
+msgstr ""
+"indexterm:[rebalance]重新平衡数据意味着移动一些工作分配，以便更好地利用可用资源。我们将讨论与<<s-rebalance-"
+"workflow,manual workflow>>相同的示例。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:529
+msgid ""
+"Given is an example policy that data needs to be available on 3 nodes, so "
+"you need at least 3 servers for your setup."
+msgstr "给定的是一个示例策略，即数据需要在3个节点上可用，因此您的设置至少需要3个服务器。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:533
+msgid ""
+"Now, as your storage demands grow, you will encounter the need for "
+"additional servers. Rather than having to buy 3 more servers at the same "
+"time, you can _rebalance_ your data across a single additional node."
+msgstr "现在，随着存储需求的增长，您将需要额外的服务器。不必同时购买3台以上的服务器，您可以在一个额外的节点上 _重新平衡_ 数据。"
+
+#. type: Block title
+#: administration-drbdmanage.adoc:534
+#, no-wrap
+msgid "DRBD data rebalancing"
+msgstr "DRBD数据再平衡"
+
+#. type: Target for macro image
+#: administration-drbdmanage.adoc:535
+#, no-wrap
+msgid "images/rebalance.svg"
+msgstr "images/rebalance.svg"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:539
+msgid ""
+"First, you need to add the new machine to the cluster; see <<s-dm-add-node>>"
+" for the commands."
+msgstr "首先，需要将新机器添加到集群；有关命令，请参见<<s-dm-add-node>>。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:541
+msgid "The next step is to add the assignment:"
+msgstr "下一步是添加分配："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:544
+#, no-wrap
+msgid "# drbdmanage assign <resource> <new-node>\n"
+msgstr "# drbdmanage assign <resource> <new-node>\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:548
+msgid ""
+"Now you need to wait for the (initial) sync to finish; you can eg. use the "
+"command `drbdadm status` with (optionally) the resource name."
+msgstr "现在您需要等待（初始）同步完成；您可以使用命令 `drbdadm status`（可选）和资源名称。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:550
+msgid "One of the nodes that _still_ has the data will show a status like"
+msgstr "其中一个 _仍有_ 数据的节点将显示如下状态"
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:553
+#, no-wrap
+msgid "replication:SyncSource peer-disk:Inconsistent done:5.34\n"
+msgstr "replication:SyncSource peer-disk:Inconsistent done:5.34\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:556
+msgid "while the target node will have a state of _SyncTarget_."
+msgstr "而目标节点的状态为 _SyncTarget_ 。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:561
+msgid ""
+"When the target assignment reaches a state of _UpToDate_, you have a full "
+"additional copy of your data on this node; now it is safe to remove the "
+"assignment from another node:"
+msgstr "当目标分配达到 _UpToDate_ 状态时，此节点上的数据会有一个完整的附加副本；现在可以安全地从另一个节点删除该分配："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:564
+#, no-wrap
+msgid "# drbdmanage unassign <resource> <old-node>\n"
+msgstr "# drbdmanage unassign <resource> <old-node>\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:568
+msgid ""
+"And voilà - you moved one assignment, in twofootnote:[Or three, if you count"
+" waiting for the _UpToDate_ state.] easy steps!"
+msgstr "你移动了两个作业的一个 footnote：[或者三个，如果你数着等待 _UpToDate_ 状态的话。], 简单的步骤！"
+
+#. type: Title ===
+#: administration-drbdmanage.adoc:571
+#, no-wrap
+msgid "Getting help"
+msgstr "得到帮助"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:574
+msgid ""
+"The easiest way to get an overview about drbdmanage's subcommands is to read"
+" the main man-page (`man drbdmanage`)."
+msgstr "了解drbdmanage子命令的最简单方法是阅读主手册页（`man drbdmanage`）。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:577
+msgid ""
+"A quick way to list available commands on the command line is to type "
+"`drbdmanage list`."
+msgstr "在命令行中列出可用命令的一种快速方法是键入 `drbdmanage list` 。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:580
+msgid ""
+"Further information on subcommands (e.g., list-nodes) can be retrieved in "
+"three ways:"
+msgstr "有关子命令（例如列表节点）的更多信息可以通过三种方式检索："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:585
+#, no-wrap
+msgid ""
+"# man drbdmanage-list-nodes\n"
+"# drbdmanage list-nodes -h\n"
+"# drbdmanage help list-nodes\n"
+msgstr ""
+"# man drbdmanage-list-nodes\n"
+"# drbdmanage list-nodes -h\n"
+"# drbdmanage help list-nodes\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:589
+msgid ""
+"Using the 'help' subcommand is especially helpful when drbdmanage is "
+"executed in interactive mode (`drbdmanage interactive`)."
+msgstr "在交互模式（`drbdmanage interactive`）下执行drbdmanage时，使用'help'子命令尤其有用。"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:594
+msgid ""
+"One of the most helpful features of drbdmanage is its rich tab-completion, "
+"which can be used to complete basically every object drbdmanage knows about "
+"(e.g., node names, IP addresses, resource names, ...).  In the following we "
+"show some possible completions, and their results:"
+msgstr ""
+"drbdmanage最有用的特性之一是它丰富的tab 补全"
+"，它基本上可以用来完成drbdmanage所知道的每个对象（例如，节点名、IP地址、资源名等等）。在下面我们将展示一些可能的完工情况及其结果："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:598
+#, no-wrap
+msgid ""
+"# drbdmanage add-node alpha 1<tab> # completes the IP address if hostname can be resolved\n"
+"# drbdmanage assign-resource b<tab> c<tab> # drbdmanage assign-resource backups charlie\n"
+msgstr ""
+"# drbdmanage add-node alpha 1<tab> # completes the IP address if hostname can be resolved\n"
+"# drbdmanage assign-resource b<tab> c<tab> # drbdmanage assign-resource backups charlie\n"
+
+#. type: Plain text
+#: administration-drbdmanage.adoc:602
+msgid ""
+"If tab-completion does not work out of the box, please try to source the "
+"according file:"
+msgstr "如果tab补全完成不正常，请尝试获取相应的文件："
+
+#. type: delimited block -
+#: administration-drbdmanage.adoc:606
+#, no-wrap
+msgid ""
+"# source /etc/bash_completion.d/drbdmanage # or\n"
+"# source /usr/share/bash_completion/completions/drbdmanage\n"
+msgstr ""
+"# source /etc/bash_completion.d/drbdmanage # or\n"
+"# source /usr/share/bash_completion/completions/drbdmanage\n"

@@ -1,0 +1,424 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2020-03-02 15:09+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: rhcs.adoc:2
+#, no-wrap
+msgid "Integrating DRBD with Red Hat Cluster"
+msgstr "DRBD与红帽集群的集成"
+
+#. type: Plain text
+#: rhcs.adoc:7
+msgid ""
+"indexterm:[Red Hat Cluster]This chapter describes using DRBD as replicated "
+"storage for Red Hat Cluster high availability clusters."
+msgstr "indexterm:[Red Hat Cluster]本章介绍如何将DRBD用作Red Hat Cluster高可用性集群的复制存储。"
+
+#. type: Plain text
+#: rhcs.adoc:12
+msgid ""
+"This guide uses the unofficial term _Red Hat Cluster_ to refer to a product "
+"that has had multiple official product names over its history, including "
+"_Red Hat Cluster Suite_ and _Red Hat Enterprise Linux High Availability Add-"
+"On_."
+msgstr ""
+"本指南使用非正式术语 `Red Hat Cluster` 指的是在其历史上拥有多个正式产品名称的产品，包括 `Red Hat Cluster "
+"Suite` 和 `Red Hat Enterprise Linux高可用性附加组件` 。"
+
+#. type: Title ===
+#: rhcs.adoc:14
+#, no-wrap
+msgid "Red Hat Cluster background information"
+msgstr "红帽集群背景信息"
+
+#. type: Title ====
+#: rhcs.adoc:17
+#, no-wrap
+msgid "Fencing"
+msgstr "Fencing"
+
+#. type: Plain text
+#: rhcs.adoc:24
+msgid ""
+"Red Hat Cluster, originally designed primarily for shared storage clusters, "
+"relies on node fencing to prevent concurrent, uncoordinated access to shared"
+" resources. The Red Hat Cluster fencing infrastructure relies on the fencing"
+" daemon `fenced`, and fencing agents implemented as shell scripts."
+msgstr ""
+"最初主要为共享存储集群设计的Red Hat Cluster依靠节点围栏来防止对共享资源的并发、不协调访问。Red "
+"Hat集群围栏基础设施依赖于围栏守护进程 `fenced`，以及作为shell脚本实现的围栏代理。"
+
+#. type: Plain text
+#: rhcs.adoc:29
+msgid ""
+"Even though DRBD-based clusters utilize no shared storage resources and thus"
+" fencing is not strictly required from DRBD's standpoint, Red Hat Cluster "
+"Suite still requires fencing even in DRBD-based configurations."
+msgstr ""
+"尽管基于DRBD的集群不使用共享存储资源，因此从DRBD的角度来看，并不严格要求设置围栏，但即使在基于DRBD的配置中，Red "
+"Hat集群套件仍然需要设置围栏。"
+
+#. type: Title ====
+#: rhcs.adoc:31
+#, no-wrap
+msgid "The Resource Group Manager"
+msgstr "资源组管理器"
+
+#. type: Plain text
+#: rhcs.adoc:36
+msgid ""
+"The resource group manager (`rgmanager`, alternatively `clurgmgr`) is akin "
+"to Pacemaker. It serves as the cluster management suite's primary interface "
+"with the applications it is configured to manage."
+msgstr "资源组管理器（`rgmanager`，或者 `clurgmgr`）类似于Pacemaker。它充当集群管理套件与配置为管理的应用程序的主接口。"
+
+#. type: Title =====
+#: rhcs.adoc:38
+#, no-wrap
+msgid "Red Hat Cluster resources"
+msgstr "Red Hat集群资源"
+
+#. type: Plain text
+#: rhcs.adoc:43
+msgid ""
+"indexterm:[Red Hat Cluster]A single highly available application, "
+"filesystem, IP address and the like is referred to as a _resource_ in Red "
+"Hat Cluster terminology."
+msgstr ""
+"indexterm:[Red Hat Cluster]在Red Hat "
+"Cluster术语中，一个高可用的应用程序、文件系统、IP地址等被称为 `资源` 。"
+
+#. type: Plain text
+#: rhcs.adoc:50
+msgid ""
+"Where resources depend on each other -- such as, for example, an NFS export "
+"depending on a filesystem being mounted -- they form a _resource tree_, a "
+"form of nesting resources inside another. Resources in inner levels of "
+"nesting may inherit parameters from resources in outer nesting levels. The "
+"concept of resource trees is absent in Pacemaker."
+msgstr ""
+"在资源相互依赖的地方-例如，NFS导出依赖于正在装载的文件系统-它们形成一个资源树，一种在另一个资源树中嵌套资源的形式。嵌套的内部级别中的资源可以从外部嵌套级别中的资源继承参数。Pacemaker中没有资源树的概念。"
+
+#. type: Title =====
+#: rhcs.adoc:52
+#, no-wrap
+msgid "Red Hat Cluster services"
+msgstr "红帽集群服务"
+
+#. type: Plain text
+#: rhcs.adoc:58
+msgid ""
+"indexterm:[Red Hat Cluster]Where resources form a co-dependent collection, "
+"that collection is called a _service_. This is different from Pacemaker, "
+"where such a collection is referred to as a _resource group_."
+msgstr ""
+"indexterm:[Red Hat "
+"Cluster]当资源形成一个共同依赖的集合时，该集合称为一个服务。这与Pacemaker不同，Pacemaker将此类集合称为 `资源组` 。"
+
+#. type: Title =====
+#: rhcs.adoc:60
+#, no-wrap
+msgid "rgmanager resource agents"
+msgstr "rgmanager资源代理"
+
+#. type: Plain text
+#: rhcs.adoc:70
+msgid ""
+"The resource agents invoked by `rgmanager` are similar to those used by "
+"Pacemaker, in the sense that they utilize the same shell-based API as "
+"defined in the Open Cluster Framework (OCF), although Pacemaker utilizes "
+"some extensions not defined in the framework. Thus in theory, the resource "
+"agents are largely interchangeable between Red Hat Cluster Suite and "
+"Pacemaker -- in practice however, the two cluster management suites use "
+"different resource agents even for similar or identical tasks."
+msgstr ""
+"`rgmanager` 调用的资源代理与Pacemaker使用的资源代理类似，因为它们使用的是在开放集群框架（OCF）中定义的相同的基于shell的API，尽管Pacemaker使用了一些在框架中未定义的扩展。因此，在理论上，资源代理在Red"
+" Hat Cluster "
+"Suite和Pacemaker之间基本上是可以互换的——然而，实际上，这两个集群管理套件使用不同的资源代理，甚至用于相似或相同的任务。"
+
+#. type: Plain text
+#: rhcs.adoc:76
+msgid ""
+"Red Hat Cluster resource agents install into the `/usr/share/cluster/` "
+"directory. Unlike Pacemaker OCF resource agents which are by convention "
+"self-contained, some Red Hat Cluster resource agents are split into a `.sh` "
+"file containing the actual shell code, and a `.metadata` file containing XML"
+" resource agent metadata."
+msgstr ""
+"Red Hat Cluster resource agents安装到 `/usr/share/Cluster/` 目录中。与Pacemaker "
+"OCF资源代理不同，按照惯例，这些资源代理是自包含的，一些Red "
+"Hat集群资源代理被拆分为包含实际SHELL代码的 `.sh` 文件和包含XML资源代理元数据的 `.metadata` 文件。"
+
+#. type: Plain text
+#: rhcs.adoc:79
+msgid ""
+"DRBD includes a Red Hat Cluster resource agent. It installs into the "
+"customary directory as `drbd.sh` and `drbd.metadata`."
+msgstr "DRBD包括一个Red Hat集群资源代理。它作为 `drbd.sh` 和 `drbd.metadata` 安装到习惯目录中。"
+
+#. type: Title ===
+#: rhcs.adoc:81
+#, no-wrap
+msgid "Red Hat Cluster configuration"
+msgstr "Red Hat集群配置"
+
+#. type: Plain text
+#: rhcs.adoc:88
+msgid ""
+"This section outlines the configuration steps necessary to get Red Hat "
+"Cluster running. Preparing your cluster configuration is fairly "
+"straightforward; all a DRBD-based Red Hat Cluster requires are two "
+"participating nodes (referred to as _Cluster Members_ in Red Hat's "
+"documentation) and a fencing device."
+msgstr ""
+"本节概述了运行红帽集群所需的配置步骤。准备集群配置相当简单；一个基于DRBD的Red Hat集群需要两个参与节点（在Red "
+"Hat的文档中称为 `集群成员` ）和一个围栏设备。"
+
+#. type: Plain text
+#: rhcs.adoc:92
+msgid ""
+"For more information about configuring Red Hat clusters, see "
+"http://www.redhat.com/docs/manuals/csgfs/[Red Hat's documentation on the Red"
+" Hat Cluster and GFS.]"
+msgstr ""
+"有关配置Red Hat集群的更多信息，请参阅 http://www.Red Hat.com/docs/manuals/csgfs/[Red "
+"Hat有关Red Hat集群和GFS的文档。]"
+
+#. type: Title ====
+#: rhcs.adoc:95
+#, no-wrap
+msgid "The `cluster.conf` file"
+msgstr " `cluster.conf` 文件"
+
+#. type: Plain text
+#: rhcs.adoc:101
+msgid ""
+"RHEL clusters keep their configuration in a single configuration file, "
+"indexterm:[Red Hat Cluster]indexterm:[cluster.conf (Red Hat Cluster "
+"configuration file)]`/etc/cluster/cluster.conf`. You may manage your cluster"
+" configuration in the following ways:"
+msgstr ""
+"RHEL集群将它们的配置保存在一个配置文件中，indexterm:[redhatcluster]indexterm:[Cluster.conf（redhatcluster配置文件）] `/etc/Cluster/Cluster.conf`。您可以通过以下方式管理集群配置："
+
+#. type: Block title
+#: rhcs.adoc:102
+#, no-wrap
+msgid "Editing the configuration file directly"
+msgstr "直接编辑配置文件"
+
+#. type: Plain text
+#: rhcs.adoc:105
+msgid ""
+"This is the most straightforward method. It has no prerequisites other than "
+"having a text editor available."
+msgstr "这是最直接的方法。除了提供文本编辑器之外，它没有任何先决条件。"
+
+#. type: Block title
+#: rhcs.adoc:106
+#, no-wrap
+msgid "Using the `system-config-cluster` GUI"
+msgstr "使用 `系统配置集群` GUI"
+
+#. type: Plain text
+#: rhcs.adoc:110
+msgid ""
+"This is a GUI application written in Python using Glade. It requires the "
+"availability of an X display (either directly on a server console, or "
+"tunneled via SSH)."
+msgstr "这是一个使用Glade用Python编写的GUI应用程序。它需要X显示的可用性（直接在服务器控制台上，或者通过SSH隧道）。"
+
+#. type: Block title
+#: rhcs.adoc:111
+#, no-wrap
+msgid "Using the Conga web-based management infrastructure"
+msgstr "使用Conga基于web的管理基础设施"
+
+#. type: Plain text
+#: rhcs.adoc:117
+msgid ""
+"The Conga infrastructure consists of a node agent ( `ricci`)  communicating "
+"with the local cluster manager, cluster resource manager, and cluster LVM "
+"daemon, and an administration web application ( `luci`) which may be used to"
+" configure the cluster infrastructure using a simple web browser."
+msgstr ""
+"Conga基础设施包括一个与本地集群管理器、集群资源管理器和集群LVM守护程序通信的节点代理（ `ricci`）和一个管理web应用程序（ `luci`），可以使用简单的web浏览器配置集群基础设施。"
+
+#. type: Title ===
+#: rhcs.adoc:120
+#, no-wrap
+msgid "Using DRBD in Red Hat Cluster fail-over clusters"
+msgstr "在Red Hat集群故障转移集群中使用DRBD"
+
+#. type: Plain text
+#: rhcs.adoc:125
+msgid ""
+"This section deals exclusively with setting up DRBD for Red Hat Cluster "
+"fail-over clusters not involving GFS. For GFS (and GFS2)  configurations, "
+"please see <<ch-gfs>>."
+msgstr "本节专门讨论为不涉及GFS的Red Hat集群故障转移集群设置DRBD。有关GFS（和GFS2）配置，请参见<<ch-gfs>>。"
+
+#. type: Plain text
+#: rhcs.adoc:129
+msgid ""
+"This section, like <<ch-pacemaker>>, assumes you are about to configure a "
+"highly available MySQL database with the following configuration parameters:"
+msgstr "本节与<<ch-pacemaker>>类似，假设您将使用以下配置参数配置高可用的MySQL数据库："
+
+#. type: Plain text
+#: rhcs.adoc:132
+msgid ""
+"The DRBD resources to be used as your database storage area is named "
+"`mysql`, and it manages the device `/dev/drbd0`."
+msgstr "用作数据库存储区的DRBD资源名为mysql，它管理设备 `/dev/drbd0`。"
+
+#. type: Plain text
+#: rhcs.adoc:135
+msgid ""
+"The DRBD device holds an ext3 filesystem which is to be mounted to "
+"`/var/lib/mysql` (the default MySQL data directory)."
+msgstr "DRBD设备拥有一个ext3文件系统，该文件系统将被挂载到 `/var/lib/mysql`（默认的mysql数据目录）。"
+
+#. type: Plain text
+#: rhcs.adoc:138
+msgid ""
+"The MySQL database is to utilize that filesystem, and listen on a dedicated "
+"cluster IP address, 192.168.42.1."
+msgstr "MySQL数据库将利用这个文件系统，监听一个专用的集群IP地址192.168.42.1。"
+
+#. type: Title ====
+#: rhcs.adoc:141
+#, no-wrap
+msgid "Setting up your cluster configuration"
+msgstr "设置集群配置"
+
+#. type: Plain text
+#: rhcs.adoc:146
+msgid ""
+"To configure your highly available MySQL database, create or modify your "
+"`/etc/cluster/cluster.conf` file to contain the following configuration "
+"items."
+msgstr "要配置高度可用的MySQL数据库，请创建或修改 `/etc/cluster/cluster.conf` 文件以包含以下配置项。"
+
+#. type: Plain text
+#: rhcs.adoc:150
+msgid ""
+"To do that, open `/etc/cluster/cluster.conf` with your preferred text "
+"editing application. Then, include the following items in your resource "
+"configuration:"
+msgstr "为此，请使用首选的文本编辑应用程序打开 `/etc/cluster/cluster.conf` 。然后，在资源配置中包括以下项："
+
+#. type: delimited block -
+#: rhcs.adoc:169
+#, no-wrap
+msgid ""
+"<rm>\n"
+"  <resources />\n"
+"  <service autostart=\"1\" name=\"mysql\">\n"
+"    <drbd name=\"drbd-mysql\" resource=\"mysql\">\n"
+"      <fs device=\"/dev/drbd/by-res/mysql/0\"\n"
+"          mountpoint=\"/var/lib/mysql\"\n"
+"          fstype=\"ext3\"\n"
+"          name=\"mysql\"\n"
+"          options=\"noatime\"/>\n"
+"    </drbd>\n"
+"    <ip address=\"192.168.42.1\" monitor_link=\"1\"/>\n"
+"    <mysql config_file=\"/etc/my.cnf\"\n"
+"           listen_address=\"192.168.42.1\"\n"
+"           name=\"mysqld\"/>\n"
+"  </service>\n"
+"</rm>\n"
+msgstr ""
+"<rm>\n"
+"  <resources />\n"
+"  <service autostart=\"1\" name=\"mysql\">\n"
+"    <drbd name=\"drbd-mysql\" resource=\"mysql\">\n"
+"      <fs device=\"/dev/drbd/by-res/mysql/0\"\n"
+"          mountpoint=\"/var/lib/mysql\"\n"
+"          fstype=\"ext3\"\n"
+"          name=\"mysql\"\n"
+"          options=\"noatime\"/>\n"
+"    </drbd>\n"
+"    <ip address=\"192.168.42.1\" monitor_link=\"1\"/>\n"
+"    <mysql config_file=\"/etc/my.cnf\"\n"
+"           listen_address=\"192.168.42.1\"\n"
+"           name=\"mysqld\"/>\n"
+"  </service>\n"
+"</rm>\n"
+
+#. type: Plain text
+#: rhcs.adoc:172
+msgid "This example assumes a single-volume resource."
+msgstr "本例假设一个卷资源。"
+
+#. type: Plain text
+#: rhcs.adoc:175
+msgid ""
+"Nesting resource references inside one another in `<service/>` is the Red "
+"Hat Cluster way of expressing resource dependencies."
+msgstr "在 `<service/>` 中相互嵌套资源引用是表示资源依赖关系的Red Hat集群方式。"
+
+#. type: Plain text
+#: rhcs.adoc:180
+msgid ""
+"Be sure to increment the `config_version` attribute, found on the root "
+"`<cluster>` element, after you have completed your configuration. Then, "
+"issue the following commands to commit your changes to the running cluster "
+"configuration:"
+msgstr ""
+"完成配置后，请确保在根元素 `<cluster>` 中增加 `config_version` 属性。然后，发出以下命令将更改提交到正在运行的集群配置："
+
+#. type: delimited block -
+#: rhcs.adoc:184
+#, no-wrap
+msgid ""
+"# ccs_tool update /etc/cluster/cluster.conf\n"
+"# cman_tool version -r <version>\n"
+msgstr ""
+"# ccs_tool update /etc/cluster/cluster.conf\n"
+"# cman_tool version -r <version>\n"
+
+#. type: Plain text
+#: rhcs.adoc:188
+msgid ""
+"In the second command, be sure to replace _<version>_ with the new cluster "
+"configuration version number."
+msgstr "在第二个命令中，请确保用新的集群配置版本号替换 _<version>_ 。"
+
+#. type: Plain text
+#: rhcs.adoc:196
+msgid ""
+"Both the `system-config-cluster` GUI configuration utility and the Conga web"
+" based cluster management infrastructure will complain about your cluster "
+"configuration after including the `drbd` resource agent in your "
+"`cluster.conf` file. This is due to the design of the Python cluster "
+"management wrappers provided by these two applications which does not expect"
+" third party extensions to the cluster infrastructure."
+msgstr ""
+" `system config cluster` GUI配置实用程序和基于Conga "
+"web的集群管理基础设施在将 `drbd` 资源代理包含在 `cluster.conf` 文件中之后，都会抱怨您的集群配置。这是由于这两个应用程序提供的Python集群管理包装器的设计，它们不希望对集群基础设施进行第三方扩展。"
+
+#. type: Plain text
+#: rhcs.adoc:201
+msgid ""
+"Thus, when you utilize the `drbd` resource agent in cluster configurations, "
+"it is not recommended to utilize `system-config-cluster` nor Conga for "
+"cluster configuration purposes. Using either of these tools to only monitor "
+"the cluster's status, however, is expected to work fine."
+msgstr ""
+"因此，在集群配置中使用 `drbd` 资源代理时，不建议使用 `system config "
+"cluster` 或 `Conga` 进行集群配置。但是，使用这两种工具中的任何一种只监视集群的状态，都可以正常工作。"

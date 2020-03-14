@@ -1,4 +1,4 @@
-languages = en ja
+languages = en ja cn
 formats = html pdf
 
 # you can override on command line

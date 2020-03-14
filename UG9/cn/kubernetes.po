@@ -1,0 +1,1312 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2020-03-14 01:03+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: kubernetes.adoc:2
+#, no-wrap
+msgid "LINSTOR Volumes in Kubernetes"
+msgstr "Kubernetes的LINSTOR卷"
+
+#. type: Plain text
+#: kubernetes.adoc:7
+msgid ""
+"indexterm:[Kubernetes]This chapter describes the usage of LINSTOR in "
+"Kubernetes as managed by the operator and with volumes provisioned using the"
+" https://github.com/LINBIT/linstor-csi[LINSTOR CSI plugin]."
+msgstr ""
+"indexterm:[Kubernetes]本章描述了在Kubernetes中由操作员管理的LINSTOR的使用，以及使用 https://github.com/LINBIT/linstor-csi[LINSTOR CSI plugin]"
+" 配置卷的情况。"
+
+#. type: Title ===
+#: kubernetes.adoc:9
+#, no-wrap
+msgid "Kubernetes Overview"
+msgstr "Kubernetes 概述"
+
+#. type: Plain text
+#: kubernetes.adoc:15
+msgid ""
+"_Kubernetes_ is a container orchestrator. Kubernetes defines the behavior of"
+" containers and related services via declarative specifications. In this "
+"guide, we'll focus on on using `kubectl` to manipulate `.yaml` files that "
+"define the specifications of Kubernetes objects."
+msgstr ""
+"_Kubernetes_ 是一个容器编排系统。Kubernetes通过声明性规范定义容器和相关服务的行为。在本指南中，我们将重点介绍如何使用 `kubectl` 来操作定义Kubernetes对象规范的 `.yaml` 文件。"
+
+#. type: Title ===
+#: kubernetes.adoc:17
+#, no-wrap
+msgid "Deploying LINSTOR on Kubernetes"
+msgstr "在Kubernetes上部署LINSTOR"
+
+#. type: Title ====
+#: kubernetes.adoc:20
+#, no-wrap
+msgid "Deploying with the LINSTOR Operator"
+msgstr "使用LINSTOR Operator部署"
+
+#. type: Plain text
+#: kubernetes.adoc:25
+msgid ""
+"LINBIT provides a LINSTOR operator to commercial support customers.  The "
+"operator eases deployment of LINSTOR on Kubernetes by installing DRBD, "
+"managing Satellite and Controller pods, and other related functions."
+msgstr ""
+"LINBIT为商业支持客户提供LINSTOR Operator。Operator通过安装DRBD、管理Satellite/Controller Pods以及其他相关功能，简化了LINSTOR在Kubernetes上的部署。"
+
+#. type: Plain text
+#: kubernetes.adoc:27
+msgid "The operator itself is installed using a Helm v3 chart as follows:"
+msgstr "Operator用Helm v3安装，如下所示："
+
+#. type: Plain text
+#: kubernetes.adoc:30
+msgid ""
+"Label the worker nodes with `linstor.linbit.com/linstor-node=true` by "
+"running:"
+msgstr "通过运行以下命令将工作节点标记为 `linstor.linbit.com/linstor-node=true` ："
+
+#. type: delimited block -
+#: kubernetes.adoc:33
+#, no-wrap
+msgid "kubectl label node <NODE_NAME> linstor.linbit.com/linstor-node=true\n"
+msgstr "kubectl label node <NODE_NAME> linstor.linbit.com/linstor-node=true\n"
+
+#. type: Plain text
+#: kubernetes.adoc:36
+msgid "Create a kubernetes secret containing your my.linbit.com credentials:"
+msgstr "创建包含my.linbit.com凭据的kubernetes 密码："
+
+#. type: delimited block -
+#: kubernetes.adoc:39
+#, no-wrap
+msgid ""
+"kubectl create secret docker-registry drbdiocred --docker-server=drbd.io "
+"--docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-"
+"password=<YOUR_PASSWORD>\n"
+msgstr ""
+"kubectl create secret docker-registry drbdiocred --docker-server=drbd.io "
+"--docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-"
+"password=<YOUR_PASSWORD>\n"
+
+#. type: Plain text
+#: kubernetes.adoc:43
+msgid ""
+"The name of this secret must match the one specified in the Helm values, by "
+"default `drbdiocred`."
+msgstr "默认情况下，此密码的名称必须与Helm值中指定的名称 `drbdiocred` 匹配。"
+
+#. type: Plain text
+#: kubernetes.adoc:46
+msgid ""
+"Configure storage for the LINSTOR etcd instance. There are various options "
+"for configuring the etcd instance for LINSTOR:"
+msgstr "为LINSTOR etcd实例配置存储。有多种选项可用于为LINSTOR配置etcd实例："
+
+#. type: Plain text
+#: kubernetes.adoc:47
+msgid "Use an existing storage provisioner with a default `StorageClass`."
+msgstr "使用具有默认 `StorageClass` 的现有存储资源调配器。"
+
+#. type: Plain text
+#: kubernetes.adoc:48
+msgid "<<s-kubernetes-etcd-hostpath-persistence,Use `hostPath` volumes>>."
+msgstr "<<s-kubernetes-etcd-hostpath-persistence,Use `hostPath` volumes>>。"
+
+#. type: Plain text
+#: kubernetes.adoc:50
+msgid ""
+"Disable persistence for basic testing. This can be done by adding `--set "
+"etcd.persistence.enabled=false` to the `helm install` command below."
+msgstr ""
+"因为只进行基础测试，我们禁用持久存储。通过在 `helm install` 命令中添加 `--set "
+"etcd.persistence.enabled=false` 来完成。"
+
+#. type: Plain text
+#: kubernetes.adoc:53
+msgid ""
+"Configure the LVM VG and LV names by setting the following values in a local"
+" values file or by using `--set` with the `helm install` command below."
+msgstr "通过在本地的values文件中设置以下值, 或使用下面的helm install命令中的 `--set` 配置LVM VG和LV名称。"
+
+#. type: delimited block -
+#: kubernetes.adoc:58
+#, no-wrap
+msgid ""
+"operator.nodeSet.spec.lvmPoolVgName=drbdpool # <- Volume Group name of the thick storage pool\n"
+"operator.nodeSet.spec.lvmThinPoolVgName=drbdpool # <- Volume Group name of the thin storage pool\n"
+"operator.nodeSet.spec.lvmThinPoolLvName=thinpool # <- Logical Volume name of the thin pool\n"
+msgstr ""
+"operator.nodeSet.spec.lvmPoolVgName=drbdpool # <- Volume Group name of the thick storage pool\n"
+"operator.nodeSet.spec.lvmThinPoolVgName=drbdpool # <- Volume Group name of the thin storage pool\n"
+"operator.nodeSet.spec.lvmThinPoolLvName=thinpool # <- Logical Volume name of the thin pool\n"
+
+#. type: Plain text
+#: kubernetes.adoc:62
+msgid ""
+"Select the appropriate kernel module injector using `--set` with the `helm "
+"install` command in the final step."
+msgstr "在最后一步中，使用带有 `helm install` 命令的 `--set` 选择适当的内核模块注入。"
+
+#. type: Plain text
+#: kubernetes.adoc:66
+msgid ""
+"Choose the injector according to the distribution you are using. Replace "
+"`rhel7` with `bionic` or `rhel8` as appropriate in the following value. The "
+"`rhel8` image should also be used for RHCOS (OpenShift)."
+msgstr ""
+"根据您使用的发行版本选择内核模块。在下面的值中将 `rhel7` 替换为 `bionic` 或 `rhel8`。rhel8 镜像也应该用于RHCOS（OpenShift）。"
+
+#. type: delimited block -
+#: kubernetes.adoc:69
+#, no-wrap
+msgid "operator.nodeSet.spec.kernelModImage=drbd.io/drbd9-rhel7\n"
+msgstr "operator.nodeSet.spec.kernelModImage=drbd.io/drbd9-rhel7\n"
+
+#. type: Plain text
+#: kubernetes.adoc:72
+msgid ""
+"Disable kernel module injection if you are installing DRBD by other means."
+msgstr "如果通过其他方式安装DRBD，请禁用内核模块注入。"
+
+#. type: delimited block -
+#: kubernetes.adoc:75
+#, no-wrap
+msgid "operator.nodeSet.spec.drbdKernelModuleInjectionMode=None\n"
+msgstr "operator.nodeSet.spec.drbdKernelModuleInjectionMode=None\n"
+
+#. type: Plain text
+#: kubernetes.adoc:79
+msgid ""
+"Finally create a Helm deployment named `linstor-op` that will set up "
+"everything."
+msgstr "最后创建一个名为 `linstor-op` 的Helm部署，它将设置所有内容。"
+
+#. type: delimited block -
+#: kubernetes.adoc:83
+#, no-wrap
+msgid ""
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-op linstor/linstor\n"
+msgstr ""
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-op linstor/linstor\n"
+
+#. type: Title =====
+#: kubernetes.adoc:86
+#, no-wrap
+msgid "LINSTOR etcd `hostPath` persistence"
+msgstr "LINSTOR etcd `hostPath` 持久存储"
+
+#. type: Plain text
+#: kubernetes.adoc:91
+msgid ""
+"You can use the `pv-hostpath` Helm templates to create `hostPath` persistent"
+" volumes. Create as many PVs as needed to satisfy your configured etcd "
+"`replicaCount` (default 3)."
+msgstr ""
+"可以使用 `pv-"
+"hostpath` Helm模板创建 `hostpath` 持久卷。根据需要创建尽可能多的pv以满足配置的etcd的 `replicaccount`（默认值为3）。"
+
+#. type: Plain text
+#: kubernetes.adoc:94
+msgid ""
+"Create the `hostPath` persistent volumes, substituting cluster node names "
+"accordingly in the `nodes=` option:"
+msgstr "创建 `hostPath` 持久卷，在 `nodes=` 选项中相应地替换为集群节点名称："
+
+#. type: delimited block -
+#: kubernetes.adoc:98
+#, no-wrap
+msgid ""
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-etcd linstor/pv-hostpath --set \"nodes={<NODE0>,<NODE1>,<NODE2>}\"\n"
+msgstr ""
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-etcd linstor/pv-hostpath --set \"nodes={<NODE0>,<NODE1>,<NODE2>}\"\n"
+
+#. type: Plain text
+#: kubernetes.adoc:103
+msgid ""
+"Persistence for etcd is enabled by default. The "
+"`etcd.volumePermissions.enabled` key in the Helm values is also set so that "
+"the `hostPath` volumes have appropriate permissions."
+msgstr ""
+"默认情况下，启用etcd的持久性。Helm值中的 `etcd.volumePermissions.enabled` 键也已设置，以便 `hostPath` 卷具有适当的权限。"
+
+#. type: Title =====
+#: kubernetes.adoc:105
+#, no-wrap
+msgid "Terminating Helm deployment"
+msgstr "终止Helm部署"
+
+#. type: Plain text
+#: kubernetes.adoc:108
+msgid "The LINSTOR deployment can be terminated with:"
+msgstr "LINSTOR部署可以通过以下方式终止："
+
+#. type: delimited block -
+#: kubernetes.adoc:111
+#, no-wrap
+msgid "helm delete linstor-op\n"
+msgstr "helm delete linstor-op\n"
+
+#. type: Plain text
+#: kubernetes.adoc:117
+msgid ""
+"However due to the Helm’s current policy, the newly created Custom Resource "
+"Definitions named `linstorcontrollerset` and `linstornodeset` will *not* be "
+"deleted by the command. This will also cause the instances of those CRD’s "
+"named `linstor-op-ns` and `linstor-op-cs` to remain running."
+msgstr ""
+"但是，由于Helm的当前策略，命令 *不会* 删除名为 `linstorcontrollerset` 和 `linstornodeset` 的新创建的自定义资源定义(CRD)。这还将导致那些名为 `linstor"
+"-op-ns` 和 `linstor-op-cs` 的CRD实例继续运行。"
+
+#. type: Plain text
+#: kubernetes.adoc:119
+msgid "To terminate those instances after the `helm delete` command, run"
+msgstr "若要在 `helm delete` 命令后终止这些实例，请运行"
+
+#. type: delimited block -
+#: kubernetes.adoc:123
+#, no-wrap
+msgid ""
+"kubectl patch linstorcontrollerset linstor-op-cs -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge\n"
+"kubectl patch linstornodeset linstor-op-ns -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge\n"
+msgstr ""
+"kubectl patch linstorcontrollerset linstor-op-cs -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge\n"
+"kubectl patch linstornodeset linstor-op-ns -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge\n"
+
+#. type: Plain text
+#: kubernetes.adoc:127
+msgid ""
+"After that, all the instances created by the Helm deployment will be "
+"terminated."
+msgstr "之后，Helm部署创建的所有实例都将终止。"
+
+#. type: Plain text
+#: kubernetes.adoc:130
+msgid ""
+"More information regarding Helm’s current position on CRD’s can be found "
+"https://helm.sh/docs/topics/chart_best_practices/custom_resource_definitions/#method-1-let-"
+"helm-do-it-for-you[here]."
+msgstr ""
+"有关Helm目前在CRD上的位置的更多信息，请访问 https://Helm.sh/docs/topics/chart_best_practices/custom_resource_definitions/#method-1-let-"
+"Helm-do-it-for-you[这里]。"
+
+#. type: Title ====
+#: kubernetes.adoc:132
+#, no-wrap
+msgid "Deploying with the Piraeus Operator"
+msgstr "使用Piraeus Operator部署"
+
+#. type: Plain text
+#: kubernetes.adoc:138
+msgid ""
+"The community supported edition of the LINSTOR deployment in Kubernetes is "
+"called Piraeus. The Piraeus project provides "
+"https://github.com/piraeusdatastore/piraeus-operator[an operator] for "
+"deployment."
+msgstr ""
+"在Kubernetes中由社区支持的LINSTOR部署版本称为Piraeus。Piraeus项目提供了一个 https://github.com/piraewdatastore/piraeus"
+"-operator[an operator] 进行部署。"
+
+#. type: Title ===
+#: kubernetes.adoc:140
+#, no-wrap
+msgid "Interacting with LINSTOR in Kubernetes"
+msgstr "在Kubernetes中与LINSTOR互动"
+
+#. type: Plain text
+#: kubernetes.adoc:144
+msgid ""
+"The Controller pod includes a LINSTOR Client, making it easy to interact "
+"directly with LINSTOR.  For instance:"
+msgstr "Controller pod包括LINSTOR客户端，使得直接与LINSTOR交互变得容易。例如："
+
+#. type: delimited block -
+#: kubernetes.adoc:147
+#, no-wrap
+msgid "kubectl exec linstor-op-cs-controller-0 -- linstor storage-pool list\n"
+msgstr "kubectl exec linstor-op-cs-controller-0 -- linstor storage-pool list\n"
+
+#. type: Plain text
+#: kubernetes.adoc:152
+msgid ""
+"This should only be necessary for investigating problems and accessing "
+"advanced functionality.  Regular operation such as creating volumes should "
+"be achieved via the <<s-kubernetes-basic-configuration-and-"
+"deployment,Kubernetes integration>>."
+msgstr ""
+"这应该只是调研问题和访问高级功能所必需的。常规操作（如创建卷）应通过<<s-kubernetes-basic-configuration-and-"
+"deployment,Kubernetes integration>>实现。"
+
+#. type: Title ===
+#: kubernetes.adoc:154
+#, no-wrap
+msgid "LINSTOR CSI Plugin Deployment"
+msgstr "LINSTOR CSI插件部署"
+
+#. type: Plain text
+#: kubernetes.adoc:158
+msgid ""
+"The operator Helm chart deploys the LINSTOR CSI plugin for you so if you "
+"used that, you can skip this section."
+msgstr "operator 的 Helm chart中为您部署了LINSTOR CSI插件，因此如果您使用了该插件，可以跳过本节。"
+
+#. type: Plain text
+#: kubernetes.adoc:164
+msgid ""
+"If you are integrating LINSTOR using a different method, you will need to "
+"install the LINSTOR CSI plugin.  Instructions for deploying the CSI plugin "
+"can be found on the https://github.com/LINBIT/linstor-csi[project's github]."
+" This will result in a linstor-csi-controller _StatefulSet_ and a linstor-"
+"csi-node _DaemonSet_ running in the kube-system namespace."
+msgstr ""
+"如果使用不同的方法集成LINSTOR，则需要安装LINSTOR "
+"CSI插件。部署CSI插件的说明可以在https://github.com/LINBIT/linstor-csi[project's "
+"github]上找到。这将导致在kube-system命名空间中运行linstor-csi-controller _StatefulSet_ 和linstor-csi-node _DaemonSet_。"
+
+#. type: delimited block -
+#: kubernetes.adoc:173
+#, no-wrap
+msgid ""
+"NAME                       READY   STATUS    RESTARTS   AGE     IP              NODE\n"
+"linstor-csi-controller-0   5/5     Running   0          3h10m   191.168.1.200   kubelet-a\n"
+"linstor-csi-node-4fcnn     2/2     Running   0          3h10m   192.168.1.202   kubelet-c\n"
+"linstor-csi-node-f2dr7     2/2     Running   0          3h10m   192.168.1.203   kubelet-d\n"
+"linstor-csi-node-j66bc     2/2     Running   0          3h10m   192.168.1.201   kubelet-b\n"
+"linstor-csi-node-qb7fw     2/2     Running   0          3h10m   192.168.1.200   kubelet-a\n"
+"linstor-csi-node-zr75z     2/2     Running   0          3h10m   192.168.1.204   kubelet-e\n"
+msgstr ""
+"NAME                       READY   STATUS    RESTARTS   AGE     IP              NODE\n"
+"linstor-csi-controller-0   5/5     Running   0          3h10m   191.168.1.200   kubelet-a\n"
+"linstor-csi-node-4fcnn     2/2     Running   0          3h10m   192.168.1.202   kubelet-c\n"
+"linstor-csi-node-f2dr7     2/2     Running   0          3h10m   192.168.1.203   kubelet-d\n"
+"linstor-csi-node-j66bc     2/2     Running   0          3h10m   192.168.1.201   kubelet-b\n"
+"linstor-csi-node-qb7fw     2/2     Running   0          3h10m   192.168.1.200   kubelet-a\n"
+"linstor-csi-node-zr75z     2/2     Running   0          3h10m   192.168.1.204   kubelet-e\n"
+
+#. type: Title ===
+#: kubernetes.adoc:176
+#, no-wrap
+msgid "Basic Configuration and Deployment"
+msgstr "基本配置和部署"
+
+#. type: Plain text
+#: kubernetes.adoc:180
+msgid ""
+"Once all linstor-csi __Pod__s are up and running, we can provision volumes "
+"using the usual Kubernetes workflows."
+msgstr "一旦所有linstor-csi __Pod__s 都启动并运行，我们就可以使用通常的Kubernetes工作流创建卷。"
+
+#. type: Plain text
+#: kubernetes.adoc:184
+msgid ""
+"Configuring the behavior and properties of LINSTOR volumes deployed via "
+"Kubernetes is accomplished via the use of __StorageClass__es. Here below is "
+"the simplest practical _StorageClass_ that can be used to deploy volumes:"
+msgstr ""
+"配置通过Kubernetes部署的LINSTOR卷的行为和属性是通过使用 __StorageClass__es 来完成的。下面是可用于部署卷的最简单实用的 _StorageClass_ ："
+
+#. type: Block title
+#: kubernetes.adoc:185
+#, no-wrap
+msgid "linstor-basic-sc.yaml"
+msgstr "linstor-basic-sc.yaml"
+
+#. type: delimited block -
+#: kubernetes.adoc:200
+#, no-wrap
+msgid ""
+"apiVersion: storage.k8s.io/v1beta1\n"
+"kind: StorageClass\n"
+"metadata:\n"
+"  # The name used to identify this StorageClass.\n"
+"  name: linstor-basic-storage-class\n"
+"  # The name used to match this StorageClass with a provisioner.\n"
+"  # linstor.csi.linbit.com is the name that the LINSTOR CSI plugin uses to identify itself\n"
+"provisioner: linstor.csi.linbit.com\n"
+"parameters:\n"
+"  # LINSTOR will provision volumes from the drbdpool storage pool configured\n"
+"  # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment\n"
+"  storagePool: \"drbdpool\"\n"
+msgstr ""
+"apiVersion: storage.k8s.io/v1beta1\n"
+"kind: StorageClass\n"
+"metadata:\n"
+"  # The name used to identify this StorageClass.\n"
+"  name: linstor-basic-storage-class\n"
+"  # The name used to match this StorageClass with a provisioner.\n"
+"  # linstor.csi.linbit.com is the name that the LINSTOR CSI plugin uses to identify itself\n"
+"provisioner: linstor.csi.linbit.com\n"
+"parameters:\n"
+"  # LINSTOR will provision volumes from the drbdpool storage pool configured\n"
+"  # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment\n"
+"  storagePool: \"drbdpool\"\n"
+
+#. type: Plain text
+#: kubernetes.adoc:203
+msgid "We can create the _StorageClass_ with the following command:"
+msgstr "我们可以使用以下命令创建 _StorageClasses_ ："
+
+#. type: delimited block -
+#: kubernetes.adoc:206
+#, no-wrap
+msgid "kubectl create -f linstor-basic-sc.yaml\n"
+msgstr "kubectl create -f linstor-basic-sc.yaml\n"
+
+#. type: Plain text
+#: kubernetes.adoc:210
+msgid ""
+"Now that our _StorageClass_ is created, we can now create a "
+"_PersistentVolumeClaim_ which can be used to provision volumes known both to"
+" Kubernetes and LINSTOR:"
+msgstr ""
+"现在，我们的存储类已经创建，我们现在可以创建一个 _PersistentVolumeClaim_ ，它可以用来提供Kubernetes和LINSTOR都知道的卷："
+
+#. type: Block title
+#: kubernetes.adoc:211
+#, no-wrap
+msgid "my-first-linstor-volume-pvc.yaml"
+msgstr "my-first-linstor-volume-pvc.yaml"
+
+#. type: delimited block -
+#: kubernetes.adoc:228
+#, no-wrap
+msgid ""
+"kind: PersistentVolumeClaim\n"
+"apiVersion: v1\n"
+"metadata:\n"
+"  name: my-first-linstor-volume\n"
+"  annotations:\n"
+"    # This line matches the PersistentVolumeClaim with our StorageClass\n"
+"    # and therefore our provisioner.\n"
+"    volume.beta.kubernetes.io/storage-class: linstor-basic-storage-class\n"
+"spec:\n"
+"  accessModes:\n"
+"    - ReadWriteOnce\n"
+"  resources:\n"
+"    requests:\n"
+"      storage: 500Mi\n"
+msgstr ""
+"kind: PersistentVolumeClaim\n"
+"apiVersion: v1\n"
+"metadata:\n"
+"  name: my-first-linstor-volume\n"
+"  annotations:\n"
+"    # This line matches the PersistentVolumeClaim with our StorageClass\n"
+"    # and therefore our provisioner.\n"
+"    volume.beta.kubernetes.io/storage-class: linstor-basic-storage-class\n"
+"spec:\n"
+"  accessModes:\n"
+"    - ReadWriteOnce\n"
+"  resources:\n"
+"    requests:\n"
+"      storage: 500Mi\n"
+
+#. type: Plain text
+#: kubernetes.adoc:231
+msgid "We can create the _PersistentVolumeClaim_ with the following command:"
+msgstr "我们可以使用以下命令创建 _PersistentVolumeClaim_ ："
+
+#. type: delimited block -
+#: kubernetes.adoc:234
+#, no-wrap
+msgid "kubectl create -f my-first-linstor-volume-pvc.yaml\n"
+msgstr "kubectl create -f my-first-linstor-volume-pvc.yaml\n"
+
+#. type: Plain text
+#: kubernetes.adoc:244
+msgid ""
+"This will create a _PersistentVolumeClaim_ known to Kubernetes, which will "
+"have a _PersistentVolume_ bound to it, additionally LINSTOR will now create "
+"this volume according to the configuration defined in the `linstor-basic-"
+"storage-class` _StorageClass_. The LINSTOR volume's name will be a UUID "
+"prefixed with `csi-` This volume can be observed with the usual `linstor "
+"resource list`. Once that volume is created, we can attach it to a pod. The "
+"following _Pod_ spec will spawn a Fedora container with our volume attached "
+"that busy waits so it is not unscheduled before we can interact with it:"
+msgstr ""
+"这将创建一个Kubernetes已知的 _PersistentVolumeClaim_ ，它将绑定一个 _PersistentVolume_，另外LINSTOR现在将根据 `listor-basic-storage-class` 中定义的配置 _StorageClass_ 创建这个卷。LINSTOR卷的名称将是一个UUID，前缀为 `csi-` 可以使用通常的 `listor resource list` 来观察此卷。一旦创建了该卷，我们就可以将其附加到一个pod。下面的 _Pod_ 规范将生成一个Fedora容器，其中附加了忙等待的卷，因此在我们与它交互之前，它不会被取消调度 ："
+
+#. type: Block title
+#: kubernetes.adoc:245
+#, no-wrap
+msgid "my-first-linstor-volume-pod.yaml"
+msgstr "my-first-linstor-volume-pod.yaml"
+
+#. type: delimited block -
+#: kubernetes.adoc:268
+#, no-wrap
+msgid ""
+"apiVersion: v1\n"
+"kind: Pod\n"
+"metadata:\n"
+"  name: fedora\n"
+"  namespace: default\n"
+"spec:\n"
+"  containers:\n"
+"  - name: fedora\n"
+"    image: fedora\n"
+"    command: [/bin/bash]\n"
+"    args: [\"-c\", \"while true; do sleep 10; done\"]\n"
+"    volumeMounts:\n"
+"    - name: my-first-linstor-volume\n"
+"      mountPath: /data\n"
+"    ports:\n"
+"    - containerPort: 80\n"
+"  volumes:\n"
+"  - name: my-first-linstor-volume\n"
+"    persistentVolumeClaim:\n"
+"      claimName: \"my-first-linstor-volume\"\n"
+msgstr ""
+"apiVersion: v1\n"
+"kind: Pod\n"
+"metadata:\n"
+"  name: fedora\n"
+"  namespace: default\n"
+"spec:\n"
+"  containers:\n"
+"  - name: fedora\n"
+"    image: fedora\n"
+"    command: [/bin/bash]\n"
+"    args: [\"-c\", \"while true; do sleep 10; done\"]\n"
+"    volumeMounts:\n"
+"    - name: my-first-linstor-volume\n"
+"      mountPath: /data\n"
+"    ports:\n"
+"    - containerPort: 80\n"
+"  volumes:\n"
+"  - name: my-first-linstor-volume\n"
+"    persistentVolumeClaim:\n"
+"      claimName: \"my-first-linstor-volume\"\n"
+
+#. type: Plain text
+#: kubernetes.adoc:271
+msgid "We can create the _Pod_ with the following command:"
+msgstr "我们可以使用以下命令创建 _Pod_ ："
+
+#. type: delimited block -
+#: kubernetes.adoc:274
+#, no-wrap
+msgid "kubectl create -f my-first-linstor-volume-pod.yaml\n"
+msgstr "kubectl create -f my-first-linstor-volume-pod.yaml\n"
+
+#. type: Plain text
+#: kubernetes.adoc:278
+msgid ""
+"Running `kubectl describe pod fedora` can be used to confirm that _Pod_ "
+"scheduling and volume attachment succeeded."
+msgstr "运行 `kubectl describe pod fedora` 可用于确认 _Pod_ 调度和卷附加成功。"
+
+#. type: Plain text
+#: kubernetes.adoc:283
+msgid ""
+"To remove a volume, please ensure that no pod is using it and then delete "
+"the _PersistentVolumeClaim_ via `kubectl`. For example, to remove the volume"
+" that we just made, run the following two commands, noting that the _Pod_ "
+"must be unscheduled before the _PersistentVolumeClaim_ will be removed:"
+msgstr ""
+"要删除卷，请确保没有pod正在使用它，然后通过 `kubectl` 删除 `PersistentVolumeClaim` 。例如，要删除我们刚刚创建的卷，请运行以下两个命令，注意在删除 _PersistentVolumeClaim_ 之前必须取消调度该 _Pod_ ："
+
+#. type: delimited block -
+#: kubernetes.adoc:286
+#, no-wrap
+msgid "kubectl delete pod fedora # unschedule the pod.\n"
+msgstr "kubectl delete pod fedora # unschedule the pod.\n"
+
+#. type: delimited block -
+#: kubernetes.adoc:288
+#, no-wrap
+msgid "kubectl get pod -w # wait for pod to be unscheduled\n"
+msgstr "kubectl get pod -w # wait for pod to be unscheduled\n"
+
+#. type: delimited block -
+#: kubernetes.adoc:290
+#, no-wrap
+msgid ""
+"kubectl delete pvc my-first-linstor-volume # remove the "
+"PersistentVolumeClaim, the PersistentVolume, and the LINSTOR Volume.\n"
+msgstr ""
+"kubectl delete pvc my-first-linstor-volume # remove the "
+"PersistentVolumeClaim, the PersistentVolume, and the LINSTOR Volume.\n"
+
+#. type: Title ===
+#: kubernetes.adoc:293
+#, no-wrap
+msgid "Snapshots"
+msgstr "快照"
+
+#. type: Plain text
+#: kubernetes.adoc:298
+msgid ""
+"Creating <<s-linstor-snapshots, snapshots>> and creating new volumes from "
+"snapshots is done via the use of __VolumeSnapshot__s, "
+"__VolumeSnapshotClass__es, and __PVC__s. First, you'll need to create a "
+"_VolumeSnapshotClass_:"
+msgstr ""
+"创建<<s-linstor-snapshots, snapshots>>和从快照创建新卷是通过使用 __VolumeSnapshot__s, __VolumeSnapshotClass__es, 和 __PVC__s来完成的。" 
+"首先，您需要创建卷快照类 _VolumeSnapshotClass_："
+
+#. type: Block title
+#: kubernetes.adoc:299
+#, no-wrap
+msgid "my-first-linstor-snapshot-class.yaml"
+msgstr "my-first-linstor-snapshot-class.yaml"
+
+#. type: delimited block -
+#: kubernetes.adoc:308
+#, no-wrap
+msgid ""
+"kind: VolumeSnapshotClass\n"
+"apiVersion: snapshot.storage.k8s.io/v1alpha1\n"
+"metadata:\n"
+"  name: my-first-linstor-snapshot-class\n"
+"  namespace: kube-system\n"
+"snapshotter: io.drbd.linstor-csi\n"
+msgstr ""
+"kind: VolumeSnapshotClass\n"
+"apiVersion: snapshot.storage.k8s.io/v1alpha1\n"
+"metadata:\n"
+"  name: my-first-linstor-snapshot-class\n"
+"  namespace: kube-system\n"
+"snapshotter: io.drbd.linstor-csi\n"
+
+#. type: Plain text
+#: kubernetes.adoc:311
+msgid "Create the _VolumeSnapshotClass_ with `kubectl`:"
+msgstr "使用 `kubectl` 创建 _VolumeSnapshotClass_ ："
+
+#. type: delimited block -
+#: kubernetes.adoc:314
+#, no-wrap
+msgid "kubectl create -f my-first-linstor-snapshot-class.yaml\n"
+msgstr "kubectl create -f my-first-linstor-snapshot-class.yaml\n"
+
+#. type: Plain text
+#: kubernetes.adoc:318
+msgid ""
+"Now we will create a volume snapshot for the volume that we created above. "
+"This is done with a _VolumeSnapshot_:"
+msgstr "现在，我们将为上面创建的卷创建卷快照。这是用 _VolumeSnapshot_ 完成的："
+
+#. type: Block title
+#: kubernetes.adoc:319
+#, no-wrap
+msgid "my-first-linstor-snapshot.yaml"
+msgstr "my-first-linstor-snapshot.yaml"
+
+#. type: delimited block -
+#: kubernetes.adoc:331
+#, no-wrap
+msgid ""
+"apiVersion: snapshot.storage.k8s.io/v1alpha1\n"
+"kind: VolumeSnapshot\n"
+"metadata:\n"
+"  name: my-first-linstor-snapshot\n"
+"spec:\n"
+"  snapshotClassName: my-first-linstor-snapshot-class\n"
+"  source:\n"
+"    name: my-first-linstor-volume\n"
+"    kind: PersistentVolumeClaim\n"
+msgstr ""
+"apiVersion: snapshot.storage.k8s.io/v1alpha1\n"
+"kind: VolumeSnapshot\n"
+"metadata:\n"
+"  name: my-first-linstor-snapshot\n"
+"spec:\n"
+"  snapshotClassName: my-first-linstor-snapshot-class\n"
+"  source:\n"
+"    name: my-first-linstor-volume\n"
+"    kind: PersistentVolumeClaim\n"
+
+#. type: Plain text
+#: kubernetes.adoc:334
+msgid "Create the _VolumeSnapshot_ with `kubectl`:"
+msgstr "使用 `kubectl` 创建 _VolumeSnapshot_ ："
+
+#. type: delimited block -
+#: kubernetes.adoc:337
+#, no-wrap
+msgid "kubectl create -f my-first-linstor-snapshot.yaml\n"
+msgstr "kubectl create -f my-first-linstor-snapshot.yaml\n"
+
+#. type: Plain text
+#: kubernetes.adoc:340
+msgid "Finally, we'll create a new volume from the snapshot with a _PVC_."
+msgstr "最后，我们将使用 _PVC_ 从快照创建一个新卷。"
+
+#. type: Block title
+#: kubernetes.adoc:341
+#, no-wrap
+msgid "my-first-linstor-volume-from-snapshot.yaml"
+msgstr "my-first-linstor-volume-from-snapshot.yaml"
+
+#. type: delimited block -
+#: kubernetes.adoc:359
+#, no-wrap
+msgid ""
+"apiVersion: v1\n"
+"kind: PersistentVolumeClaim\n"
+"metadata:\n"
+"  name: my-first-linstor-volume-from-snapshot\n"
+"spec:\n"
+"  storageClassName: linstor-basic-storage-class\n"
+"  dataSource:\n"
+"    name: my-first-linstor-snapshot\n"
+"    kind: VolumeSnapshot\n"
+"    apiGroup: snapshot.storage.k8s.io\n"
+"  accessModes:\n"
+"    - ReadWriteOnce\n"
+"  resources:\n"
+"    requests:\n"
+"      storage: 500Mi\n"
+msgstr ""
+"apiVersion: v1\n"
+"kind: PersistentVolumeClaim\n"
+"metadata:\n"
+"  name: my-first-linstor-volume-from-snapshot\n"
+"spec:\n"
+"  storageClassName: linstor-basic-storage-class\n"
+"  dataSource:\n"
+"    name: my-first-linstor-snapshot\n"
+"    kind: VolumeSnapshot\n"
+"    apiGroup: snapshot.storage.k8s.io\n"
+"  accessModes:\n"
+"    - ReadWriteOnce\n"
+"  resources:\n"
+"    requests:\n"
+"      storage: 500Mi\n"
+
+#. type: Plain text
+#: kubernetes.adoc:362
+msgid "Create the _PVC_ with `kubectl`:"
+msgstr "用 `kubectl` 创建 _PVC_ ："
+
+#. type: delimited block -
+#: kubernetes.adoc:365
+#, no-wrap
+msgid "kubectl create -f my-first-linstor-volume-from-snapshot.yaml\n"
+msgstr "kubectl create -f my-first-linstor-volume-from-snapshot.yaml\n"
+
+#. type: Title ===
+#: kubernetes.adoc:369
+#, no-wrap
+msgid "Volume Accessibility"
+msgstr "卷可访问性"
+
+#.  This only covers DRBD volumes, section might change if linked docs are
+#. updated.
+#. type: Plain text
+#: kubernetes.adoc:373
+msgid ""
+"LINSTOR volumes are typically accessible both locally and "
+"<<s-drbd_clients,over the network>>."
+msgstr "LINSTOR卷通常可以通过网络在本地和<<s-drbd_clients,over the network>>来访问。"
+
+#. type: Plain text
+#: kubernetes.adoc:380
+msgid ""
+"By default, the CSI plugin will attach volumes directly if the _Pod_ happens"
+" to be scheduled on a _kubelet_ where its underlying storage is present. "
+"However, _Pod_ scheduling does not currently take volume locality into "
+"account. The <<s-kubernetes-replicasonsame,replicasOnSame>> parameter can be"
+" used to restrict where the underlying storage may be provisioned, if "
+"locally attached volumes are desired."
+msgstr ""
+"默认情况下，CSI插件将直接附加卷，如果碰巧将 _Pod_ 调度到 _kubelet_ 所在的底层存储上。但是，_Pod_ 调度当前不考虑卷位置。如果需要本地连接的卷，可以使用<<s-kubernetes-"
+"replicasonsame,replicasOnSame>>参数来限制底层存储的配置位置。"
+
+#. type: Plain text
+#: kubernetes.adoc:383
+msgid ""
+"See <<s-kubernetes-localstoragepolicy,localStoragePolicy>> to see how this "
+"default behavior can be modified."
+msgstr ""
+"请参见<<s-kubernetes-localstoragepolicy,localStoragePolicy>>以了解如何修改此默认行为。"
+
+#. type: Title ===
+#: kubernetes.adoc:385
+#, no-wrap
+msgid "Advanced Configuration"
+msgstr "高级配置"
+
+#. type: Plain text
+#: kubernetes.adoc:390
+msgid ""
+"In general, all configuration for LINSTOR volumes in Kubernetes should be "
+"done via the _StorageClass_ parameters, as seen with the _storagePool_ in "
+"the basic example above. We'll give all the available options an in-depth "
+"treatment here."
+msgstr ""
+"一般来说，Kubernetes中LINSTOR卷的所有配置都应该通过 _StorageClass_ 参数完成，如上面的基本示例中的 _storagePool_ 所示。我们将在这里对所有可用的选项进行深入的处理。"
+
+#. type: Title ====
+#: kubernetes.adoc:392
+#, no-wrap
+msgid "nodeList"
+msgstr "节点列表"
+
+#. type: Plain text
+#: kubernetes.adoc:398
+msgid ""
+"`nodeList` is a list of nodes for volumes to be assigned to. This will "
+"assign the volume to each node and it will be replicated among all of them. "
+"This can also be used to select a single node by hostname, but it's more "
+"flexible to use <<s-kubernetes-replicasonsame,replicasOnSame>> to select a "
+"single node."
+msgstr ""
+"`nodeList` 是要分配给卷的节点列表。这将把卷分配给每个节点，并在所有节点之间进行复制。这也可以用于按主机名选择单个节点，但使用<<s-kubernetes-"
+"replicasonsame,replicasOnSame>>选择单个节点更灵活。"
+
+#. type: Plain text
+#: kubernetes.adoc:400
+msgid ""
+"If you use this option, you must not use <<s-kubernetes-"
+"autoplace,autoPlace>>."
+msgstr "如果使用此选项，则不能使用<<s-kubernetes-autoplace,autoPlace>>。"
+
+#. type: Plain text
+#: kubernetes.adoc:404
+msgid ""
+"This option determines on which LINSTOR nodes the underlying storage for "
+"volumes will be provisioned and is orthogonal from which _kubelets_ these "
+"volumes will be accessible."
+msgstr "此选项确定卷的底层存储将在哪个LINSTOR节点上配置，并且与从那个 _kubelets_ 可以访问这些卷位置正交。"
+
+#. type: Plain text
+#: kubernetes.adoc:406
+msgid "Example: `nodeList: \"node-a node-b node-c\"`"
+msgstr "示例：`nodeList: \"node-a node-b node-c\" `"
+
+#. type: Plain text
+#: kubernetes.adoc:408
+msgid "Example: `nodeList: \"node-a\"`"
+msgstr "示例：`nodeList: \"node-a\" `"
+
+#. type: Title ====
+#: kubernetes.adoc:410
+#, no-wrap
+msgid "autoPlace"
+msgstr "autoPlace"
+
+#. type: Plain text
+#: kubernetes.adoc:416
+msgid ""
+"`autoPlace` is an integer that determines the amount of replicas a volume of"
+" this _StorageClass_ will have.  For instance, `autoPlace: 3` will produce "
+"volumes with three-way replication. If neither `autoPlace` nor `nodeList` "
+"are set, volumes will be <<s-autoplace-linstor,automatically placed>> on one"
+" node."
+msgstr ""
+"`autoPlace` 是一个整数，用于确定此存储类卷的副本数量。例如， `autoPlace:3` 将生成具有三路复制的卷。如果未设置 `autoPlace` 或 `nodeList` ，则卷将<<s-autoplace-"
+"linstor,automatically placed>>。"
+
+#. type: Plain text
+#: kubernetes.adoc:418
+msgid ""
+"If you use this option, you must not use <<s-kubernetes-nodelist,nodeList>>."
+msgstr "如果使用此选项，则不能使用<<s-kubernetes-nodelist,nodeList>>。"
+
+#. type: Plain text
+#: kubernetes.adoc:423
+msgid ""
+"This option (and all options which affect autoplacement behavior) modifies "
+"the number of LINSTOR nodes on which the underlying storage for volumes will"
+" be provisioned and is orthogonal to which _kubelets_ those volumes will be "
+"accessible from."
+msgstr ""
+"此选项（以及影响自动放置行为的所有选项）修改将在其上配置卷的底层存储的LINSTOR节点的数量，并且与可从中访问这些卷的 _kubelets_ 正交。"
+
+#. type: Plain text
+#: kubernetes.adoc:425
+msgid "Example: `autoPlace: 2`"
+msgstr "示例：`autoPlace:2`"
+
+#. type: Plain text
+#: kubernetes.adoc:427
+msgid "Default: `autoPlace: 1`"
+msgstr "默认值：`autoPlace:1`"
+
+#. type: Title ====
+#: kubernetes.adoc:430
+#, no-wrap
+msgid "replicasOnSame"
+msgstr "replicasOnSame"
+
+#.  These should link to the linstor documentation about node properties, but
+#. those
+#.  do not exist at the time of this commit.
+#. type: Plain text
+#: kubernetes.adoc:441
+msgid ""
+"`replicasOnSame` is a list of key=value pairs used as required autoplacement"
+" selection labels when <<s-kubernetes-autoplace,autoplace>> is used to "
+"determine where to provision storage. These labels correspond to LINSTOR "
+"node aux props. Please note both the key and value names are user-defined "
+"and arbitrary. Let's explore this behavior with examples assuming a LINSTOR "
+"cluster such that `node-a` is configured with the following aux props "
+"`zone=z1` and `role=backups`, while `node-b` is configured with only "
+"`zone=z1`."
+msgstr ""
+"`replicasOnSame`是一个key=value对的列表，当使用<<s-kubernetes-"
+"autoplace,autoplace>>确定在何处设置存储时，它用作所需的自动放置选择标签。这些标签对应于LINSTOR node aux props。请注意，键和值的名称都是用户定义的，并且是任意的。假设LINSTOR集群的 `node-a` 配置了以下aux"
+" props `zone=z1` 和 `role=backups` ，而 `node-b` 只配置了 `zone=z1` ，让我们通过示例来探索这种行为。"
+
+#. type: Plain text
+#: kubernetes.adoc:446
+msgid ""
+"If we configure a _StorageClass_ with `autoPlace: \"1\"` and "
+"`replicasOnSame: \"zone=z1 role=backups\"`, then all volumes created from "
+"that _StorageClass_ will be provisioned on `node-a`, since that is the only "
+"node with all of the correct key=value pairs in the LINSTOR cluster. This is"
+" the most flexible way to select a single node for provisioning."
+msgstr ""
+"如果我们使用 `autoPlace: \"1\" ` 和 `replicasOnSame: \"zone=z1 role=backups\"`"
+"来配置一个 _StorageClass_` ，那么从该 _StorageClass_ 创建的所有卷都将配置在 `node-a` 上，因为这是LINSTOR集群中唯一具有所有正确的key=value对的节点。这是选择单个节点进行资源调配的最灵活方式。"
+
+#. type: Plain text
+#: kubernetes.adoc:450
+msgid ""
+"If we configure a _StorageClass_ with `autoPlace: \"1\"` and "
+"`replicasOnSame: \"zone=z1\"`, then volumes will be provisioned on either "
+"`node-a` or `node-b` as they both have the `zone=z1` aux prop."
+msgstr ""
+"如果我们使用 `autoPlace: \"1\" ` 和 `replicasOnSame: \"zone=z1\" ` 来配置一个 _StorageClass_ ，那么卷将在 `node-a` 或 `node-b` 上配置，因为它们都有 `zone=z1` 辅助属性。"
+
+#. type: Plain text
+#: kubernetes.adoc:454
+msgid ""
+"If we configure a _StorageClass_ with `autoPlace: \"2\"` and "
+"`replicasOnSame: \"zone=z1 role=backups\"`, then provisioning will fail, as "
+"there are not two or more nodes that have the appropriate aux props."
+msgstr ""
+"如果我们使用 `autoPlace: \"2\"` 和  `replicasOnSame: \"zone=z1 role=backups\"`来配置一个 _StorageClass_, "
+"那么设置将失败，因为没有两个或更多节点具有适当的aux props。"
+
+#. type: Plain text
+#: kubernetes.adoc:458
+msgid ""
+"If we configure a _StorageClass_ with `autoPlace: \"2\"` and "
+"`replicasOnSame: \"zone=z1\"`, then volumes will be provisioned on both "
+"`node-a` and `node-b` as they both have the `zone=z1` aux prop."
+msgstr ""
+"如果我们用 `autoPlace: \"2\"` 和 `replicasOnSame: \"zone=z1\"` 配置一个存储类，那么卷将同时在 `node-a` 和 `node-b` 上配置，因为它们都有 `zone=z1` 辅助属性。"
+
+#. type: Plain text
+#: kubernetes.adoc:460
+msgid "Example: `replicasOnSame: \"zone=z1 role=backups\"`"
+msgstr "示例：`replicasOnSame: \"zone=z1 role=backups\"`"
+
+#. type: Title ====
+#: kubernetes.adoc:462
+#, no-wrap
+msgid "replicasOnDifferent"
+msgstr "replicasOnDifferent"
+
+#. type: Plain text
+#: kubernetes.adoc:466
+msgid ""
+"`replicasOnDifferent` is a list of key=value pairs to avoid as autoplacement"
+" selection. It is the inverse of <<s-kubernetes-"
+"replicasonsame,replicasOnSame>>."
+msgstr ""
+"`replicasOnDifferent`是一个key=value对的列表，避免作为自动放置选择。它与<<s-kubernetes-"
+"replicasonsame,replicasOnSame>>相反。"
+
+#. type: Plain text
+#: kubernetes.adoc:468
+msgid "Example: `replicasOnDifferent: \"no-csi-volumes=true\"`"
+msgstr "示例：`replicasOnDifferent: \"no csi volumes=true\"`"
+
+#. type: Title ====
+#: kubernetes.adoc:470
+#, no-wrap
+msgid "localStoragePolicy"
+msgstr "localStoragePolicy"
+
+#. type: Plain text
+#: kubernetes.adoc:475
+msgid ""
+"`localStoragePolicy` determines, via volume topology, which LINSTOR "
+"__Satellite__s volumes should be assigned and from where Kubernetes will "
+"access volumes. The behavior of each option is explained below in detail."
+msgstr ""
+"`localStoragePolicy`通过卷拓扑结构确定应分配哪些LINSTOR _Satellite__s 卷以及Kubernetes访问卷的位置。下面将详细说明每个选项的行为。"
+
+#. type: Plain text
+#: kubernetes.adoc:479
+msgid ""
+"If you specify a <<s-kubernetes-nodelist,nodeList>>, volumes will be created"
+" on those nodes, irrespective of the `localStoragePolicy`; however, the "
+"accessibility reporting will still be as described."
+msgstr ""
+"如果指定<<s-kubernetes-"
+"nodelist,nodeList>>，将在这些节点上创建卷，而不考虑 `localStoragePolicy` ；但是，辅助功能报告仍将如所述。"
+
+#. type: Plain text
+#: kubernetes.adoc:485
+msgid ""
+"You must set `volumeBindingMode: WaitForFirstConsumer` in the _StorageClass_"
+" and the LINSTOR __Satellite__s running on the __kubelet__s must be able to "
+"support the diskfull placement of volumes as they are configured in that "
+"_StorageClass_ for <<s-kubernetes-localstoragepolicy-required,required>> or "
+"<<s-kubernetes-localstoragepolicy-preferred,preferred>> to work properly."
+msgstr ""
+"您必须在 _StorageClasses_ 中设置 `volumeBindingMode:WaitForFirstConsumer` ，并且运行在 __kubelet__s 上的LINSTOR __Satellite__s 必须能够支持卷的磁盘完全放置，因为它们是在存储类中为<<s-kubernetes-"
+"localstoragepolicy-required,required>>或<<s-kubernetes-localstoragepolicy-preferred>>中配置的，以使得其工作正常。"
+
+#. type: Plain text
+#: kubernetes.adoc:489
+msgid ""
+"Use `topologyKey: \"linbit.com/hostname\"` rather than `topologyKey: "
+"\"kubernetes.io/hostname\"` if you are setting `affinity` in your _Pod_ or "
+"_StatefulSet_ specs."
+msgstr ""
+"如果要在 _Pod_ 或 _StatefulSet_ 规范中设置 `affinity`, 请使用 `topologyKey: \"linbit.com/hostname\"`, 而不是  `topologyKey: \"kubernetes.io/hostname\"`。 "
+
+#. type: Plain text
+#: kubernetes.adoc:491
+msgid "Example: `localStoragePolicy: required`"
+msgstr "实例: `localStoragePolicy: required`"
+
+#. type: Title =====
+#: kubernetes.adoc:493
+#, no-wrap
+msgid "ignore (default)"
+msgstr "ignore (default)"
+
+#. type: Plain text
+#: kubernetes.adoc:501
+msgid ""
+"When `localStoragePolicy` is set to `ignore`, regular autoplacement occurs "
+"based on <<s-kubernetes-autoplace,autoplace>>, <<s-kubernetes-"
+"replicasonsame,replicasOnSame>>, and <<s-kubernetes-"
+"replicasonsame,replicasOnDifferent>>. Volume location will not affect _Pod_ "
+"scheduling in Kubernetes and the volumes will be accessed over the network "
+"if they're not local to the _kubelet_ where the _Pod_ was scheduled."
+msgstr ""
+"当 `localStoragePolicy` 设置为 `ignore` 时，将基于<<s-kubernetes-"
+"autoplace,autoplace>>、<<s-kubernetes-"
+"replicasonsame,replicasOnSame>>和<<s-kubernetes-"
+"replicasonsame,replicasOnDifferent>>进行常规自动放置。卷位置不会影响Kubernetes中的 _Pod_ 调度，如果卷不在调度 _Pod_ 的 _kubelet_ 本地，则可以通过网络访问它们。"
+
+#. type: Title =====
+#: kubernetes.adoc:503
+#, no-wrap
+msgid "required"
+msgstr "required"
+
+#. type: Plain text
+#: kubernetes.adoc:510
+msgid ""
+"When `localStoragePolicy` is set to `required`, Kubernetes will report a "
+"list of places that it wants to schedule a _Pod_ in order of preference. The"
+" plugin will attempt to provision the volume(s) according to that "
+"preference. The number of volumes to be provisioned in total is based off of"
+" <<s-kubernetes-autoplace,autoplace>>."
+msgstr ""
+"当 `localStoragePolicy` 设置为 `required` 时，Kubernetes将报告一个位置列表，其中列出了它希望按优先顺序安排的位置。插件将尝试根据该首选项设置卷。要配置的卷总数基于<<s-kubernetes-"
+"autoplace,autoplace>>。"
+
+#. type: Plain text
+#: kubernetes.adoc:513
+msgid ""
+"If all preferences have been attempted, but no volumes where successfully "
+"assigned volume creation will fail."
+msgstr "如果已尝试所有首选项，但仍然没有成功分配卷，则创建会失败。"
+
+#. type: Plain text
+#: kubernetes.adoc:518
+msgid ""
+"In case of multiple replicas when all preferences have been attempted, and "
+"at least one has succeeded, but there are still replicas remaining to be "
+"provisioned, <<s-kubernetes-autoplace,autoplace>> behavior will apply for "
+"the remaining volumes."
+msgstr ""
+"如果尝试了所有首选项后有多个副本，并且至少有一个已成功，但仍有副本需要配置，则<<s-kubernetes-"
+"autoplace,autoplace>>行为将应用于其余卷。"
+
+#. type: Plain text
+#: kubernetes.adoc:521
+msgid ""
+"With this option set, Kubernetes will consider volumes that are not locally "
+"present on a _kubelet_ to be unaccessible from that _kubelet_."
+msgstr "设置此选项后，Kubernetes将认为不在 _kubelet_ 上本地存在的卷无法从该 _kubelet_ 访问。"
+
+#. type: Title =====
+#: kubernetes.adoc:523
+#, no-wrap
+msgid "preferred"
+msgstr "preferred"
+
+#. type: Plain text
+#: kubernetes.adoc:531
+msgid ""
+"When `localStoragePolicy` is set to `preferred`, volume placement behavior "
+"will be the same as when it's set to <<s-kubernetes-localstoragepolicy-"
+"required,required>> with the exception that volume creation will not fail if"
+" no preference was able to be satisfied.  Volume accessibility will be the "
+"same as when set to <<s-kubernetes-localstoragepolicy-ignore,ignore>>."
+msgstr ""
+"当 `localStoragePolicy` 设置为 `preferred` 时，卷放置行为将与设置为<<s-kubernetes-"
+"localstoragepolicy-"
+"required,required>>时相同，但如果无法满足任何首选项，则卷创建不会失败。卷可访问性将与设置为<<s-kubernetes-"
+"localstoragepolicy-ignore,ignore>>时相同。"
+
+#. type: Title ====
+#: kubernetes.adoc:533
+#, no-wrap
+msgid "storagePool"
+msgstr "storagePool"
+
+#. type: Plain text
+#: kubernetes.adoc:537
+msgid ""
+"`storagePool` is the name of the LINSTOR <<s-storage_pools,storage pool>> "
+"that will be used to provide storage to the newly-created volumes."
+msgstr ""
+"`storagePool` 是用于为新创建的卷提供存储的LINSTOR <<s-storage_pools,storage pool>>的名称。"
+
+#. type: Plain text
+#: kubernetes.adoc:542
+msgid ""
+"Only nodes configured with this same _storage pool_ with be considered for "
+"<<s-kubernetes-autoplace,autoplacement>>. Likewise, for _StorageClasses_ "
+"using <<s-kubernetes-nodelist,nodeList>> all nodes specified in that list "
+"must have this _storage pool_ configured on them."
+msgstr ""
+"只有配置了相同 _storage pool_ 的节点才被考虑用于<<s-kubernetes-"
+"autoplace,autoplacement>>。同样，对于使用<<s-kubernetes-"
+"nodelist,nodeList>>该列表中指定的所有节点，都必须在其上配置此 _storage pool_。"
+
+#. type: Plain text
+#: kubernetes.adoc:544
+msgid "Example: `storagePool: my-storage-pool`"
+msgstr "示例：`storagePool: my-storage-pool`"
+
+#. type: Title ====
+#: kubernetes.adoc:546
+#, no-wrap
+msgid "disklessStoragePool"
+msgstr "disklessStoragePool"
+
+#.  This should link to the linstor section talking about diskless storage
+#. pools
+#.  when that gets written.
+#. type: Plain text
+#: kubernetes.adoc:553
+msgid ""
+"`disklessStoragePool` is an optional parameter that only effects LINSTOR "
+"volumes assigned disklessly to _kubelets_ i.e., as clients. If you have a "
+"custom _diskless storage pool_ defined in LINSTOR, you'll specify that here."
+msgstr ""
+"`disklessStoragePool` 是一个可选参数，它只影响作为客户端无磁盘分配给 _kubelets_ 的LINSTOR卷。如果在LINSTOR中定义了自定义 _diskless storage pool_，请在此处指定。"
+
+#. type: Plain text
+#: kubernetes.adoc:555
+msgid "Example: `disklessStoragePool: my-custom-diskless-pool`"
+msgstr "示例: `disklessStoragePool: my-custom-diskless-pool`"
+
+#. type: Title ====
+#: kubernetes.adoc:557
+#, no-wrap
+msgid "encryption"
+msgstr "encryption"
+
+#. type: Plain text
+#: kubernetes.adoc:562
+msgid ""
+"`encryption` is an optional parameter that determines whether to encrypt "
+"volumes. LINSTOR must be <<s-linstor-encrypted-Volumes,configured for "
+"encryption>> for this to work properly."
+msgstr ""
+"`encryption` 是一个可选参数，用于确定是否加密卷。LINSTOR必须<<s-linstor-encrypted-"
+"Volumes,configured for encryption>>才能正常工作。"
+
+#. type: Plain text
+#: kubernetes.adoc:564
+msgid "Example: `encryption: \"true\"`"
+msgstr "示例: `encryption: \"true\"`"
+
+#. type: Title ====
+#: kubernetes.adoc:566
+#, no-wrap
+msgid "filesystem"
+msgstr "filesystem"
+
+#. type: Plain text
+#: kubernetes.adoc:570
+msgid ""
+"`filesystem` is an option parameter to specify the filesystem for non raw "
+"block volumes. Currently supported options are `xfs` and `ext4`."
+msgstr "`filesystem` 是一个选项参数，用于指定非原始块卷的文件系统。当前支持的选项是 `xfs` 和 `ext4` 。"
+
+#. type: Plain text
+#: kubernetes.adoc:572
+msgid "Example: `filesystem: \"xfs\"`"
+msgstr "示例: `filesystem: \"xfs\"`"
+
+#. type: Plain text
+#: kubernetes.adoc:574
+msgid "Default: `filesystem: \"ext4\"`"
+msgstr "Default: `filesystem: \"ext4\"`"
+
+#. type: Title ====
+#: kubernetes.adoc:576
+#, no-wrap
+msgid "fsOpts"
+msgstr "fsOpts"
+
+#. type: Plain text
+#: kubernetes.adoc:579
+msgid ""
+"`fsOpts` is an optional parameter that passes options to the volume's "
+"filesystem at creation time."
+msgstr "`fsOpts` 是一个可选参数，在创建时将选项传递给卷的文件系统。"
+
+#. type: Plain text
+#: kubernetes.adoc:582
+msgid ""
+"Please note these values are specific to your chosen <<s-kubernetes-"
+"filesystem, filesystem>>."
+msgstr "请注意，这些值特定于您选择的<<s-kubernetes-filesystem, filesystem>>。"
+
+#. type: Plain text
+#: kubernetes.adoc:584
+msgid "Example: `fsOpts: \"-b 2048\"`"
+msgstr "示例: `fsOpts: \"-b 2048\"`"
+
+#. type: Title ====
+#: kubernetes.adoc:586
+#, no-wrap
+msgid "mountOpts"
+msgstr "mountOpts"
+
+#. type: Plain text
+#: kubernetes.adoc:589
+msgid ""
+"`mountOpts` is an optional parameter that passes options to the volume's "
+"filesystem at mount time."
+msgstr "`mountOpts` 是一个可选参数，在装载时将选项传递给卷的文件系统。"
+
+#. type: Plain text
+#: kubernetes.adoc:590
+msgid "Example: `mountOpts: \"sync,noatime\"`"
+msgstr "示例: `mountOpts: \"sync,noatime\"`"
