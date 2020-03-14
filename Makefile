@@ -23,6 +23,7 @@ RUN useradd -u $(shell id -u) -g $(shell id -g) makedoc
 RUN apt-get update && apt-get install -y make inkscape ruby po4a patch
 RUN gem install --pre asciidoctor-pdf
 RUN gem install --pre asciidoctor-pdf-cjk
+RUN gem install asciidoctor-pdf-cjk-kai_gen_gothic && asciidoctor-pdf-cjk-kai_gen_gothic-install
 USER makedoc
 endef
 
