@@ -62,12 +62,15 @@ html: $(OUTDIRHTML)/$(OUTHTML_UG) $(OUTDIRHTML)/$(OUTHTML_LS)
 
 html-finalize: html
 	mv $(OUTDIRHTML)/$(OUTHTML_UG) $(OUTDIRHTML)/$(OUTHTML_UG_WEBDEVS)
+	td=$$(mktemp -d) && \
+		cp -r $(OUTDIRHTML)/$(OUTHTML_UG_WEBDEVS) $(OUTDIRHTMLIMAGES) $$td && \
+		(cd $$td && zip drbd.zip $(OUTHTML_UG_WEBDEVS) images/*.png) && mv $$td/drbd.zip $(OUTDIRHTMLFINAL) && rm -rf "$$td"
 	if test -f $(OUTDIRHTML)/$(OUTHTML_LS); then \
-		mv $(OUTDIRHTML)/$(OUTHTML_LS) $(OUTDIRHTML)/$(OUTHTML_LS_WEBDEVS); \
+		mv $(OUTDIRHTML)/$(OUTHTML_LS) $(OUTDIRHTML)/$(OUTHTML_LS_WEBDEVS) && \
+		td=$$(mktemp -d) && \
+			cp $(OUTDIRHTML)/$(OUTHTML_LS_WEBDEVS) "$$td"/$(OUTHTML_UG_WEBDEVS) && cp -r $(OUTDIRHTMLIMAGES) $$td && \
+			(cd $$td && zip linstor.zip $(OUTHTML_UG_WEBDEVS) images/*.png) && mv $$td/linstor.zip $(OUTDIRHTMLFINAL) && rm -rf "$$td"; \
 	fi
-	rm -f $(OUTDIRHTML)/*.adoc
-	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL)
-	tar -czvf $(OUTDIRHTMLFINAL)/$$(basename $$(dirname $$PWD))-$$(basename $$PWD)-$$(date +%F).tar.gz $(OUTDIRHTML)
 
 # PDF
 ./images: $(IMAGEDIR)
