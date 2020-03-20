@@ -16,6 +16,28 @@ disks  on several Proxmox VE nodes. This allows to live-migrate
 active VMs within a few seconds and with no downtime without needing a central SAN, as the data is already
 replicated to multiple nodes.
 
+[[s-proxmox-ls-upgrades]]
+=== Upgrades
+If this is a fresh installation, skip this section and continue with <<s-proxmox-ls-install>>.
+
+[[s-proxmox-ls-upgrades-4-5]]
+==== From 4.x to 5.x
+Version 5 of the plugin drops compatibility with the legacy configuration options "storagepool" and
+"redundancy". Version 5 *requires* a "resourcegroup" option, and obviously a LINSTOR resource group. The old
+options should be removed from the config.
+
+Configuring LINSTOR is described in Section <<s-proxmox-ls-ls-configuration>>, a typical example follows:
+Let's assume the pool was set to "mypool", and redundancy to 3.
+----------------------------
+# linstor resource-group create --storage-pool=mypool --place-count=3 drbdMypoolThree
+# linstor volume-group create drbdMypoolThree
+# vi /etc/pve/storage.cfg
+drbd: drbdstorage
+   content images,rootdir
+   controller 10.11.12.13
+   resourcegroup drbdMypoolThree
+----------------------------
+
 [[s-proxmox-ls-install]]
 === Proxmox Plugin Installation
 
