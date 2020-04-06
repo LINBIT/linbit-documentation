@@ -61,6 +61,7 @@ html: $(OUTDIRHTML)/$(OUTHTML_UG) $(OUTDIRHTML)/$(OUTHTML_LS)
 	@echo "execute 'make html-finalize' to prepare upload"
 
 html-finalize: html
+	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL)
 	mv $(OUTDIRHTML)/$(OUTHTML_UG) $(OUTDIRHTML)/$(OUTHTML_UG_WEBDEVS)
 	td=$$(mktemp -d) && \
 		cp -r $(OUTDIRHTML)/$(OUTHTML_UG_WEBDEVS) $(OUTDIRHTMLIMAGES) $$td && \
