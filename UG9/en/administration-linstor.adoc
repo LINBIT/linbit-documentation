@@ -708,8 +708,47 @@ LINSTOR may select a storage pool on its own. The selection follows these rules:
   * Ignore all diskless storage pools
   * Ignore all storage pools not having enough free space
 
-From the remaining storage pools, LINSTOR currently chooses the one with the
-most available free space.
+The remaining storage pools will be rated by different strategies.
+LINSTOR has currently three strategies:
+
+  * `MaxFreeSpace`: This strategy maps the rating 1:1 to the remaining free
+space of the storage pool. However, this strategy only considers the actually
+allocated space (in case of thinly provisioned storage pool this might grow
+with time without creating new resources)
+  * `MinReservedSpace`: Unlinke the "MaxFreeSpace", this strategy considers the
+reserved spaced. That is the space that a thin volume can grow to before reaching
+its limit. The sum of reserved spaces might exceed the storage pools capacity,
+which is as overprovisioning.
+  * `MinRscCount`: Simply the count of resources already deployed in a given
+storage pool
+  * `MaxThroughput`: For this strategy, the storage pool's
+`Autoplacer/MaxThroughput` property is the base of the score, or 0 if the property
+is not present. Every Volume deployed in the given storage pool will subtract
+its defined `sys/fs/blkio_throttle_read` and `sys/fs/blkio_throttle_write` property-
+value from the storage pool's max throughput. The resulting score might be negative.
+
+The scores of the strategies will be normalized, weighted and summed up, where
+the scores of minimizing strategies will be converted first to allow an overall
+maximization of the resulting score.
+
+The weights of the strategies can be configured with
+
+----
+linstor controller set-property Autoplacer/Weights/$name_of_the_strategy $weight
+----
+whereas the strategy-names are listed above and the weight can be an arbitrary
+decimal.
+
+NOTE: To keep the behaviour of the autoplacer simliar to the old one (due to
+compatibility), all strategies have a default-weigth of 0, except the `MaxFreeSpace`
+which has a weight of 1.
+
+Finally LINSTOR tries to find the best matching group of storage pools meeting
+all requirements. This step also considers other autoplacement restrictions
+as `--replicas-on-same`, `--replicas-on-different` and others.
+
+NOTE: Neither 0 nor a negative score will prevent a storage pool from getting
+selected, just making them to be considered later.
 
 NOTE: If everything went right the DRBD-resource has now been created by LINSTOR.
 This can be checked by looking for the DRBD block device with the `lsblk`
