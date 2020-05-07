@@ -466,6 +466,168 @@ are desired.
 See <<s-kubernetes-localstoragepolicy,localStoragePolicy>> to see how this
 default behavior can be modified.
 
+[[s-kubernetes-stork]]
+=== Volume Locality Optimization using Stork
+
+Stork is a scheduler extender plugin for Kubernetes which allows a storage
+driver to give the Kubernetes scheduler hints about where to place a new pod
+so that it is optimally located for storage performance. You can learn more
+about the project on its https://portworx.com/stork-storage-orchestration-kubernetes/[GitHub page].
+
+We are currently working with the maintainers behind Stork to have a LINSTOR
+driver shipped with it by default. In the meantime, you can use a custom-built
+Stork container by LINBIT which includes a LINSTOR driver,
+https://hub.docker.com/repository/docker/linbit/stork[available on Docker Hub]
+
+==== Deploying Stork alongside the LINSTOR Operator
+
+In order to make Stork talk to LINSTOR, we need to instantiate a few components
+in our Kubernetes cluster. First, we need to create a Stork deployment.
+This is easiest done with a yaml file supplied by the Stork project:
+https://github.com/libopenstorage/stork/blob/master/specs/stork-deployment.yaml[stork-deployment.yaml]
+
+However, a few things need to be adjusted for this deployment to work with LINSTOR.
+Specifically, there is this section within the _Deployment_ part:
+
+----
+spec:
+      containers:
+      - command:
+        - /stork
+        - --driver=pxd
+        - --verbose
+        - --leader-elect=true
+        # Uncomment the line below if you want to enable the feature to
+        # automatically update schedulerName
+        #- --app-initializer=true
+        imagePullPolicy: Always
+        image: openstorage/stork:2.2.4
+        resources:
+          requests:
+            cpu: '0.1'
+        securityContext:
+          privileged: false
+        name: stork
+----
+
+Here we need to change the `--driver=pxd` parameter, which chooses the Portworx
+driver by default, to use the LINSTOR driver instead: `--driver=linstor`
+
+A few lines below, `image: openstorage/stork:2.2.4` specifies that the vanilla
+Stork image should be used; however, sice we want to use LINBIT's image with
+the included LINSTOR driver instead, we change it to `image: linbit/stork:latest`
+
+Now we can deploy stork:
+
+----
+kubectl create -f stork-deployment.yaml
+----
+
+This should start a few Stork pods:
+
+----
+$ kubectl get pods --namespace kube-system
+NAME                                                READY   STATUS    RESTARTS   AGE
+...
+stork-58ffcc4844-9xmlc                              1/1     Running   0          16m
+stork-58ffcc4844-nh9pb                              1/1     Running   0          16m
+stork-58ffcc4844-zbvns                              1/1     Running   0          16m
+...
+----
+
+Once these pods are up and running, we can start a new Kubernetes scheduler
+instance which uses Stork to make its scheduling decisions. There is also another
+possibility to accomplish this -- configuring the default scheduler to work
+with Stork -- which will not be covered in this guide. Please refer to
+https://github.com/libopenstorage/stork#run-stork-in-your-kubernetes-cluster[the upstream Stork documentation]
+for more information on this process.
+
+Stork provides another yaml file to start a scheduler instance:
+https://github.com/libopenstorage/stork/blob/master/specs/stork-scheduler.yaml[stork-scheduler.yaml].
+
+Again, we need to slightly modify the file for it to work. More precisely, we
+need to specify which version of the Kubernetes scheduler we want to deploy.
+Find this section near the bottom of the file:
+
+----
+spec:
+      containers:
+      - command:
+        - /usr/local/bin/kube-scheduler
+        - --address=0.0.0.0
+        - --leader-elect=true
+        - --scheduler-name=stork
+        - --policy-configmap=stork-config
+        - --policy-configmap-namespace=kube-system
+        - --lock-object-name=stork-scheduler
+        image: gcr.io/google_containers/kube-scheduler-amd64:<kube_version>
+----
+
+We need to substitute `<kube_version>` for the Kubernetes version our cluster
+is running.
+
+----
+$ kubectl version
+Client Version: version.Info{Major:"1", Minor:"15+", GitVersion:"v1.15.8-beta.0", GitCommit:"6c143d35bb11d74970e7bc0b6c45b6bfdffc0bd4", GitTreeState:"archive", BuildDate:"2020-01-29T00:00:00Z", GoVersion:"go1.14beta1", Compiler:"gc", Platform:"linux/amd64"}
+Server Version: version.Info{Major:"1", Minor:"16", GitVersion:"v1.16.8", GitCommit:"ec6eb119b81be488b030e849b9e64fda4caaf33c", GitTreeState:"clean", BuildDate:"2020-03-12T20:52:22Z", GoVersion:"go1.13.8", Compiler:"gc", Platform:"linux/amd64"}
+----
+
+In this case, we can see that under _Server Version_ the `GitVersion` is `v1.16.8`,
+so we would replace this line with:
+
+----
+        image: gcr.io/google_containers/kube-scheduler-amd64:v1.16.8
+----
+
+Now we can create the scheduler deployment:
+
+----
+kubectl create -f stork-scheduler.yaml
+----
+
+This should have spawned a few more pods:
+
+----
+$ kubectl get pods --namespace kube-system
+NAME                                                READY   STATUS    RESTARTS   AGE
+...
+stork-scheduler-f7888f8f5-6djfw                     1/1     Running   0          12m
+stork-scheduler-f7888f8f5-jlrrs                     1/1     Running   0          12m
+stork-scheduler-f7888f8f5-nqqhz                     1/1     Running   0          12m
+...
+----
+
+Now that the scheduler is running, we can create a pod which uses it by specifying
+the scheduler's name under `spec.schedulerName`.
+
+.my-first-stork-pod.yaml
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fedora
+  namespace: default
+spec:
+  schedulerName: stork
+  containers:
+  - name: fedora
+    image: fedora
+    command: [/bin/bash]
+    args: ["-c", "while true; do sleep 10; done"]
+    volumeMounts:
+    - name: linstor-volume-pvc
+      mountPath: /data
+    ports:
+    - containerPort: 80
+  volumes:
+  - name: linstor-volume-pvc
+    persistentVolumeClaim:
+      claimName: "linstor-volume-pvc"
+----
+
+Now the scheduler will make sure to place the pod on a node which has fast
+access to `linstor-volume-pvc`.
+
 [[s-kubernetes-advanced-configuration]]
 === Advanced Configuration
 
