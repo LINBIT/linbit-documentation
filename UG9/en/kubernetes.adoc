@@ -628,6 +628,65 @@ spec:
 Now the scheduler will make sure to place the pod on a node which has fast
 access to `linstor-volume-pvc`.
 
+==== Configuring the Stork LINSTOR Driver
+
+The LINSTOR driver included in Stork can be parameterized to change how Stork
+connects to the LINSTOR controller.
+
+This can be accomplished by setting certain environment variables for the
+Stork container in its deployment.
+
+.stork-deployment.yaml
+----
+apiVersion: apps/v1
+kind: Deployment
+# ...
+spec:
+  # ...
+  template:
+    # ...
+    spec:
+      containers:
+      - command:
+        - /stork
+        - --driver=linstor
+        - --verbose
+        - --leader-elect=true
+        imagePullPolicy: Always
+        image: linbit/stork:latest
+        resources:
+          requests:
+            cpu: '0.1'
+        securityContext:
+          privileged: false
+        name: stork
+        env:
+        - name: LS_ENDPOINT
+          value: https://linstor-controller:3371
+        - name: LS_USER_CERTIFICATE
+          valueFrom:
+            secretKeyRef:
+              key: tls.crt
+              name: linstor-client-tls
+        - name: LS_USER_KEY
+          valueFrom:
+            secretKeyRef:
+              key: tls.key
+              name: linstor-client-tls
+        - name: LS_ROOT_CA
+          valueFrom:
+            secretKeyRef:
+              key: ca.crt
+              name: linstor-client-tls
+----
+
+The `LS_ENDPOINT` variable can be set to an URL where the LINSTOR controller
+can be found. If this is not set, Stork defaults to looking for an endpoint
+called `linstor-op-cs` and connects to it.
+
+`LS_USER_CERTIFICATE`, `LS_USER_KEY`, and `LS_ROOT_CA` can be used to configure
+encrypted communication with the LINSTOR controller using TLS.
+
 [[s-kubernetes-advanced-configuration]]
 === Advanced Configuration
 
