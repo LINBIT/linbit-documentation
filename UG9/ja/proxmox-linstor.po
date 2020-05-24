@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-11-18 13:45+0900\n"
+"POT-Creation-Date: 2020-05-24 10:17+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -57,6 +57,65 @@ msgstr ""
 
 #. type: Title ===
 #, no-wrap
+msgid "Upgrades"
+msgstr "アップグレード"
+
+#. type: Plain text
+msgid ""
+"If this is a fresh installation, skip this section and continue with <<s-"
+"proxmox-ls-install>>."
+msgstr ""
+"新規インストールの場合はこのセクションをスキップして <<s-proxmox-ls-"
+"install>> に進んでください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "From 4.x to 5.x"
+msgstr "4.x から 5.x へ"
+
+#. type: Plain text
+msgid ""
+"Version 5 of the plugin drops compatibility with the legacy configuration "
+"options \"storagepool\" and \"redundancy\". Version 5 *requires* a "
+"\"resourcegroup\" option, and obviously a LINSTOR resource group. The old "
+"options should be removed from the config."
+msgstr ""
+"プラグインのバージョン 5 では、構成オプション \"storagepool\" と \"redundancy"
+"\" はサポートされません。バージョン 5 では LINSTOR リソースグループである "
+"\"resourcegroup\" オプションが必須になります。古いオプションは構成から削除す"
+"る必要があります。"
+
+#. type: Plain text
+msgid ""
+"Configuring LINSTOR is described in Section <<s-proxmox-ls-ls-"
+"configuration>>, a typical example follows: Let's assume the pool was set to "
+"\"mypool\", and redundancy to 3."
+msgstr ""
+"LINSTOR の構成に関しては <<s-proxmox-ls-ls-configuration>> を参照してくださ"
+"い。以下に典型的は例を示します。プールが \"mypool\" 、冗長性が 3 に設定される"
+"例です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource-group create --storage-pool=mypool --place-count=3 drbdMypoolThree\n"
+"# linstor volume-group create drbdMypoolThree\n"
+"# vi /etc/pve/storage.cfg\n"
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup drbdMypoolThree\n"
+msgstr ""
+"# linstor resource-group create --storage-pool=mypool --place-count=3 drbdMypoolThree\n"
+"# linstor volume-group create drbdMypoolThree\n"
+"# vi /etc/pve/storage.cfg\n"
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup drbdMypoolThree\n"
+
+#. type: Title ===
+#, no-wrap
 msgid "Proxmox Plugin Installation"
 msgstr "Proxmoxプラグインのインストール"
 
@@ -85,21 +144,21 @@ msgstr "DRBD9のカーネルモジュールは `dkms` パッケージとして( 
 #. type: Plain text
 msgid ""
 "LINBIT's repository can be enabled as follows, where \"$PVERS\" should be "
-"set to your Proxmox VE *major version* (e.g., \"5\", not \"5.2\"):"
+"set to your Proxmox VE *major version* (e.g., \"6\", not \"6.1\"):"
 msgstr ""
 "LINBITのレポジトリは以下の操作で有効にできます。\"$PVERS\" はProxmox VEのメ"
-"ジャーバージョンを指定します(例、\"5\")。"
+"ジャーバージョンを指定します(例、\"6\" であり \"6.1\" ではない)。"
 
 #. type: delimited block -
 #, no-wrap
 msgid ""
 "# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
-"# PVERS=5 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
+"# PVERS=6 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
 "\t/etc/apt/sources.list.d/linbit.list\n"
 "# apt update && apt install linstor-proxmox\n"
 msgstr ""
 "# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
-"# PVERS=5 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
+"# PVERS=6 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
 "\t/etc/apt/sources.list.d/linbit.list\n"
 "# apt update && apt install linstor-proxmox\n"
 
@@ -228,6 +287,24 @@ msgid ""
 msgstr ""
 "これらの設定後、Web GUIでVMを作成し、ストレージとして \"drbdstorage\" もしく"
 "は他の定義されているプールを選択することでDRBDボリュームを使用できます。"
+
+#. type: Plain text
+msgid ""
+"Starting from version 5 of the plugin one can set the option \"preferlocal "
+"yes\". If it is set, the plugin tries to create a diskful assignment on the "
+"node that issued the storage create command. With this option one can make "
+"sure the VM gets local storage if possible. Without that option LINSTOR "
+"might place the storage on nodes 'B' and 'C', while the VM is initially "
+"started on node 'A'. This would still work as node 'A' then would get a "
+"diskless assignment, but having local storage might be prefered."
+msgstr ""
+"プラグインのバージョン 5 以降、オプション \"preferlocal yes\" を設定できま"
+"す。設定されている場合、プラグインは storage create コマンドを発行したノード"
+"でディスクフル割り当てを作成しようとします。このオプションを使用すると、可能"
+"であれば VM がローカルストレージを確実に取得できるようになります。このオプ"
+"ションがないと、VM はノード 'A' で起動するが、LINSTORはノード 'B' と 'C' にス"
+"トレージを配置する可能性があります。これは、ノード 'A' がディスクレス割り当て"
+"で、引き続き機能しますが、ローカルストレージを使用することが望まれます。"
 
 #. type: Block title
 #, no-wrap
