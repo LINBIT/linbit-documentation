@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-02-07 11:55+0900\n"
+"POT-Creation-Date: 2020-05-24 10:17+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,12 +22,13 @@ msgstr "Kubernetes で LINSTOR ボリューム"
 
 #. type: Plain text
 msgid ""
-"indexterm:[Kubernetes]This chapter describes LINSTOR volumes in Kubernetes "
-"as managed by the https://github.com/LINBIT/linstor-csi[LINSTOR CSI plugin]"
+"indexterm:[Kubernetes]This chapter describes the usage of LINSTOR in "
+"Kubernetes as managed by the operator and with volumes provisioned using the "
+"https://github.com/LINBIT/linstor-csi[LINSTOR CSI plugin]."
 msgstr ""
-"indexterm:[Kubernetes] この章では https://github.com/LINBIT/linstor-"
-"csi[LINSTOR CSI plugin] で管理されるKubernetesのLINSTORボリュームについて説明"
-"します。"
+"indexterm:[Kubernetes] この章では、オペレーターによって管理され、 https://"
+"github.com/LINBIT/linstor-csi[LINSTOR CSI plugin] を使用してプロビジョニング"
+"された KubernetesのLINSTORボリュームについて説明します。"
 
 #. type: Title ===
 #, no-wrap
@@ -36,33 +37,488 @@ msgstr "Kubernetesの概要"
 
 #. type: Plain text
 msgid ""
-"_Kubernetes_ is a container orchestrator (CO) made by Google. Kubernetes "
-"defines the behavior of containers and related services via declarative "
-"specifications. In this guide, we'll focus on on using `kubectl` to "
-"manipulate `.yaml` files that define the specifications of Kubernetes "
-"objects."
+"_Kubernetes_ is a container orchestrator. Kubernetes defines the behavior of "
+"containers and related services via declarative specifications. In this "
+"guide, we'll focus on on using `kubectl` to manipulate `.yaml` files that "
+"define the specifications of Kubernetes objects."
 msgstr ""
-"KubernetesはGoogleによって作成されたコンテナのオーケストレータです。"
-"Kubernetesは宣言された仕様に基づいてコンテナと関連サービスの動作を定義しま"
-"す。このガイドでは、Kubernetesオブジェクトの仕様を定義する `.yaml` ファイルを"
-"操作するために `kubectl` を使うことに焦点を当てます。"
+"_Kubernetes_ はコンテナーオーケストレーターです。 Kubernetes は、宣言した仕様"
+"に基づいてコンテナと関連サービスの動作を定義します。このガイドでは、"
+"Kubernetes オブジェクトの仕様を定義する `.yaml` ファイルを介して `kubectl` を"
+"使用することに焦点を当てます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Deploying LINSTOR on Kubernetes"
+msgstr "Kubernetes への LINSTOR のデプロイ"
+
+#. type: Title ====
+#, no-wrap
+msgid "Deploying with the LINSTOR Operator"
+msgstr "LINSTORオペレーターを使用したデプロイ"
+
+#. type: Plain text
+msgid ""
+"LINBIT provides a LINSTOR operator to commercial support customers.  The "
+"operator eases deployment of LINSTOR on Kubernetes by installing DRBD, "
+"managing Satellite and Controller pods, and other related functions."
+msgstr ""
+"LINBIT は LINSTOR オペレーターを商用サポート顧客に提供します。オペレーター"
+"は、DRBD のインストール、サテライトポッドとコントローラーポッドの管理、および"
+"その他の関連機能により、LINSTOR を Kubernetes に簡単にデプロイできます。"
+
+#. type: Plain text
+msgid "The operator itself is installed using a Helm v3 chart as follows:"
+msgstr ""
+"オペレーター自体は、次のように Helm v3 チャートを使用してインストールされま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"Label the worker nodes with `linstor.linbit.com/linstor-node=true` by "
+"running:"
+msgstr ""
+"次のコマンドで `linstor.linbit.com/linstor-node=true` というラベルを稼働させ"
+"るワーカーノードに付けます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl label node <NODE_NAME> linstor.linbit.com/linstor-node=true\n"
+msgstr "kubectl label node <NODE_NAME> linstor.linbit.com/linstor-node=true\n"
+
+#. type: Plain text
+msgid "Create a kubernetes secret containing your my.linbit.com credentials:"
+msgstr "my.linbit.com 認証情報を含む kubernetes シークレットを作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>\n"
+msgstr "kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>\n"
+
+#. type: Plain text
+msgid ""
+"The name of this secret must match the one specified in the Helm values, by "
+"default `drbdiocred`."
+msgstr ""
+"このシークレットの名前は、Helm 値で指定されたものと一致する必要があります。デ"
+"フォルトは `drbdiocred` です。"
+
+#. type: Plain text
+msgid ""
+"Configure storage for the LINSTOR etcd instance. There are various options "
+"for configuring the etcd instance for LINSTOR:"
+msgstr ""
+"LINSTOR etcd インスタンスのストレージを構成します。LINSTOR の etcd インスタン"
+"スを構成するためにいくつかオプションがあります。"
+
+#. type: Plain text
+msgid "Use an existing storage provisioner with a default `StorageClass`."
+msgstr ""
+"デフォルトの `StorageClass` で既存のストレージプロビジョナーを使用する。"
+
+#. type: Plain text
+msgid "<<s-kubernetes-etcd-hostpath-persistence,Use `hostPath` volumes>>."
+msgstr ""
+"<<s-kubernetes-etcd-hostpath-persistence, `hostPath` ボリュームを使用する。>>"
+
+#. type: Plain text
+msgid ""
+"Disable persistence for basic testing. This can be done by adding `--set "
+"etcd.persistence.enabled=false` to the `helm install` command below."
+msgstr ""
+"基本的なテストの永続化を無効にする。これは以下の `helm install` コマンドに "
+"`--set etcd.persistence.enabled = false` を追加することで実行できます。"
+
+#. type: Plain text
+msgid ""
+"Configuring the storage pools to be created. Storage pools can be created "
+"directly with the helm deployment or at a later time.  <<s-kubernetes-"
+"storage-pool-configuration,Learn more about it here>>.  If you do not "
+"configure anything, no storage pools will be created."
+msgstr ""
+"作成するストレージプールを構成します。ストレージプールは、helm デプロイメント"
+"で直接作成することができます。<<s-kubernetes-storage-pool-configuration, 詳細"
+"はこちらを参照。>> 何も構成しない場合、ストレージプールは作成されません。"
+
+#. type: Plain text
+msgid ""
+"Select the appropriate kernel module injector using `--set` with the `helm "
+"install` command in the final step."
+msgstr ""
+"最後のステップとして `helm install` コマンドで `--set` を使用して、適切なカー"
+"ネルモジュールインジェクタを選択します。"
+
+#. type: Plain text
+msgid ""
+"Choose the injector according to the distribution you are using.  Select the "
+"latest version from one of `drbd9-rhel7`, `drbd9-rhel8` or `drbd9-bionic` "
+"from http://drbd.io/ as appropriate.  The drbd9-rhel8 image should also be "
+"used for RHCOS (OpenShift). For example:"
+msgstr ""
+"使用しているディストリビューションに応じてインジェクターを選択してください。 "
+"http://drbd.io/ の `drbd9-rhel7` 、 `drbd9-rhel8` 、または `drbd9-bionic` の"
+"いずれかから最新バージョンを選択します。 drbd9-rhel8 イメージは、"
+"RHCOS（OpenShift）でも使用されます。例えば："
+
+#. type: delimited block -
+#, no-wrap
+msgid "operator.nodeSet.kernelModImage=drbd.io/drbd9-rhel8:v9.0.22-2\n"
+msgstr "operator.nodeSet.kernelModImage=drbd.io/drbd9-rhel8:v9.0.22-2\n"
+
+#. type: Plain text
+msgid ""
+"Disable kernel module injection if you are installing DRBD by other means."
+msgstr ""
+"他の方法で DRBD をインストールする場合は、カーネルモジュールインジェクション"
+"を無効にします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "operator.nodeSet.drbdKernelModuleInjectionMode=None\n"
+msgstr "operator.nodeSet.drbdKernelModuleInjectionMode=None\n"
+
+#. type: Plain text
+msgid ""
+"Finally create a Helm deployment named `linstor-op` that will set up "
+"everything."
+msgstr ""
+"最後にすべてをセットアップする `linstor-op` という名前の Helm デプロイメント"
+"を作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-op linstor/linstor\n"
+msgstr ""
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-op linstor/linstor\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "LINSTOR etcd `hostPath` persistence"
+msgstr "LINSTOR etcd `hostPath` 永続化"
+
+#. type: Plain text
+msgid ""
+"You can use the `pv-hostpath` Helm templates to create `hostPath` persistent "
+"volumes. Create as many PVs as needed to satisfy your configured etcd "
+"`replicaCount` (default 3)."
+msgstr ""
+"`pv-hostpath` Helm テンプレートを使用して、 `hostPath` 永続ボリュームを作成で"
+"きます。構成された etcd の `replicaCount` を満たすために必要な数の PV を作成"
+"します（デフォルト3）。"
+
+#. type: Plain text
+msgid ""
+"Create the `hostPath` persistent volumes, substituting cluster node names "
+"accordingly in the `nodes=` option:"
+msgstr ""
+"`nodePath =` オプションでクラスターノード名を指定して `hostPath` 永続ボリュー"
+"ムを作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-etcd linstor/pv-hostpath --set \"nodes={<NODE0>,<NODE1>,<NODE2>}\"\n"
+msgstr ""
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-etcd linstor/pv-hostpath --set \"nodes={<NODE0>,<NODE1>,<NODE2>}\"\n"
+
+#. type: Plain text
+msgid ""
+"Persistence for etcd is enabled by default. The `etcd.volumePermissions."
+"enabled` key in the Helm values is also set so that the `hostPath` volumes "
+"have appropriate permissions."
+msgstr ""
+"etcd の永続化はデフォルトで有効になっています。Helm値 の `etcd."
+"volumePermissions.enabled` キーも設定され `hostPath` ボリュームに適切な権限が"
+"付与されます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Using an existing database"
+msgstr "既存のデータベースの使用"
+
+#. type: Plain text
+msgid ""
+"LINSTOR can connect to an existing PostgreSQL, MariaDB or etcd database. For "
+"instance, for a PostgresSQL instance with the following configuration:"
+msgstr ""
+"LINSTOR は既存の PostgreSQL、MariaDB、etcd データベースに接続できます。たとえ"
+"ば、次の構成は PostgresSQL インスタンスの場合です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"POSTGRES_DB: postgresdb\n"
+"POSTGRES_USER: postgresadmin\n"
+"POSTGRES_PASSWORD: admin123\n"
+msgstr ""
+"POSTGRES_DB: postgresdb\n"
+"POSTGRES_USER: postgresadmin\n"
+"POSTGRES_PASSWORD: admin123\n"
+
+#. type: Plain text
+msgid ""
+"The Helm chart can be configured to use this database instead of deploying "
+"an etcd cluster by adding the following to the Helm install command:"
+msgstr ""
+"Helm のインストールコマンドに以下を追加することにより、etcd クラスターをデプ"
+"ロイする代わりにこのデータベースを使用するように Helm チャートを構成できま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "--set etcd.enabled=false --set \"operator.controllerSet.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123\"\n"
+msgstr "--set etcd.enabled=false --set \"operator.controllerSet.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123\"\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Configuring storage pools"
+msgstr "ストレージプールの構成"
+
+#. type: Plain text
+msgid ""
+"The operator installed by helm can be used to create storage pools. Creation "
+"is under control of the LinstorNodeSet resource:"
+msgstr ""
+"helm によってインストールされたオペレーターを使用して、ストレージプールを作成"
+"できます。作成は LinstorNodeSet リソースの制御下にあります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl get LinstorNodeSet <nodeset> -o yaml\n"
+"kind: LinstorNodeSet\n"
+"metadata:\n"
+"..\n"
+"spec:\n"
+"  ..\n"
+"  storagePools:\n"
+"    lvmPools:\n"
+"    - name: lvm-thick\n"
+"      volumeGroup: drbdpool\n"
+"    lvmThinPools:\n"
+"    - name: lvm-thin\n"
+"      thinVolume: thinpool\n"
+"      volumeGroup: drbdpool\n"
+msgstr ""
+"$ kubectl get LinstorNodeSet <nodeset> -o yaml\n"
+"kind: LinstorNodeSet\n"
+"metadata:\n"
+"..\n"
+"spec:\n"
+"  ..\n"
+"  storagePools:\n"
+"    lvmPools:\n"
+"    - name: lvm-thick\n"
+"      volumeGroup: drbdpool\n"
+"    lvmThinPools:\n"
+"    - name: lvm-thin\n"
+"      thinVolume: thinpool\n"
+"      volumeGroup: drbdpool\n"
+
+#. type: Plain text
+msgid "There are two ways to configure storage pools"
+msgstr "ストレージプールを構成するには2つの方法があります。"
+
+#. type: Plain text
+msgid "====== At install time"
+msgstr "====== インストール時"
+
+#. type: Plain text
+msgid ""
+"At install time, by setting the value of `operator.nodeSet.storagePools` "
+"when running helm install."
+msgstr ""
+"インストール時の helm install を実行するときに `operator.nodeSet."
+"storagePools` の値を設定します。"
+
+#. type: Plain text
+msgid "First create a file with the storage configuration like:"
+msgstr "まず、次のようなストレージ構成でファイルを作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"operator:\n"
+"  nodeSet:\n"
+"    storagePools:\n"
+"      lvmPools:\n"
+"      - name: lvm-thick\n"
+"        volumeGroup: drbdpool\n"
+"      ..\n"
+msgstr ""
+"operator:\n"
+"  nodeSet:\n"
+"    storagePools:\n"
+"      lvmPools:\n"
+"      - name: lvm-thick\n"
+"        volumeGroup: drbdpool\n"
+"      ..\n"
+
+#. type: Plain text
+msgid "This file can be passed to the helm installation like this:"
+msgstr "このファイルは、次のように helm インストールに渡すことができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "helm install linstor-op linstor/linstor -f <file> ..\n"
+msgstr "helm install linstor-op linstor/linstor -f <file> ..\n"
+
+#. type: Plain text
+msgid "====== After install"
+msgstr "====== インストール後"
+
+#. type: Plain text
+msgid ""
+"On a cluster with the operator already configured (i.e. after `helm "
+"install`), you can edit the nodeset configuration like this:"
+msgstr ""
+"オペレーターがすでに構成されているクラスター（つまり、 `helm install` の後）"
+"では、次のようにしてノードセット構成を編集できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl edit LinstorNodeSet <nodeset>\n"
+msgstr "$ kubectl edit LinstorNodeSet <nodeset>\n"
+
+#. type: Plain text
+msgid ""
+"The storage pool configuration can be updated like in the example above."
+msgstr "ストレージプールの構成は、上記の例のように更新できます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Terminating Helm deployment"
+msgstr "Helm デプロイメントの終了"
+
+#. type: Plain text
+msgid "The LINSTOR deployment can be terminated with:"
+msgstr "LINSTOR のデプロイメントは次のコマンドで終了できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "helm delete linstor-op\n"
+msgstr "helm delete linstor-op\n"
+
+#. type: Plain text
+msgid ""
+"However due to the Helm’s current policy, the newly created Custom Resource "
+"Definitions named `linstorcontrollerset` and `linstornodeset` will *not* be "
+"deleted by the command. This will also cause the instances of those CRD’s "
+"named `linstor-op-ns` and `linstor-op-cs` to remain running."
+msgstr ""
+"ただし Helm の現在のポリシーにより、新しく作成されたカスタムリソース定義 "
+"`linstorcontrollerset` と `linstornodeset` はコマンドによって削除されません。"
+"これにより、 これらの CRD インスタンスである `linstor-op-ns` と `linstor-op-"
+"cs` もまた削除されず動作し続けます。"
+
+#. type: Plain text
+msgid "To terminate those instances after the `helm delete` command, run"
+msgstr ""
+"`helm delete` コマンドの後に、これらのインスタンスを終了するには以下を実行し"
+"ます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kubectl patch linstorcontrollerset linstor-op-cs -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge\n"
+"kubectl patch linstornodeset linstor-op-ns -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge\n"
+msgstr ""
+"kubectl patch linstorcontrollerset linstor-op-cs -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge\n"
+"kubectl patch linstornodeset linstor-op-ns -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge\n"
+
+#. type: Plain text
+msgid ""
+"After that, all the instances created by the Helm deployment will be "
+"terminated."
+msgstr ""
+"その後、Helm デプロイメントによって作成されたすべてのインスタンスが終了しま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"More information regarding Helm’s current position on CRD’s can be found "
+"https://helm.sh/docs/topics/chart_best_practices/custom_resource_definitions/"
+"#method-1-let-helm-do-it-for-you[here]."
+msgstr ""
+"Helm の CRD に関する詳細情報は https://helm.sh/docs/topics/"
+"chart_best_practices/custom_resource_definitions/#method-1-let-helm-do-it-"
+"for-you[こちら] を参照ください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Deploying with the Piraeus Operator"
+msgstr "Piraeus オペレーターを使用したデプロイメント"
+
+#. type: Plain text
+msgid ""
+"The community supported edition of the LINSTOR deployment in Kubernetes is "
+"called Piraeus. The Piraeus project provides https://github.com/"
+"piraeusdatastore/piraeus-operator[an operator] for deployment."
+msgstr ""
+"Kubernetes でコミュニティがサポートする LINSTOR デプロイメントのエディション"
+"は、Piraeus と呼ばれます。Piraeus プロジェクトに関しては https://github.com/"
+"piraeusdatastore/piraeus-operator[オペレータ] を参照ください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Interacting with LINSTOR in Kubernetes"
+msgstr "Kubernetes で LINSTOR の操作"
+
+#. type: Plain text
+msgid ""
+"The Controller pod includes a LINSTOR Client, making it easy to interact "
+"directly with LINSTOR.  For instance:"
+msgstr ""
+"コントローラーポッドには LINSTOR クライアントが含まれているため、LINSTOR と直"
+"接やり取りするのは簡単です。例えば："
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl exec linstor-op-cs-controller-0 -- linstor storage-pool list\n"
+msgstr "kubectl exec linstor-op-cs-controller-0 -- linstor storage-pool list\n"
+
+#. type: Plain text
+msgid ""
+"This should only be necessary for investigating problems and accessing "
+"advanced functionality.  Regular operation such as creating volumes should "
+"be achieved via the <<s-kubernetes-basic-configuration-and-deployment,"
+"Kubernetes integration>>."
+msgstr ""
+"これは、問題を調査し、高度な機能にアクセスするためにのみ必要です。ボリューム"
+"の作成などの通常の操作は <<s-kubernetes-basic-configuration-and-deployment,"
+"Kubernetes の操作>> を参照ください。"
 
 #. type: Title ===
 #, no-wrap
 msgid "LINSTOR CSI Plugin Deployment"
-msgstr "LINSTOR CSIプラグインの配備"
+msgstr "LINSTOR CSIプラグインのデプロイメント"
 
 #. type: Plain text
 msgid ""
-"Instructions for deploying the CSI plugin can be found on the https://github."
-"com/LINBIT/linstor-csi[project's github]. This will result in a linstor-csi-"
-"controller _StatefulSet_ and a linstor-csi-node _DaemonSet_ running in the "
-"kube-system namespace."
+"The operator Helm chart deploys the LINSTOR CSI plugin for you so if you "
+"used that, you can skip this section."
 msgstr ""
-"CSIプラグインを配備するための手順は https://github.com/LINBIT/linstor-"
-"csi[project's github] にあります。これにより linstor-csi-controller "
-"_StatefulSet_ と linstor-csi-node _DaemonSet_ が kube-system 名前空間で動作し"
-"ます。"
+"オペレーター Helm チャートは LINSTOR CSI プラグインをデプロイするため、Helm "
+"チャートを使用した場合は、このセクションをスキップできます。"
+
+#. type: Plain text
+msgid ""
+"If you are integrating LINSTOR using a different method, you will need to "
+"install the LINSTOR CSI plugin.  Instructions for deploying the CSI plugin "
+"can be found on the https://github.com/LINBIT/linstor-csi[project's github]. "
+"This will result in a linstor-csi-controller _StatefulSet_ and a linstor-csi-"
+"node _DaemonSet_ running in the kube-system namespace."
+msgstr ""
+"別の方法で LINSTOR を導入する場合は、LINSTOR CSI プラグインをインストールする"
+"必要があります。CSIプラグインをデプロイするための手順は https://github.com/"
+"LINBIT/linstor-csi[project's github] にあります。これにより linstor-csi-"
+"controller _StatefulSet_ と linstor-csi-node _DaemonSet_ が kube-system 名前"
+"空間で動作します。"
 
 #. type: delimited block -
 #, no-wrap
@@ -86,7 +542,7 @@ msgstr ""
 #. type: Title ===
 #, no-wrap
 msgid "Basic Configuration and Deployment"
-msgstr "基本的な構成と配備"
+msgstr "基本的な構成とデプロイメント"
 
 #. type: Plain text
 msgid ""
@@ -99,12 +555,26 @@ msgstr ""
 #. type: Plain text
 msgid ""
 "Configuring the behavior and properties of LINSTOR volumes deployed via "
-"Kubernetes is accomplished via the use of __StorageClass__es. Here below is "
-"the simplest practical _StorageClass_ that can be used to deploy volumes:"
+"Kubernetes is accomplished via the use of __StorageClass__es."
 msgstr ""
-"Kubernetesを介して配備されるLINSTORボリュームの動作とプロパティの設定は、"
-"__StorageClass__ を使用して行います。以下はボリュームを配備する最も簡単な "
-"_StorageClass_ の例です。"
+"Kubernetes を介してデプロイされた LINSTOR ボリュームの動作とプロパティの構成"
+"は __StorageClass__es を使用して行います。"
+
+#. type: Plain text
+msgid ""
+"the \"resourceGroup\" parameter is mandatory. Usually you want it to be "
+"unique and the same as the storage class name."
+msgstr ""
+"\"resourceGroup\" パラメータは必須です。通常、一意にしてストレージクラス名と"
+"同じにします。"
+
+#. type: Plain text
+msgid ""
+"Here below is the simplest practical _StorageClass_ that can be used to "
+"deploy volumes:"
+msgstr ""
+"以下は、ボリュームのデプロイに使用できる最も単純で実用的な _StorageClass_ で"
+"す。"
 
 #. type: Block title
 #, no-wrap
@@ -126,6 +596,7 @@ msgid ""
 "  # LINSTOR will provision volumes from the drbdpool storage pool configured\n"
 "  # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment\n"
 "  storagePool: \"drbdpool\"\n"
+"  resourceGroup: \"linstor-basic-storage-class\"\n"
 msgstr ""
 "apiVersion: storage.k8s.io/v1beta1\n"
 "kind: StorageClass\n"
@@ -139,6 +610,17 @@ msgstr ""
 "  # LINSTOR will provision volumes from the drbdpool storage pool configured\n"
 "  # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment\n"
 "  storagePool: \"drbdpool\"\n"
+"  resourceGroup: \"linstor-basic-storage-class\"\n"
+
+#. type: Plain text
+msgid ""
+"DRBD options can be set as well in the parameters section. Valid keys are "
+"defined in the https://app.swaggerhub.com/apis-docs/Linstor/Linstor[LINSTOR "
+"REST-API] (e.g., `DrbdOptions/Net/allow-two-primaries: \"yes\"`)."
+msgstr ""
+"DRBD オプションは、パラメーターセクションでも設定できます。有効なキーは "
+"https://app.swaggerhub.com/apis-docs/Linstor/Linstor[LINSTOR REST-API] (e."
+"g., `DrbdOptions/Net/allow-two-primaries: \"yes\"`) で定義されています。"
 
 #. type: Plain text
 msgid "We can create the _StorageClass_ with the following command:"
@@ -217,7 +699,7 @@ msgid ""
 "following _Pod_ spec will spawn a Fedora container with our volume attached "
 "that busy waits so it is not unscheduled before we can interact with it:"
 msgstr ""
-"これはKubernetesに知られている _PersistentVolumeClaim_ を作成し、それに "
+"これは Kubernetes に認識されている _PersistentVolumeClaim_ を作成し、それに "
 "_PersistentVolume_ がバインドされます。さらにLINSTORは `linstor-basic-"
 "storage-class` _StorageClass_ で定義された設定に従ってこのボリュームを作成し"
 "ます。 LINSTORボリュームの名前は `csi-` という接頭辞が付いたUUIDになります。"
@@ -502,6 +984,374 @@ msgid ""
 msgstr ""
 "このデフォルトの動作を変更するには <<s-kubernetes-localstoragepolicy,"
 "localStoragePolicy>> を参照ください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Volume Locality Optimization using Stork"
+msgstr "Stork を使用したボリューム局所性最適化"
+
+#. type: Plain text
+msgid ""
+"Stork is a scheduler extender plugin for Kubernetes which allows a storage "
+"driver to give the Kubernetes scheduler hints about where to place a new pod "
+"so that it is optimally located for storage performance. You can learn more "
+"about the project on its https://portworx.com/stork-storage-orchestration-"
+"kubernetes/[GitHub page]."
+msgstr ""
+"Stork は、Kubernetes のスケジューラ拡張プラグインであり、ストレージドライバー"
+"は、Kubernetes スケジューラーに新しいポッドを配置する場所に関するヒントを与"
+"え、ストレージパフォーマンスのために最適な場所に配置できるようにします。プロ"
+"ジェクトの詳細については、 https://portworx.com/stork-storage-orchestration-"
+"kubernetes/[GitHub ページ] 参照ください。"
+
+#. type: Plain text
+msgid ""
+"We are currently working with the maintainers behind Stork to have a LINSTOR "
+"driver shipped with it by default. In the meantime, you can use a custom-"
+"built Stork container by LINBIT which includes a LINSTOR driver, https://hub."
+"docker.com/repository/docker/linbit/stork[available on Docker Hub]"
+msgstr ""
+"現在、LINBIT は Stork のメンテナーと協力して、デフォルトで LINSTOR ドライバー"
+"が同梱されるよう作業しています。それまでの間は https://hub.docker.com/"
+"repository/docker/linbit/stork[Docker ハブで利用可能] から LINBIT によってカ"
+"スタム構築された LINSTOR ドライバー を含む Stork コンテナを使用できます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Deploying Stork alongside the LINSTOR Operator"
+msgstr "LINSTOR オペレーターと一緒に Stork をデプロイする"
+
+#. type: Plain text
+msgid ""
+"In order to make Stork talk to LINSTOR, we need to instantiate a few "
+"components in our Kubernetes cluster. First, we need to create a Stork "
+"deployment.  This is easiest done with a yaml file supplied by the Stork "
+"project: https://github.com/libopenstorage/stork/blob/master/specs/stork-"
+"deployment.yaml[stork-deployment.yaml]"
+msgstr ""
+"Stork を LINSTOR と通信させるには、Kubernetes クラスターでいくつかのコンポー"
+"ネントをインスタンス化する必要があります。まず、Stork のデプロイメントを作成"
+"する必要があります。これは、Stork プロジェクトによって提供される yaml ファイ"
+"ルで最も簡単に実行できます。 https://github.com/libopenstorage/stork/blob/"
+"master/specs/stork-deployment.yaml[stork-deployment.yaml]"
+
+#. type: Plain text
+msgid ""
+"However, a few things need to be adjusted for this deployment to work with "
+"LINSTOR.  Specifically, there is this section within the _Deployment_ part:"
+msgstr ""
+"ただし、このデプロイメントを LINSTOR と連携させるには、いくつかの調整が必要で"
+"す。例えば _Deployment_ パーツ内に次のセクションがあります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"spec:\n"
+"      containers:\n"
+"      - command:\n"
+"        - /stork\n"
+"        - --driver=pxd\n"
+"        - --verbose\n"
+"        - --leader-elect=true\n"
+"        # Uncomment the line below if you want to enable the feature to\n"
+"        # automatically update schedulerName\n"
+"        #- --app-initializer=true\n"
+"        imagePullPolicy: Always\n"
+"        image: openstorage/stork:2.2.4\n"
+"        resources:\n"
+"          requests:\n"
+"            cpu: '0.1'\n"
+"        securityContext:\n"
+"          privileged: false\n"
+"        name: stork\n"
+msgstr ""
+"spec:\n"
+"      containers:\n"
+"      - command:\n"
+"        - /stork\n"
+"        - --driver=pxd\n"
+"        - --verbose\n"
+"        - --leader-elect=true\n"
+"        # Uncomment the line below if you want to enable the feature to\n"
+"        # automatically update schedulerName\n"
+"        #- --app-initializer=true\n"
+"        imagePullPolicy: Always\n"
+"        image: openstorage/stork:2.2.4\n"
+"        resources:\n"
+"          requests:\n"
+"            cpu: '0.1'\n"
+"        securityContext:\n"
+"          privileged: false\n"
+"        name: stork\n"
+
+#. type: Plain text
+msgid ""
+"Here we need to change the `--driver=pxd` parameter, which chooses the "
+"Portworx driver by default, to use the LINSTOR driver instead: `--"
+"driver=linstor`"
+msgstr ""
+"ここでは LINSTOR ドライバーを使用するように、デフォルトで Portworx ドライバー"
+"を選択する `--driver=pxd` パラメータを `--driver=linstor` に変更する必要があ"
+"ります。"
+
+#. type: Plain text
+msgid ""
+"A few lines below, `image: openstorage/stork:2.2.4` specifies that the "
+"vanilla Stork image should be used; however, sice we want to use LINBIT's "
+"image with the included LINSTOR driver instead, we change it to `image: "
+"linbit/stork:latest`"
+msgstr ""
+"また、 `image: openstorage/stork:2.2.4` は vanilla Stork イメージを使用するこ"
+"とを指定しています。ここで、LINSTOR ドライバーで LINBIT のイメージを使用した"
+"いので、これを `image: linbit/stork:latest` に変更します。"
+
+#. type: Plain text
+msgid ""
+"If you are using a Kubernetes version more recent than 1.16, you will also "
+"have to remove the `initializers:` key and its `pending: []` element. This "
+"key has been deprecated since 1.13 and has been removed in 1.16."
+msgstr ""
+"1.16 より新しいバージョンの Kubernetes を使用している場合は `initializers:` "
+"キーとその `pending: []` 要素も削除する必要があります。このキーは 1.13 以降廃"
+"止になって、1.16 で削除されました。"
+
+#. type: Plain text
+msgid "Now we can deploy stork:"
+msgstr "これで stork をデプロイできます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl create -f stork-deployment.yaml\n"
+msgstr "kubectl create -f stork-deployment.yaml\n"
+
+#. type: Plain text
+msgid "This should start a few Stork pods:"
+msgstr "これにより、いくつかの Stork ポッドが開始されます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl get pods --namespace kube-system\n"
+"NAME                                                READY   STATUS    RESTARTS   AGE\n"
+"...\n"
+"stork-58ffcc4844-9xmlc                              1/1     Running   0          16m\n"
+"stork-58ffcc4844-nh9pb                              1/1     Running   0          16m\n"
+"stork-58ffcc4844-zbvns                              1/1     Running   0          16m\n"
+"...\n"
+msgstr ""
+"$ kubectl get pods --namespace kube-system\n"
+"NAME                                                READY   STATUS    RESTARTS   AGE\n"
+"...\n"
+"stork-58ffcc4844-9xmlc                              1/1     Running   0          16m\n"
+"stork-58ffcc4844-nh9pb                              1/1     Running   0          16m\n"
+"stork-58ffcc4844-zbvns                              1/1     Running   0          16m\n"
+"...\n"
+
+#. type: Plain text
+msgid ""
+"Once these pods are up and running, we can start a new Kubernetes scheduler "
+"instance which uses Stork to make its scheduling decisions. There is also "
+"another possibility to accomplish this -- configuring the default scheduler "
+"to work with Stork -- which will not be covered in this guide. Please refer "
+"to https://github.com/libopenstorage/stork#run-stork-in-your-kubernetes-"
+"cluster[the upstream Stork documentation] for more information on this "
+"process."
+msgstr ""
+"これらのポッドが起動して実行されると、Stork を使用してスケジューリングの決定"
+"を行う新しい Kubernetes スケジューラインスタンスを開始できます。また、これを"
+"達成する別の方法もあります。--Stork で動作するようにデフォルトのスケジュー"
+"ラーを構成する-- このガイドでは触れませんが、詳細は https://github.com/"
+"libopenstorage/stork#run-stork-in-your-kubernetes-cluster[the upstream Stork "
+"documentation] を参照ください。"
+
+#. type: Plain text
+msgid ""
+"Stork provides another yaml file to start a scheduler instance: https://"
+"github.com/libopenstorage/stork/blob/master/specs/stork-scheduler.yaml[stork-"
+"scheduler.yaml]."
+msgstr ""
+"Storkは、スケジューラインスタンスを開始するための別の yaml ファイルも提供しま"
+"す (https://github.com/libopenstorage/stork/blob/master/specs/stork-"
+"scheduler.yaml[stork-scheduler.yaml]) 。"
+
+#. type: Plain text
+msgid ""
+"Again, we need to slightly modify the file for it to work. More precisely, "
+"we need to specify which version of the Kubernetes scheduler we want to "
+"deploy.  Find this section near the bottom of the file:"
+msgstr ""
+"繰り返しになりますが、正しく機能させるには、ファイルを少し変更する必要があり"
+"ます。正確には、デプロイする Kubernetes スケジューラのバージョンを指定する必"
+"要があります。ファイルの下方近くに以下のセクションがあります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"spec:\n"
+"      containers:\n"
+"      - command:\n"
+"        - /usr/local/bin/kube-scheduler\n"
+"        - --address=0.0.0.0\n"
+"        - --leader-elect=true\n"
+"        - --scheduler-name=stork\n"
+"        - --policy-configmap=stork-config\n"
+"        - --policy-configmap-namespace=kube-system\n"
+"        - --lock-object-name=stork-scheduler\n"
+"        image: gcr.io/google_containers/kube-scheduler-amd64:<kube_version>\n"
+msgstr ""
+"spec:\n"
+"      containers:\n"
+"      - command:\n"
+"        - /usr/local/bin/kube-scheduler\n"
+"        - --address=0.0.0.0\n"
+"        - --leader-elect=true\n"
+"        - --scheduler-name=stork\n"
+"        - --policy-configmap=stork-config\n"
+"        - --policy-configmap-namespace=kube-system\n"
+"        - --lock-object-name=stork-scheduler\n"
+"        image: gcr.io/google_containers/kube-scheduler-amd64:<kube_version>\n"
+
+#. type: Plain text
+msgid ""
+"We need to substitute `<kube_version>` for the Kubernetes version our "
+"cluster is running."
+msgstr ""
+"`<kube_version>` をクラスターが実行されている Kubernetes のバージョンに置き換"
+"える必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl version\n"
+"Client Version: version.Info{Major:\"1\", Minor:\"15+\", GitVersion:\"v1.15.8-beta.0\", GitCommit:\"6c143d35bb11d74970e7bc0b6c45b6bfdffc0bd4\", GitTreeState:\"archive\", BuildDate:\"2020-01-29T00:00:00Z\", GoVersion:\"go1.14beta1\", Compiler:\"gc\", Platform:\"linux/amd64\"}\n"
+"Server Version: version.Info{Major:\"1\", Minor:\"16\", GitVersion:\"v1.16.8\", GitCommit:\"ec6eb119b81be488b030e849b9e64fda4caaf33c\", GitTreeState:\"clean\", BuildDate:\"2020-03-12T20:52:22Z\", GoVersion:\"go1.13.8\", Compiler:\"gc\", Platform:\"linux/amd64\"}\n"
+msgstr ""
+"$ kubectl version\n"
+"Client Version: version.Info{Major:\"1\", Minor:\"15+\", GitVersion:\"v1.15.8-beta.0\", GitCommit:\"6c143d35bb11d74970e7bc0b6c45b6bfdffc0bd4\", GitTreeState:\"archive\", BuildDate:\"2020-01-29T00:00:00Z\", GoVersion:\"go1.14beta1\", Compiler:\"gc\", Platform:\"linux/amd64\"}\n"
+"Server Version: version.Info{Major:\"1\", Minor:\"16\", GitVersion:\"v1.16.8\", GitCommit:\"ec6eb119b81be488b030e849b9e64fda4caaf33c\", GitTreeState:\"clean\", BuildDate:\"2020-03-12T20:52:22Z\", GoVersion:\"go1.13.8\", Compiler:\"gc\", Platform:\"linux/amd64\"}\n"
+
+#. type: Plain text
+msgid ""
+"In this case, we can see that under _Server Version_ the `GitVersion` is "
+"`v1.16.8`, so we would replace this line with:"
+msgstr ""
+"この場合、 _Server Version_ の下で `GitVersion` が `v1.16.8` であることを確認"
+"できるため、この行を次のように置き換えます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "        image: gcr.io/google_containers/kube-scheduler-amd64:v1.16.8\n"
+msgstr "        image: gcr.io/google_containers/kube-scheduler-amd64:v1.16.8\n"
+
+#. type: Plain text
+msgid ""
+"As above, if you are using Kubernetes version 1.16 or newer, you will also "
+"have to remove the `initializers:` key and its `pending: []` element. This "
+"key has been deprecated since 1.13 and has been removed in 1.16."
+msgstr ""
+"上記のように、Kubernetes バージョン 1.16 以降を使用している場合は "
+"`initializers:` キーとその `pending:[]` 要素も削除する必要があります。この"
+"キーは、1.13 以降廃止になって、1.16 で削除されました。"
+
+#. type: Plain text
+msgid "Now we can create the scheduler deployment:"
+msgstr "これで、スケジューラデプロイメントを作成できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl create -f stork-scheduler.yaml\n"
+msgstr "kubectl create -f stork-scheduler.yaml\n"
+
+#. type: Plain text
+msgid "This should have spawned a few more pods:"
+msgstr "これにより、いくつかのポッドが生成されます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl get pods --namespace kube-system\n"
+"NAME                                                READY   STATUS    RESTARTS   AGE\n"
+"...\n"
+"stork-scheduler-f7888f8f5-6djfw                     1/1     Running   0          12m\n"
+"stork-scheduler-f7888f8f5-jlrrs                     1/1     Running   0          12m\n"
+"stork-scheduler-f7888f8f5-nqqhz                     1/1     Running   0          12m\n"
+"...\n"
+msgstr ""
+"$ kubectl get pods --namespace kube-system\n"
+"NAME                                                READY   STATUS    RESTARTS   AGE\n"
+"...\n"
+"stork-scheduler-f7888f8f5-6djfw                     1/1     Running   0          12m\n"
+"stork-scheduler-f7888f8f5-jlrrs                     1/1     Running   0          12m\n"
+"stork-scheduler-f7888f8f5-nqqhz                     1/1     Running   0          12m\n"
+"...\n"
+
+#. type: Plain text
+msgid ""
+"Now that the scheduler is running, we can create a pod which uses it by "
+"specifying the scheduler's name under `spec.schedulerName`."
+msgstr ""
+"スケジューラが実行されたので `spec.schedulerName` でスケジューラの名前を指定"
+"することにより、それを使用するポッドを作成できます。"
+
+#. type: Block title
+#, no-wrap
+msgid "my-first-stork-pod.yaml"
+msgstr "my-first-stork-pod.yaml"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"apiVersion: v1\n"
+"kind: Pod\n"
+"metadata:\n"
+"  name: fedora\n"
+"  namespace: default\n"
+"spec:\n"
+"  schedulerName: stork\n"
+"  containers:\n"
+"  - name: fedora\n"
+"    image: fedora\n"
+"    command: [/bin/bash]\n"
+"    args: [\"-c\", \"while true; do sleep 10; done\"]\n"
+"    volumeMounts:\n"
+"    - name: linstor-volume-pvc\n"
+"      mountPath: /data\n"
+"    ports:\n"
+"    - containerPort: 80\n"
+"  volumes:\n"
+"  - name: linstor-volume-pvc\n"
+"    persistentVolumeClaim:\n"
+"      claimName: \"linstor-volume-pvc\"\n"
+msgstr ""
+"apiVersion: v1\n"
+"kind: Pod\n"
+"metadata:\n"
+"  name: fedora\n"
+"  namespace: default\n"
+"spec:\n"
+"  schedulerName: stork\n"
+"  containers:\n"
+"  - name: fedora\n"
+"    image: fedora\n"
+"    command: [/bin/bash]\n"
+"    args: [\"-c\", \"while true; do sleep 10; done\"]\n"
+"    volumeMounts:\n"
+"    - name: linstor-volume-pvc\n"
+"      mountPath: /data\n"
+"    ports:\n"
+"    - containerPort: 80\n"
+"  volumes:\n"
+"  - name: linstor-volume-pvc\n"
+"    persistentVolumeClaim:\n"
+"      claimName: \"linstor-volume-pvc\"\n"
+
+#. type: Plain text
+msgid ""
+"Now the scheduler will make sure to place the pod on a node which has fast "
+"access to `linstor-volume-pvc`."
+msgstr ""
+"これで、スケジューラはポッドを `linstor-volume-pvc` への高速アクセスが可能な"
+"ノードに確実に配置します。"
 
 #. type: Title ===
 #, no-wrap
