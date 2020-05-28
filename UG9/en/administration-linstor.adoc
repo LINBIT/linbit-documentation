@@ -1242,6 +1242,33 @@ NOTE: Whenever the linstor-controller is restarted, the user has to send
 the master passphrase to the controller, otherwise LINSTOR is unable to reopen or
 create encrypted volumes.
 
+[[s-automatic_passphrase]]
+==== Automatic Passphrase
+It is possible to automate the process of creating and re-entering the master passphrase.
+
+To use this, either an environment variable called `MASTER_PASSPHRASE` or an entry in
+`/etc/linstor/linstor.toml` containing the master passphrase has to be created.
+
+The required `linstor.toml` looks like this:
+
+----
+[encrypt]
+passphrase="example"
+----
+
+If either one of these is set, then every time the controller starts it will check whether
+a master passphrase already exists. If there is none, it will create a new master passphrase as specified.
+Otherwise, the controller enters the passphrase.
+
+WARNING: If a master passphrase is already configured, and it is not the same one as specified
+in the environment variable or `linstor.toml`, the controller will be unable to re-enter the
+master passphrase and react as if the user had entered a wrong passphrase.
+This can only be resolved through manual input from the user, using the same commands as if
+the controller was started without the automatic passphrase.
+
+NOTE: In case the master passphrase is set in both an environment variable and the `linstor.toml`,
+only the master passphrase from the `linstor.toml` will be used.
+
 [[s-linstor-status]]
 === Checking the state of your cluster
 LINSTOR provides various commands to check the state of your cluster.
