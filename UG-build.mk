@@ -38,7 +38,7 @@ $(OUTDIRHTMLIMAGES): $(IMGDIR)
 	mkdir $@ || true
 
 $(OUTDIRHTMLIMAGES)/%.png: $(IMGDIR)/%.svg
-	inkscape --file=$< --export-dpi=90 --export-area-drawing --export-png=./$@
+	inkscape --file=$< --export-dpi=90 --export-area-drawing --export-png=./$@ || inkscape $< --export-dpi=90 --export-area-drawing -o ./$@
 
 $(OUTDIRHTMLIMAGES)/%.png: $(IMGDIR)/%.png
 	cp $< $@
