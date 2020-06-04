@@ -379,17 +379,29 @@ kubectl delete pvc my-first-linstor-volume # remove the PersistentVolumeClaim, t
 
 Creating <<s-linstor-snapshots, snapshots>> and creating new volumes from
 snapshots is done via the use of __VolumeSnapshot__s, __VolumeSnapshotClass__es,
-and __PVC__s. First, you'll need to create a _VolumeSnapshotClass_:
+and __PVC__s. First, add the optional CSI snapshotter to your cluster:
+
+----
+git clone https://github.com/kubernetes-csi/external-snapshotter.git
+cd external-snapshotter
+kubectl create -f config/crd
+kubectl create -f deploy/kubernetes/snapshot-controller
+----
+
+More detailed installation instructions can be found on the
+https://github.com/kubernetes-csi/external-snapshotter#usage[project site]
+
+Then we can create our _VolumeSnapshotClass_:
 
 .my-first-linstor-snapshot-class.yaml
 [source,yaml]
 ----
+apiVersion: snapshot.storage.k8s.io/v1beta1
 kind: VolumeSnapshotClass
-apiVersion: snapshot.storage.k8s.io/v1alpha1
 metadata:
   name: my-first-linstor-snapshot-class
-  namespace: kube-system
-snapshotter: io.drbd.linstor-csi
+driver: linstor.csi.linbit.com
+deletionPolicy: Delete
 ----
 
 Create the _VolumeSnapshotClass_ with `kubectl`:
@@ -404,21 +416,36 @@ is done with a _VolumeSnapshot_:
 .my-first-linstor-snapshot.yaml
 [source,yaml]
 ----
-apiVersion: snapshot.storage.k8s.io/v1alpha1
+apiVersion: snapshot.storage.k8s.io/v1beta1
 kind: VolumeSnapshot
 metadata:
   name: my-first-linstor-snapshot
 spec:
-  snapshotClassName: my-first-linstor-snapshot-class
+  volumeSnapshotClassName: my-first-linstor-snapshot-class
   source:
-    name: my-first-linstor-volume
-    kind: PersistentVolumeClaim
+    persistentVolumeClaimName: my-first-linstor-volume
 ----
 
 Create the _VolumeSnapshot_ with `kubectl`:
 
 ----
 kubectl create -f my-first-linstor-snapshot.yaml
+----
+
+You can check that the snapshot creation was successful
+
+----
+kubectl describe volumesnapshots.snapshot.storage.k8s.io my-first-linstor-snapshot
+...
+Spec:
+  Source:
+    Persistent Volume Claim Name:  my-first-linstor-snapshot
+  Volume Snapshot Class Name:      my-first-linstor-snapshot-class
+Status:
+  Bound Volume Snapshot Content Name:  snapcontent-b6072ab7-6ddf-482b-a4e3-693088136d2c
+  Creation Time:                       2020-06-04T13:02:28Z
+  Ready To Use:                        true
+  Restore Size:                        500Mi
 ----
 
 Finally, we'll create a new volume from the snapshot with a _PVC_.
