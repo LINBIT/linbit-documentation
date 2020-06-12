@@ -48,10 +48,11 @@ for configuring the etcd instance for LINSTOR:
 ** Disable persistence for basic testing. This can be done by adding `--set
 etcd.persistence.enabled=false` to the `helm install` command below.
 
-* Configuring the storage pools to be created. Storage pools can be
-created directly with the helm deployment or at a later time.
-<<s-kubernetes-storage-pool-configuration,Learn more about it here>>.
-If you do not configure anything, no storage pools will be created.
+* Read <<s-kubernetes-storage, the storage guide>> and configure a basic storage setup for LINSTOR:
+** Create storage pools from available devices. Recommended for simple set ups. <<s-kubernetes-physical-device,Guide>>
+** Create storage pools from existing LVM setup. <<s-kubernetes-storage-pool-configuration,Guide>>
+
+* Read the <<s-kubernetes-securing-deployment,section on securing the deployment>> and configure as needed.
 
 * Select the appropriate kernel module injector using `--set` with the `helm
 install` command in the final step.
@@ -116,6 +117,28 @@ etcd cluster by adding the following to the Helm install command:
 --set etcd.enabled=false --set "operator.controllerSet.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123"
 ----
 
+[[s-kubernetes-storage]]
+==== Configuring storage
+
+The LINSTOR operator can automate some basic storage set up.
+
+[[s-kubernetes-physical-device]]
+===== Preparing physical devices
+
+The LINSTOR operator can automatically configure devices on satellites. Eligible for automatic configuration are block devices that:
+
+* do not contain partition information
+* have more than 1 GiB
+
+Any such device will be prepared according to the value of `operator.nodeSet.automaticStorageType`. Devices are added to a storage pool based on the device name (i.e. all `/dev/nvme1` devices will be part of the pool `nvme1`)
+
+The possible values for `operator.nodeSet.automaticStorageType` are:
+
+* `None` no automatic set up (default)
+* `LVM` create a LVM (thick) storage pool
+* `LVMTHIN` create a LVM thin storage pool
+* `ZFS` create a ZFS based storage pool
+
 [[s-kubernetes-storage-pool-configuration]]
 ===== Configuring storage pools
 
@@ -177,6 +200,151 @@ $ kubectl edit LinstorNodeSet <nodeset>
 ----
 
 The storage pool configuration can be updated like in the example above.
+
+[[s-kubernetes-securing-deployment]]
+==== Securing deployment
+This section describes the different options for enabling security features available when
+using this operator. The following guides assume the operator is installed <<s-kubernetes-deploy-linstor-operator,using Helm>>
+
+===== Secure communication with an existing etcd instance
+
+Secure communication to an `etcd` instance can be enabled by providing a CA certificate to the operator in form of a
+kubernetes secret. The secret has to contain the key `ca.pem` with the PEM encoded CA certificate as value.
+
+The secret can then be passed to the controller by passing the following argument to `helm install`
+
+----
+--set operator.controllerSet.dbCertSecret=<secret name>
+----
+
+====== Authentication with `etcd` using certificates
+
+If you want to use TLS certificates to authenticate with an `etcd` database, you need to set the following option on
+helm install:
+
+----
+--set operator.controllerSet.dbUseClientCert=true
+----
+
+If this option is active, the secret specified in the above section must contain two additional keys:
+* `client.cert` PEM formatted certificate presented to `etcd` for authentication
+* `client.key` private key **in PKCS8 format**, matching the above client certificate.
+Keys can be converted into PKCS8 format using `openssl`:
+
+----
+openssl pkcs8 -topk8 -nocrypt -in client-key.pem -out client-key.pkcs8
+----
+
+===== Configuring secure communication between LINSTOR components
+
+The default communication between LINSTOR components is not secured by TLS. If this is needed for your setup,
+follow these steps:
+
+* Create private keys in the java keystore format, one for the controller, one for all nodes:
+----
+keytool -keyalg rsa -keysize 2048 -genkey -keystore node-keys.jks -storepass linstor -alias node -dname "CN=XX, OU=node, O=Example, L=XX, ST=XX, C=X"
+keytool -keyalg rsa -keysize 2048 -genkey -keystore control-keys.jks -storepass linstor -alias control -dname "CN=XX, OU=control, O=Example, L=XX, ST=XX, C=XX"
+----
+* Create a trust store with the public keys that each component needs to trust:
+* Controller needs to trust the nodes
+* Nodes need to trust the controller
++
+----
+keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore control-keys.jks -destkeystore node-trust.jks
+keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore node-keys.jks -destkeystore control-trust.jks
+----
+
+* Create kubernetes secrets that can be passed to the controller and node pods
++
+----
+kubectl create secret generic control-secret --from-file=keystore.jks=control-keys.jks --from-file=certificates.jks=control-trust.jks
+kubectl create secret generic node-secret --from-file=keystore.jks=node-keys.jks --from-file=certificates.jks=node-trust.jks
+----
+* Pass the names of the created secrets to `helm install`
++
+----
+--set operator.nodeSet.sslSecret=node-secret --set operator.controllerSet.sslSecret=control-secret
+----
+
+IMPORTANT: It is currently **NOT** possible to change the keystore password. LINSTOR expects the passwords to be
+`linstor`. This is a current limitation of LINSTOR.
+
+===== Configuring secure communications for the LINSTOR API
+
+Various components need to talk to the LINSTOR controller via its REST interface. This interface can be
+secured via HTTPS, which automatically includes authentication. For HTTPS+authentication to work, each component
+needs access to:
+
+* A private key
+* A certificate based on the key
+* A trusted certificate, used to verify that other components are trustworthy
+
+The next sections will guide you through creating all required components.
+
+====== Creating the private keys
+
+Private keys can be created using java's keytool
+
+----
+keytool -keyalg rsa -keysize 2048 -genkey -keystore controller.pkcs12 -storetype pkcs12 -storepass linstor -ext san=dns:linstor-op-cs.default.svc -dname "CN=XX, OU=controller, O=Example, L=XX, ST=XX, C=X" -validity 5000
+keytool -keyalg rsa -keysize 2048 -genkey -keystore client.pkcs12 -storetype pkcs12 -storepass linstor -dname "CN=XX, OU=client, O=Example, L=XX, ST=XX, C=XX" -validity 5000
+----
+
+The clients need private keys and certificate in a different format, so we need to convert it
+
+----
+openssl pkcs12 -in client.pkcs12 -passin pass:linstor -out client.cert -clcerts -nokeys
+openssl pkcs12 -in client.pkcs12 -passin pass:linstor -out client.key -nocerts -nodes
+----
+
+NOTE: The alias specified for the controller key (i.e. `-ext san=dns:linstor-op-cs.default.svc`) has to exactly match the
+service name created by the operator. When using `helm`, this is always of the form `<release-name>-cs.<release-namespace>.svc`.
+
+IMPORTANT: It is currently NOT possible to change the keystore password. LINSTOR expects the passwords to be linstor. This is a current limitation of LINSTOR
+
+====== Create the trusted certificates
+
+For the controller to trust the clients, we can use the following command to create a truststore, importing the client certificate
+
+----
+keytool -importkeystore -srcstorepass linstor -srckeystore client.pkcs12 -deststorepass linstor -deststoretype pkcs12 -destkeystore controller-trust.pkcs12
+----
+
+For the client, we have to convert the controller certificate into a different format
+
+----
+openssl pkcs12 -in controller.pkcs12 -passin pass:linstor -out ca.pem -clcerts -nokeys
+----
+
+====== Create Kubernetes secrets
+
+Now you can create secrets for the controller and for clients:
+
+----
+kubectl create secret generic http-controller --from-file=keystore.jks=controller.pkcs12 --from-file=truststore.jks=controller-trust.pkcs12
+kubectl create secret generic http-client --from-file=ca.pem=ca.pem --from-file=client.cert=client.cert --from-file=client.key=client.key
+----
+
+The names of the secrets can be passed to `helm install` to configure all clients to use https.
+
+----
+--set linstorHttpsControllerSecret=http-controller  --set linstorHttpsClientSecret=http-client
+----
+
+===== Automatically set the passphrase for encrypted volumes
+
+Linstor can be used to create encrypted volumes using LUKS. The passphrase used when creating these volumes can
+be set via a secret:
+
+----
+kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<password>
+----
+
+On install, add the following arguments to the helm command:
+
+----
+--set operator.controllerSet.luksSecret=linstor-pass
+----
 
 [[s-kubernetes-helm-terminate]]
 ===== Terminating Helm deployment
