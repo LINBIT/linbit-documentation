@@ -712,6 +712,19 @@ A few lines below, `image: openstorage/stork:2.2.4` specifies that the vanilla
 Stork image should be used; however, since we want to use LINBIT's image with
 the included LINSTOR driver instead, we change it to `image: linbit/stork:latest`
 
+At last, we need to tell the LINSTOR driver the address of the LINSTOR controller.
+This can be done by setting the `LS_CONTROLLERS` variable on the container:
+
+----
+...
+containers:
+  - image: linbit/stork:latest
+    env:
+      - name: LS_CONTROLLERS
+        value: http://linstor-controller:3370
+    ...
+----
+
 Now we can deploy stork:
 
 ----
@@ -856,7 +869,7 @@ spec:
           privileged: false
         name: stork
         env:
-        - name: LS_ENDPOINT
+        - name: LS_CONTROLLERS
           value: https://linstor-controller:3371
         - name: LS_USER_CERTIFICATE
           valueFrom:
@@ -875,9 +888,8 @@ spec:
               name: linstor-client-tls
 ----
 
-The `LS_ENDPOINT` variable can be set to an URL where the LINSTOR controller
-can be found. If this is not set, Stork defaults to looking for an endpoint
-called `linstor-op-cs` and connects to it.
+The `LS_CONTROLLERS` variable is required. It needs to be set to a URL where
+the LINSTOR controller can be found.
 
 `LS_USER_CERTIFICATE`, `LS_USER_KEY`, and `LS_ROOT_CA` can be used to configure
 encrypted communication with the LINSTOR controller using TLS.
