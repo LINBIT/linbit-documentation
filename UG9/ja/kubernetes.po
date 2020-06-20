@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-06-06 09:24+0900\n"
+"POT-Creation-Date: 2020-06-20 13:02+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -119,7 +119,8 @@ msgstr ""
 #. type: Plain text
 msgid "<<s-kubernetes-etcd-hostpath-persistence,Use `hostPath` volumes>>."
 msgstr ""
-"<<s-kubernetes-etcd-hostpath-persistence, `hostPath` ボリュームを使用する。>>"
+"<<s-kubernetes-etcd-hostpath-persistence, `hostPath` ボリューム>> を使用す"
+"る。"
 
 #. type: Plain text
 msgid ""
@@ -131,14 +132,35 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"Configuring the storage pools to be created. Storage pools can be created "
-"directly with the helm deployment or at a later time.  <<s-kubernetes-"
-"storage-pool-configuration,Learn more about it here>>.  If you do not "
-"configure anything, no storage pools will be created."
+"Read <<s-kubernetes-storage, the storage guide>> and configure a basic "
+"storage setup for LINSTOR:"
 msgstr ""
-"作成するストレージプールを構成します。ストレージプールは、helm デプロイメント"
-"で直接作成することができます。<<s-kubernetes-storage-pool-configuration, 詳細"
-"はこちらを参照。>> 何も構成しない場合、ストレージプールは作成されません。"
+"<<s-kubernetes-storage, ストレージの構成>> を確認し、LINSTOR の基本的なスト"
+"レージを構成してください。"
+
+#. type: Plain text
+msgid ""
+"Create storage pools from available devices. Recommended for simple set ups. "
+"<<s-kubernetes-physical-device,Guide>>"
+msgstr ""
+"使用可能なデバイスからストレージプールを作成します。 シンプルな構成には  <<s-"
+"kubernetes-physical-device,こちら>> がおすすめです。"
+
+#. type: Plain text
+msgid ""
+"Create storage pools from existing LVM setup. <<s-kubernetes-storage-pool-"
+"configuration,Guide>>"
+msgstr ""
+"既存の LVM セットアップからストレージプールを作成します。<<s-kubernetes-"
+"storage-pool-configuration,こちら>> を参照ください。"
+
+#. type: Plain text
+msgid ""
+"Read the <<s-kubernetes-securing-deployment,section on securing the "
+"deployment>> and configure as needed."
+msgstr ""
+"<<s-kubernetes-securing-deployment,デプロイメントの保護に関するセクション>> "
+"を参照して、必要に応じて設定します。"
 
 #. type: Plain text
 msgid ""
@@ -274,6 +296,68 @@ msgstr ""
 msgid "--set etcd.enabled=false --set \"operator.controllerSet.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123\"\n"
 msgstr "--set etcd.enabled=false --set \"operator.controllerSet.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123\"\n"
 
+#. type: Title ====
+#, no-wrap
+msgid "Configuring storage"
+msgstr "ストレージの構成"
+
+#. type: Plain text
+msgid "The LINSTOR operator can automate some basic storage set up."
+msgstr ""
+"LINSTORオペレーターは、いくつかの基本的なストレージセットアップを自動化できま"
+"す。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Preparing physical devices"
+msgstr "物理デバイスの準備"
+
+#. type: Plain text
+msgid ""
+"The LINSTOR operator can automatically configure devices on satellites. "
+"Eligible for automatic configuration are block devices that:"
+msgstr ""
+"LINSTOR オペレーターは、サテライトのデバイスを自動的に構成できます。自動構成"
+"の対象となるのは、以下のブロックデバイスです。"
+
+#. type: Plain text
+msgid "do not contain partition information"
+msgstr "パーティション情報を含まない。"
+
+#. type: Plain text
+msgid "have more than 1 GiB"
+msgstr "1 GiB 以上である。"
+
+#. type: Plain text
+msgid ""
+"Any such device will be prepared according to the value of `operator.nodeSet."
+"automaticStorageType`. Devices are added to a storage pool based on the "
+"device name (i.e. all `/dev/nvme1` devices will be part of the pool `nvme1`)"
+msgstr ""
+"そのようなデバイスは `operator.nodeSet.automaticStorageType` の値に従って準備"
+"されます。 デバイスはデバイス名に基づいてストレージプールに追加されます（つま"
+"り、すべての `/dev/nvme1` デバイスはプール `nvme1` の一部になります）。"
+
+#. type: Plain text
+msgid "The possible values for `operator.nodeSet.automaticStorageType` are:"
+msgstr "`operator.nodeSet.automaticStorageType` の可能な値は次のとおりです。"
+
+#. type: Plain text
+msgid "`None` no automatic set up (default)"
+msgstr "`None` 自動セットアップなし（デフォルト）"
+
+#. type: Plain text
+msgid "`LVM` create a LVM (thick) storage pool"
+msgstr "`LVM` LVM（シック）ストレージプールを作成"
+
+#. type: Plain text
+msgid "`LVMTHIN` create a LVM thin storage pool"
+msgstr "`LVMTHIN` LVM thin ストレージプールを作成"
+
+#. type: Plain text
+msgid "`ZFS` create a ZFS based storage pool"
+msgstr "`ZFS` ZFS ベースストレージプールを作成"
+
 #. type: Title =====
 #, no-wrap
 msgid "Configuring storage pools"
@@ -389,6 +473,358 @@ msgstr "$ kubectl edit LinstorNodeSet <nodeset>\n"
 msgid ""
 "The storage pool configuration can be updated like in the example above."
 msgstr "ストレージプールの構成は、上記の例のように更新できます。"
+
+#  no-wrap
+#. type: Title ====
+#, no-wrap
+msgid "Securing deployment"
+msgstr "安全なデプロイメント"
+
+#. type: Plain text
+msgid ""
+"This section describes the different options for enabling security features "
+"available when using this operator. The following guides assume the operator "
+"is installed <<s-kubernetes-deploy-linstor-operator,using Helm>>"
+msgstr ""
+"このセクションでは、オペレーターを使用するときに使用できるセキュリティ機能を"
+"有効にするためのさまざまなオプションについて説明します。以下のガイドは <<s-"
+"kubernetes-deploy-linstor-operator,Helm>> を使ってオペレーターがインストール"
+"されていることを前提とします。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Secure communication with an existing etcd instance"
+msgstr "既存の etcd インスタンスとの安全な通信"
+
+#. type: Plain text
+msgid ""
+"Secure communication to an `etcd` instance can be enabled by providing a CA "
+"certificate to the operator in form of a kubernetes secret. The secret has "
+"to contain the key `ca.pem` with the PEM encoded CA certificate as value."
+msgstr ""
+"`etcd` インスタンスへの安全な通信は、kubernetes シークレットの形式で CA 証明"
+"書をオペレーターに提供することで有効にできます。シークレットには、PEM エン"
+"コードされた CA 証明書を値として持つキー `ca.pem` を含める必要があります。"
+
+#. type: Plain text
+msgid ""
+"The secret can then be passed to the controller by passing the following "
+"argument to `helm install`"
+msgstr ""
+"次の引数を `helm install` に渡すことで、シークレットをコントローラーに渡すこ"
+"とができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "--set operator.controllerSet.dbCertSecret=<secret name>\n"
+msgstr "--set operator.controllerSet.dbCertSecret=<secret name>\n"
+
+#. type: Plain text
+msgid "====== Authentication with `etcd` using certificates"
+msgstr "====== 証明書を使用した `etcd` での認証"
+
+#. type: Plain text
+msgid ""
+"If you want to use TLS certificates to authenticate with an `etcd` database, "
+"you need to set the following option on helm install:"
+msgstr ""
+"TLS 証明書を使用して `etcd` データベースで認証する場合は、helm インストールで"
+"次のオプションを設定する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "--set operator.controllerSet.dbUseClientCert=true\n"
+msgstr "--set operator.controllerSet.dbUseClientCert=true\n"
+
+#. type: Plain text
+msgid ""
+"If this option is active, the secret specified in the above section must "
+"contain two additional keys:"
+msgstr ""
+"このオプションがアクティブな場合、上記のセクションで指定されたシークレットに"
+"は、2つの追加キーが含まれている必要があります。"
+
+#. type: Plain text
+msgid ""
+"`client.cert` PEM formatted certificate presented to `etcd` for "
+"authentication"
+msgstr " `client.cert` 認証のために `etcd` に提示される PEM 形式の証明書、 "
+
+#. type: Plain text
+msgid ""
+"`client.key` private key **in PKCS8 format**, matching the above client "
+"certificate.  Keys can be converted into PKCS8 format using `openssl`:"
+msgstr ""
+"`client.key` 上記のクライアント証明書と一致する PKCS8 形式の秘密鍵。鍵は "
+"`openssl` を使用して PKCS8 形式に変換できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "openssl pkcs8 -topk8 -nocrypt -in client-key.pem -out client-key.pkcs8\n"
+msgstr "openssl pkcs8 -topk8 -nocrypt -in client-key.pem -out client-key.pkcs8\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Configuring secure communication between LINSTOR components"
+msgstr "LINSTOR コンポーネント間の安全な通信の設定"
+
+#. type: Plain text
+msgid ""
+"The default communication between LINSTOR components is not secured by TLS. "
+"If this is needed for your setup, follow these steps:"
+msgstr ""
+"LINSTOR コンポーネント間のデフォルトの通信は TLS によって保護されていません。"
+"必要な場合は、次の手順に従い設定します。"
+
+#. type: Plain text
+msgid ""
+"Create private keys in the java keystore format, one for the controller, one "
+"for all nodes:"
+msgstr ""
+"1 つはコントローラー用、もう 1 つはすべてのノード用に、Java キーストア形式で"
+"秘密鍵を作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore node-keys.jks -storepass linstor -alias node -dname \"CN=XX, OU=node, O=Example, L=XX, ST=XX, C=X\"\n"
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore control-keys.jks -storepass linstor -alias control -dname \"CN=XX, OU=control, O=Example, L=XX, ST=XX, C=XX\"\n"
+msgstr ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore node-keys.jks -storepass linstor -alias node -dname \"CN=XX, OU=node, O=Example, L=XX, ST=XX, C=X\"\n"
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore control-keys.jks -storepass linstor -alias control -dname \"CN=XX, OU=control, O=Example, L=XX, ST=XX, C=XX\"\n"
+
+#. type: Plain text
+msgid ""
+"Create a trust store with the public keys that each component needs to trust:"
+msgstr ""
+"各コンポーネントが信頼できるよう公開鍵を伴うトラストストアを作成します。"
+
+#. type: Plain text
+msgid "Controller needs to trust the nodes"
+msgstr "コントローラはノードを信頼する必要があります。"
+
+#. type: Plain text
+msgid "Nodes need to trust the controller"
+msgstr "ノードはコントローラーを信頼する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore control-keys.jks -destkeystore node-trust.jks\n"
+"keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore node-keys.jks -destkeystore control-trust.jks\n"
+msgstr ""
+"keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore control-keys.jks -destkeystore node-trust.jks\n"
+"keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore node-keys.jks -destkeystore control-trust.jks\n"
+
+#. type: Plain text
+msgid ""
+"Create kubernetes secrets that can be passed to the controller and node pods"
+msgstr "コントローラとノードポッドに渡す kubernetes シークレットを作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kubectl create secret generic control-secret --from-file=keystore.jks=control-keys.jks --from-file=certificates.jks=control-trust.jks\n"
+"kubectl create secret generic node-secret --from-file=keystore.jks=node-keys.jks --from-file=certificates.jks=node-trust.jks\n"
+msgstr ""
+"kubectl create secret generic control-secret --from-file=keystore.jks=control-keys.jks --from-file=certificates.jks=control-trust.jks\n"
+"kubectl create secret generic node-secret --from-file=keystore.jks=node-keys.jks --from-file=certificates.jks=node-trust.jks\n"
+
+#. type: Plain text
+msgid "Pass the names of the created secrets to `helm install`"
+msgstr "作成したシークレットの名前を `helm install` に渡します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "--set operator.nodeSet.sslSecret=node-secret --set operator.controllerSet.sslSecret=control-secret\n"
+msgstr "--set operator.nodeSet.sslSecret=node-secret --set operator.controllerSet.sslSecret=control-secret\n"
+
+#. type: Plain text
+msgid ""
+"It is currently **NOT** possible to change the keystore password. LINSTOR "
+"expects the passwords to be `linstor`. This is a current limitation of "
+"LINSTOR."
+msgstr ""
+"現在、キーストアのパスワードを変更することはできません。LINSTOR はパスワード"
+"が `linstor` であると想定しています。これは LINSTOR の現在の制限です。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Configuring secure communications for the LINSTOR API"
+msgstr "LINSTOR API の安全な通信の構成"
+
+#. type: Plain text
+msgid ""
+"Various components need to talk to the LINSTOR controller via its REST "
+"interface. This interface can be secured via HTTPS, which automatically "
+"includes authentication. For HTTPS+authentication to work, each component "
+"needs access to:"
+msgstr ""
+"さまざまなコンポーネントが REST インターフェースを介して LINSTOR コントロー"
+"ラーと通信する必要があります。このインターフェースは、自動的に認証を含む "
+"HTTPS を介して保護できます。HTTPS 認証が機能するためには、各コンポーネントが"
+"以下にアクセスする必要があります。"
+
+#. type: Plain text
+msgid "A private key"
+msgstr "秘密鍵"
+
+#. type: Plain text
+msgid "A certificate based on the key"
+msgstr "キーに基づく証明書"
+
+#. type: Plain text
+msgid ""
+"A trusted certificate, used to verify that other components are trustworthy"
+msgstr ""
+"他のコンポーネントが信頼できることを確認するために使用される信頼できる証明書"
+
+#. type: Plain text
+msgid ""
+"The next sections will guide you through creating all required components."
+msgstr ""
+"次のセクションでは、必要なすべてのコンポーネントの作成について説明します。"
+
+#. type: Plain text
+msgid "====== Creating the private keys"
+msgstr "====== 秘密鍵の作成"
+
+#. type: Plain text
+msgid "Private keys can be created using java's keytool"
+msgstr "秘密鍵は Java の keytool を使用して作成できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore controller.pkcs12 -storetype pkcs12 -storepass linstor -ext san=dns:linstor-op-cs.default.svc -dname \"CN=XX, OU=controller, O=Example, L=XX, ST=XX, C=X\" -validity 5000\n"
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore client.pkcs12 -storetype pkcs12 -storepass linstor -dname \"CN=XX, OU=client, O=Example, L=XX, ST=XX, C=XX\" -validity 5000\n"
+msgstr ""
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore controller.pkcs12 -storetype pkcs12 -storepass linstor -ext san=dns:linstor-op-cs.default.svc -dname \"CN=XX, OU=controller, O=Example, L=XX, ST=XX, C=X\" -validity 5000\n"
+"keytool -keyalg rsa -keysize 2048 -genkey -keystore client.pkcs12 -storetype pkcs12 -storepass linstor -dname \"CN=XX, OU=client, O=Example, L=XX, ST=XX, C=XX\" -validity 5000\n"
+
+#. type: Plain text
+msgid ""
+"The clients need private keys and certificate in a different format, so we "
+"need to convert it"
+msgstr ""
+"クライアントは異なる形式の秘密鍵と証明書を必要とするため、変換する必要があり"
+"ます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"openssl pkcs12 -in client.pkcs12 -passin pass:linstor -out client.cert -clcerts -nokeys\n"
+"openssl pkcs12 -in client.pkcs12 -passin pass:linstor -out client.key -nocerts -nodes\n"
+msgstr ""
+"openssl pkcs12 -in client.pkcs12 -passin pass:linstor -out client.cert -clcerts -nokeys\n"
+"openssl pkcs12 -in client.pkcs12 -passin pass:linstor -out client.key -nocerts -nodes\n"
+
+#. type: Plain text
+msgid ""
+"The alias specified for the controller key (i.e. `-ext san=dns:linstor-op-cs."
+"default.svc`) has to exactly match the service name created by the operator. "
+"When using `helm`, this is always of the form `<release-name>-cs.<release-"
+"namespace>.svc`."
+msgstr ""
+"コントローラキーで指定されたエイリアス（つまり `-ext san=dns:linstor-op-cs."
+"default.svc` ）は、オペレーターが作成したサービス名と完全に一致する必要があり"
+"ます。 `helm` を使用する場合は、これは常に `<release-name>-cs.<release-"
+"namespace>.svc` の形式になります。"
+
+#. type: Plain text
+msgid ""
+"It is currently NOT possible to change the keystore password. LINSTOR "
+"expects the passwords to be linstor. This is a current limitation of LINSTOR"
+msgstr ""
+"現在、キーストアのパスワードを変更することはできません。LINSTOR は、パスワー"
+"ドが linstor であると想定しています。これは LINSTOR の現在の制限です。"
+
+#. type: Plain text
+msgid "====== Create the trusted certificates"
+msgstr "====== 信頼できる証明書の作成"
+
+#. type: Plain text
+msgid ""
+"For the controller to trust the clients, we can use the following command to "
+"create a truststore, importing the client certificate"
+msgstr ""
+"コントローラがクライアントを信頼するには、次のコマンドを使用してトラストスト"
+"アを作成し、クライアント証明書をインポートします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "keytool -importkeystore -srcstorepass linstor -srckeystore client.pkcs12 -deststorepass linstor -deststoretype pkcs12 -destkeystore controller-trust.pkcs12\n"
+msgstr "keytool -importkeystore -srcstorepass linstor -srckeystore client.pkcs12 -deststorepass linstor -deststoretype pkcs12 -destkeystore controller-trust.pkcs12\n"
+
+#. type: Plain text
+msgid ""
+"For the client, we have to convert the controller certificate into a "
+"different format"
+msgstr ""
+"クライアントの場合、コントローラ証明書を別の形式に変換する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "openssl pkcs12 -in controller.pkcs12 -passin pass:linstor -out ca.pem -clcerts -nokeys\n"
+msgstr "openssl pkcs12 -in controller.pkcs12 -passin pass:linstor -out ca.pem -clcerts -nokeys\n"
+
+#. type: Plain text
+msgid "====== Create Kubernetes secrets"
+msgstr "====== Kubernetes シークレットの作成"
+
+#. type: Plain text
+msgid "Now you can create secrets for the controller and for clients:"
+msgstr "これで、コントローラとクライアントのシークレットを作成できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kubectl create secret generic http-controller --from-file=keystore.jks=controller.pkcs12 --from-file=truststore.jks=controller-trust.pkcs12\n"
+"kubectl create secret generic http-client --from-file=ca.pem=ca.pem --from-file=client.cert=client.cert --from-file=client.key=client.key\n"
+msgstr ""
+"kubectl create secret generic http-controller --from-file=keystore.jks=controller.pkcs12 --from-file=truststore.jks=controller-trust.pkcs12\n"
+"kubectl create secret generic http-client --from-file=ca.pem=ca.pem --from-file=client.cert=client.cert --from-file=client.key=client.key\n"
+
+#. type: Plain text
+msgid ""
+"The names of the secrets can be passed to `helm install` to configure all "
+"clients to use https."
+msgstr ""
+"シークレットの名前を `helm install` に渡して、すべてのクライアントが https を"
+"使用するように設定できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "--set linstorHttpsControllerSecret=http-controller  --set linstorHttpsClientSecret=http-client\n"
+msgstr "--set linstorHttpsControllerSecret=http-controller  --set linstorHttpsClientSecret=http-client\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Automatically set the passphrase for encrypted volumes"
+msgstr "暗号化されたボリュームのパスフレーズを自動設定"
+
+#. type: Plain text
+msgid ""
+"Linstor can be used to create encrypted volumes using LUKS. The passphrase "
+"used when creating these volumes can be set via a secret:"
+msgstr ""
+"Linstor は LUKS を使用して暗号化されたボリュームを作成するために使用できま"
+"す。これらのボリュームを作成するときに使用されるパスフレーズは、シークレット"
+"を介して設定できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<password>\n"
+msgstr "kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<password>\n"
+
+#. type: Plain text
+msgid "On install, add the following arguments to the helm command:"
+msgstr "インストール時に、次の引数を helm コマンドに追加します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "--set operator.controllerSet.luksSecret=linstor-pass\n"
+msgstr "--set operator.controllerSet.luksSecret=linstor-pass\n"
 
 #. type: Title =====
 #, no-wrap
