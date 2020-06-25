@@ -46,7 +46,7 @@ for configuring the etcd instance for LINSTOR:
 ** Use an existing storage provisioner with a default `StorageClass`.
 ** <<s-kubernetes-etcd-hostpath-persistence,Use `hostPath` volumes>>.
 ** Disable persistence for basic testing. This can be done by adding `--set
-etcd.persistence.enabled=false` to the `helm install` command below.
+etcd.persistentVolume.enabled=false` to the `helm install` command below.
 
 * Read <<s-kubernetes-storage, the storage guide>> and configure a basic storage setup for LINSTOR:
 ** Create storage pools from available devices. Recommended for simple set ups. <<s-kubernetes-physical-device,Guide>>
@@ -62,10 +62,16 @@ Select the latest version from one of `drbd9-rhel7`, `drbd9-rhel8` or `drbd9-bio
 The drbd9-rhel8 image should also be used for RHCOS (OpenShift). For example:
 +
 ----
-operator.nodeSet.kernelModImage=drbd.io/drbd9-rhel8:v9.0.22-2
+operator.nodeSet.kernelModImage=drbd.io/drbd9-rhel8:v9.0.24
 ----
 
-** Disable kernel module injection if you are installing DRBD by other means.
+** Only inject modules that are already present on the host machine. If a module is not found, it will be skipped.
++
+----
+operator.nodeSet.drbdKernelModuleInjectionMode=DepsOnly
+----
+
+** Disable kernel module injection if you are installing DRBD by other means. Deprecated by `DepsOnly`
 +
 ----
 operator.nodeSet.drbdKernelModuleInjectionMode=None
@@ -94,9 +100,7 @@ helm repo add linstor https://charts.linstor.io
 helm install linstor-etcd linstor/pv-hostpath --set "nodes={<NODE0>,<NODE1>,<NODE2>}"
 ----
 
-Persistence for etcd is enabled by default. The
-`etcd.volumePermissions.enabled` key in the Helm values is also set so that the
-`hostPath` volumes have appropriate permissions.
+Persistence for etcd is enabled by default.
 
 [[s-kubernetes-existing-database]]
 ===== Using an existing database
@@ -349,28 +353,40 @@ On install, add the following arguments to the helm command:
 [[s-kubernetes-helm-terminate]]
 ===== Terminating Helm deployment
 
-The LINSTOR deployment can be terminated with:
+To protect the storage infrastructure of the cluster from accidentally deleting vital components, it is necessary to perform some manual steps before deleting a Helm deployment.
 
+1. Delete all volume claims managed by LINSTOR components. You can use the following command to get a list of volume claims managed by LINSTOR. After checking that non of the listed volumes still hold needed data, you can delete them using the generated kubectl delete command.
++
 ----
-helm delete linstor-op
+$ kubectl get pvc --all-namespaces -o=jsonpath='{range .items[?(@.metadata.annotations.volume\.beta\.kubernetes\.io/storage-provisioner=="linstor.csi.linbit.com")]}kubectl delete pvc --namespace {.metadata.namespace} {.metadata.name}{"\n"}{end}'
+kubectl delete pvc --namespace default data-mysql-0
+kubectl delete pvc --namespace default data-mysql-1
+kubectl delete pvc --namespace default data-mysql-2
 ----
++
+WARNING: These volumes, once deleted, cannot be recovered.
 
-However due to the Helm’s current policy, the newly created Custom Resource
-Definitions named `linstorcontrollerset` and `linstornodeset` will *not* be
-deleted by the command. This will also cause the instances of those CRD’s named
-`linstor-op-ns` and `linstor-op-cs` to remain running.
-
-To terminate those instances after the `helm delete` command, run
-
+2. Delete the LINSTOR controller and satellite resources.
++
+Deployment of LINSTOR satellite and controller is controlled by the linstornodeset and linstorcontrollerset resources. You can delete the resources associated with your deployment using kubectl
++
 ----
-kubectl patch linstorcontrollerset linstor-op-cs -p '{"metadata":{"finalizers":[]}}' --type=merge
-kubectl patch linstornodeset linstor-op-ns -p '{"metadata":{"finalizers":[]}}' --type=merge
+kubectl delete linstorcontrollerset <helm-deploy-name>-cs
+kubectl delete linstornodeset <helm-deploy-name>-ns
 ----
++
+After a short wait, the controller and satellite pods should terminate. If they continue to run, you can check the above resources for errors (they are only removed after all associated pods terminate)
 
-After that, all the instances created by the Helm deployment will be
-terminated.
-
-More information regarding Helm’s current position on CRD’s can be found
+3. Delete the Helm deployment.
++
+If you removed all PVCs and all LINSTOR pods have terminated, you can uninstall the helm deployment
++
+----
+helm uninstall linstor-op
+----
++
+NOTE: Due to the Helm's current policy, the Custom Resource Definitions named linstorcontrollerset and linstornodeset will not be deleted by the command.
+More information regarding Helm's current position on CRD's can be found
 https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-1-let-helm-do-it-for-you[here].
 
 [[s-kubernetes-deploy-piraeus-operator]]
@@ -547,18 +563,27 @@ kubectl delete pvc my-first-linstor-volume # remove the PersistentVolumeClaim, t
 
 Creating <<s-linstor-snapshots, snapshots>> and creating new volumes from
 snapshots is done via the use of __VolumeSnapshot__s, __VolumeSnapshotClass__es,
-and __PVC__s. First, add the optional CSI snapshotter to your cluster:
+and __PVC__s.
+
+[[s-kubernetes-add-snaphot-support]]
+==== Adding snapshot support
+
+LINSTOR supports the volume snapshot feature, which is currently in beta. To use it, you need to install a cluster wide
+snapshot controller. This is done either by the cluster provider, or you can use the LINSTOR chart.
+
+By default, the LINSTOR chart will install its own snapshot controller. This can lead to conflict in some cases:
+
+* the cluster already has a snapshot controller
+* the cluster does not meet the minimal version requirements (>= 1.17)
+
+In such a case, installation of the snapshot controller can be disabled:
 
 ----
-git clone https://github.com/kubernetes-csi/external-snapshotter.git
-cd external-snapshotter
-kubectl create -f config/crd
-kubectl create -f deploy/kubernetes/snapshot-controller
+--set csi-snapshotter.enabled=false
 ----
 
-More detailed installation instructions can be found on the
-https://github.com/kubernetes-csi/external-snapshotter#usage[project site]
-
+[[s-kubernetes-use-snapshot]]
+==== Using volume snapshots
 Then we can create our _VolumeSnapshotClass_:
 
 .my-first-linstor-snapshot-class.yaml
@@ -674,225 +699,43 @@ driver shipped with it by default. In the meantime, you can use a custom-built
 Stork container by LINBIT which includes a LINSTOR driver,
 https://hub.docker.com/repository/docker/linbit/stork[available on Docker Hub]
 
-==== Deploying Stork alongside the LINSTOR Operator
+[[s-kubernetes-using-stork]]
+==== Using Stork
 
-In order to make Stork talk to LINSTOR, we need to instantiate a few components
-in our Kubernetes cluster. First, we need to create a Stork deployment.
-This is easiest done with a yaml file supplied by the Stork project:
-https://github.com/libopenstorage/stork/blob/master/specs/stork-deployment.yaml[stork-deployment.yaml]
+By default, the operator will install the components required for Stork, and register a new scheduler called `stork`
+with Kubernetes. This new scheduler can be used to place pods near to their volumes.
 
-However, a few things need to be adjusted for this deployment to work with LINSTOR.
-Specifically, there is this section within the _Deployment_ part:
-
-----
-spec:
-      containers:
-      - command:
-        - /stork
-        - --driver=pxd
-        - --verbose
-        - --leader-elect=true
-        # Uncomment the line below if you want to enable the feature to
-        # automatically update schedulerName
-        #- --app-initializer=true
-        imagePullPolicy: Always
-        image: openstorage/stork:2.2.4
-        resources:
-          requests:
-            cpu: '0.1'
-        securityContext:
-          privileged: false
-        name: stork
-----
-
-Here we need to change the `--driver=pxd` parameter, which chooses the Portworx
-driver by default, to use the LINSTOR driver instead: `--driver=linstor`
-
-A few lines below, `image: openstorage/stork:2.2.4` specifies that the vanilla
-Stork image should be used; however, since we want to use LINBIT's image with
-the included LINSTOR driver instead, we change it to `image: linbit/stork:latest`
-
-At last, we need to tell the LINSTOR driver the address of the LINSTOR controller.
-This can be done by setting the `LS_CONTROLLERS` variable on the container:
-
-----
-...
-containers:
-  - image: linbit/stork:latest
-    env:
-      - name: LS_CONTROLLERS
-        value: http://linstor-controller:3370
-    ...
-----
-
-Now we can deploy stork:
-
-----
-kubectl create -f stork-deployment.yaml
-----
-
-This should start a few Stork pods:
-
-----
-$ kubectl get pods --namespace kube-system
-NAME                                                READY   STATUS    RESTARTS   AGE
-...
-stork-58ffcc4844-9xmlc                              1/1     Running   0          16m
-stork-58ffcc4844-nh9pb                              1/1     Running   0          16m
-stork-58ffcc4844-zbvns                              1/1     Running   0          16m
-...
-----
-
-Once these pods are up and running, we can start a new Kubernetes scheduler
-instance which uses Stork to make its scheduling decisions. There is also another
-possibility to accomplish this -- configuring the default scheduler to work
-with Stork -- which will not be covered in this guide. Please refer to
-https://github.com/libopenstorage/stork#run-stork-in-your-kubernetes-cluster[the upstream Stork documentation]
-for more information on this process.
-
-Stork provides another yaml file to start a scheduler instance:
-https://github.com/libopenstorage/stork/blob/master/specs/stork-scheduler.yaml[stork-scheduler.yaml].
-
-Again, we need to slightly modify the file for it to work. More precisely, we
-need to specify which version of the Kubernetes scheduler we want to deploy.
-Find this section near the bottom of the file:
-
-----
-spec:
-      containers:
-      - command:
-        - /usr/local/bin/kube-scheduler
-        - --address=0.0.0.0
-        - --leader-elect=true
-        - --scheduler-name=stork
-        - --policy-configmap=stork-config
-        - --policy-configmap-namespace=kube-system
-        - --lock-object-name=stork-scheduler
-        image: gcr.io/google_containers/kube-scheduler-amd64:<kube_version>
-----
-
-We need to substitute `<kube_version>` for the Kubernetes version our cluster
-is running.
-
-----
-$ kubectl version
-Client Version: version.Info{Major:"1", Minor:"15+", GitVersion:"v1.15.8-beta.0", GitCommit:"6c143d35bb11d74970e7bc0b6c45b6bfdffc0bd4", GitTreeState:"archive", BuildDate:"2020-01-29T00:00:00Z", GoVersion:"go1.14beta1", Compiler:"gc", Platform:"linux/amd64"}
-Server Version: version.Info{Major:"1", Minor:"16", GitVersion:"v1.16.8", GitCommit:"ec6eb119b81be488b030e849b9e64fda4caaf33c", GitTreeState:"clean", BuildDate:"2020-03-12T20:52:22Z", GoVersion:"go1.13.8", Compiler:"gc", Platform:"linux/amd64"}
-----
-
-In this case, we can see that under _Server Version_ the `GitVersion` is `v1.16.8`,
-so we would replace this line with:
-
-----
-        image: gcr.io/google_containers/kube-scheduler-amd64:v1.16.8
-----
-
-Now we can create the scheduler deployment:
-
-----
-kubectl create -f stork-scheduler.yaml
-----
-
-This should have spawned a few more pods:
-
-----
-$ kubectl get pods --namespace kube-system
-NAME                                                READY   STATUS    RESTARTS   AGE
-...
-stork-scheduler-f7888f8f5-6djfw                     1/1     Running   0          12m
-stork-scheduler-f7888f8f5-jlrrs                     1/1     Running   0          12m
-stork-scheduler-f7888f8f5-nqqhz                     1/1     Running   0          12m
-...
-----
-
-Now that the scheduler is running, we can create a pod which uses it by specifying
-the scheduler's name under `spec.schedulerName`.
-
-.my-first-stork-pod.yaml
+[source,yaml]
 ----
 apiVersion: v1
 kind: Pod
 metadata:
-  name: fedora
+  name: busybox
   namespace: default
 spec:
-  schedulerName: stork
+  schedulerName: stork <1>
   containers:
-  - name: fedora
-    image: fedora
-    command: [/bin/bash]
-    args: ["-c", "while true; do sleep 10; done"]
+  - name: busybox
+    image: busybox
+    command: ["tail", "-f", "/dev/null"]
     volumeMounts:
-    - name: linstor-volume-pvc
+    - name: my-first-linstor-volume
       mountPath: /data
     ports:
     - containerPort: 80
   volumes:
-  - name: linstor-volume-pvc
+  - name: my-first-linstor-volume
     persistentVolumeClaim:
-      claimName: "linstor-volume-pvc"
+      claimName: "test-volume"
 ----
 
-Now the scheduler will make sure to place the pod on a node which has fast
-access to `linstor-volume-pvc`.
+<1> Add the name of the scheduler to your pod.
 
-==== Configuring the Stork LINSTOR Driver
+Deployment of the scheduler can be disabled using
 
-The LINSTOR driver included in Stork can be parameterized to change how Stork
-connects to the LINSTOR controller.
-
-This can be accomplished by setting certain environment variables for the
-Stork container in its deployment.
-
-.stork-deployment.yaml
 ----
-apiVersion: apps/v1
-kind: Deployment
-# ...
-spec:
-  # ...
-  template:
-    # ...
-    spec:
-      containers:
-      - command:
-        - /stork
-        - --driver=linstor
-        - --verbose
-        - --leader-elect=true
-        imagePullPolicy: Always
-        image: linbit/stork:latest
-        resources:
-          requests:
-            cpu: '0.1'
-        securityContext:
-          privileged: false
-        name: stork
-        env:
-        - name: LS_CONTROLLERS
-          value: https://linstor-controller:3371
-        - name: LS_USER_CERTIFICATE
-          valueFrom:
-            secretKeyRef:
-              key: tls.crt
-              name: linstor-client-tls
-        - name: LS_USER_KEY
-          valueFrom:
-            secretKeyRef:
-              key: tls.key
-              name: linstor-client-tls
-        - name: LS_ROOT_CA
-          valueFrom:
-            secretKeyRef:
-              key: ca.crt
-              name: linstor-client-tls
+--set stork.enabled=false
 ----
-
-The `LS_CONTROLLERS` variable is required. It needs to be set to a URL where
-the LINSTOR controller can be found.
-
-`LS_USER_CERTIFICATE`, `LS_USER_KEY`, and `LS_ROOT_CA` can be used to configure
-encrypted communication with the LINSTOR controller using TLS.
 
 [[s-kubernetes-advanced-configuration]]
 === Advanced Configuration
