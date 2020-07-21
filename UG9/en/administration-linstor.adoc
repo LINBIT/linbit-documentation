@@ -934,9 +934,10 @@ The following table shows which layer can be followed by which child-layer:
 |===
 | Layer | Child layer
 
-| DRBD | WRITECACHE, NVME, LUKS, STORAGE
-| WRITECACHE | NVME, LUKS, STORAGE
-| NVME | WRITACACHE, LUKS, STORAGE
+| DRBD | CACHE, WRITECACHE, NVME, LUKS, STORAGE
+| CACHE | WRITECACHE, NVME, LUKS, STORAGE
+| WRITECACHE | CACHE, NVME, LUKS, STORAGE
+| NVME | CACHE, WRITECACHE, LUKS, STORAGE
 | LUKS | STORAGE
 | STORAGE | -
 |===
@@ -1113,6 +1114,7 @@ inheritance mechanism for properties. That means simply define the same property
 you need it, i.e. +
 `linstor node set-property ofNode1 StorDriver/Openflex/ApiHost 10.43.8.185`
 
+[[s-writecache-layer]]
 ==== Writecache Layer
 
 A https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/writecache.html[DM-Writecache]
@@ -1149,6 +1151,40 @@ property-keys.
 Using `--layer-list DRBD,WRITECACHE,STORAGE` while having DRBD configured to use
 external metadata, only the backing device will use a writecache, not the
 device holding the external metadata.
+
+[[s-cache-layer]]
+==== Cache Layer
+
+LINSTOR can also setup a https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/cache.html[DM-Cache]
+device, which is very similar to the DM-Writecache from the previous section. The major difference
+is that a cache device is composed by three devices: one storage device, one cache device and one
+meta device. The LINSTOR properties are quite similar to those of the writecache but are located
+in the `Cache` namespace:
+
+------
+# linstor storage-pool create lvm node1 lvmpool drbdpool
+# linstor storage-pool create lvm node1 pmempool pmempool
+
+# linstor resource-definition create r1
+# linstor volume-definition create r1 100G
+
+# linstor volume-definition set-property r1 0 Cache/CachePool pmempool
+# linstor volume-definition set-property r1 0 Cache/Size 1%
+
+# linstor resource create node1 r1 --storage-pool lvmpool --layer-list CACHE,STORAGE
+------
+
+NOTE: Instead of `Writecache/PoolName` (as when configuring the Writecache layer) the
+Cache layer's only required property is called `Cache/CachePool`. The reason for this
+is that the Cache layer also has a `Cache/MetaPool` which can be configured separately
+or it defaults to the value of `Cache/CachePool`.
+
+Please see `linstor controller set-property --help` for a list of `Cache/*`
+property-keys and default values for omitted properties.
+
+Using `--layer-list DRBD,CACHE,STORAGE` while having DRBD configured to use external
+metadata, only the backing device will use a cache, not the device holding the external
+metadata.
 
 [[s-managing_network_interface_cards]]
 === Managing Network Interface Cards
