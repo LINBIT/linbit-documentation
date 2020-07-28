@@ -25,13 +25,6 @@ managing Satellite and Controller pods, and other related functions.
 
 The operator itself is installed using a Helm v3 chart as follows:
 
-* Label the worker nodes with `linstor.linbit.com/linstor-node=true`
-by running:
-+
-----
-kubectl label node <NODE_NAME> linstor.linbit.com/linstor-node=true
-----
-
 * Create a kubernetes secret containing your my.linbit.com credentials:
 +
 ----
@@ -63,28 +56,32 @@ The drbd9-rhel8 image should also be used for RHCOS (OpenShift). For the SUSE Ca
 that matches the base system of the CaaS Platform you are using (e.g., `drbd9-sles15sp1`). For example:
 +
 ----
-operator.nodeSet.kernelModImage=drbd.io/drbd9-rhel8:v9.0.24
+operator.satelliteSet.kernelModuleInjectionImage=drbd.io/drbd9-rhel8:v9.0.24
 ----
 
 ** Only inject modules that are already present on the host machine. If a module is not found, it will be skipped.
 +
 ----
-operator.nodeSet.drbdKernelModuleInjectionMode=DepsOnly
+operator.satelliteSet.kernelModuleInjectionMode=DepsOnly
 ----
 
 ** Disable kernel module injection if you are installing DRBD by other means. Deprecated by `DepsOnly`
 +
 ----
-operator.nodeSet.drbdKernelModuleInjectionMode=None
+operator.satelliteSet.kernelModuleInjectionMode=None
 ----
 
 * Finally create a Helm deployment named `linstor-op` that will set up
 everything.
 +
+NOTE: This guide assumes you are using version 1.0.0 of the operator. v1.0.0 is currently a release candidate, so
+you need to add `--devel` to the `helm install` step.
++
 ----
 helm repo add linstor https://charts.linstor.io
 helm install linstor-op linstor/linstor
 ----
+Further deployment customization is discussed in the <<s-kubernetes-advanced-deployments,advanced deployment section>>
 
 [[s-kubernetes-etcd-hostpath-persistence]]
 ===== LINSTOR etcd `hostPath` persistence
@@ -119,7 +116,7 @@ The Helm chart can be configured to use this database instead of deploying an
 etcd cluster by adding the following to the Helm install command:
 
 ----
---set etcd.enabled=false --set "operator.controllerSet.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123"
+--set etcd.enabled=false --set "operator.controller.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123"
 ----
 
 [[s-kubernetes-storage]]
@@ -135,9 +132,9 @@ The LINSTOR operator can automatically configure devices on satellites. Eligible
 * do not contain partition information
 * have more than 1 GiB
 
-Any such device will be prepared according to the value of `operator.nodeSet.automaticStorageType`. Devices are added to a storage pool based on the device name (i.e. all `/dev/nvme1` devices will be part of the pool `nvme1`)
+Any such device will be prepared according to the value of `operator.satelliteSet.automaticStorageType`. Devices are added to a storage pool based on the device name (i.e. all `/dev/nvme1` devices will be part of the pool `nvme1`)
 
-The possible values for `operator.nodeSet.automaticStorageType` are:
+The possible values for `operator.satelliteSet.automaticStorageType` are:
 
 * `None` no automatic set up (default)
 * `LVM` create a LVM (thick) storage pool
@@ -148,12 +145,12 @@ The possible values for `operator.nodeSet.automaticStorageType` are:
 ===== Configuring storage pools
 
 The operator installed by helm can be used to create storage pools. Creation is under control of the
-LinstorNodeSet resource:
+LinstorSatelliteSet resource:
 
 [source,yaml]
 ----
-$ kubectl get LinstorNodeSet <nodeset> -o yaml
-kind: LinstorNodeSet
+$ kubectl get LinstorSatelliteSet <satelliteSet> -o yaml
+kind: LinstorSatelliteSet
 metadata:
 ..
 spec:
@@ -173,14 +170,14 @@ There are two ways to configure storage pools
 [[s-kubernetes-storage-pool-configuration-at-install-time]]
 ====== At install time
 
-At install time, by setting the value of `operator.nodeSet.storagePools` when running helm install.
+At install time, by setting the value of `operator.satelliteSet.storagePools` when running helm install.
 
 First create a file with the storage configuration like:
 
 [source,yaml]
 ----
 operator:
-  nodeSet:
+  satelliteSet:
     storagePools:
       lvmPools:
       - name: lvm-thick
@@ -198,10 +195,10 @@ helm install linstor-op linstor/linstor -f <file> ..
 ====== After install
 
 On a cluster with the operator already configured (i.e. after `helm install`),
-you can edit the nodeset configuration like this:
+you can edit the SatelliteSet configuration like this:
 
 ----
-$ kubectl edit LinstorNodeSet <nodeset>
+$ kubectl edit LinstorSatelliteSet <satelliteSet>
 ----
 
 The storage pool configuration can be updated like in the example above.
@@ -219,7 +216,7 @@ kubernetes secret. The secret has to contain the key `ca.pem` with the PEM encod
 The secret can then be passed to the controller by passing the following argument to `helm install`
 
 ----
---set operator.controllerSet.dbCertSecret=<secret name>
+--set operator.controller.dbCertSecret=<secret name>
 ----
 
 ====== Authentication with `etcd` using certificates
@@ -228,7 +225,7 @@ If you want to use TLS certificates to authenticate with an `etcd` database, you
 helm install:
 
 ----
---set operator.controllerSet.dbUseClientCert=true
+--set operator.controller.dbUseClientCert=true
 ----
 
 If this option is active, the secret specified in the above section must contain two additional keys:
@@ -245,30 +242,30 @@ openssl pkcs8 -topk8 -nocrypt -in client-key.pem -out client-key.pkcs8
 The default communication between LINSTOR components is not secured by TLS. If this is needed for your setup,
 follow these steps:
 
-* Create private keys in the java keystore format, one for the controller, one for all nodes:
+* Create private keys in the java keystore format, one for the controller, one for all satellites:
 ----
-keytool -keyalg rsa -keysize 2048 -genkey -keystore node-keys.jks -storepass linstor -alias node -dname "CN=XX, OU=node, O=Example, L=XX, ST=XX, C=X"
+keytool -keyalg rsa -keysize 2048 -genkey -keystore satellite-keys.jks -storepass linstor -alias satellite -dname "CN=XX, OU=satellite, O=Example, L=XX, ST=XX, C=X"
 keytool -keyalg rsa -keysize 2048 -genkey -keystore control-keys.jks -storepass linstor -alias control -dname "CN=XX, OU=control, O=Example, L=XX, ST=XX, C=XX"
 ----
 * Create a trust store with the public keys that each component needs to trust:
-* Controller needs to trust the nodes
+* Controller needs to trust the satellites
 * Nodes need to trust the controller
 +
 ----
-keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore control-keys.jks -destkeystore node-trust.jks
-keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore node-keys.jks -destkeystore control-trust.jks
+keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore control-keys.jks -destkeystore satellite-trust.jks
+keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore satellite-keys.jks -destkeystore control-trust.jks
 ----
 
-* Create kubernetes secrets that can be passed to the controller and node pods
+* Create kubernetes secrets that can be passed to the controller and satellite pods
 +
 ----
 kubectl create secret generic control-secret --from-file=keystore.jks=control-keys.jks --from-file=certificates.jks=control-trust.jks
-kubectl create secret generic node-secret --from-file=keystore.jks=node-keys.jks --from-file=certificates.jks=node-trust.jks
+kubectl create secret generic satellite-secret --from-file=keystore.jks=satellite-keys.jks --from-file=certificates.jks=satellite-trust.jks
 ----
 * Pass the names of the created secrets to `helm install`
 +
 ----
---set operator.nodeSet.sslSecret=node-secret --set operator.controllerSet.sslSecret=control-secret
+--set operator.satelliteSet.sslSecret=satellite-secret --set operator.controller.sslSecret=control-secret
 ----
 
 IMPORTANT: It is currently **NOT** possible to change the keystore password. LINSTOR expects the passwords to be
@@ -348,7 +345,7 @@ kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<pas
 On install, add the following arguments to the helm command:
 
 ----
---set operator.controllerSet.luksSecret=linstor-pass
+--set operator.controller.luksSecret=linstor-pass
 ----
 
 [[s-kubernetes-helm-terminate]]
@@ -369,11 +366,11 @@ WARNING: These volumes, once deleted, cannot be recovered.
 
 2. Delete the LINSTOR controller and satellite resources.
 +
-Deployment of LINSTOR satellite and controller is controlled by the linstornodeset and linstorcontrollerset resources. You can delete the resources associated with your deployment using kubectl
+Deployment of LINSTOR satellite and controller is controlled by the LinstorSatelliteSet and LinstorController resources. You can delete the resources associated with your deployment using kubectl
 +
 ----
-kubectl delete linstorcontrollerset <helm-deploy-name>-cs
-kubectl delete linstornodeset <helm-deploy-name>-ns
+kubectl delete linstorcontroller <helm-deploy-name>-cs
+kubectl delete linstorsatelliteset <helm-deploy-name>-ns
 ----
 +
 After a short wait, the controller and satellite pods should terminate. If they continue to run, you can check the above resources for errors (they are only removed after all associated pods terminate)
@@ -386,9 +383,105 @@ If you removed all PVCs and all LINSTOR pods have terminated, you can uninstall 
 helm uninstall linstor-op
 ----
 +
-NOTE: Due to the Helm's current policy, the Custom Resource Definitions named linstorcontrollerset and linstornodeset will not be deleted by the command.
+NOTE: Due to the Helm's current policy, the Custom Resource Definitions named LinstorController and LinstorSatelliteSet will not be deleted by the command.
 More information regarding Helm's current position on CRD's can be found
 https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-1-let-helm-do-it-for-you[here].
+
+[[s-kubernetes-upgrades]]
+==== Upgrades from older deployments
+
+If you are already running a previous version (before v1.0.0) of `linstor-operator`, you
+need to follow the https://github.com/piraeusdatastore/piraeus-operator/blob/master/UPGRADE.md#upgrade-to-v1.0[upstream guide].
+We tried to stay compatible and lower the burden of upgrading as much as possible, but some
+manual steps may still be required.
+
+[[s-kubernetes-advanced-deployments]]
+==== Advanced deployment options
+
+The helm charts provide a set of further customization options for advanced use cases.
+
+[source,yaml]
+----
+global:
+  imagePullPolicy: IfNotPresent # empty pull policy means k8s default is used ("always" if tag == ":latest", "ifnotpresent" else) <1>
+# Dependency charts
+etcd:
+  persistentVolume:
+    enabled: true
+    storage: 1Gi
+  replicas: 1 # How many instances of etcd will be added to the initial cluster. <2>
+  resources: {} # resource requirements for etcd containers <3>
+  image:
+    repository: gcr.io/etcd-development/etcd
+    tag: v3.4.9
+csi-snapshotter:
+  enabled: true # <- enable to add k8s snapshotting CRDs and controller. Needed for CSI snapshotting
+  image: quay.io/k8scsi/snapshot-controller:v2.1.0
+  replicas: 1 <2>
+  resources: {} # resource requirements for the cluster snapshot controller. <3>
+stork:
+  enabled: true
+  storkImage: docker.io/linbit/stork:latest
+  schedulerImage: gcr.io/google_containers/kube-scheduler-amd64
+  replicas: 1 <2>
+  storkResources: {} # resources requirements for the stork plugin containers <3>
+  schedulerResources: {} # resource requirements for the kube-scheduler containers <3>
+csi:
+  enabled: true
+  pluginImage: "drbd.io/linstor-csi:v0.9.1"
+  csiAttacherImage: quay.io/k8scsi/csi-attacher:v2.2.0
+  csiNodeDriverRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
+  csiProvisionerImage: quay.io/k8scsi/csi-provisioner:v1.6.0
+  csiSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v2.1.0
+  csiResizerImage: quay.io/k8scsi/csi-resizer:v0.5.0
+  controllerReplicas: 1 <2>
+  nodeAffinity: {} <4>
+  nodeTolerations: [] <4>
+  controllerAffinity: {} <4>
+  controllerTolerations: [] <4>
+  resources: {} <3>
+priorityClassName: ""
+drbdRepoCred: drbdiocred # <- Specify the kubernetes secret name here
+linstorHttpsControllerSecret: "" # <- name of secret containing linstor server certificates+key. See docs/security.md
+linstorHttpsClientSecret: "" # <- name of secret containing linstor client certificates+key. See docs/security.md
+operator:
+  replicas: 1 # <- number of replicas for the operator deployment <2>
+  image: "drbd.io/linstor-operator:v1.0.0-rc1"
+  resources: {} <3>
+  controller:
+    controllerImage: "drbd.io/linstor-controller:v1.7.3"
+    luksSecret: ""
+    dbCertSecret: ""
+    dbUseClientCert: false
+    sslSecret: ""
+    affinity: {} <4>
+    tolerations: [] <4>
+    resources: {} <3>
+  satelliteSet:
+    satelliteImage: "drbd.io/linstor-satellite:v1.7.3"
+    storagePools: null
+    sslSecret: ""
+    automaticStorageType: None
+    affinity: {} <4>
+    tolerations: [] <4>
+    resources: {} <3>
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.24"
+    kernelModuleInjectionMode: ShippedModules
+    kernelModuleInjectionResources: {} <3>
+----
+<1> Sets the pull policy for all images.
+<2> Controls the number of replicas for each component.
+<3> Set container resource requests and limits. See https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/[the kubernetes docs].
+Most containers need a minimal amount of resources, except for:
+* `etcd.resources` See the https://etcd.io/docs/v3.4.0/op-guide/hardware/[etcd docs]
+* `operator.controller.resources` Around `700MiB` memory is required
+* `operater.satelliteSet.resources` Around `700MiB` memory is required
+* `operator.satelliteSet.kernelModuleInjectionResources` If kernel modules are compiled, 1GiB of memory is required.
+<4> Affinity and toleration determine where pods are scheduled on the cluster. See the
+https://kubernetes.io/docs/concepts/scheduling-eviction/[kubernetes docs on affinity and toleration].
+This may be especially important for the `operator.satelliteSet` and `csi.node*` values. To schedule a pod using
+a LINSTOR persistent volume, the node requires a running LINSTOR satellite and LINSTOR CSI pod.
+
 
 [[s-kubernetes-deploy-piraeus-operator]]
 ==== Deploying with the Piraeus Operator
@@ -405,7 +498,7 @@ The Controller pod includes a LINSTOR Client, making it easy to interact directl
 For instance:
 
 ----
-kubectl exec linstor-op-cs-controller-0 -- linstor storage-pool list
+kubectl exec linstor-op-cs-controller-<deployment-info> -- linstor storage-pool list
 ----
 
 This should only be necessary for investigating problems and accessing advanced functionality.
@@ -421,17 +514,17 @@ that, you can skip this section.
 If you are integrating LINSTOR using a different method, you will need to install the LINSTOR CSI plugin.
 Instructions for deploying the CSI plugin can be found on the
 https://github.com/LINBIT/linstor-csi[project's github]. This will result in a
-linstor-csi-controller _StatefulSet_ and a linstor-csi-node _DaemonSet_ running in the
+linstor-csi-controller _Deployment_ and a linstor-csi-node _DaemonSet_ running in the
 kube-system namespace.
 
 ----
-NAME                       READY   STATUS    RESTARTS   AGE     IP              NODE
-linstor-csi-controller-0   5/5     Running   0          3h10m   191.168.1.200   kubelet-a
-linstor-csi-node-4fcnn     2/2     Running   0          3h10m   192.168.1.202   kubelet-c
-linstor-csi-node-f2dr7     2/2     Running   0          3h10m   192.168.1.203   kubelet-d
-linstor-csi-node-j66bc     2/2     Running   0          3h10m   192.168.1.201   kubelet-b
-linstor-csi-node-qb7fw     2/2     Running   0          3h10m   192.168.1.200   kubelet-a
-linstor-csi-node-zr75z     2/2     Running   0          3h10m   192.168.1.204   kubelet-e
+NAME                           READY   STATUS    RESTARTS   AGE     IP              NODE
+linstor-csi-controller-ab789   5/5     Running   0          3h10m   191.168.1.200   kubelet-a
+linstor-csi-node-4fcnn         2/2     Running   0          3h10m   192.168.1.202   kubelet-c
+linstor-csi-node-f2dr7         2/2     Running   0          3h10m   192.168.1.203   kubelet-d
+linstor-csi-node-j66bc         2/2     Running   0          3h10m   192.168.1.201   kubelet-b
+linstor-csi-node-qb7fw         2/2     Running   0          3h10m   192.168.1.200   kubelet-a
+linstor-csi-node-zr75z         2/2     Running   0          3h10m   192.168.1.204   kubelet-e
 ----
 
 [[s-kubernetes-basic-configuration-and-deployment]]
@@ -695,9 +788,8 @@ driver to give the Kubernetes scheduler hints about where to place a new pod
 so that it is optimally located for storage performance. You can learn more
 about the project on its https://portworx.com/stork-storage-orchestration-kubernetes/[GitHub page].
 
-We are currently working with the maintainers behind Stork to have a LINSTOR
-driver shipped with it by default. In the meantime, you can use a custom-built
-Stork container by LINBIT which includes a LINSTOR driver,
+The next Stork release will include the LINSTOR driver by default.
+In the meantime, you can use a custom-built Stork container by LINBIT which includes a LINSTOR driver,
 https://hub.docker.com/repository/docker/linbit/stork[available on Docker Hub]
 
 [[s-kubernetes-using-stork]]
