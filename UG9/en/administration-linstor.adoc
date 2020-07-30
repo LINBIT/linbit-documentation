@@ -1335,6 +1335,19 @@ This will create snapshots on all nodes where the resource is present.
 LINSTOR will ensure that consistent snapshots are taken even when the
 resource is in active use.
 
+Setting the resource-definition property `AutoSnapshot/RunEvery`
+LINSTOR will automatically create snapshots every X minute.
+The optional property `AutoSnapshot/Keep` can be used to clean-up old snapshots
+which were created automatically. No manually created snapshot will be cleaned-up / deleted.
+If `AutoSnapshot/Keep` is omitted (or <= 0), LINSTOR will keep the last 10 snapshots
+by default.
+
+----------------------------
+# linstor resource-definition set-property AutoSnapshot/RunEvery 15
+# linstor resource-definition set-property AutoSnapshot/Keep 5
+----------------------------
+
+
 [[s-restoring_a_snapshot-linstor]]
 ==== Restoring a snapshot
 The following steps restore a snapshot to a new resource.
@@ -1382,6 +1395,45 @@ An existing snapshot can be removed as follows:
 
 ----------------------------
 # linstor snapshot delete resource1 snap1
+----------------------------
+
+[[s-shipping_snapshots-linstor]]
+==== Shipping a snapshot
+
+Both, the source as well as the target node have to have the resource for
+snapshot shipping deployed. Additionally, the target resource has to be
+deactivated.
+
+----------------------------
+# linstor resource deactivate nodeTarget resource1
+----------------------------
+
+WARNING: Deactivating a resource with DRBD in its layer-list can NOT be
+reactivated again. However, a successfully shipped snapshot of a DRBD resource
+can still be <<s-restoring_a_snapshot-linstor,restored into a new resource>>.
+
+To manually start the snapshot-shipping, use:
+
+----------------------------
+# linstor snapshot ship --from-node nodeSource --to-node nodeTarget --resource resource1
+----------------------------
+
+A resource can also be periodically shipped by setting the mandatory properties
+`SnapshotShipping/TargetNode` as well as `SnapshotShipping/RunEvery` on the
+resource-definition.
+`SnapshotShipping/SourceNode` can also be set, but if omitted LINSTOR will choose
+an active resource of the same resource-definition.
+
+To allow incremental snapshot-shipping, LINSTOR has to keep at least the last shipped
+snapshot on the target node. The property `SnapshotShipping/Keep` can be used to specify
+how many snapshots LINSTOR should keep. If the property is not set (or <= 0) LINSTOR
+will keep the last 10 shipped snapshots by default.
+
+----------------------------
+# linstor resource-definition set-property resource1 SnapshotShipping/TargetNode nodeTarget
+# linstor resource-definition set-property resource1 SnapshotShipping/SourceNode nodeSource
+# linstor resource-definition set-property resource1 SnapshotShipping/RunEvery 15
+# linstor resource-definition set-property resource1 SnapshotShipping/Keep 5
 ----------------------------
 
 [[s-linstor-setupopts]]
