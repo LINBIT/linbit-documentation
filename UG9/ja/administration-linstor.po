@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-07-11 07:02+0900\n"
+"POT-Creation-Date: 2020-08-14 14:13+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2074,17 +2074,19 @@ msgstr "次の表は、どのレイヤーの後にどの子レイヤーが続く
 msgid ""
 "| Layer | Child layer\n"
 "\n"
-"| DRBD | WRITECACHE, NVME, LUKS, STORAGE\n"
-"| WRITECACHE | NVME, LUKS, STORAGE\n"
-"| NVME | WRITACACHE, LUKS, STORAGE\n"
+"| DRBD | CACHE, WRITECACHE, NVME, LUKS, STORAGE\n"
+"| CACHE | WRITECACHE, NVME, LUKS, STORAGE\n"
+"| WRITECACHE | CACHE, NVME, LUKS, STORAGE\n"
+"| NVME | CACHE, WRITECACHE, LUKS, STORAGE\n"
 "| LUKS | STORAGE\n"
 "| STORAGE | -\n"
 msgstr ""
 "| Layer | Child layer\n"
 "\n"
-"| DRBD | WRITECACHE, NVME, LUKS, STORAGE\n"
-"| WRITECACHE | NVME, LUKS, STORAGE\n"
-"| NVME | WRITACACHE, LUKS, STORAGE\n"
+"| DRBD | CACHE, WRITECACHE, NVME, LUKS, STORAGE\n"
+"| CACHE | WRITECACHE, NVME, LUKS, STORAGE\n"
+"| WRITECACHE | CACHE, NVME, LUKS, STORAGE\n"
+"| NVME | CACHE, WRITECACHE, LUKS, STORAGE\n"
 "| LUKS | STORAGE\n"
 "| STORAGE | -\n"
 
@@ -2558,8 +2560,8 @@ msgstr ""
 "例で設定されている2つのプロパティは必須ですが、コントローラレベルで設定するこ"
 "ともできます。これは、 `--layer-list` に `WRITECACHE` が含まれるすべてのリ"
 "ソースのデフォルトとして機能します。ただし、 `Writecache/PoolName` は対応する"
-"ノードを指すことに注意してください。ノードに `pmempool` という名前のストレー"
-"ジプールがない場合は、エラーメッセージが表示されます。"
+"ノードに依存することに注意してください。ノードに `pmempool` という名前のスト"
+"レージプールがない場合は、エラーメッセージが表示されます。"
 
 #. type: Plain text
 msgid ""
@@ -2585,7 +2587,73 @@ msgid ""
 msgstr ""
 "外部メタデータを使用するようにDRBDを設定しているときに `--layer-list DRBD、"
 "WRITECACHE、STORAGE` を使用すると、外部メタデータを保持するデバイスではなく、"
-"バッキングデバイスのみが書き込みキャッシュを使用します。"
+"下位デバイスのみが書き込みキャッシュを使用します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Cache Layer"
+msgstr "キャッシュレイヤー"
+
+#. type: Plain text
+msgid ""
+"LINSTOR can also setup a https://www.kernel.org/doc/html/latest/admin-guide/"
+"device-mapper/cache.html[DM-Cache] device, which is very similar to the DM-"
+"Writecache from the previous section. The major difference is that a cache "
+"device is composed by three devices: one storage device, one cache device "
+"and one meta device. The LINSTOR properties are quite similar to those of "
+"the writecache but are located in the `Cache` namespace:"
+msgstr ""
+"LINSTOR は https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/"
+"cache.html[DM-Cache] デバイスをセットアップすることもできます。これは前のセク"
+"ションの DM-Writecache によく似ています。主な違いは、キャッシュデバイスが 3 "
+"つのデバイスで構成されていることです。1 つのストレージデバイス、1 つのキャッ"
+"シュデバイス、1 つのメタデバイスです。LINSTOR プロパティは書き込みキャッシュ"
+"のプロパティと非常に似ていますが、`Cache` 名前空間にあります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor volume-definition set-property r1 0 Cache/CachePool pmempool\n"
+"# linstor volume-definition set-property r1 0 Cache/Size 1%\n"
+msgstr ""
+"# linstor volume-definition set-property r1 0 Cache/CachePool pmempool\n"
+"# linstor volume-definition set-property r1 0 Cache/Size 1%\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor resource create node1 r1 --storage-pool lvmpool --layer-list CACHE,STORAGE\n"
+msgstr "# linstor resource create node1 r1 --storage-pool lvmpool --layer-list CACHE,STORAGE\n"
+
+#. type: Plain text
+msgid ""
+"Instead of `Writecache/PoolName` (as when configuring the Writecache layer) "
+"the Cache layer's only required property is called `Cache/CachePool`. The "
+"reason for this is that the Cache layer also has a `Cache/MetaPool` which "
+"can be configured separately or it defaults to the value of `Cache/"
+"CachePool`."
+msgstr ""
+"Writecache レイヤーを構成する `Writecache/PoolName` と異なり、Cache レイヤー"
+"の唯一の必須プロパティは `Cache/CachePool` です。これは、Cache レイヤーの "
+"`Cache/MetaPool` は個別に設定するか、またはデフォルトで `Cache/CachePool` の"
+"値を設定するからです。"
+
+#. type: Plain text
+msgid ""
+"Please see `linstor controller set-property --help` for a list of `Cache/*` "
+"property-keys and default values for omitted properties."
+msgstr ""
+"`Cache/*` プロパティと省略されたプロパティのデフォルト値のリストについては "
+"`linstor controller set-property --help` を参照してください。"
+
+#. type: Plain text
+msgid ""
+"Using `--layer-list DRBD,CACHE,STORAGE` while having DRBD configured to use "
+"external metadata, only the backing device will use a cache, not the device "
+"holding the external metadata."
+msgstr ""
+"外部メタデータを使用するようにDRBDを設定しているときに `--layer-list DRBD,"
+"CACHE,STORAGE` を使用すると、外部メタデータを保持するデバイスではなく、下位デ"
+"バイスのみがキャッシュを使用します。"
 
 #. type: Title ===
 #, no-wrap
@@ -2955,6 +3023,31 @@ msgstr ""
 "これはリソースが存在するすべてのノードでスナップショットを作成します。LINSTOR"
 "はリソースが使用中でも一貫性のあるスナップショットが取れることを保証します。"
 
+#. type: Plain text
+msgid ""
+"Setting the resource-definition property `AutoSnapshot/RunEvery` LINSTOR "
+"will automatically create snapshots every X minute.  The optional property "
+"`AutoSnapshot/Keep` can be used to clean-up old snapshots which were created "
+"automatically. No manually created snapshot will be cleaned-up / deleted.  "
+"If `AutoSnapshot/Keep` is omitted (or <= 0), LINSTOR will keep the last 10 "
+"snapshots by default."
+msgstr ""
+"resource-definition プロパティ `AutoSnapshot/RunEvery` を設定すると LINSTOR "
+"は X 分ごとに自動的にスナップショットを作成します。オプションのプロパティ "
+"`AutoSnapshot/Keep` を使用して、自動的に作成された古いスナップショットをク"
+"リーンアップできます。手動で作成されたスナップショットはクリーンアップ/削除さ"
+"れません。 `AutoSnapshot/Keep` が省略されている（または 0 以下）の場合、"
+"LINSTOR はデフォルトで最新の10個のスナップショットを保持します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource-definition set-property AutoSnapshot/RunEvery 15\n"
+"# linstor resource-definition set-property AutoSnapshot/Keep 5\n"
+msgstr ""
+"# linstor resource-definition set-property AutoSnapshot/RunEvery 15\n"
+"# linstor resource-definition set-property AutoSnapshot/Keep 5\n"
+
 #. type: Title ====
 #, no-wrap
 msgid "Restoring a snapshot"
@@ -3053,6 +3146,85 @@ msgstr "スナップショットの削除は以下のコマンドで行います
 #, no-wrap
 msgid "# linstor snapshot delete resource1 snap1\n"
 msgstr "# linstor snapshot delete resource1 snap1\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Shipping a snapshot"
+msgstr "スナップショットの転送"
+
+#. type: Plain text
+msgid ""
+"Both, the source as well as the target node have to have the resource for "
+"snapshot shipping deployed. Additionally, the target resource has to be "
+"deactivated."
+msgstr ""
+"ソースノードとターゲットノードの両方に、デプロイされたスナップショット転送の"
+"リソースをもつ必要があります。さらに、ターゲットリソースを非アクティブ化する"
+"必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor resource deactivate nodeTarget resource1\n"
+msgstr "# linstor resource deactivate nodeTarget resource1\n"
+
+#. type: Plain text
+msgid ""
+"Deactivating a resource with DRBD in its layer-list can NOT be reactivated "
+"again. However, a successfully shipped snapshot of a DRBD resource can still "
+"be <<s-restoring_a_snapshot-linstor,restored into a new resource>>."
+msgstr ""
+"レイヤーリストに DRBD があるリソースを非アクティブ化すると、再びアクティブ化"
+"することはできません。ただし、DRBD リソースの正常に転送されたスナップショット"
+"は <<s-restoring_a_snapshot-linstor,新しいリソースで復元>> できます。"
+
+#. type: Plain text
+msgid "To manually start the snapshot-shipping, use:"
+msgstr "スナップショット転送を手動で開始するには、次を使用します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor snapshot ship --from-node nodeSource --to-node nodeTarget --resource resource1\n"
+msgstr "# linstor snapshot ship --from-node nodeSource --to-node nodeTarget --resource resource1\n"
+
+#. type: Plain text
+msgid ""
+"A resource can also be periodically shipped by setting the mandatory "
+"properties `SnapshotShipping/TargetNode` as well as `SnapshotShipping/"
+"RunEvery` on the resource-definition.  `SnapshotShipping/SourceNode` can "
+"also be set, but if omitted LINSTOR will choose an active resource of the "
+"same resource-definition."
+msgstr ""
+"リソース定義で必須のプロパティ `SnapshotShipping/TargetNode` および "
+"`SnapshotShipping/RunEvery` を設定することにより、リソースを定期的に転送する"
+"こともできます。 `SnapshotShipping/SourceNode` も設定できますが、省略した場"
+"合、LINSTOR は同じリソース定義のアクティブなリソースを選択します。"
+
+#. type: Plain text
+msgid ""
+"To allow incremental snapshot-shipping, LINSTOR has to keep at least the "
+"last shipped snapshot on the target node. The property `SnapshotShipping/"
+"Keep` can be used to specify how many snapshots LINSTOR should keep. If the "
+"property is not set (or <= 0) LINSTOR will keep the last 10 shipped "
+"snapshots by default."
+msgstr ""
+"増分スナップショット転送を可能にするには、LINSTOR は少なくとも最後に転送され"
+"たスナップショットをターゲットノードに保持する必要があります。プロパティ "
+"`SnapshotShipping/Keep` は、LINSTOR が保持する必要があるスナップショットの数"
+"を指定するために使用できます。プロパティが設定されていない（または 0 以下）の"
+"場合、LINSTOR はデフォルトで最新の10個のスナップショットを保持します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource-definition set-property resource1 SnapshotShipping/TargetNode nodeTarget\n"
+"# linstor resource-definition set-property resource1 SnapshotShipping/SourceNode nodeSource\n"
+"# linstor resource-definition set-property resource1 SnapshotShipping/RunEvery 15\n"
+"# linstor resource-definition set-property resource1 SnapshotShipping/Keep 5\n"
+msgstr ""
+"# linstor resource-definition set-property resource1 SnapshotShipping/TargetNode nodeTarget\n"
+"# linstor resource-definition set-property resource1 SnapshotShipping/SourceNode nodeSource\n"
+"# linstor resource-definition set-property resource1 SnapshotShipping/RunEvery 15\n"
+"# linstor resource-definition set-property resource1 SnapshotShipping/Keep 5\n"
 
 #. type: Title ===
 #, no-wrap
