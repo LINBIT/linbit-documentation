@@ -2043,8 +2043,15 @@ LINSTOR is able to set the following Sysfs settings:
 
 If a LINSTOR volume is composed of multiple "stacked" volume (for example DRBD with external
 metadata will have 3 devices: backing (storage) device, metadata device and the resulting
-DRBD device), setting a `sys/fs/\*` property for a Volume, **all** affected devices will
-receive the corresponding `/sys/fs/cgroup/...` setting
+DRBD device), setting a `sys/fs/\*` property for a Volume, only the bottom-most local
+"data"-device will receive the corresponding `/sys/fs/cgroup/...` setting.
+That means, in case of the example above only the backing device will receive the setting.
+In case a resource-definition has an nvme-target as well as an nvme-initiator resource,
+both bottom-most devices of each node will receive the setting. In case of the target the
+bottom-most device will be the volume of LVM or ZFS, whereas in case of the initiator the
+bottom-most device will be the connected nvme-device, regardless which other layers
+are stacked ontop of that.
+
 
 [[s-linstor-getting-help]]
 === Getting help
