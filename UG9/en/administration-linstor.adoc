@@ -777,12 +777,35 @@ NOTE: To keep the behaviour of the autoplacer similar to the old one (due to
 compatibility), all strategies have a default-weight of 0, except the `MaxFreeSpace`
 which has a weight of 1.
 
+NOTE: Neither 0 nor a negative score will prevent a storage pool from getting
+selected, just making them to be considered later.
+
 Finally LINSTOR tries to find the best matching group of storage pools meeting
 all requirements. This step also considers other autoplacement restrictions
 as `--replicas-on-same`, `--replicas-on-different` and others.
 
-NOTE: Neither 0 nor a negative score will prevent a storage pool from getting
-selected, just making them to be considered later.
+These two arguments, `--replicas-on-same` and `--replicas-on-different` expect the
+name of a property within the `Aux/` namespace. The following example shows that the
+client automatically prefixes the `testProperty` with the `Aux/` namespace.
+
+----
+linstor resource-group create testRscGrp --replicas-on-same testProperty
+SUCCESS:
+Description:
+    New resource group 'testRscGrp' created.
+Details:
+    Resource group 'testRscGrp' UUID is: 35e043cb-65ab-49ac-9920-ccbf48f7e27d
+
+linstor resource-group list
++-----------------------------------------------------------------------------+
+| ResourceGroup | SelectFilter                         | VlmNrs | Description |
+|=============================================================================|
+| DfltRscGrp    | PlaceCount: 2                        |        |             |
+|-----------------------------------------------------------------------------|
+| testRscGrp    | PlaceCount: 2                        |        |             |
+|               | ReplicasOnSame: ['Aux/testProperty'] |        |             |
++-----------------------------------------------------------------------------+
+----
 
 NOTE: If everything went right the DRBD-resource has now been created by LINSTOR.
 This can be checked by looking for the DRBD block device with the `lsblk`
