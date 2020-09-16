@@ -14,7 +14,7 @@ OUTDIRHTMLIMAGES=$(OUTDIRHTML)/images
 OUTDIRPDFFINAL=$(OUTDIRPDF)-finalize
 OUTDIRHTMLFINAL=$(OUTDIRHTML)-finalize
 IMGDIR=../../images
-FONTDIR=../../linbit-fonts
+FONTDIR ?= ../../linbit-fonts
 OUTHTML_UG=$(addsuffix .html,$(basename $(IN_UG)))
 OUTHTML_LS=$(addsuffix .html,$(basename $(IN_LS)))
 OUTHTML_UG_WEBDEVS=drbd-users-guide-without-css.html
@@ -78,14 +78,14 @@ html-finalize: html
 	ln -s $(IMGDIR)
 
 $(OUTDIRPDF)/$(OUTPDF_UG): $(SRC) $(SVGSUSED)
-	if [ -d $(FONTDIR) ] && [ "$(lang)" != "ja" ] && [ "$(lang)" != "cn" ]; then \
-		INTERN="-a pdf-style=../../stylesheets/pdf-style.yml -a pdf-fontsdir=$(FONTDIR)"; else \
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ]; then \
+		INTERN="-a pdf-style=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
 	asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN -o $@ $(IN_UG)
 
 $(OUTDIRPDF)/$(OUTPDF_LS): $(SRC) $(SVGSUSED)
-	if [ -d $(FONTDIR) ] && [ "$(lang)" != "ja" ] && [ "$(lang)" != "cn" ]; then \
-		INTERN="-a pdf-style=../../stylesheets/pdf-style.yml -a pdf-fontsdir=$(FONTDIR)"; else \
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ]; then \
+		INTERN="-a pdf-style=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
 		if test -f $(IN_LS); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN -o $@ $(IN_LS); fi
 

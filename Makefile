@@ -21,10 +21,11 @@ MAINTAINER Roland Kammerer <roland.kammerer@linbit.com>
 ADD /GNUmakefile /linbit-documentation/GNUmakefile
 RUN groupadd --gid $(shell id -g) makedoc
 RUN useradd -m -u $(shell id -u) -g $(shell id -g) makedoc
-RUN apt-get update && apt-get install -y make inkscape ruby po4a patch openssh-client lftp
+RUN apt-get update && apt-get install -y make inkscape ruby po4a patch openssh-client lftp curl unzip
 RUN gem install --pre asciidoctor-pdf
 RUN gem install --pre asciidoctor-pdf-cjk
 RUN gem install asciidoctor-pdf-cjk-kai_gen_gothic && asciidoctor-pdf-cjk-kai_gen_gothic-install
+RUN curl https://packages.linbit.com/public/genshingothic-20150607.zip > /tmp/ja.zip && (mkdir /linbit-documentation/genshingothic-fonts && cd /linbit-documentation/genshingothic-fonts && unzip /tmp/ja.zip); rm /tmp/ja.zip
 USER makedoc
 RUN mkdir /home/makedoc/.ssh && chmod 700 /home/makedoc/.ssh && ssh-keygen -f /home/makedoc/.ssh/id_rsa -t rsa -N '' && cat /home/makedoc/.ssh/id_rsa.pub
 endef
@@ -36,7 +37,7 @@ Dockerfile:
 .PHONY: dockerimage
 dockerimage: Dockerfile
 	if ! docker images --format={{.Repository}}:{{.Tag}} | grep -q 'linbit-documentation:latest'; then \
-		touch GNUmakefile ; \
+		test -f GNUmakefile || echo 'include Makefile' > GNUmakefile ; \
 		docker build -t linbit-documentation . ; \
 	fi
 
