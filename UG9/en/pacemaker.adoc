@@ -7,13 +7,16 @@ cluster stack is arguably DRBD's most frequently found use
 case. Pacemaker is also one of the applications that make DRBD
 extremely powerful in a wide variety of usage scenarios.
 
-DRBD can be used in Pacemaker clusters in two ways:
+DRBD can be used in Pacemaker clusters in different ways:
+
 * DRBD running as a background-service, used like a SAN; or
-* DRBD completely managed by Pacemaker.
+* DRBD completely managed by Pacemaker via the DRBD OCF resource agent
 
 Both have a few advantages and disadvantages, these will be discussed below.
 
-NOTE: It's recommended to have some fencing configured.
+NOTE: It's recommended to have either fencing configured or quorum enabled.
+(But not both. External fencing handler results may interact in conflicting ways
+with DRBD internal quorum.)
 If your cluster has communication issues (eg. network switch loses
 power) and gets split, the parts might start the services (failover)
 and cause a *Split-Brain* when the communication resumes again.
@@ -84,6 +87,8 @@ example) where the DRBD resource gets mounted.
 As long as Pacemaker has control, it will only allow a single instance
 of that mount across your cluster.
 
+See also <<s-pacemaker-drbd-attr>> for additional information on ordering
+constraints for system startup and more.
 
 [[s-pacemaker-crm-drbd-backed-service]]
 === Adding a DRBD-backed service to the cluster configuration, including a master-slave resource
@@ -153,6 +158,9 @@ bye
 After this, your configuration should be enabled. Pacemaker now
 selects a node on which it promotes the DRBD resource, and then starts
 the DRBD-backed resource group on that same node.
+
+See also <<s-pacemaker-drbd-attr>> for additional information on
+location contraints for placing the Master role.
 
 [[s-pacemaker-fencing]]
 === Using resource-level fencing in Pacemaker clusters
@@ -735,5 +743,70 @@ backup site. In such an event:
 * When the original site is restored or rebuilt, you may connect the
   DRBD resources again, and subsequently fail back using the reverse
   procedure.
+
+[[s-pacemaker-drbd-attr]]
+=== Importing DRBD's promotion scores into the CIB
+
+IMPORTANT: Everything described in this section depends on the `drbd-attr`
+OCF resource agent.  It is available since drbd-utils version 9.15.0. On
+Debian/Ubuntu systems this is part of the `drbd-utils` package. On RPM
+based Linux distributions you need to install the `drbd-pacemaker` package.
+
+Every DRBD resource exposes a _promotion score_ on each node where it is
+configured. It is a numeric value that might be 0 or positive. The value
+reflects how desirable it is to promote the resource to master on this
+particular node. A node that has an _UpToDate_ disk and two _UpToDate_
+replicas has a higher score than a node with an _UpToDate_ disk and
+just one _UpToDate_ replica.
+
+During startup, the _promotion score_ is 0.  E.g., before the DRBD device has
+its backing device attached, or, if quorum is enabled, before quorum is
+gained.  A value of 0 indicates that a promotion request will fail,
+and is mapped to a pacemaker score that indicates _must not run here_.
+
+The `drbd-attr` OCF resource agent imports these promotion scores into node
+attributes of a Pacemaker cluster. It needs to be configured like this:
+
+[source,drbd]
+----------------------------
+primitive drbd-attr ocf:linbit:drbd-attr
+clone drbd-attr-clone drbd-attr
+----------------------------
+
+These are _transient_ attributes (have a _lifetime_ of _reboot_ in pacemaker speak). That means, after
+a _reboot_ of the node, or local restart of pacemaker, those attributes will not exist until an instance of `drbd-attr`
+is started on that node.
+
+You can inspect the generated attributes with `crm_mon -A -1`.
+
+These attributed can be used in constraints for services that depend on the
+DRBD devices, or, when managing DRBD with the `ocf:linbit:drbd` resource agent,
+for the _Master_ role of that DRBD instance.
+
+Here is an example location constraint for the example resource from <<s-pacemaker-drbd-background>>
+[source,drbd]
+----------------------------
+location lo_fs_mysql fs_mysql \
+        rule -inf: not_defined drbd-promotion-score-mysql \
+        rule drbd-promotion-score-mysql: defined drbd-promotion-score-mysql
+----------------------------
+This means, that as long as the attribute is not defined, the fs_mysql file
+system cannot be mounted here. When the attribute is defined, its value
+becomes the score of the location constraint.
+
+This can also be used to cause Pacemaker to migrate a service away when
+DRBD loses a local backing device. Because a failed backing block device
+causes the promotion score to drop, other nodes with working backing devices
+will expose higher promotion scores.
+
+The attributes are updated live, independent of the resource-agent's
+monitor operation, with a dampening delay of 5 seconds by default.
+
+The resource agent has these optional parameters,
+see also its man page `ocf_linbit_drbd-attr(7)`:
+
+ * `dampening_delay`
+ * `attr_name_prefix`
+ * `record_event_details`
 
 // Keep the empty line before this comment, otherwise the next chapter is folded into this
