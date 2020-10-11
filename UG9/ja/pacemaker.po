@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-02-07 11:55+0900\n"
+"POT-Creation-Date: 2020-10-11 10:46+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,16 +33,18 @@ msgstr ""
 "非常に強力なものにするアプリケーションの１つです。"
 
 #. type: Plain text
-msgid "DRBD can be used in Pacemaker clusters in two ways:"
-msgstr "DRBDはPacemakerクラスタで2つの使用法があります。"
+msgid "DRBD can be used in Pacemaker clusters in different ways:"
+msgstr "DRBD は Pacemaker クラスタでさまざまな方法で使用できます。"
 
 #. type: Plain text
 msgid "DRBD running as a background-service, used like a SAN; or"
 msgstr "DRBDをSANのようにバックグラウンドのサービスとして使用する、または"
 
 #. type: Plain text
-msgid "DRBD completely managed by Pacemaker."
-msgstr "DRBDをPacemakerで完全に制御する"
+msgid "DRBD completely managed by Pacemaker via the DRBD OCF resource agent"
+msgstr ""
+"DRBD は DRBD OCF リソースエージェントを介して Pacemaker によって完全に管理さ"
+"れます。"
 
 #. type: Plain text
 msgid ""
@@ -51,14 +53,18 @@ msgstr "それぞれの長所と短所は後で考察します。"
 
 #. type: Plain text
 msgid ""
-"It's recommended to have some fencing configured.  If your cluster has "
-"communication issues (eg. network switch loses power) and gets split, the "
-"parts might start the services (failover)  and cause a *Split-Brain* when "
-"the communication resumes again."
+"It's recommended to have either fencing configured or quorum enabled.  (But "
+"not both. External fencing handler results may interact in conflicting ways "
+"with DRBD internal quorum.)  If your cluster has communication issues (eg. "
+"network switch loses power) and gets split, the parts might start the "
+"services (failover)  and cause a *Split-Brain* when the communication "
+"resumes again."
 msgstr ""
-"フェンシング設定を行うことを推奨します。 クラスタ間の接続が途切れてノードが互"
-"いを見失うと、両ノードでサービスが開始し(フェイルオーバー)、通信が復帰したタ"
-"イミングで *スプリットブレイン* が発生する事になります。"
+"フェンシングを構成するか、またはクォーラムを有効にすることをお勧めします（た"
+"だし、両方ではありません。外部フェンシングハンドラーの結果は、DRBD 内部クォー"
+"ラムと競合し相互作用する可能性があります）。クラスタ間の接続が途切れてノード"
+"が互いを見失うと、両ノードでサービスが開始し(フェイルオーバー)、通信が復帰し"
+"たタイミングで *スプリットブレイン* が発生する事になります。"
 
 #. type: Title ===
 #, no-wrap
@@ -196,6 +202,14 @@ msgid ""
 "that mount across your cluster."
 msgstr "Pacemaker管理下ではクラスタ内で1インスタンスのみがマウント出来ます。"
 
+#. type: Plain text
+msgid ""
+"See also <<s-pacemaker-drbd-attr>> for additional information on ordering "
+"constraints for system startup and more."
+msgstr ""
+"システム起動などの順序の制約に関する追加情報は <<s-pacemaker-drbd-attr>> も参"
+"照ください。"
+
 #. type: Title ===
 #, no-wrap
 msgid "Adding a DRBD-backed service to the cluster configuration, including a master-slave resource"
@@ -331,6 +345,14 @@ msgid ""
 msgstr ""
 "これで設定が有効になります。そしてPacemakerがDRBDリソースを昇格するノードを選"
 "び、そのノードでDRBDを下位デバイスにするリソースを起動します。"
+
+#. type: Plain text
+msgid ""
+"See also <<s-pacemaker-drbd-attr>> for additional information on location "
+"contraints for placing the Master role."
+msgstr ""
+"Master role を配置するための location 制約に関する追加情報は <<s-pacemaker-"
+"drbd-attr>> も参照ください。"
 
 #. type: Title ===
 #, no-wrap
@@ -1521,3 +1543,160 @@ msgid ""
 msgstr ""
 "元の拠点が回復または再構成されると、DRBDリソースに再度接続できるようになりま"
 "す。その後、逆の手順でフェイルバックします。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Importing DRBD's promotion scores into the CIB"
+msgstr "DRBD のプロモーションスコアを CIB にインポートする"
+
+#. type: Plain text
+msgid ""
+"Everything described in this section depends on the `drbd-attr` OCF resource "
+"agent.  It is available since drbd-utils version 9.15.0. On Debian/Ubuntu "
+"systems this is part of the `drbd-utils` package. On RPM based Linux "
+"distributions you need to install the `drbd-pacemaker` package."
+msgstr ""
+"このセクションで説明するものはすべて `drbd-attr` OCF リソースエージェントに依"
+"存します。drbd-utils バージョン 9.15.0 以降で使用できます。Debian/Ubuntu シス"
+"テムでは、これは `drbd-utils` パッケージの一部です。 RPM ベースの Linux ディ"
+"ストリビューションでは `drbd-pacemaker` パッケージをインストールする必要があ"
+"ります。"
+
+#. type: Plain text
+msgid ""
+"Every DRBD resource exposes a _promotion score_ on each node where it is "
+"configured. It is a numeric value that might be 0 or positive. The value "
+"reflects how desirable it is to promote the resource to master on this "
+"particular node. A node that has an _UpToDate_ disk and two _UpToDate_ "
+"replicas has a higher score than a node with an _UpToDate_ disk and just one "
+"_UpToDate_ replica."
+msgstr ""
+"すべての DRBD リソースは、それが構成されている各ノードでプロモーションスコア"
+"を公開します。これは 0 または正の数値です。この値は、このノードでリソースをマ"
+"スターに昇格させることがどれほど望ましいかを示します。 _UpToDate_ ディスクと "
+"2 つの _UpToDate_ レプリカを持つノードは _UpToDate_ ディスクと 1 つの "
+"_UpToDate_ レプリカを持つノードよりもスコアが高くなります。"
+
+#. type: Plain text
+msgid ""
+"During startup, the _promotion score_ is 0.  E.g., before the DRBD device "
+"has its backing device attached, or, if quorum is enabled, before quorum is "
+"gained.  A value of 0 indicates that a promotion request will fail, and is "
+"mapped to a pacemaker score that indicates _must not run here_."
+msgstr ""
+"たとえば DRBD デバイスに下位デバイスが接続される前、または、クォーラムが有効"
+"になっている場合は、クォーラムが取得される前はプロモーションスコアは 0 です。"
+"値 0 は、プロモーションリクエストが失敗することを意味し、ここで実行してはなら"
+"ないことを pacemaker に指示します。"
+
+#. type: Plain text
+msgid ""
+"The `drbd-attr` OCF resource agent imports these promotion scores into node "
+"attributes of a Pacemaker cluster. It needs to be configured like this:"
+msgstr ""
+"`drbd-attr` OCF リソースエージェントは、これらのプロモーションスコアを "
+"Pacemaker クラスターのノード属性にインポートします。次のようにして構成しま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"primitive drbd-attr ocf:linbit:drbd-attr\n"
+"clone drbd-attr-clone drbd-attr\n"
+msgstr ""
+"primitive drbd-attr ocf:linbit:drbd-attr\n"
+"clone drbd-attr-clone drbd-attr\n"
+
+#. type: Plain text
+msgid ""
+"These are _transient_ attributes (have a _lifetime_ of _reboot_ in pacemaker "
+"speak). That means, after a _reboot_ of the node, or local restart of "
+"pacemaker, those attributes will not exist until an instance of `drbd-attr` "
+"is started on that node."
+msgstr ""
+"これらは一時的な属性です（再起動時に定義される）。つまり、ノードの再起動後、"
+"または pacemaker のローカル再起動後、これらの属性はそのノードで `drbd-attr` "
+"のインスタンスが開始されるまで存在しません。"
+
+#. type: Plain text
+msgid "You can inspect the generated attributes with `crm_mon -A -1`."
+msgstr "生成された属性は `crm_mon -A-1` で確認できます。"
+
+#. type: Plain text
+msgid ""
+"These attributed can be used in constraints for services that depend on the "
+"DRBD devices, or, when managing DRBD with the `ocf:linbit:drbd` resource "
+"agent, for the _Master_ role of that DRBD instance."
+msgstr ""
+"これらの属性は、DRBD デバイスに依存するサービスの制約で使用できます。また "
+"`ocf:linbit:drbd` リソースエージェントで DRBD を管理する場合は、その DRBD イ"
+"ンスタンスの _Master_ ロールでも使用できます。"
+
+#. type: Plain text
+msgid ""
+"Here is an example location constraint for the example resource from <<s-"
+"pacemaker-drbd-background>>"
+msgstr ""
+"以下は、<<s-pacemaker-drbd-background>> のサンプルリソースのロケーション制約"
+"の例です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"location lo_fs_mysql fs_mysql \\\n"
+"        rule -inf: not_defined drbd-promotion-score-mysql \\\n"
+"        rule drbd-promotion-score-mysql: defined drbd-promotion-score-mysql\n"
+msgstr ""
+"location lo_fs_mysql fs_mysql \\\n"
+"        rule -inf: not_defined drbd-promotion-score-mysql \\\n"
+"        rule drbd-promotion-score-mysql: defined drbd-promotion-score-mysql\n"
+
+#. type: Plain text
+msgid ""
+"This means, that as long as the attribute is not defined, the fs_mysql file "
+"system cannot be mounted here. When the attribute is defined, its value "
+"becomes the score of the location constraint."
+msgstr ""
+"これは、属性が定義されていない限り、fs_mysql ファイルシステムをここにマウント"
+"できないことを意味します。属性が定義されると、その値がロケーション制約のスコ"
+"アになります。"
+
+#. type: Plain text
+msgid ""
+"This can also be used to cause Pacemaker to migrate a service away when DRBD "
+"loses a local backing device. Because a failed backing block device causes "
+"the promotion score to drop, other nodes with working backing devices will "
+"expose higher promotion scores."
+msgstr ""
+"これは、DRBD がローカルの下位デバイスを失ったときに Pacemaker にサービスを移"
+"行させるためにも使用できます。下位ブロックデバイスに障害が発生するとプロモー"
+"ションスコアが低下するため、下位デバイスが機能している他のノードはより高いプ"
+"ロモーションスコアになります。"
+
+#. type: Plain text
+msgid ""
+"The attributes are updated live, independent of the resource-agent's monitor "
+"operation, with a dampening delay of 5 seconds by default."
+msgstr ""
+"属性は、リソースエージェントの監視操作とは関係なく、随時更新されます。デフォ"
+"ルトでは、5秒の減衰遅延があります。"
+
+#. type: Plain text
+msgid ""
+"The resource agent has these optional parameters, see also its man page "
+"`ocf_linbit_drbd-attr(7)`:"
+msgstr ""
+"リソースエージェントには、以下のオプションのパラメータもあります。詳細は "
+"`ocf_linbit_drbd-attr(7)` を参照ください。"
+
+#. type: Plain text
+msgid "`dampening_delay`"
+msgstr "`dampening_delay`"
+
+#. type: Plain text
+msgid "`attr_name_prefix`"
+msgstr "`attr_name_prefix`"
+
+#. type: Plain text
+msgid "`record_event_details`"
+msgstr "`record_event_details`"
