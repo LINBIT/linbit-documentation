@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-10-06 08:46+0900\n"
+"POT-Creation-Date: 2020-10-11 10:46+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1096,6 +1096,27 @@ msgid ""
 msgstr ""
 "ノードがコントローラでかつクラスタにストレージも供給する場合は、同様に"
 "linstor-satelliteを起動します。"
+
+#. type: Plain text
+msgid ""
+"If you want to have other services wait until the linstor-satellite had a "
+"chance to create the necessary devices (i.e. after a boot), you can update "
+"the corresponding .service file and change `Type=simple` to `Type=notify`."
+msgstr ""
+"linstor-satellite が必要なデバイスを作成する機会が得られるまで（ブート後な"
+"ど）他のサービスを待機させたい場合は、対応する .service ファイルを更新し、"
+"`Type=simple` を `Type=notify` に変更します。"
+
+#. type: Plain text
+msgid ""
+"This will cause the satellite to delay sending the `READY=1` message to "
+"systemd until the controller connects, sends all required data to the "
+"satellite and the satellite at least tried once to get the devices up and "
+"running."
+msgstr ""
+"これにより、サテライトはコントローラーが接続し、必要なすべてのデータをサテラ"
+"イトに送信し、サテライトがデバイスの起動と実行を少なくとも1回試行するまで、"
+"systemd への `READY=1` メッセージの送信を遅らせます。"
 
 #. type: Title ===
 #, no-wrap
@@ -2726,6 +2747,56 @@ msgstr ""
 "外部メタデータを使用するようにDRBDを設定しているときに `--layer-list DRBD,"
 "CACHE,STORAGE` を使用すると、外部メタデータを保持するデバイスではなく、下位デ"
 "バイスのみがキャッシュを使用します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Storage Layer"
+msgstr "ストレージレイヤー"
+
+#. type: Plain text
+msgid "For some storage providers LINSTOR has special properties:"
+msgstr ""
+"一部のストレージプロバイダー用に、LINSTOR には特別なプロパティがあります。"
+
+#. type: Plain text
+msgid ""
+"`StorDriver/LvcreateOptions`: The value of this property is appended to "
+"every `lvcreate ...` call LINSTOR executes."
+msgstr ""
+"`StorDriver/LvcreateOptions`: このプロパティの値は、LINSTOR が実行するすべて"
+"の `lvcreate ...` 呼び出しに追加されます。"
+
+#. type: Plain text
+msgid ""
+"`StorDriver/ZfscreateOptions`: The value of this property is appended to "
+"every `zfs create ...` call LINSTOR executes."
+msgstr ""
+"`StorDriver/ZfscreateOptions`: このプロパティの値は、LINSTOR が実行するすべて"
+"の `zfs create ...` 呼び出しに追加されます。"
+
+#. type: Plain text
+msgid ""
+"`StorDriver/WaitTimeoutAfterCreate`: If LINSTOR expects a device to appear "
+"after creation (for example after calls of `lvcreate`, `zfs create`,...), "
+"LINSTOR waits per default 500ms for the device to appear. These 500ms can be "
+"overridden by this property."
+msgstr ""
+"`StorDriver/WaitTimeoutAfterCreate`: LINSTOR が作成後にデバイスが表示されるこ"
+"とを期待している場合（たとえば `lvcreate`, `zfs create`,... の呼び出し後）、"
+"LINSTOR はデフォルトで 500ms ごとにデバイスが表示されるのを待ちます。これら"
+"の 500ms は、このプロパティによってオーバーライドできます。"
+
+#. type: Plain text
+msgid ""
+"`StorDriver/dm_stats`: If set to `true` LINSTOR calls `dmstats create "
+"$device` after creation and `dmstats delete $device --allregions` after "
+"deletion of a volume.  Currently only enabled for LVM and LVM_THIN storage "
+"providers."
+msgstr ""
+"`StorDriver/dm_stats`: `true` に設定すると、LINSTOR は作成後に `dmstats "
+"create $device` を呼び出し、ボリュームの削除後に `dmstats delete $device --"
+"allregions` を呼び出します。現在、LVM および LVM_THIN ストレージプロバイダー"
+"に対してのみ有効になっています。"
 
 #. type: Title ===
 #, no-wrap
@@ -4495,14 +4566,26 @@ msgid ""
 "If a LINSTOR volume is composed of multiple \"stacked\" volume (for example "
 "DRBD with external metadata will have 3 devices: backing (storage) device, "
 "metadata device and the resulting DRBD device), setting a `sys/fs/\\*` "
-"property for a Volume, **all** affected devices will receive the "
-"corresponding `/sys/fs/cgroup/...` setting"
+"property for a Volume, only the bottom-most local \"data\"-device will "
+"receive the corresponding `/sys/fs/cgroup/...` setting.  That means, in case "
+"of the example above only the backing device will receive the setting.  In "
+"case a resource-definition has an nvme-target as well as an nvme-initiator "
+"resource, both bottom-most devices of each node will receive the setting. In "
+"case of the target the bottom-most device will be the volume of LVM or ZFS, "
+"whereas in case of the initiator the bottom-most device will be the "
+"connected nvme-device, regardless which other layers are stacked ontop of "
+"that."
 msgstr ""
-"LINSTORボリュームが複数の \"スタック\" ボリュームで構成されている場合（たとえ"
-"ば、外部メタデータを持つDRBDには、バッキング（ストレージ）デバイス、メタデー"
-"タデバイス、結果のDRBDデバイスの3つのデバイスがあります）、 `sys/fs/*` ボ"
-"リュームのプロパティ、**すべて** 影響を受けるデバイスは、対応する `/sys/fs/"
-"cgroup/...` 設定を受け取ります。"
+"LINSTOR ボリュームが複数の \"stacked\" ボリュームで構成されている場合（たとえ"
+"ば、外部メタデータを持つ DRBD には、下位（ストレージ）デバイス、メタデータデ"
+"バイス、およびその DRBD デバイスの 3 つのデバイスがあります）、ボリュームの "
+"`sys/fs/\\*` プロパティを設定することは、最下部のローカル \"data\" デバイスの"
+"みが対応する `/sys/fs/cgroup/...` 設定を受け取ります。つまり、この例の場合、"
+"下位デバイスのみが設定を受け取ります。リソース定義が nvme-target および nvme-"
+"initiator リソースを持つ場合、各ノードの最下部のデバイスの両方が設定を受け取"
+"ります。ターゲットの場合、最下部のデバイスは LVM または ZFS のボリュームにな"
+"りますが、イニシエーターの場合、最下部のデバイスは接続された nvme デバイスに"
+"なります。その上に他のどのレイヤーがスタックされているかは関係ありません。"
 
 #. type: Title ===
 #, no-wrap
@@ -4592,6 +4675,57 @@ msgstr ""
 #, no-wrap
 msgid "# linstor gen-zsh-completer > /usr/share/zsh/functions/Completion/Linux/_linstor\n"
 msgstr "# linstor gen-zsh-completer > /usr/share/zsh/functions/Completion/Linux/_linstor\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "SOS-Report"
+msgstr "SOS レポート"
+
+#. type: Plain text
+msgid ""
+"If something goes wrong and you need help finding the cause of the issue, "
+"you can use"
+msgstr ""
+"何か問題が発生し、問題の原因を見つけるのに助けが必要な場合は、以下のコマンド"
+"使用します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor sos-report create\n"
+msgstr "# linstor sos-report create\n"
+
+#. type: Plain text
+msgid ""
+"The command above will create a new sos-report in `/var/log/linstor/"
+"controller/` on the controller node. Alternatively you can use"
+msgstr ""
+"上記のコマンドは、コントローラーノードの `/var/log/linstor/controller/` に新"
+"しい sos-report を作成します。または、以下のコマンドも使用できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor sos-report download\n"
+msgstr "# linstor sos-report download\n"
+
+#. type: Plain text
+msgid ""
+"which will create a new sos-report and additionally downloads that report to "
+"the local machine into your current working directory."
+msgstr ""
+"これにより、新しい sos-report が作成され、さらにそのレポートがローカルマシン"
+"の現在の作業ディレクトリにダウンロードされます。"
+
+#. type: Plain text
+msgid ""
+"This sos-report contains logs and useful debug-information from several "
+"sources (Linstor-logs, `dmesg`, versions of external tools used by Linstor, "
+"`ip a`, database dump and many more).  These information are stored for each "
+"node in plaintext in the resulting `.tar.gz` file."
+msgstr ""
+"この sos-report には、いくつかのソース（Linstor-logs, `dmesg`, 外部ツールの"
+"バージョン, `ip a`, データベースダンプなど）からのログと有用なデバッグ情報が"
+"含まれています。これらの情報はノードごとにプレーンテキストで `.tar.gz` ファイ"
+"ルに保存されます。"
 
 #. type: Title ====
 #, no-wrap
