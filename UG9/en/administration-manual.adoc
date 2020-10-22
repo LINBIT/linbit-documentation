@@ -1460,6 +1460,70 @@ diagnose data corruption problems, and want to see whether the transport path
 [[s-resizing]]
 === Resizing resources
 
+
+When growing (extending) DRBD volumes, you need to grow from bottom to top.
+You need to extend the backing block devices on all nodes first.
+Then you can tell DRBD to use the new space.
+
+Once the DRBD volume is extended, you need to still propagate that
+into whatever is using DRBD: extend the file system, or make a VM
+running with this volume attached aware of the new "disk size".
+
+That all typically boils down to
+
+-----------------------
+# # on all nodes, resize the backing LV:
+# lvextend -L +${additional_gb}g VG/LV
+# # on one node:
+# drbdadm resize ${resource_name}/${volume_number}
+# # on the Primary only:
+# # resize the file system using the file system specific tool, see below
+-----------------------
+
+See also the next sections <<s-growing-online>> and following.
+
+Note that different file systems have different capabilities and different sets
+of management tools. For example XFS can only grow.
+You point its tool to the active mount point: `xfs_growfs /where/you/have/it/mounted`.
+
+While the EXT family can both grow (even online), and also shrink (only
+offline; you have to unmount it first). To resize an ext3 or ext4,
+you would point the tool not to the mount point, but to the (mounted)
+block device: `resize2fs /dev/drbd#`
+
+Obviously use the correct DRBD (as displayed by `mount` or `df -T`, while mounted),
+and *not* the backing block device.  As long as DRBD is up, that's not supposed
+to work anyways (`resize2fs: Device or resource busy while trying to open
+/dev/mapper/VG-LV Couldn't find valid filesystem superblock.`).
+If you tried to do that offline (with DRBD stopped), you may corrupt DRBD
+meta data if you ran the file system tools directly against the backing LV or
+partition.  So don't.
+
+You do the file system resize only *once* on the Primary, against the active
+DRBD device.  DRBD replicates the changes to the file system structure.
+That is what you have it for.
+
+Also, don't use resize2fs on XFS volumes, or XFS tools on EXT, or ...
+but the right tool for the file system in use.
+
+`resize2fs: Bad magic number in super-block while trying to open /dev/drbd7`
+is probably just trying to tell you that this is *not* an EXT file system,
+and you should try an other tool instead. Maybe `xfs_growfs`? But as mentioned,
+that does not take the block device, but the mount point as argument.
+
+When shrinking (reducing) DRBD volumes, you need to shrink from top to bottom.
+So first make sure no one is using the space you want to cut off.
+Next, shrink the file system (if your file system supports that).
+Then tell DRBD to stop using that space, which is not so easy with DRBD
+internal meta data, because they are by design "at the end"
+of the backing device.
+
+Once you are sure that DRBD won't use the space anymore either,
+you can cut it off from the backing device, for example using `lvreduce`.
+
+See also <<s-shrinking-online>>, <<s-shrinking-offline>>.
+
+
 [[s-growing-online]]
 ==== Growing on-line
 
