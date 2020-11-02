@@ -1980,8 +1980,11 @@ echo '[netcom]
 
 Now just start controller and satellites and add the nodes with `--communication-type SSL`.
 
+[[s-linstor-drbd-automatisms]]
+=== Automatisms for DRBD-Resources
+
 [[s-linstor-auto-quorum]]
-=== AutoQuorum Policies
+==== AutoQuorum Policies
 
 LINSTOR automatically configures quorum policies on resources *when
 quorum is achievable*. This means, whenever you have at least two diskful and one
@@ -2034,6 +2037,59 @@ entirely on the `my_ssd_group` _resource-group_:
 
 NOTE: Setting `DrbdOptions/Resource/on-no-quorum` to an empty value
 in the commands above deletes the property from the object entirely.
+
+[[s-linstor-auto-evict]]
+==== Auto-Evict
+
+If a satellite is offline for a prolonged period of time, LINSTOR can be configured to
+assume that said node is dead. This triggers an automated reassignment of the affected
+DRBD-resources to other nodes to ensure a minimum replica count is kept.
+
+This feature uses three properties to adapt the behaviour.
+
+`DrbdOptions/AutoEvictMinReplicaCount` sets the number of replicas that should always
+be present. You can set this property on the controller to set a global default, or on
+a specific resource-definition or resource-group to change it only for that
+resource-definiton or resource-group. If this property is left empty, the place-count
+set for the auto-placer of the corresponding resource-group will be used.
+
+`DrbdOptions/AutoEvictAfterTime` describes how long a node can be offline in minutes
+before the eviction is triggered. You can set this property on the controller to set a
+global default, or on a single node to give it a different behavior. The default value
+for this property is 60 minutes.
+
+`DrbdOptions/AutoEvictMaxDisconnectedNodes` sets the percentage of nodes that can
+be not reachable (for whatever reason) at the same time. If more than the given percent
+of nodes are offline at the same time, the auto-evict will not be triggered, since there
+is a possibility that the problem is on the side of the controller. This property can
+only be set for the controller, and only accepts a value between 0 and 100. The default
+value is 20%.
+
+If you wish to turn the auto-evict-feature off, simply set
+`DrbdOptions/MaxDisconnectedNodes` to 0. If you want to always trigger the auto-evict,
+regardless of how many satellites are unreachable, set it to 100.
+
+Afer the linstor-controller loses the connection to a satellite, aside from trying to
+reconnect, it starts a timer for that satellite. As soon as that timer exceeds
+`DrbdOptions/AutoEvictAfterTime` and any of the DRBD-connections to the DRBD-resources
+on that satellite are broken, the controller will check whether or not
+`DrbdOptions/AutoEvictMaxDisconnectedNodes` has been met. If it hasn't, the satellite
+will be marked as EVICTED and all DRBD-resources on it will be deleted. At the same time,
+it will check for every DRBD-resource whether the number of resources is still above
+`DrbdOptions/AutoEvictMinReplicaCount`, and if it isn't, an auto-place with the settings
+from the corresponding resource-group will be started. Should the auto-place fail, the
+controller will try again later when changes that might allow a different result, such
+as adding a new node, have happened.
+
+The evicted satellite itself will not be deleted even if it reestablishes connection with
+the controller. It can, however, be restored. This will remove the EVICTED-flag from the
+satellite and allow you to use it again. Previously configured network interfaces,
+storage pools, properties and similar entities as well as non-DRBD-related resources will
+still be on the satellite. To restore a satellite, use
+
+------
+# linstor node restore [nodename]
+------
 
 [[s-linstor-qos]]
 === QoS Settings
