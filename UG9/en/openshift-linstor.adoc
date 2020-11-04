@@ -42,7 +42,6 @@ IMPORTANT: It it advised that the etcd deployment uses persistent
 storage of some type. Either use an existing storage provisioner with
 a default `StorageClass` or simply use `hostPath` volumes.
 
-
 Read <<s-kubernetes-storage, the storage guide>> and configure a basic storage setup for LINSTOR:
 Create storage pools from available devices. Recommended for simple set ups. <<s-kubernetes-physical-device,Guide>>
 Create storage pools from existing LVM setup. <<s-kubernetes-storage-pool-configuration,Guide>>
@@ -58,6 +57,12 @@ left-hand control pane of Openshift Web Console. Expand the
 "Operators" section and select "OperatorHub". From here you need to
 find the LINSTOR operator. Either search for the term "LINSTOR" or
 filter only by "Marketplace" operators.
+
+IMPORTANT: The LINSTOR operator can only watch for events and manage
+custom resources that are within the same namespace it is deployed
+within (OwnNamsespace). This means the LINSTOR Controller, LINSTOR
+Satellites, and LINSTOR CSI Driver pods all need to be deployed in the
+same namsepace as the LINSTOR Operator pod.
 
 Once you have located the LINSTOR operator in the Marketplace, click
 the "Install" button and install it as you would any other operator.
@@ -113,6 +118,25 @@ the worker nodes.
 Make sure the `controllerEndpoint` matches what is available in the
 kubernetes endpoints. The default is usually correct here.
 
+Below is an example manifest:
+
+-----
+apiVersion: linstor.linbit.com/v1
+kind: LinstorSatelliteSet
+metadata:
+  name: linstor
+  namespace: default
+spec:
+  satelliteImage: ''
+  automaticStorageType: LVMTHIN
+  drbdRepoCred: ''
+  kernelModuleInjectionMode: Compile
+  controllerEndpoint: 'http://linstor:3370'
+  priorityClassName: ''
+status:
+  errors: []
+-----
+
 Lastly hit "Create", you should now see a linstor-node pod
 running on every worker node.
 
@@ -142,7 +166,7 @@ The Controller pod includes a LINSTOR Client, making it easy to interact directl
 For instance:
 
 ----
-oc exec linstor-op-cs-controller-<deployment-info> -- linstor storage-pool list
+oc exec deployment/linstor-cs-controller -- linstor storage-pool list
 ----
 
 This should only be necessary for investigating problems and accessing advanced functionality.
