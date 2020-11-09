@@ -587,6 +587,52 @@ If the `--storage-pool` option was provided, LINSTOR will create a storage-pool 
 
 For more options and exact command usage please check the linstor-client help.
 
+[[s-shared-storage_pools]]
+==== Shared storage pools
+
+When two or more satellites can access the same physical disk (i.e. for a fast
+fail-over), both nodes can create the storage pool, but should use the
+`--shared-space` option.
+
+----
+# linstor storage-pool create lvm node1 sharedLvm shared_vg --shared-space shared1
+# linstor storage-pool create lvm node2 sharedLvm shared_vg --shared-space shared1
+----
+
+NOTE: The names of the storage pools (in the example above `sharedLvm`) can
+differ from each other. The important part is the last option
+`--shared-space shared1`
+
+With these two storage pools, LINSTOR will automatically allow only one
+resource being active concurrently:
+
+----
+# linstor resource create node1 testRsc -s sharedLvm
+# linstor resource create node2 testRsc -s sharedLvm
+----
+
+The second resource automatically gets the flag `INACTIVE`. The satellite with
+the inactive resource verifies if the underlaying LV exists, but will **not**
+start a local DRBD.
+
+Additionally all satellites sharing a storage pool automatically acquire
+exclusive locks before accessing the storage pool. That lock-management is
+obviously managed by the controller.
+
+If you are using external locking mechanisms (as
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/logical_volume_manager_administration/lvm_cluster_overview[CLVM])
+you might want to disable LINSTOR's locking. This can be done as follows:
+
+----
+# linstor storage-pool create lvm node1 sharedLvm shared_vg \
+          --shared-space shared1 --external-locking
+----
+
+Using `--external-locking` still causes LINSTOR to ensure only one resource is
+active concurrently based on a common shared storage pool, but the satellite
+will omit aquiring the exclusive lock before accessing the given shared storage
+pool.
+
 [[s-linstor-resource-groups]]
 === Resource groups
 
