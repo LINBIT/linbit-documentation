@@ -856,33 +856,37 @@ Example: `nodeList: "node-a"`
 ==== autoPlace
 
 `autoPlace` is an integer that determines the amount of replicas a volume of
-this _StorageClass_ will have.  For instance, `autoPlace: 3` will produce
+this _StorageClass_ will have.  For instance, `autoPlace: "3"` will produce
 volumes with three-way replication. If neither `autoPlace` nor `nodeList` are
 set, volumes will be <<s-autoplace-linstor,automatically placed>> on one node.
 
 IMPORTANT: If you use this option, you must not use <<s-kubernetes-nodelist,nodeList>>.
+
+IMPORTANT: You have to use quotes, otherwise Kubernetes will complain about a malformed _StorageClass_.
 
 TIP: This option (and all options which affect autoplacement behavior) modifies the
 number of LINSTOR nodes on which the underlying storage for volumes will be
 provisioned and is orthogonal to which _kubelets_ those volumes will be accessible
 from.
 
-Example: `autoPlace: 2`
+Example: `autoPlace: "2"`
 
-Default: `autoPlace: 1`
-
+Default: `autoPlace: "1"`
 
 [[s-kubernetes-replicasonsame]]
 ==== replicasOnSame
 
 // These should link to the linstor documentation about node properties, but those
 // do not exist at the time of this commit.
-`replicasOnSame` is a list of key=value pairs used as required autoplacement selection
+`replicasOnSame` is a list of `key` or `key=value` items used as autoplacement selection
 labels when <<s-kubernetes-autoplace,autoplace>> is used to determine where to
-provision storage. These labels correspond to LINSTOR node aux props. Please note both
-the key and value names are user-defined and arbitrary. Let's explore this behavior
-with examples assuming a LINSTOR cluster such that `node-a` is configured with the
-following aux props `zone=z1` and `role=backups`, while `node-b` is configured with
+provision storage. These labels correspond to LINSTOR node properties.
+
+IMPORTANT: LINSTOR node properties  are different from kubernetes node labels. You can see the properties of a node by
+running `linstor node list-properties <nodename>`. You can also set additional properties ("auxiliary properties"): `linstor node set-property <nodename> --aux <key> <value>`.
+
+Let's explore this behavior with examples assuming a LINSTOR cluster such that `node-a` is configured with the
+following auxiliary property `zone=z1` and `role=backups`, while `node-b` is configured with
 only `zone=z1`.
 
 If we configure a _StorageClass_ with `autoPlace: "1"` and `replicasOnSame: "zone=z1 role=backups"`,
@@ -890,27 +894,48 @@ then all volumes created from that _StorageClass_ will be provisioned on `node-a
 since that is the only node with all of the correct key=value pairs in the LINSTOR
 cluster. This is the most flexible way to select a single node for provisioning.
 
+IMPORTANT: This guide assumes LINSTOR CSI version 0.10.0 or newer. All properties referenced in `replicasOnSame`
+and `replicasOnDifferent` are interpreted as auxiliary properties. If you are using an older version of LINSTOR CSI, you
+need to add the `Aux/` prefix to all property names. So `replicasOnSame: "zone=z1"` would be `replicasOnSame: "Aux/zone=z1"`
+Using `Aux/` manually will continue to work on newer LINSTOR CSI versions.
+
 If we configure a _StorageClass_ with `autoPlace: "1"` and `replicasOnSame: "zone=z1"`,
 then volumes will be provisioned on either `node-a` or `node-b` as they both have
 the `zone=z1` aux prop.
 
 If we configure a _StorageClass_ with `autoPlace: "2"` and `replicasOnSame: "zone=z1 role=backups"`,
 then provisioning will fail, as there are not two or more nodes that have
-the appropriate aux props.
+the appropriate auxiliary properties.
 
 If we configure a _StorageClass_ with `autoPlace: "2"` and `replicasOnSame: "zone=z1"`,
 then volumes will be provisioned on both `node-a` and `node-b` as they both have
 the `zone=z1` aux prop.
 
-Example: `replicasOnSame: "zone=z1 role=backups"`
+You can also use a property key without providing a value to ensure all replicas are placed on nodes with the same property value,
+with caring about the particular value. Assuming there are 4 nodes, `node-a1` and `node-a2` are configured with `zone=a`. `node-b1` and `node-b2`
+are configured with `zone=b`. Using `autoPlace: "2"` and `replicasOnSame: "zone"` will place on either `node-a1` and `node-a2` OR on `node-b1` and `node-b2`.
 
 [[s-kubernetes-replicasondifferent]]
 ==== replicasOnDifferent
 
-`replicasOnDifferent` is a list of key=value pairs to avoid as autoplacement
-selection. It is the inverse of <<s-kubernetes-replicasonsame,replicasOnSame>>.
+`replicasOnDifferent` takes a list of properties to consider, same as <<s-kubernetes-replicasonsame,replicasOnSame>>.
+There are two modes of using `replicasOnDifferent`:
 
-Example: `replicasOnDifferent: "no-csi-volumes=true"`
+* Preventing volume placement on specific nodes:
++
+If a value is given for the property, the nodes which have that property-value pair assigned will be considered last.
++
+Example: `replicasOnDifferent: "no-csi-volumes=true"` will place no volume on any node with property
+`no-csi-volumes=true` unless there are not enough other nodes to fulfill the `autoPlace` setting.
+
+* Distribute volumes across nodes with different values for the same key:
++
+If no property value is given, LINSTOR will place the volumes across nodes with different values for that property if
+possible.
++
+Example: Assuming there are 4 nodes, `node-a1` and `node-a2` are configured with `zone=a`. `node-b1` and `node-b2`
+are configured with `zone=b`. Using a _StorageClass_ with `autoPlace: "2"` and `replicasOnDifferent: "zone"`,
+LINSTOR will create one replica on either `node-a1` or `node-a2` _and_ one replica on either `node-b1` or `node-b2`.
 
 [[s-kubernetes-localstoragepolicy]]
 ==== localStoragePolicy
