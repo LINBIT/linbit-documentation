@@ -490,8 +490,9 @@ csi:
   resources: {} <3>
 priorityClassName: ""
 drbdRepoCred: drbdiocred # <- Specify the kubernetes secret name here
-linstorHttpsControllerSecret: "" # <- name of secret containing linstor server certificates+key. See docs/security.md
-linstorHttpsClientSecret: "" # <- name of secret containing linstor client certificates+key. See docs/security.md
+linstorHttpsControllerSecret: "" # <- name of secret containing linstor server certificates+key.
+linstorHttpsClientSecret: "" # <- name of secret containing linstor client certificates+key.
+controllerEndpoint: "" # <- override to the generated controller endpoint. use if controller is not deployed via operator
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
   image: "drbd.io/linstor-operator:v1.0.0-rc1"
@@ -530,6 +531,43 @@ https://kubernetes.io/docs/concepts/scheduling-eviction/[kubernetes docs on affi
 This may be especially important for the `operator.satelliteSet` and `csi.node*` values. To schedule a pod using
 a LINSTOR persistent volume, the node requires a running LINSTOR satellite and LINSTOR CSI pod.
 
+
+[[s-kubernetes-deploy-external-controller]]
+==== Deploying with an external LINSTOR controller
+
+The operator can configure the satellites and CSI plugin to use an existing LINSTOR setup. This can be useful in cases
+where the storage infrastructure is separate from the Kubernetes cluster. Volumes can be provisioned in diskless mode
+on the Kubernetes nodes while the storage nodes will provide the backing disk storage.
+
+To skip the creation of a LINSTOR Controller deployment and configure the other components to use your existing LINSTOR
+Controller, use the following options when running `helm install`:
+
+* `operator.controller.enabled=false` This disables creation of the `LinstorController` resource
+* `operator.etcd.enabled=false` Since no LINSTOR Controller will run on Kubernetes, no database is required.
+* `controllerEndpoint=<url-of-linstor-controller>` The HTTP endpoint of the existing LINSTOR Controller. For example: `http://linstor.storage.cluster:3370/`
+
+After all pods are ready, you should see the Kubernetes cluster nodes as satellites in your LINSTOR setup.
+
+IMPORTANT: Your kubernetes nodes must be reachable using their IP by the controller and storage nodes.
+
+Create a storage class referencing an existing storage pool on your storage nodes.
+
+[source,yaml]
+----
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: linstor-on-k8s
+provisioner: linstor.csi.linbit.com
+parameters:
+  autoPlace: "3"
+  storagePool: existing-storage-pool
+  resourceGroup: linstor-on-k8s
+----
+
+You can provision new volumes by creating PVCs using your storage class. The volumes will first be placed only on nodes
+with the given storage pool, i.e. your storage infrastructure. Once you want to use the volume in a pod, LINSTOR CSI
+will create a diskless resource on the Kubernetes node and attach over the network to the diskfull resource.
 
 [[s-kubernetes-deploy-piraeus-operator]]
 ==== Deploying with the Piraeus Operator
