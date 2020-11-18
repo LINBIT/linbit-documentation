@@ -519,6 +519,41 @@ would with an accessible block device.
 You will now probably want to continue with <<p-work>>, which
 describes common administrative tasks to perform on your resource.
 
+[[s-skip-initial-resync]]
+==== Skipping initial resynchronization
+
+If (and only if) you are starting DRBD resources from scratch (with
+no valueable data on them) you can use following command sequence
+to skip initial resync (don't do that with data you want to keep on
+the devices):
+
+On all nodes:
+
+-------------------------------------
+# drbdadm create-md <res>
+# drbdadm up <res>
+-------------------------------------
+
+The command `drbdadm status` should now show all disks as _Inconsistent_.
+
+Then, on one node execute the following command:
+--
+-------------------------------------
+# drbdadm new-current-uuid --clear-bitmap <resource>/<volume>
+-------------------------------------
+or
+-------------------------------------
+# drbdsetup new-current-uuid --clear-bitmap <minor>
+-------------------------------------
+--
+
+Running `drbdadm status` now shows the disks as _UpToDate_ (even tough the
+backing devices might be out of sync). You can now create a file
+system on the disk and start using it.
+
+IMPORTANT: Don't do the above with data you want to keep or it gets
+corrupted.
+
 [[s-using-truck-based-replication]]
 ==== Using truck based replication
 
