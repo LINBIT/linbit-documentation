@@ -1,0 +1,73 @@
+[[s-kubernetes-upgrade]]
+=== Upgrading a LINSTOR Deployment on Kubernetes
+
+A LINSTOR Deployment on Kubernets can be upgraded to a new release using Helm.
+
+Before upgrading to a new release, you should ensure you have an up-to-date backup of the LINSTOR database.
+If you are using the Etcd database packaged in the LINSTOR Chart, see <<s-kubernetes-etcd-backup,here>>
+
+IMPORTANT: Upgrades using the LINSTOR Etcd deployment require etcd to use persistent storage. Only follow these steps if
+Etcd was deployed using `etcd.persistentVolume.enabled=true`
+
+Upgrades will update to new versions of the following components:
+
+* LINSTOR operator deployment
+* LINSTOR Controller
+* LINSTOR Satellite
+* LINSTOR CSI Driver
+* Etcd
+* Stork
+
+Some versions require special steps, please take a look <<s-kubernetes-upgrade-version,here>>
+The main command to upgrade to a new LINSTOR operator version is:
+
+----
+helm repo update
+helm upgrade linstor-op linstor/linstor
+----
+
+If you used any customizations on the initial install, pass the same options to `helm upgrade`. For example:
+
+----
+helm install linstor-op linstor/linstor -f <file>
+----
+
+would become
+
+----
+helm upgrade linstor-op linstor/linstor -f <file>
+----
+
+This triggers the rollout of new pods. After a short wait, all pods should be running and ready.
+Check that no errors are listed in the status section of LinstorControllers, LinstorSatelliteSets and LinstorCSIDrivers.
+
+IMPORTANT: During the upgrade process, provisioning of volumes and attach/detach operations might not work. Existing
+volumes and volumes already in use by a pod will continue to work without interruption.
+
+[[s-kubernetes-upgrade-version]]
+==== Upgrade instructions for specific versions
+
+Some versions require special steps, see below.
+
+===== Upgrade to v1.2
+
+LINSTOR operator v1.2 is supported on Kubernets 1.17+. If you are using an older Kubernetes distribution, you may need
+to change the default settings, for example [the CSI provisioner](https://kubernetes-csi.github.io/docs/external-provisioner.html).
+
+There is a known issue when updating the CSI components: the pods will not be updated to the newest image and the
+`errors` section of the LinstorCSIDrivers resource shows an error updating the DaemonSet. In this case, manually
+delete `deployment/linstor-op-csi-controller` and `daemonset/linstor-op-csi-node`. They will be re-created by the
+operator.
+
+[[s-kubernetes-etcd-backup]]
+==== Creating Etcd Backups
+
+To create a backup of the Etcd database and store it on your control host, run:
+
+[source]
+----
+kubectl exec linstor-op-etcd-0 -- etcdctl snapshot save /tmp/save.db
+kubectl cp linstor-op-etcd-0:/tmp/save.db save.db
+----
+
+These commands will create a file `save.db` on the machine you are running `kubectl` from.
