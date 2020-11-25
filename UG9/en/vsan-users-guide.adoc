@@ -1,0 +1,69 @@
+LINBIT VSAN User Guide
+======================
+:Author Initials: Joel Zhou
+:toc:
+:icons:
+:numbered:
+:website: https://www.linbit.com/
+
+Introduction
+------------
+LINBIT VSAN is a LINBIT DRBD and LINSTOR based Software-Defined Storage solution for hyper-converged infrastructure.
+
+It is built with VMware ESXi as a target platform in mind, but it is independent of the hypervisor software itself, so theoretically it should work on any other hypervisor software.
+
+Architecture
+------------
+image::images/vsan-architecture.svg[1]
+
+Prerequisites
+-------------
+- Validated LINBIT credentials, which is also used to log in to https://my.linbit.com/[LINBIT's Customer Portal]
+- VSAN installation medium (ISO or OVA file)
+- Working virtualization platform
+- Internet access for all VSAN VMs
+
+Installation
+------------
+LINBIT currently distributes VSAN in two formats, as an ISO image which gives a generic way to install VSAN on any kind of virtualization platform, and as an OVA file which can be imported into VMware ESXi easily and directly.
+
+Installing via ISO file
+~~~~~~~~~~~~~~~~~~~~~~~
+Because VSAN is based on CentOS 8, you have to create one VM on each hypervisor node manually. You then need to attach a virtual or local disk for VSAN itself, and assign or pass-through local storage devices which will be used by VSAN for data replication. Make sure those local storage devices are untouched during VSAN installation (for example, do not create any partitions). Of course, one or more network adapters and IPs are mandatory for each VSAN VM.
+
+.Notice
+*******
+Make sure you have your LINBIT customer credentials at hand and that all VSAN VMs can access the internet before you proceed. Also make sure that your subscription has enough allowed nodes for the VSAN deployment.
+*******
+
+Start all VSAN VMs on all hypervisor nodes and install the Operating System step by step, similar to a regular CentOS 8 installation.
+
+.Warning
+********
+VSAN ISO contains a customized kickstart file to auto-configure CentOS 8, please *do not* install via your own kickstart file to automate the installation process!
+********
+
+Installing via OVA file
+~~~~~~~~~~~~~~~~~~~~~~~
+Simply import OVA file into your VMware Cluster, then deploy it to each ESXi node. Thanks to this pre-baked VMware image file, you do not have to install VSAN one by one, just assign or pass-through local storage devices to each of VSAN VMs and start all VSAN VMs, and you are done!
+
+
+By default, the OVA image configures its network via DHCP. If you need to configure a different method (e.g. static IP or multiple IPs), you need to log into the VSAN VM with the default credentials, and configure it directly in CentOS 8.
+
+.Warning
+*******
+When using the OVA image, the default password for the `root` user is set to `linbit`.
+It is highly recommended to log into the machine and change the password immediately after installation.
+*******
+
+Initialization
+--------------
+After all VSAN VMs are installed and rebooted, access any one of them via your browser to setup VSAN. VSAN gives you a one-stop Web UI wizard to configure the storage cluster, step by step screenshots are located https://www.linbit.com/linbit-vsan-software-defined-storage-for-vmware/[here], and there is also a https://www.youtube.com/watch?v=m8G7l3CHugg[walk-through video].
+
+For general help with the terms and concepts used during the setup, please refer to the https://www.linbit.com/drbd-user-guide/linstor-guide-1_0-en/[LINSTOR User's Guide].
+
+Administration
+--------------
+The VSAN Web UI is built to enable an administrator to handle most basic tasks with ease.
+
+If you are familiar with the technologies under the hood, you are free to directly use the underlying operating system and treat it as a standard CentOS-based LINSTOR cluster.
