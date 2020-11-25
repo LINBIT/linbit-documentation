@@ -7,6 +7,7 @@
 
 IN_UG=drbd-users-guide.adoc
 IN_LS=linstor-users-guide.adoc
+IN_VSAN=vsan-users-guide.adoc
 OUTDIR=output
 OUTDIRPDF=$(OUTDIR)-pdf
 OUTDIRHTML=$(OUTDIR)-html
@@ -17,10 +18,13 @@ IMGDIR=../../images
 FONTDIR ?= ../../linbit-fonts
 OUTHTML_UG=$(addsuffix .html,$(basename $(IN_UG)))
 OUTHTML_LS=$(addsuffix .html,$(basename $(IN_LS)))
+OUTHTML_VSAN=$(addsuffix .html,$(basename $(IN_VSAN)))
 OUTHTML_UG_WEBDEVS=drbd-users-guide-without-css.html
 OUTHTML_LS_WEBDEVS=linstor-users-guide-without-css.html
+OUTHTML_VSAN_WEBDEVS=vsan-users-guide-without-css.html
 OUTPDF_UG=$(addsuffix .pdf,$(basename $(IN_UG)))
 OUTPDF_LS=$(addsuffix .pdf,$(basename $(IN_LS)))
+OUTPDF_VSAN=$(addsuffix .pdf,$(basename $(IN_VSAN)))
 
 # for html
 SVGS=$(addprefix ../../, $(SVGSUSED))
@@ -56,7 +60,14 @@ $(OUTDIRHTML)/$(OUTHTML_LS): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGSSVGS) $(OUTPNGS
 		echo "LINSTOR guide not found"; \
 	fi
 
-html: $(OUTDIRHTML)/$(OUTHTML_UG) $(OUTDIRHTML)/$(OUTHTML_LS)
+$(OUTDIRHTML)/$(OUTHTML_VSAN): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGSSVGS) $(OUTPNGSPNGS) $(OUTADOCS)
+	if test -f $(OUTDIRHTML)/$(IN_VSAN); then \
+		asciidoctor $(ASCIIDOCTOR_ADD_OPTIONS) -n -d book -a toc=left -a linkcss -o ./$(OUTDIRHTML)/$(OUTHTML_VSAN) $(OUTDIRHTML)/$(IN_VSAN); \
+	else \
+		echo "VSAN guide not found"; \
+	fi
+
+html: $(OUTDIRHTML)/$(OUTHTML_UG) $(OUTDIRHTML)/$(OUTHTML_LS) $(OUTDIRHTML)/$(OUTHTML_VSAN)
 	@echo "Generated web pages in $$(pwd)/$(OUTDIRHTML)"
 	@echo "execute 'make html-finalize' to prepare upload"
 
@@ -71,6 +82,12 @@ html-finalize: html
 		td=$$(mktemp -d) && \
 			cp $(OUTDIRHTML)/$(OUTHTML_LS_WEBDEVS) "$$td"/$(OUTHTML_UG_WEBDEVS) && cp -r $(OUTDIRHTMLIMAGES) $$td && \
 			(cd $$td && zip linstor.zip $(OUTHTML_UG_WEBDEVS) images/*.png) && mv $$td/linstor.zip $(OUTDIRHTMLFINAL) && rm -rf "$$td"; \
+	fi
+	if test -f $(OUTDIRHTML)/$(OUTHTML_VSAN); then \
+		mv $(OUTDIRHTML)/$(OUTHTML_VSAN) $(OUTDIRHTML)/$(OUTHTML_VSAN_WEBDEVS) && \
+		td=$$(mktemp -d) && \
+			cp $(OUTDIRHTML)/$(OUTHTML_VSAN_WEBDEVS) "$$td"/$(OUTHTML_UG_WEBDEVS) && cp -r $(OUTDIRHTMLIMAGES) $$td && \
+			(cd $$td && zip vsan.zip $(OUTHTML_UG_WEBDEVS) images/*.png) && mv $$td/vsan.zip $(OUTDIRHTMLFINAL) && rm -rf "$$td"; \
 	fi
 
 # PDF
@@ -89,8 +106,14 @@ $(OUTDIRPDF)/$(OUTPDF_LS): $(SRC) $(SVGSUSED)
 		INTERN=""; fi && \
 		if test -f $(IN_LS); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN -o $@ $(IN_LS); fi
 
-pdf: ./images $(OUTDIRPDF)/$(OUTPDF_UG) $(OUTDIRPDF)/$(OUTPDF_LS)
-	@echo "Generated $$(pwd)/$(OUTDIRPDF)/{$(OUTPDF_UG),$(OUTPDF_LS)}"
+$(OUTDIRPDF)/$(OUTPDF_VSAN): $(SRC) $(SVGSUSED)
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ]; then \
+		INTERN="-a pdf-style=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
+		INTERN=""; fi && \
+		if test -f $(IN_VSAN); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN -o $@ $(IN_VSAN); fi
+
+pdf: ./images $(OUTDIRPDF)/$(OUTPDF_UG) $(OUTDIRPDF)/$(OUTPDF_LS) $(OUTDIRPDF)/$(OUTPDF_VSAN)
+	@echo "Generated $$(pwd)/$(OUTDIRPDF)/{$(OUTPDF_UG),$(OUTPDF_LS),$(OUTPDF_VSAN)}"
 
 pdf-finalize: pdf
 	rm -rf $(OUTDIRPDFFINAL) && mkdir $(OUTDIRPDFFINAL)
