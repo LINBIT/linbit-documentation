@@ -212,16 +212,19 @@ global:
   setSecurityContext: false <1>
 csi-snapshotter:
   enabled: false <2>
+stork:
+  schedulerTag: v1.18.6 <3>
 etcd:
   podsecuritycontext:
-    supplementalGroups: [1000] <3>
+    supplementalGroups: [1000] <4>
 operator:
   satelliteSet:
-    satelliteImage: drbd.io/drbd9-rhel8:v9.0.25 <4>
+    kernelModuleInjectionImage: drbd.io/drbd9-rhel8:v9.0.25 <5>
 ----
 <1> Openshift uses https://docs.openshift.com/container-platform/4.6/authentication/managing-security-context-constraints.html[SCCs] to manage security contexts.
 <2> The cluster wide CSI Snapshot Controller is already installed by Openshift.
-<3> If you choose to use Etcd deployed via Helm and use the `pv-hostpath` chart, Etcd needs to run as member of group `1000` to access the persistent volume.
-<4> The RHEL8 kernel injector also supports RHCOS.
+<3> Automatic detection of the Kubernetes Scheduler version fails in Openshift, you need to set it manually. Note: the tag does _not_ have to match Openshift's Kubernetes release.
+<4> If you choose to use Etcd deployed via Helm and use the `pv-hostpath` chart, Etcd needs to run as member of group `1000` to access the persistent volume.
+<5> The RHEL8 kernel injector also supports RHCOS.
 
-These basic changes can be further customized based on the <<ch-kubernetes,Kubernetes guide>>.
+Other overrides, such as storage pool configuration, HA deployments and more, are available and documented in the <<ch-kubernetes,Kubernetes guide>>.
