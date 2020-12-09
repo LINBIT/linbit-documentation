@@ -2061,49 +2061,61 @@ in the commands above deletes the property from the object entirely.
 ==== Auto-Evict
 
 If a satellite is offline for a prolonged period of time, LINSTOR can be configured to
-assume that said node is dead. This triggers an automated reassignment of the affected
+declare that node as evicted. This triggers an automated reassignment of the affected
 DRBD-resources to other nodes to ensure a minimum replica count is kept.
 
-This feature uses three properties to adapt the behaviour.
+This feature uses the following properties to adapt the behaviour.
 
-`DrbdOptions/AutoEvictMinReplicaCount` sets the number of replicas that should always
-be present. You can set this property on the controller to set a global default, or on
+ * `DrbdOptions/AutoEvictMinReplicaCount` sets the number of replicas that should always
+be present. You can set this property on the controller to change a global default, or on
 a specific resource-definition or resource-group to change it only for that
 resource-definiton or resource-group. If this property is left empty, the place-count
 set for the auto-placer of the corresponding resource-group will be used.
 
-`DrbdOptions/AutoEvictAfterTime` describes how long a node can be offline in minutes
-before the eviction is triggered. You can set this property on the controller to set a
+ * `DrbdOptions/AutoEvictAfterTime` describes how long a node can be offline in minutes
+before the eviction is triggered. You can set this property on the controller to change a
 global default, or on a single node to give it a different behavior. The default value
 for this property is 60 minutes.
 
-`DrbdOptions/AutoEvictMaxDisconnectedNodes` sets the percentage of nodes that can
+ * `DrbdOptions/AutoEvictMaxDisconnectedNodes` sets the percentage of nodes that can
 be not reachable (for whatever reason) at the same time. If more than the given percent
-of nodes are offline at the same time, the auto-evict will not be triggered, since there
-is a possibility that the problem is on the side of the controller. This property can
-only be set for the controller, and only accepts a value between 0 and 100. The default
-value is 20%.
+of nodes are offline at the same time, the auto-evict will not be triggered for any node
+, since in this case LINSTOR assumes connection problems from the controller. This property
+can only be set for the controller, and only accepts a value between 0 and 100. The default
+value is 34. If you wish to turn the auto-evict-feature off, simply set this property
+to 0. If you want to always trigger the auto-evict, regardless of how many satellites
+are unreachable, set it to 100.
 
-If you wish to turn the auto-evict-feature off, simply set
-`DrbdOptions/MaxDisconnectedNodes` to 0. If you want to always trigger the auto-evict,
-regardless of how many satellites are unreachable, set it to 100.
+ * `DrbdOptions/AutoEvictAllowEviction` is an additional property that can stop a node from
+being evicted. This can be useful for various cases, for example if you need to shut down
+a node for maintenance. You can set this property on the controller to change a global default,
+or on a single node to give it a different behavior. It accepts true and false as values and
+per default is set to true on the controller. You can use this property to turn the auto-evict
+feature off by setting it to false on the controller, although this might not work
+completely if you already set different values for individual nodes, since those values take precedence
+over the global default.
 
 Afer the linstor-controller loses the connection to a satellite, aside from trying to
 reconnect, it starts a timer for that satellite. As soon as that timer exceeds
-`DrbdOptions/AutoEvictAfterTime` and any of the DRBD-connections to the DRBD-resources
+`DrbdOptions/AutoEvictAfterTime` and all of the DRBD-connections to the DRBD-resources
 on that satellite are broken, the controller will check whether or not
-`DrbdOptions/AutoEvictMaxDisconnectedNodes` has been met. If it hasn't, the satellite
-will be marked as EVICTED and all DRBD-resources on it will be deleted. At the same time,
-it will check for every DRBD-resource whether the number of resources is still above
-`DrbdOptions/AutoEvictMinReplicaCount`, and if it isn't, an auto-place with the settings
+`DrbdOptions/AutoEvictMaxDisconnectedNodes` has been met. If it hasn't, and
+`DrbdOptions/AutoEvictAllowEviction` is true for the node in question, the satellite
+will be marked as EVICTED. At the same time, the controller will check for every DRBD-resource whether
+the number of resources is still above `DrbdOptions/AutoEvictMinReplicaCount`. If it is,
+the resource in question will be marked as DELETED. If it isn't, an auto-place with the settings
 from the corresponding resource-group will be started. Should the auto-place fail, the
 controller will try again later when changes that might allow a different result, such
-as adding a new node, have happened.
+as adding a new node, have happened. Resources where an auto-place is necessary will only be
+marked as DELETED if the corresponding auto-place was successful.
 
-The evicted satellite itself will not be deleted even if it reestablishes connection with
-the controller. It can, however, be restored. This will remove the EVICTED-flag from the
-satellite and allow you to use it again. Previously configured network interfaces,
-storage pools, properties and similar entities as well as non-DRBD-related resources will
+The evicted satellite itself will not be able to reestablish connection with the controller.
+Even if the node is up and running, a manual reconnect will fail. It is also not possible to
+delete the satellite, even if it is working as it should be. Should you wish to get rid of an evicted
+node, you need to use the `node lost` command. The satellite can, however, be restored.
+This will remove the EVICTED-flag from the satellite and allow you to use it again. Previously
+configured network interfaces, storage pools, properties and similar entities as well as
+non-DRBD-related resources and resources that could not be autoplaced somewhere else will
 still be on the satellite. To restore a satellite, use
 
 ------
