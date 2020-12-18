@@ -743,6 +743,236 @@ kubectl get pod -w # wait for pod to be unscheduled
 kubectl delete pvc my-first-linstor-volume # remove the PersistentVolumeClaim, the PersistentVolume, and the LINSTOR Volume.
 ----
 
+[[s-kubernetes-sc-parameters]]
+==== Available parameters in a StorageClass
+
+The following storage class contains all currently available parameters to configure the provisioned storage
+
+[source,yaml]
+----
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: full-example
+provisioner: linstor.csi.linbit.com
+parameters:
+  # CSI related parameters
+  csi.storage.k8s.io/fstype: xfs
+  # LINSTOR parameters
+  autoPlace: "2"
+  placementCount: "2"
+  resourceGroup: "full-example"
+  storagePool: "my-storage-pool"
+  disklessStoragePool: "DfltDisklessStorPool"
+  layerList: "drbd,storage"
+  placementPolicy: "AutoPlace"
+  allowRemoteVolumeAccess: "true"
+  encryption: "true"
+  nodeList: "diskful-a,diskful-b"
+  clientList: "diskless-a,diskless-b"
+  replicasOnSame: "zone=a"
+  replicasOnDifferent: "rack"
+  disklessOnRemaining: "false"
+  doNotPlaceWithRegex: "tainted.*"
+  fsOpts: "nodiscard"
+  mountOpts: "noatime"
+  postMountXfsOpts: "extsize 2m"
+  # DRBD parameters
+  DrbdOptions/*: <x>
+----
+
+==== csi.storage.k8s.io/fstype
+
+Sets the file system type to create for `volumeMode: FileSystem` PVCs. Currently supported are:
+
+* `ext4` (default)
+* `xfs`
+
+[[s-kubernetes-autoplace]]
+==== autoPlace
+
+`autoPlace` is an integer that determines the amount of replicas a volume of
+this _StorageClass_ will have.  For instance, `autoPlace: "3"` will produce
+volumes with three-way replication. If neither `autoPlace` nor `nodeList` are
+set, volumes will be <<s-autoplace-linstor,automatically placed>> on one node.
+
+IMPORTANT: If you use this option, you must not use <<s-kubernetes-nodelist,nodeList>>.
+
+IMPORTANT: You have to use quotes, otherwise Kubernetes will complain about a malformed _StorageClass_.
+
+TIP: This option (and all options which affect autoplacement behavior) modifies the
+number of LINSTOR nodes on which the underlying storage for volumes will be
+provisioned and is orthogonal to which _kubelets_ those volumes will be accessible
+from.
+
+==== placementCount
+
+`placementCount` is an alias for <<s-kubernetes-autoplace,`autoPlace`>>
+
+==== resourceGroup
+
+The <<s-linstor-resource-groups, LINSTOR Resource Group (RG)>> to associate with this StorageClass. If not set,
+a new RG will be created for each new PVC.
+
+[[s-kubernetes-storagepool]]
+==== storagePool
+
+`storagePool` is the name of the LINSTOR <<s-storage_pools,storage pool>> that
+will be used to provide storage to the newly-created volumes.
+
+CAUTION: Only nodes configured with this same _storage pool_ with be considered
+for <<s-kubernetes-autoplace,autoplacement>>. Likewise, for _StorageClasses_ using
+<<s-kubernetes-nodelist,nodeList>> all nodes specified in that list must have this
+_storage pool_ configured on them.
+
+[[s-kubernetes-disklessstoragepool]]
+==== disklessStoragePool
+
+`disklessStoragePool` is an optional parameter that only effects LINSTOR volumes
+assigned disklessly to _kubelets_ i.e., as clients. If you have a custom
+_diskless storage pool_ defined in LINSTOR, you'll specify that here.
+
+==== layerList
+
+A comma-seperated list of layers to use for the created volumes. The available layers and their order are described
+towards the end of <<s-linstor-without-drbd, this section>>. Defaults to `drbd,storage`
+
+[[s-kubernetes-placementpolicy]]
+==== placementPolicy
+
+Select from one of the available volume schedulers:
+
+* `AutoPlace`, the default: Use LINSTOR autoplace, influenced by <<s-kubernetes-replicasonsame>> and <<s-kubernetes-replicasondifferent>>
+* `FollowTopology`: Use CSI Topology information to place at least one volume in each "preferred" zone. Only useable if CSI Topology is enabled.
+* `Manual`: Use only the nodes listed in `nodeList` and `clientList`.
+* `Balanced`: **EXPERIMENTAL** Place volumes across failure domains, using the least used storage pool on each selected node.
+
+==== allowRemoteVolumeAccess
+
+Disable remote access to volumes. This implies that volumes can only be accessed from the initial set of nodes selected
+on creation. CSI Topology processing is required to place pods on the correct nodes.
+
+[[s-kubernetes-encryption]]
+==== encryption
+
+`encryption` is an optional parameter that determines whether to encrypt
+volumes. LINSTOR must be <<s-linstor-encrypted-volumes,configured for encryption>>
+for this to work properly.
+
+[[s-kubernetes-nodelist]]
+==== nodeList
+
+`nodeList` is a list of nodes for volumes to be assigned to. This will assign
+the volume to each node and it will be replicated among all of them. This
+can also be used to select a single node by hostname, but it's more flexible to use
+<<s-kubernetes-replicasonsame,replicasOnSame>> to select a single node.
+
+IMPORTANT: If you use this option, you must not use <<s-kubernetes-autoplace,autoPlace>>.
+
+TIP: This option determines on which LINSTOR nodes the underlying storage for volumes
+will be provisioned and is orthogonal from which _kubelets_ these volumes will be
+accessible.
+
+==== clientList
+
+`clientList` is a list of nodes for diskless volumes to be assigned to. Use in conjunction with <<s-kubernetes-nodelist>>.
+
+[[s-kubernetes-replicasonsame]]
+==== replicasOnSame
+
+// These should link to the linstor documentation about node properties, but those
+// do not exist at the time of this commit.
+`replicasOnSame` is a list of `key` or `key=value` items used as autoplacement selection
+labels when <<s-kubernetes-autoplace,autoplace>> is used to determine where to
+provision storage. These labels correspond to LINSTOR node properties.
+
+IMPORTANT: LINSTOR node properties  are different from kubernetes node labels. You can see the properties of a node by
+running `linstor node list-properties <nodename>`. You can also set additional properties ("auxiliary properties"): `linstor node set-property <nodename> --aux <key> <value>`.
+
+Let's explore this behavior with examples assuming a LINSTOR cluster such that `node-a` is configured with the
+following auxiliary property `zone=z1` and `role=backups`, while `node-b` is configured with
+only `zone=z1`.
+
+If we configure a _StorageClass_ with `autoPlace: "1"` and `replicasOnSame: "zone=z1 role=backups"`,
+then all volumes created from that _StorageClass_ will be provisioned on `node-a`,
+since that is the only node with all of the correct key=value pairs in the LINSTOR
+cluster. This is the most flexible way to select a single node for provisioning.
+
+IMPORTANT: This guide assumes LINSTOR CSI version 0.10.0 or newer. All properties referenced in `replicasOnSame`
+and `replicasOnDifferent` are interpreted as auxiliary properties. If you are using an older version of LINSTOR CSI, you
+need to add the `Aux/` prefix to all property names. So `replicasOnSame: "zone=z1"` would be `replicasOnSame: "Aux/zone=z1"`
+Using `Aux/` manually will continue to work on newer LINSTOR CSI versions.
+
+If we configure a _StorageClass_ with `autoPlace: "1"` and `replicasOnSame: "zone=z1"`,
+then volumes will be provisioned on either `node-a` or `node-b` as they both have
+the `zone=z1` aux prop.
+
+If we configure a _StorageClass_ with `autoPlace: "2"` and `replicasOnSame: "zone=z1 role=backups"`,
+then provisioning will fail, as there are not two or more nodes that have
+the appropriate auxiliary properties.
+
+If we configure a _StorageClass_ with `autoPlace: "2"` and `replicasOnSame: "zone=z1"`,
+then volumes will be provisioned on both `node-a` and `node-b` as they both have
+the `zone=z1` aux prop.
+
+You can also use a property key without providing a value to ensure all replicas are placed on nodes with the same property value,
+with caring about the particular value. Assuming there are 4 nodes, `node-a1` and `node-a2` are configured with `zone=a`. `node-b1` and `node-b2`
+are configured with `zone=b`. Using `autoPlace: "2"` and `replicasOnSame: "zone"` will place on either `node-a1` and `node-a2` OR on `node-b1` and `node-b2`.
+
+[[s-kubernetes-replicasondifferent]]
+==== replicasOnDifferent
+
+`replicasOnDifferent` takes a list of properties to consider, same as <<s-kubernetes-replicasonsame,replicasOnSame>>.
+There are two modes of using `replicasOnDifferent`:
+
+* Preventing volume placement on specific nodes:
++
+If a value is given for the property, the nodes which have that property-value pair assigned will be considered last.
++
+Example: `replicasOnDifferent: "no-csi-volumes=true"` will place no volume on any node with property
+`no-csi-volumes=true` unless there are not enough other nodes to fulfill the `autoPlace` setting.
+
+* Distribute volumes across nodes with different values for the same key:
++
+If no property value is given, LINSTOR will place the volumes across nodes with different values for that property if
+possible.
++
+Example: Assuming there are 4 nodes, `node-a1` and `node-a2` are configured with `zone=a`. `node-b1` and `node-b2`
+are configured with `zone=b`. Using a _StorageClass_ with `autoPlace: "2"` and `replicasOnDifferent: "zone"`,
+LINSTOR will create one replica on either `node-a1` or `node-a2` _and_ one replica on either `node-b1` or `node-b2`.
+
+==== disklessOnRemaining
+
+Create a diskless resource on _all_ nodes that were not assigned a diskful resource.
+
+==== doNotPlaceWithRegex
+
+Do not place the resource on a node which has a resource with a name matching the regex.
+
+[[s-kubernetes-fsops]]
+==== fsOpts
+`fsOpts` is an optional parameter that passes options to the volume's
+filesystem at creation time.
+
+IMPORTANT: Please note these values are specific to your chosen
+<<s-kubernetes-filesystem, filesystem>>.
+
+[[s-kubernetes-mountops]]
+==== mountOpts
+`mountOpts` is an optional parameter that passes options to the volume's
+filesystem at mount time.
+
+==== postMountXfsOpts
+
+Extra arguments to pass to `xfs_io`, which gets called before right before first use of the volume.
+
+====  DrbdOptions/*: <x>
+
+Advanced DRBD options to pass to LINSTOR. For example, to change the replication protocol, use
+`DrbdOptions/Net/protocol: "A"`.
+
+The full list of options is available https://app.swaggerhub.com/apis-docs/Linstor/Linstor/1.5.0#/developers/resourceDefinitionModify[here]
+
 [[s-kubernetes-snapshots]]
 === Snapshots
 
@@ -868,7 +1098,7 @@ _Pod_ scheduling does not currently take volume locality into account. The
 where the underlying storage may be provisioned, if locally attached volumes
 are desired.
 
-See <<s-kubernetes-localstoragepolicy,localStoragePolicy>> to see how this
+See <<s-kubernetes-placementpolicy>> to see how this
 default behavior can be modified.
 
 [[s-kubernetes-stork]]
@@ -920,236 +1150,3 @@ Deployment of the scheduler can be disabled using
 ----
 --set stork.enabled=false
 ----
-
-[[s-kubernetes-advanced-configuration]]
-=== Advanced Configuration
-
-In general, all configuration for LINSTOR volumes in Kubernetes should be done
-via the _StorageClass_ parameters, as seen with the _storagePool_ in the basic
-example above. We'll give all the available options an in-depth treatment here.
-
-[[s-kubernetes-nodelist]]
-==== nodeList
-
-`nodeList` is a list of nodes for volumes to be assigned to. This will assign
-the volume to each node and it will be replicated among all of them. This
-can also be used to select a single node by hostname, but it's more flexible to use
-<<s-kubernetes-replicasonsame,replicasOnSame>> to select a single node.
-
-IMPORTANT: If you use this option, you must not use <<s-kubernetes-autoplace,autoPlace>>.
-
-TIP: This option determines on which LINSTOR nodes the underlying storage for volumes
-will be provisioned and is orthogonal from which _kubelets_ these volumes will be
-accessible.
-
-Example: `nodeList: "node-a node-b node-c"`
-
-Example: `nodeList: "node-a"`
-
-[[s-kubernetes-autoplace]]
-==== autoPlace
-
-`autoPlace` is an integer that determines the amount of replicas a volume of
-this _StorageClass_ will have.  For instance, `autoPlace: "3"` will produce
-volumes with three-way replication. If neither `autoPlace` nor `nodeList` are
-set, volumes will be <<s-autoplace-linstor,automatically placed>> on one node.
-
-IMPORTANT: If you use this option, you must not use <<s-kubernetes-nodelist,nodeList>>.
-
-IMPORTANT: You have to use quotes, otherwise Kubernetes will complain about a malformed _StorageClass_.
-
-TIP: This option (and all options which affect autoplacement behavior) modifies the
-number of LINSTOR nodes on which the underlying storage for volumes will be
-provisioned and is orthogonal to which _kubelets_ those volumes will be accessible
-from.
-
-Example: `autoPlace: "2"`
-
-Default: `autoPlace: "1"`
-
-[[s-kubernetes-replicasonsame]]
-==== replicasOnSame
-
-// These should link to the linstor documentation about node properties, but those
-// do not exist at the time of this commit.
-`replicasOnSame` is a list of `key` or `key=value` items used as autoplacement selection
-labels when <<s-kubernetes-autoplace,autoplace>> is used to determine where to
-provision storage. These labels correspond to LINSTOR node properties.
-
-IMPORTANT: LINSTOR node properties  are different from kubernetes node labels. You can see the properties of a node by
-running `linstor node list-properties <nodename>`. You can also set additional properties ("auxiliary properties"): `linstor node set-property <nodename> --aux <key> <value>`.
-
-Let's explore this behavior with examples assuming a LINSTOR cluster such that `node-a` is configured with the
-following auxiliary property `zone=z1` and `role=backups`, while `node-b` is configured with
-only `zone=z1`.
-
-If we configure a _StorageClass_ with `autoPlace: "1"` and `replicasOnSame: "zone=z1 role=backups"`,
-then all volumes created from that _StorageClass_ will be provisioned on `node-a`,
-since that is the only node with all of the correct key=value pairs in the LINSTOR
-cluster. This is the most flexible way to select a single node for provisioning.
-
-IMPORTANT: This guide assumes LINSTOR CSI version 0.10.0 or newer. All properties referenced in `replicasOnSame`
-and `replicasOnDifferent` are interpreted as auxiliary properties. If you are using an older version of LINSTOR CSI, you
-need to add the `Aux/` prefix to all property names. So `replicasOnSame: "zone=z1"` would be `replicasOnSame: "Aux/zone=z1"`
-Using `Aux/` manually will continue to work on newer LINSTOR CSI versions.
-
-If we configure a _StorageClass_ with `autoPlace: "1"` and `replicasOnSame: "zone=z1"`,
-then volumes will be provisioned on either `node-a` or `node-b` as they both have
-the `zone=z1` aux prop.
-
-If we configure a _StorageClass_ with `autoPlace: "2"` and `replicasOnSame: "zone=z1 role=backups"`,
-then provisioning will fail, as there are not two or more nodes that have
-the appropriate auxiliary properties.
-
-If we configure a _StorageClass_ with `autoPlace: "2"` and `replicasOnSame: "zone=z1"`,
-then volumes will be provisioned on both `node-a` and `node-b` as they both have
-the `zone=z1` aux prop.
-
-You can also use a property key without providing a value to ensure all replicas are placed on nodes with the same property value,
-with caring about the particular value. Assuming there are 4 nodes, `node-a1` and `node-a2` are configured with `zone=a`. `node-b1` and `node-b2`
-are configured with `zone=b`. Using `autoPlace: "2"` and `replicasOnSame: "zone"` will place on either `node-a1` and `node-a2` OR on `node-b1` and `node-b2`.
-
-[[s-kubernetes-replicasondifferent]]
-==== replicasOnDifferent
-
-`replicasOnDifferent` takes a list of properties to consider, same as <<s-kubernetes-replicasonsame,replicasOnSame>>.
-There are two modes of using `replicasOnDifferent`:
-
-* Preventing volume placement on specific nodes:
-+
-If a value is given for the property, the nodes which have that property-value pair assigned will be considered last.
-+
-Example: `replicasOnDifferent: "no-csi-volumes=true"` will place no volume on any node with property
-`no-csi-volumes=true` unless there are not enough other nodes to fulfill the `autoPlace` setting.
-
-* Distribute volumes across nodes with different values for the same key:
-+
-If no property value is given, LINSTOR will place the volumes across nodes with different values for that property if
-possible.
-+
-Example: Assuming there are 4 nodes, `node-a1` and `node-a2` are configured with `zone=a`. `node-b1` and `node-b2`
-are configured with `zone=b`. Using a _StorageClass_ with `autoPlace: "2"` and `replicasOnDifferent: "zone"`,
-LINSTOR will create one replica on either `node-a1` or `node-a2` _and_ one replica on either `node-b1` or `node-b2`.
-
-[[s-kubernetes-localstoragepolicy]]
-==== localStoragePolicy
-
-`localStoragePolicy` determines, via volume topology, which LINSTOR
-__Satellite__s volumes should be assigned and from where Kubernetes will
-access volumes. The behavior of each option is explained below in detail.
-
-IMPORTANT: If you specify a <<s-kubernetes-nodelist,nodeList>>, volumes will
-be created on those nodes, irrespective of the `localStoragePolicy`; however,
-the accessibility reporting will still be as described.
-
-IMPORTANT: You must set `volumeBindingMode: WaitForFirstConsumer` in the
-_StorageClass_ and the LINSTOR __Satellite__s running on the __kubelet__s must
-be able to support the diskfull placement of volumes as they are configured in
-that _StorageClass_ for <<s-kubernetes-localstoragepolicy-required,required>>
-or <<s-kubernetes-localstoragepolicy-preferred,preferred>> to work properly.
-
-TIP: Use `topologyKey: "linbit.com/hostname"` rather than `topologyKey:
-"kubernetes.io/hostname"` if you are setting `affinity` in your _Pod_ or
-_StatefulSet_ specs.
-
-Example: `localStoragePolicy: required`
-
-[[s-kubernetes-localstoragepolicy-ignore]]
-===== ignore (default)
-
-When `localStoragePolicy` is set to `ignore`, regular autoplacement
-occurs based on <<s-kubernetes-autoplace,autoplace>>,
-<<s-kubernetes-replicasonsame,replicasOnSame>>, and
-<<s-kubernetes-replicasonsame,replicasOnDifferent>>. Volume location will not
-affect _Pod_ scheduling in Kubernetes and the volumes will be accessed over
-the network if they're not local to the _kubelet_ where the _Pod_ was scheduled.
-
-[[s-kubernetes-localstoragepolicy-required]]
-===== required
-
-When `localStoragePolicy` is set to `required`, Kubernetes will report a list
-of places that it wants to schedule a _Pod_ in order of preference. The plugin
-will attempt to provision the volume(s) according to that preference. The
-number of volumes to be provisioned in total is based off of
-<<s-kubernetes-autoplace,autoplace>>.
-
-If all preferences have been attempted, but no volumes where successfully
-assigned volume creation will fail.
-
-In case of multiple replicas when all preferences have been attempted, and at
-least one has succeeded, but there are still replicas remaining to be
-provisioned, <<s-kubernetes-autoplace,autoplace>> behavior will apply for the
-remaining volumes.
-
-With this option set, Kubernetes will consider volumes that are not locally
-present on a _kubelet_ to be unaccessible from that _kubelet_.
-
-[[s-kubernetes-localstoragepolicy-preferred]]
-===== preferred
-
-When `localStoragePolicy` is set to `preferred`, volume placement behavior
-will be the same as when it's set to
-<<s-kubernetes-localstoragepolicy-required,required>> with the exception that
-volume creation will not fail if no preference was able to be satisfied.
-Volume accessibility will be the same as when set to
-<<s-kubernetes-localstoragepolicy-ignore,ignore>>.
-
-[[s-kubernetes-storagepool]]
-==== storagePool
-
-`storagePool` is the name of the LINSTOR <<s-storage_pools,storage pool>> that
-will be used to provide storage to the newly-created volumes.
-
-CAUTION: Only nodes configured with this same _storage pool_ with be considered
-for <<s-kubernetes-autoplace,autoplacement>>. Likewise, for _StorageClasses_ using
-<<s-kubernetes-nodelist,nodeList>> all nodes specified in that list must have this
-_storage pool_ configured on them.
-
-Example: `storagePool: my-storage-pool`
-
-[[s-kubernetes-disklessstoragepool]]
-==== disklessStoragePool
-
-// This should link to the linstor section talking about diskless storage pools
-// when that gets written.
-`disklessStoragePool` is an optional parameter that only effects LINSTOR volumes
-assigned disklessly to _kubelets_ i.e., as clients. If you have a custom
-_diskless storage pool_ defined in LINSTOR, you'll specify that here.
-
-Example: `disklessStoragePool: my-custom-diskless-pool`
-
-[[s-kubernetes-encryption]]
-==== encryption
-
-`encryption` is an optional parameter that determines whether to encrypt
-volumes. LINSTOR must be <<s-linstor-encrypted-Volumes,configured for encryption>>
-for this to work properly.
-
-Example: `encryption: "true"`
-
-[[s-kubernetes-filesystem]]
-==== filesystem
-
-`filesystem` is an option parameter to specify the filesystem for non raw block
-volumes. Currently supported options are `xfs` and `ext4`.
-
-Example: `filesystem: "xfs"`
-
-Default: `filesystem: "ext4"`
-
-[[s-kubernetes-fsops]]
-==== fsOpts
-`fsOpts` is an optional parameter that passes options to the volume's
-filesystem at creation time.
-
-IMPORTANT: Please note these values are specific to your chosen
-<<s-kubernetes-filesystem, filesystem>>.
-
-Example: `fsOpts: "-b 2048"`
-
-[[s-kubernetes-mountops]]
-==== mountOpts
-`mountOpts` is an optional parameter that passes options to the volume's
-filesystem at mount time.
-
-Example: `mountOpts: "sync,noatime"`
