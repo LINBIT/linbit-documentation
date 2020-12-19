@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-10-06 08:45+0900\n"
+"POT-Creation-Date: 2020-12-19 10:19+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -120,26 +120,10 @@ msgstr ""
 #. type: Plain text
 msgid ""
 "Read <<s-kubernetes-storage, the storage guide>> and configure a basic "
-"storage setup for LINSTOR:"
+"storage setup for LINSTOR"
 msgstr ""
 "<<s-kubernetes-storage, ストレージの構成>> を確認し、LINSTOR の基本的なスト"
 "レージを構成してください。"
-
-#. type: Plain text
-msgid ""
-"Create storage pools from available devices. Recommended for simple set ups. "
-"<<s-kubernetes-physical-device,Guide>>"
-msgstr ""
-"使用可能なデバイスからストレージプールを作成します。 シンプルな構成の <<s-"
-"kubernetes-physical-device,こちら>> がおすすめです。"
-
-#. type: Plain text
-msgid ""
-"Create storage pools from existing LVM setup. <<s-kubernetes-storage-pool-"
-"configuration,Guide>>"
-msgstr ""
-"既存の LVM セットアップからストレージプールを作成します。<<s-kubernetes-"
-"storage-pool-configuration,こちら>> を参照ください。"
 
 #. type: Plain text
 msgid ""
@@ -239,11 +223,11 @@ msgstr "LINSTOR etcd `hostPath` 永続化"
 msgid ""
 "You can use the `pv-hostpath` Helm templates to create `hostPath` persistent "
 "volumes. Create as many PVs as needed to satisfy your configured etcd "
-"`replicaCount` (default 3)."
+"`replicas` (default 1)."
 msgstr ""
 "`pv-hostpath` Helm テンプレートを使用して、 `hostPath` 永続ボリュームを作成で"
-"きます。構成された etcd の `replicaCount` を満たすために必要な数の PV を作成"
-"します（デフォルト3）。"
+"きます。構成された etcd の `replicas` を満たすために必要な数の PV を作成しま"
+"す（デフォルト1）。"
 
 #. type: Plain text
 msgid ""
@@ -310,82 +294,29 @@ msgid "Configuring storage"
 msgstr "ストレージの構成"
 
 #. type: Plain text
-msgid "The LINSTOR operator can automate some basic storage set up."
+msgid ""
+"The LINSTOR operator can automate some basic storage set up for LINSTOR."
 msgstr ""
 "LINSTORオペレーターは、いくつかの基本的なストレージセットアップを自動化できま"
 "す。"
 
 #. type: Title =====
 #, no-wrap
-msgid "Preparing physical devices"
-msgstr "物理デバイスの準備"
+msgid "Configuring storage pool creation"
+msgstr "ストレージプール作成の構成"
 
 #. type: Plain text
 msgid ""
-"The LINSTOR operator can automatically configure devices on satellites. "
-"Eligible for automatic configuration are block devices that:"
-msgstr ""
-"LINSTOR オペレーターは、サテライトのデバイスを自動的に構成できます。自動構成"
-"の対象となるのは、以下のブロックデバイスです。"
-
-#. type: Plain text
-msgid "do not contain partition information"
-msgstr "パーティション情報を含まない。"
-
-#. type: Plain text
-msgid "have more than 1 GiB"
-msgstr "1 GiB 以上である。"
-
-#. type: Plain text
-msgid ""
-"Any such device will be prepared according to the value of `operator."
-"satelliteSet.automaticStorageType`. Devices are added to a storage pool "
-"based on the device name (i.e. all `/dev/nvme1` devices will be part of the "
-"pool `nvme1`)"
-msgstr ""
-"そのようなデバイスは、`operator.satelliteSet.automaticStorageType` の値に従っ"
-"て準備されます。 デバイスはデバイス名に基づいてストレージプールに追加されます"
-"（つまり、すべての `/dev/nvme1` デバイスはプール `nvme1` の一部になります）。"
-
-#. type: Plain text
-msgid ""
-"The possible values for `operator.satelliteSet.automaticStorageType` are:"
-msgstr ""
-"`operator.satelliteSet.automaticStorageType` の可能な値は次のとおりです。"
-
-#. type: Plain text
-msgid "`None` no automatic set up (default)"
-msgstr "`None` 自動セットアップなし（デフォルト）"
-
-#. type: Plain text
-msgid "`LVM` create a LVM (thick) storage pool"
-msgstr "`LVM` LVM（シック）ストレージプールを作成"
-
-#. type: Plain text
-msgid "`LVMTHIN` create a LVM thin storage pool"
-msgstr "`LVMTHIN` LVM thin ストレージプールを作成"
-
-#. type: Plain text
-msgid "`ZFS` create a ZFS based storage pool"
-msgstr "`ZFS` ZFS ベースストレージプールを作成"
-
-#. type: Title =====
-#, no-wrap
-msgid "Configuring storage pools"
-msgstr "ストレージプールの構成"
-
-#. type: Plain text
-msgid ""
-"The operator installed by helm can be used to create storage pools. Creation "
+"The LINSTOR operator can be used to create LINSTOR storage pools. Creation "
 "is under control of the LinstorSatelliteSet resource:"
 msgstr ""
-"helm によってインストールされたオペレーターを使用して、ストレージプールを作成"
-"できます。作成は LinstorSatelliteSet リソースの制御下にあります。"
+"LINSTOR オペレーターを使用して、LINSTOR ストレージプールを作成できます。作成"
+"は LinstorSatelliteSet リソースの制御下にあります。"
 
 #. type: delimited block -
 #, no-wrap
 msgid ""
-"$ kubectl get LinstorSatelliteSet <satelliteSet> -o yaml\n"
+"$ kubectl get LinstorSatelliteSet.linstor.linbit.com linstor-op-ns -o yaml\n"
 "kind: LinstorSatelliteSet\n"
 "metadata:\n"
 "..\n"
@@ -399,8 +330,12 @@ msgid ""
 "    - name: lvm-thin\n"
 "      thinVolume: thinpool\n"
 "      volumeGroup: drbdpool\n"
+"    zfsPools:\n"
+"    - name: my-linstor-zpool\n"
+"      zPool: for-linstor\n"
+"      thin: true\n"
 msgstr ""
-"$ kubectl get LinstorSatelliteSet <satelliteSet> -o yaml\n"
+"$ kubectl get LinstorSatelliteSet.linstor.linbit.com linstor-op-ns -o yaml\n"
 "kind: LinstorSatelliteSet\n"
 "metadata:\n"
 "..\n"
@@ -414,10 +349,10 @@ msgstr ""
 "    - name: lvm-thin\n"
 "      thinVolume: thinpool\n"
 "      volumeGroup: drbdpool\n"
-
-#. type: Plain text
-msgid "There are two ways to configure storage pools"
-msgstr "ストレージプールを構成するには2つの方法があります。"
+"    zfsPools:\n"
+"    - name: my-linstor-zpool\n"
+"      zPool: for-linstor\n"
+"      thin: true\n"
 
 #. type: Plain text
 msgid "====== At install time"
@@ -444,7 +379,6 @@ msgid ""
 "      lvmPools:\n"
 "      - name: lvm-thick\n"
 "        volumeGroup: drbdpool\n"
-"      ..\n"
 msgstr ""
 "operator:\n"
 "  satelliteSet:\n"
@@ -452,7 +386,6 @@ msgstr ""
 "      lvmPools:\n"
 "      - name: lvm-thick\n"
 "        volumeGroup: drbdpool\n"
-"      ..\n"
 
 #. type: Plain text
 msgid "This file can be passed to the helm installation like this:"
@@ -460,8 +393,8 @@ msgstr "このファイルは、次のように helm インストールに渡す
 
 #. type: delimited block -
 #, no-wrap
-msgid "helm install linstor-op linstor/linstor -f <file> ..\n"
-msgstr "helm install linstor-op linstor/linstor -f <file> ..\n"
+msgid "helm install -f <file> linstor linstor/linstor\n"
+msgstr "helm install -f <file> linstor linstor/linstor\n"
 
 #. type: Plain text
 msgid "====== After install"
@@ -470,20 +403,244 @@ msgstr "====== インストール後"
 #. type: Plain text
 msgid ""
 "On a cluster with the operator already configured (i.e. after `helm "
-"install`), you can edit the SatelliteSet configuration like this:"
+"install`), you can edit the LinstorSatelliteSet configuration like this:"
 msgstr ""
 "オペレーターがすでに構成されているクラスター（つまり、 `helm install` の後）"
-"では、次のようにして SatelliteSet 構成を編集できます。"
+"では、次のようにして LinstorSatelliteSet 構成を編集できます。"
 
 #. type: delimited block -
 #, no-wrap
-msgid "$ kubectl edit LinstorSatelliteSet <satelliteSet>\n"
-msgstr "$ kubectl edit LinstorSatelliteSet <satelliteSet>\n"
+msgid "$ kubectl edit LinstorSatelliteSet.linstor.linbit.com <satellitesetname>\n"
+msgstr "$ kubectl edit LinstorSatelliteSet.linstor.linbit.com <satellitesetname>\n"
 
 #. type: Plain text
 msgid ""
 "The storage pool configuration can be updated like in the example above."
 msgstr "ストレージプールの構成は、上記の例のように更新できます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Preparing physical devices"
+msgstr "物理デバイスの準備"
+
+#. type: Plain text
+msgid ""
+"By default, LINSTOR expects the referenced VolumeGroups, ThinPools and so on "
+"to be present. You can use the `devicePaths: []` option to let LINSTOR "
+"automatically prepare devices for the pool. Eligible for automatic "
+"configuration are block devices that:"
+msgstr ""
+"デフォルトでは、LINSTOR は、参照される VolumeGroups, ThinPools などが存在する"
+"ことを想定しています。 `devicePaths：[]` オプションを使用して、LINSTOR がプー"
+"ル用にデバイスを自動的に準備できるようにすることができます。自動構成の対象と"
+"なるのは、次のようなブロックデバイスです。"
+
+#. type: Plain text
+msgid "Are a root device (no partition)"
+msgstr "ルートデバイス（パーティションなし）"
+
+#. type: Plain text
+msgid "do not contain partition information"
+msgstr "パーティション情報を含まない。"
+
+#. type: Plain text
+msgid "have more than 1 GiB"
+msgstr "1 GiB 以上である。"
+
+#. type: Plain text
+msgid ""
+"To enable automatic configuration of devices, set the `devicePaths` key on "
+"`storagePools` entries:"
+msgstr ""
+"デバイスの自動構成を有効にするには `storagePools` エントリに `devicePaths` "
+"キーを設定します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"  storagePools:\n"
+"    lvmPools:\n"
+"    - name: lvm-thick\n"
+"      volumeGroup: drbdpool\n"
+"      devicePaths:\n"
+"      - /dev/vdb\n"
+"    lvmThinPools:\n"
+"    - name: lvm-thin\n"
+"      thinVolume: thinpool\n"
+"      volumeGroup: linstor_thinpool\n"
+"      devicePaths:\n"
+"      - /dev/vdc\n"
+"      - /dev/vdd\n"
+msgstr ""
+"  storagePools:\n"
+"    lvmPools:\n"
+"    - name: lvm-thick\n"
+"      volumeGroup: drbdpool\n"
+"      devicePaths:\n"
+"      - /dev/vdb\n"
+"    lvmThinPools:\n"
+"    - name: lvm-thin\n"
+"      thinVolume: thinpool\n"
+"      volumeGroup: linstor_thinpool\n"
+"      devicePaths:\n"
+"      - /dev/vdc\n"
+"      - /dev/vdd\n"
+
+#. type: Plain text
+msgid ""
+"Currently, this method supports creation of LVM and LVMTHIN storage pools."
+msgstr ""
+"現在、このメソッドは LVM および LVMTHIN ストレージプールの作成をサポートして"
+"います。"
+
+#. type: Title =====
+#, no-wrap
+msgid "`lvmPools` configuration"
+msgstr "`lvmPools` 構成"
+
+#. type: Plain text
+msgid "`name` name of the LINSTOR storage pool.Required"
+msgstr "`name` LINSTOR ストレージプールの名前。必須"
+
+#. type: Plain text
+msgid "`volumeGroup` name of the VG to create.Required"
+msgstr "`volumeGroup` 作成する VG の名前。必須"
+
+#. type: Plain text
+msgid ""
+"`devicePaths` devices to configure for this pool.Must be empty and >= 1GiB "
+"to be recognized.Optional"
+msgstr ""
+"`devicePaths` このプール用に構成するデバイス。空で、認識されるには 1GiB 以上"
+"必要である。オプション"
+
+#. type: Plain text
+msgid "`raidLevel` LVM raid level.Optional"
+msgstr "`raidLevel` LVM RAID レベル。オプション"
+
+#. type: Plain text
+msgid "`vdo` Enable [VDO] (requires VDO tools in the satellite).Optional"
+msgstr "`vdo` [VDO]を有効にする（サテライトに VDO ツールが必要）。オプション"
+
+#. type: Plain text
+msgid ""
+"`vdoLogicalSizeKib` Size of the created VG (expected to be bigger than the "
+"backing devices by using VDO).Optional"
+msgstr ""
+"`vdoLogicalSizeKib` 作成された VG のサイズ（VDO を使用することで下位デバイス"
+"よりも大きくなることが予想される）。オプション"
+
+#. type: Plain text
+msgid "`vdoSlabSizeKib` Slab size for VDO. Optional"
+msgstr "`vdoSlabSizeKib` VDO のスラブサイズ。オプション"
+
+#. type: Plain text
+msgid ""
+"[VDO]: https://www.redhat.com/en/blog/look-vdo-new-linux-compression-layer"
+msgstr ""
+"[VDO]: https://www.redhat.com/en/blog/look-vdo-new-linux-compression-layer"
+
+#. type: Title =====
+#, no-wrap
+msgid "`lvmThinPools` configuration"
+msgstr "`lvmThinPools` 構成"
+
+#. type: Plain text
+msgid "`name` name of the LINSTOR storage pool. Required"
+msgstr "`name` LINSTOR ストレージプールの名前。必須"
+
+#. type: Plain text
+msgid ""
+"`volumeGroup` VG to use for the thin pool. If you want to use `devicePaths`, "
+"you must set this to `\"\"`.  This is required because LINSTOR does not "
+"allow configuration of the VG name when preparing devices."
+msgstr ""
+"`volumeGroup` シンプールに使用する VG。 `devicePaths` を使用する場合は、これ"
+"を `\"\"` に設定する必要があります。LINSTOR ではデバイスの準備時に VG 名を構"
+"成できないため、これが必要です。"
+
+#. type: Plain text
+msgid "`thinVolume` name of the thinpool. Required"
+msgstr "`thinVolume` シンプールの名前。必須"
+
+#. type: Plain text
+msgid ""
+"`devicePaths` devices to configure for this pool. Must be empty and >= 1GiB "
+"to be recognized. Optional"
+msgstr ""
+"`devicePaths` このプール用に構成するデバイス。認識されるには、空で 1GiB 以上"
+"ある。オプション"
+
+#. type: Plain text
+msgid "`raidLevel` LVM raid level. Optional"
+msgstr "`raidLevel` LVM RAID レベル。オプション"
+
+#. type: Plain text
+msgid ""
+"The volume group created by LINSTOR for LVMTHIN pools will always follow the "
+"scheme \"linstor_$THINPOOL\"."
+msgstr ""
+"LVMTHIN プール用に LINSTOR によって作成されたボリュームグループは、常にスキー"
+"ム \"linstor_$THINPOOL\" に従います。"
+
+#. type: Title =====
+#, no-wrap
+msgid "`zfsPools` configuration"
+msgstr "`zfsPools` 構成"
+
+#. type: Plain text
+msgid ""
+"`zPool` name of the zpool to use. Must already be present on all machines. "
+"Required"
+msgstr ""
+"`zPool` 使用する zpool の名前。すべてのマシンにすでに存在している必要がありま"
+"す。必須"
+
+#. type: Plain text
+msgid "`thin` `true` to use thin provisioning, `false` otherwise. Required"
+msgstr ""
+"`thin` シンプロビジョニングを使用するには `true`, 使用しないなら `false` を設"
+"定する。必須"
+
+#. type: Title =====
+#, no-wrap
+msgid "Using `automaticStorageType` (DEPRECATED)"
+msgstr "`automaticStorageType` の使用（非推奨）"
+
+#. type: Plain text
+msgid ""
+"_ALL_ eligible devices will be prepared according to the value of `operator."
+"satelliteSet.automaticStorageType`, unless they are already prepared using "
+"the `storagePools` section. Devices are added to a storage pool based on the "
+"device name (i.e. all `/dev/nvme1` devices will be part of the pool "
+"`autopool-nvme1`)"
+msgstr ""
+"すべての適切なデバイスは、すでに `storagePools` セクションを使用して準備して"
+"いる場合を除き `operator.satelliteSet.automaticStorageType` の値に従って準備"
+"されます。デバイスは、デバイス名に基づいてストレージプールに追加さ>れます（つ"
+"まり、すべての `/dev/nvme1` デバイスはプール `autopool-nvme1` 一部>になりま"
+"す）。"
+
+#. type: Plain text
+msgid "The possible values for `operator.satelliteSet.automaticStorageType`:"
+msgstr ""
+"`operator.satelliteSet.automaticStorageType` の可能な値は次のとおりです。"
+
+#. type: Plain text
+msgid "`None` no automatic set up (default)"
+msgstr "`None` 自動セットアップなし（デフォルト）"
+
+#. type: Plain text
+msgid "`LVM` create a LVM (thick) storage pool"
+msgstr "`LVM` LVM（シック）ストレージプールを作成"
+
+#. type: Plain text
+msgid "`LVMTHIN` create a LVM thin storage pool"
+msgstr "`LVMTHIN` LVM thin ストレージプールを作成"
+
+#. type: Plain text
+msgid "`ZFS` create a ZFS based storage pool (**UNTESTED**)"
+msgstr "`ZFS` ZFS ベースストレージプールを作成 (** 未テスト **)"
 
 #  no-wrap
 #. type: Title ====
@@ -1020,8 +1177,9 @@ msgid ""
 "  resources: {} <3>\n"
 "priorityClassName: \"\"\n"
 "drbdRepoCred: drbdiocred # <- Specify the kubernetes secret name here\n"
-"linstorHttpsControllerSecret: \"\" # <- name of secret containing linstor server certificates+key. See docs/security.md\n"
-"linstorHttpsClientSecret: \"\" # <- name of secret containing linstor client certificates+key. See docs/security.md\n"
+"linstorHttpsControllerSecret: \"\" # <- name of secret containing linstor server certificates+key.\n"
+"linstorHttpsClientSecret: \"\" # <- name of secret containing linstor client certificates+key.\n"
+"controllerEndpoint: \"\" # <- override to the generated controller endpoint. use if controller is not deployed via operator\n"
 "operator:\n"
 "  replicas: 1 # <- number of replicas for the operator deployment <2>\n"
 "  image: \"drbd.io/linstor-operator:v1.0.0-rc1\"\n"
@@ -1087,8 +1245,9 @@ msgstr ""
 "  resources: {} <3>\n"
 "priorityClassName: \"\"\n"
 "drbdRepoCred: drbdiocred # <- Specify the kubernetes secret name here\n"
-"linstorHttpsControllerSecret: \"\" # <- name of secret containing linstor server certificates+key. See docs/security.md\n"
-"linstorHttpsClientSecret: \"\" # <- name of secret containing linstor client certificates+key. See docs/security.md\n"
+"linstorHttpsControllerSecret: \"\" # <- name of secret containing linstor server certificates+key.\n"
+"linstorHttpsClientSecret: \"\" # <- name of secret containing linstor client certificates+key.\n"
+"controllerEndpoint: \"\" # <- override to the generated controller endpoint. use if controller is not deployed via operator\n"
 "operator:\n"
 "  replicas: 1 # <- number of replicas for the operator deployment <2>\n"
 "  image: \"drbd.io/linstor-operator:v1.0.0-rc1\"\n"
@@ -1172,6 +1331,141 @@ msgstr ""
 "これは `operator.satelliteSet` および `csi.node*` の値にとって特に重要です。"
 "LINSTOR 永続ボリュームを使用してポッドをスケジュールするには、実行中の "
 "LINSTOR サテライトと LINSTOR CSI ポッドがノードに必要です。"
+
+#. type: Title =====
+#, no-wrap
+msgid "High Availability Deployment"
+msgstr "高可用性デプロイメント"
+
+#. type: Plain text
+msgid ""
+"To create a High Availability deployment of all components, take a look at "
+"the https://github.com/piraeusdatastore/piraeus-operator/blob/b00fd34/doc/"
+"scheduling.md[upstream guide] The default values are chosen so that scaling "
+"the components to multiple replicas ensures that the replicas are placed on "
+"different nodes. This ensures that a single node failures will not interrupt "
+"the service."
+msgstr ""
+"すべてのコンポーネントの高可用性デプロイメントを作成するには https://github."
+"com/piraeusdatastore/piraeus-operator/blob/b00fd34/doc/[アップストリームガイ"
+"ド] を参照してください。デフォルト値は、複数のレプリカのコンポーネントが異な"
+"るノードに配置されるようにスケーリングが行われるように選択されています。これ"
+"により、単一ノードの障害によってサービスが中断されることはありません。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Deploying with an external LINSTOR controller"
+msgstr "LINSTORオペレーターを使用したデプロイ"
+
+#. type: Plain text
+msgid ""
+"The operator can configure the satellites and CSI plugin to use an existing "
+"LINSTOR setup. This can be useful in cases where the storage infrastructure "
+"is separate from the Kubernetes cluster. Volumes can be provisioned in "
+"diskless mode on the Kubernetes nodes while the storage nodes will provide "
+"the backing disk storage."
+msgstr ""
+"オペレーターは、既存の LINSTOR を使用するようにサテライトと CSI プラグインを"
+"構成できます。これは、ストレージインフラストラクチャが Kubernetes クラスター"
+"から分離されている場合に役立ちます。ボリュームは Kubernetes ノードでディスク"
+"レスモードでプロビジョニングでき、ストレージノードが下位ディスクストレージを"
+"提供します。"
+
+#. type: Plain text
+msgid ""
+"To skip the creation of a LINSTOR Controller deployment and configure the "
+"other components to use your existing LINSTOR Controller, use the following "
+"options when running `helm install`:"
+msgstr ""
+"LINSTOR コントローラーデプロイメントの作成をスキップし、既存の LINSTOR コント"
+"ローラーを使用するように他のコンポーネントを構成するには、 `helm install` を"
+"実行するときに次のオプションを使用します。"
+
+#. type: Plain text
+msgid ""
+"`operator.controller.enabled=false` This disables creation of the "
+"`LinstorController` resource"
+msgstr ""
+"`operator.controller.enabled=false` これにより `LinstorController` リソースを"
+"作成しなくなります。"
+
+#. type: Plain text
+msgid ""
+"`operator.etcd.enabled=false` Since no LINSTOR Controller will run on "
+"Kubernetes, no database is required."
+msgstr ""
+"`operator.etcd.enabled=false` Kubernetes では LINSTOR コントローラーが実行さ"
+"れないため、データベースは必要ありません。"
+
+#. type: Plain text
+msgid ""
+"`controllerEndpoint=<url-of-linstor-controller>` The HTTP endpoint of the "
+"existing LINSTOR Controller. For example: `http://linstor.storage."
+"cluster:3370/`"
+msgstr ""
+"`controllerEndpoint=<url-of-linstor-controller>` 既存の LINSTOR コントロー"
+"ラーの HTTP エンドポイント。例： `http://linstor.storage.cluster:3370/`"
+
+#. type: Plain text
+msgid ""
+"After all pods are ready, you should see the Kubernetes cluster nodes as "
+"satellites in your LINSTOR setup."
+msgstr ""
+"すべての pod の準備が整うと、既存の LINSTOR 環境で Kubernetes クラスターノー"
+"ドがサテライトとして表示されます。"
+
+#. type: Plain text
+msgid ""
+"Your kubernetes nodes must be reachable using their IP by the controller and "
+"storage nodes."
+msgstr ""
+"kubernetes ノードは、コントローラーとストレージノードが IP を使用して到達可能"
+"である必要があります。"
+
+#. type: Plain text
+msgid ""
+"Create a storage class referencing an existing storage pool on your storage "
+"nodes."
+msgstr ""
+"ストレージノードで既存のストレージプールを参照するストレージクラスを作成しま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"apiVersion: storage.k8s.io/v1\n"
+"kind: StorageClass\n"
+"metadata:\n"
+"  name: linstor-on-k8s\n"
+"provisioner: linstor.csi.linbit.com\n"
+"parameters:\n"
+"  autoPlace: \"3\"\n"
+"  storagePool: existing-storage-pool\n"
+"  resourceGroup: linstor-on-k8s\n"
+msgstr ""
+"apiVersion: storage.k8s.io/v1\n"
+"kind: StorageClass\n"
+"metadata:\n"
+"  name: linstor-on-k8s\n"
+"provisioner: linstor.csi.linbit.com\n"
+"parameters:\n"
+"  autoPlace: \"3\"\n"
+"  storagePool: existing-storage-pool\n"
+"  resourceGroup: linstor-on-k8s\n"
+
+#. type: Plain text
+msgid ""
+"You can provision new volumes by creating PVCs using your storage class. The "
+"volumes will first be placed only on nodes with the given storage pool, i.e. "
+"your storage infrastructure. Once you want to use the volume in a pod, "
+"LINSTOR CSI will create a diskless resource on the Kubernetes node and "
+"attach over the network to the diskfull resource."
+msgstr ""
+"ストレージクラスを使用して PVC を作成することにより、新しいボリュームをプロビ"
+"ジョニングできます。ボリュームは、最初に、指定されたストレージプールを持つ"
+"ノード、つまりストレージインフラストラクチャにのみ配置されます。pod でボ"
+"リュームを使用する場合、LINSTOR CSI は Kubernetes ノードにディスクレスリソー"
+"スを作成し、ネットワークを介してディスクリソースに接続します。"
 
 #. type: Title ====
 #, no-wrap
@@ -1321,6 +1615,9 @@ msgid ""
 "  # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment\n"
 "  storagePool: \"drbdpool\"\n"
 "  resourceGroup: \"linstor-basic-storage-class\"\n"
+"  # Setting a fstype is required for \"fsGroup\" permissions to work correctly.\n"
+"  # Currently supported: xfs/ext4\n"
+"  csi.storage.k8s.io/fstype: xfs\n"
 msgstr ""
 "apiVersion: storage.k8s.io/v1beta1\n"
 "kind: StorageClass\n"
@@ -1335,6 +1632,9 @@ msgstr ""
 "  # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment\n"
 "  storagePool: \"drbdpool\"\n"
 "  resourceGroup: \"linstor-basic-storage-class\"\n"
+"  # Setting a fstype is required for \"fsGroup\" permissions to work correctly.\n"
+"  # Currently supported: xfs/ext4\n"
+"  csi.storage.k8s.io/fstype: xfs\n"
 
 #. type: Plain text
 msgid ""
@@ -1956,15 +2256,15 @@ msgstr "autoPlace"
 #. type: Plain text
 msgid ""
 "`autoPlace` is an integer that determines the amount of replicas a volume of "
-"this _StorageClass_ will have.  For instance, `autoPlace: 3` will produce "
-"volumes with three-way replication. If neither `autoPlace` nor `nodeList` "
-"are set, volumes will be <<s-autoplace-linstor,automatically placed>> on one "
-"node."
+"this _StorageClass_ will have.  For instance, `autoPlace: \"3\"` will "
+"produce volumes with three-way replication. If neither `autoPlace` nor "
+"`nodeList` are set, volumes will be <<s-autoplace-linstor,automatically "
+"placed>> on one node."
 msgstr ""
 "`autoPlace` はこの _StorageClass_ が持つボリュームの複製数を指定します。例え"
-"ば、 `autoPlace: 3` は３つの複製をもつボリュームを生成します。 `autoPlace` ま"
-"たは `nodeList` が指定されていない場合は、１つのノード上にボリュームが生成さ"
-"れます。<<s-autoplace-linstor,自動配備>> を参照ください。"
+"ば、 `autoPlace: \"3\"` は３つの複製をもつボリュームを生成します。 "
+"`autoPlace` または `nodeList` が指定されていない場合は、１つのノード上にボ"
+"リュームが生成されます。<<s-autoplace-linstor,自動配備>> を参照ください。"
 
 #. type: Plain text
 msgid ""
@@ -1972,6 +2272,14 @@ msgid ""
 msgstr ""
 "このオプションを使用する場合は、 <<s-kubernetes-nodelist,nodeList>> を使用し"
 "ないでください。"
+
+#. type: Plain text
+msgid ""
+"You have to use quotes, otherwise Kubernetes will complain about a malformed "
+"_StorageClass_."
+msgstr ""
+"引用符を使用する必要があります。そうしないと、Kubernetes は不正な形式の "
+"_StorageClass_ について文句を言います。"
 
 #. type: Plain text
 msgid ""
@@ -1985,12 +2293,12 @@ msgstr ""
 "_kubelets_ からこれらのボリュームにアクセスできるようにします。"
 
 #. type: Plain text
-msgid "Example: `autoPlace: 2`"
-msgstr "例: `autoPlace: 2`"
+msgid "Example: `autoPlace: \"2\"`"
+msgstr "例: `autoPlace: \"2\"`"
 
 #. type: Plain text
-msgid "Default: `autoPlace: 1`"
-msgstr "例: `autoPlace: 1`"
+msgid "Default: `autoPlace: \"1\"`"
+msgstr "例: `autoPlace: \"1\"`"
 
 #. type: Title ====
 #, no-wrap
@@ -2001,21 +2309,37 @@ msgstr "replicasOnSame"
 #.  do not exist at the time of this commit.
 #. type: Plain text
 msgid ""
-"`replicasOnSame` is a list of key=value pairs used as required autoplacement "
-"selection labels when <<s-kubernetes-autoplace,autoplace>> is used to "
-"determine where to provision storage. These labels correspond to LINSTOR "
-"node aux props. Please note both the key and value names are user-defined "
-"and arbitrary. Let's explore this behavior with examples assuming a LINSTOR "
-"cluster such that `node-a` is configured with the following aux props "
-"`zone=z1` and `role=backups`, while `node-b` is configured with only "
-"`zone=z1`."
+"`replicasOnSame` is a list of `key` or `key=value` items used as "
+"autoplacement selection labels when <<s-kubernetes-autoplace,autoplace>> is "
+"used to determine where to provision storage. These labels correspond to "
+"LINSTOR node properties."
 msgstr ""
-"`replicasOnSame` は、 <<s-kubernetes-autoplace,autoplace>> がストレージをプロ"
-"ビジョニングする場所を決定するために使用されるときは必須の自動配置選択ラベル"
-"で、 key = value のペアのリストです。これらのラベルは、LINSTORノードの aux "
-"prop に対応しています。キーと値の名前はどちらもユーザー定義で任意です。"
-"LINSTORクラスタ `node-a` が aux props `zone=z1` と `role=backups` , `node-b` "
-"が `zone=z1` のみを持つと仮定します。"
+"`replicasOnSame` は自動配置選択ラベルとして使用される `key` または "
+"`key=value` アイテムのリストです。これは <<s-kubernetes-autoplace,"
+"autoplace>> がストレージをプロビジョニングする場所を決定するために使用されま"
+"す。これらのラベルは、LINSTOR ノードのプロパティに対応しています。"
+
+#. type: Plain text
+msgid ""
+"LINSTOR node properties are different from kubernetes node labels. You can "
+"see the properties of a node by running `linstor node list-properties "
+"<nodename>`. You can also set additional properties (\"auxiliary properties"
+"\"): `linstor node set-property <nodename> --aux <key> <value>`."
+msgstr ""
+"LINSTOR ノードのプロパティは、kubernetes ノードのラベルとは異なります。"
+"`linstor node list-properties <nodename>` を実行すると、ノードのプロパティを"
+"確認できます。`linstor node set-property <nodename> --aux <key> <value>` で追"
+"加のプロパティ（\"補助プロパティ\"）を設定することもできます。"
+
+#. type: Plain text
+msgid ""
+"Let's explore this behavior with examples assuming a LINSTOR cluster such "
+"that `node-a` is configured with the following auxiliary property `zone=z1` "
+"and `role=backups`, while `node-b` is configured with only `zone=z1`."
+msgstr ""
+"`node-a` が補助プロパティ `zone=z1`, `role=backups` で、 `node-b` が "
+"`zone=z1` のみで構成されているような LINSTOR クラスターを想定した例でこの動作"
+"を調べてみましょう。"
 
 #. type: Plain text
 msgid ""
@@ -2033,6 +2357,23 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
+"This guide assumes LINSTOR CSI version 0.10.0 or newer. All properties "
+"referenced in `replicasOnSame` and `replicasOnDifferent` are interpreted as "
+"auxiliary properties. If you are using an older version of LINSTOR CSI, you "
+"need to add the `Aux/` prefix to all property names. So `replicasOnSame: "
+"\"zone=z1\"` would be `replicasOnSame: \"Aux/zone=z1\"` Using `Aux/` "
+"manually will continue to work on newer LINSTOR CSI versions."
+msgstr ""
+"このガイドは、LINSTOR CSI バージョン 0.10.0 以降を想定しています。 "
+"`replicasOnSame` および `replicasOnDifferent` で参照されるすべてのプロパティ"
+"は、補助プロパティとして解釈されます。古いバージョンの LINSTOR CSI を使用して"
+"いる場合は、すべてのプロパティ名に `Aux/` プレフィックスを追加する必要があり"
+"ます。したがって、 `replicasOnSame: \"zone=z1\"` は `replicasOnSame: \"Aux/"
+"zone=z1\"` になります。 `Aux/` を手動で追加すると、新しい LINSTOR CSI バー"
+"ジョンで引き続き機能します。"
+
+#. type: Plain text
+msgid ""
 "If we configure a _StorageClass_ with `autoPlace: \"1\"` and "
 "`replicasOnSame: \"zone=z1\"`, then volumes will be provisioned on either "
 "`node-a` or `node-b` as they both have the `zone=z1` aux prop."
@@ -2045,11 +2386,12 @@ msgstr ""
 msgid ""
 "If we configure a _StorageClass_ with `autoPlace: \"2\"` and "
 "`replicasOnSame: \"zone=z1 role=backups\"`, then provisioning will fail, as "
-"there are not two or more nodes that have the appropriate aux props."
+"there are not two or more nodes that have the appropriate auxiliary "
+"properties."
 msgstr ""
 "`autoPlace: \"2\"` と `replicasOnSame: \"zone=z1 role=backups\"` を持つ "
-"_StorageClass_ を設定すると、適切な aux prop を持つノードが2つ以上ないためプ"
-"ロビジョニングは失敗します。"
+"_StorageClass_ を設定すると、適切な補助プロパティを持つノードが2つ以上ないた"
+"めプロビジョニングは失敗します。"
 
 #. type: Plain text
 msgid ""
@@ -2062,8 +2404,20 @@ msgstr ""
 "す。これは、両方が `zone=z1` aux prop を持つからです。"
 
 #. type: Plain text
-msgid "Example: `replicasOnSame: \"zone=z1 role=backups\"`"
-msgstr "例: `replicasOnSame: \"zone=z1 role=backups\"`"
+msgid ""
+"You can also use a property key without providing a value to ensure all "
+"replicas are placed on nodes with the same property value, with caring about "
+"the particular value. Assuming there are 4 nodes, `node-a1` and `node-a2` "
+"are configured with `zone=a`. `node-b1` and `node-b2` are configured with "
+"`zone=b`. Using `autoPlace: \"2\"` and `replicasOnSame: \"zone\"` will place "
+"on either `node-a1` and `node-a2` OR on `node-b1` and `node-b2`."
+msgstr ""
+"値を指定せずにプロパティキーを使用して、特定の値を考慮しながら、すべてのレプ"
+"リカが同じプロパティ値を持つノードに配置されるようにすることもできます。 4つ"
+"のノードがあると仮定し `node-a1` と `node-a2` は `zone=a` で構成、 `node-b1` "
+"と node-b2` は `zone=b` で構成されているとします。 `autoPlace: \"2\"` と "
+"`replicasOnSame: \"zone\"` を使用すると `node-a1` と `node-a2`、または `node-"
+"b1` と `node-b2` のいずれかに配置されます。"
 
 #. type: Title ====
 #, no-wrap
@@ -2072,16 +2426,61 @@ msgstr "replicasOnDifferent"
 
 #. type: Plain text
 msgid ""
-"`replicasOnDifferent` is a list of key=value pairs to avoid as autoplacement "
-"selection. It is the inverse of <<s-kubernetes-replicasonsame,"
-"replicasOnSame>>."
+"`replicasOnDifferent` takes a list of properties to consider, same as <<s-"
+"kubernetes-replicasonsame,replicasOnSame>>.  There are two modes of using "
+"`replicasOnDifferent`:"
 msgstr ""
-"`replicasOnDifferent` は自動配置選択として避けるための key=value のペアのリス"
-"トです。 <<s-kubernetes-replicasonsame,replicasOnSame>> の逆のものです。"
+"`replicasOnDifferent` は <<s-kubernetes-replicasonsame,replicasOnSame>> と同"
+"じように、考慮すべきプロパティのリストを取ります。 `replicasOnDifferent` の使"
+"用には 2 つのモードがあります。"
 
 #. type: Plain text
-msgid "Example: `replicasOnDifferent: \"no-csi-volumes=true\"`"
-msgstr "例: `replicasOnDifferent: \"no-csi-volumes=true\"`"
+msgid "Preventing volume placement on specific nodes:"
+msgstr "特定のノードでのボリューム配置の防止:"
+
+#. type: Plain text
+msgid ""
+"If a value is given for the property, the nodes which have that property-"
+"value pair assigned will be considered last."
+msgstr ""
+"プロパティに値が指定されている場合、そのプロパティと値のペアが割り当てられて"
+"いるノードが最後に考慮されます。"
+
+#. type: Plain text
+msgid ""
+"Example: `replicasOnDifferent: \"no-csi-volumes=true\"` will place no volume "
+"on any node with property `no-csi-volumes=true` unless there are not enough "
+"other nodes to fulfill the `autoPlace` setting."
+msgstr ""
+"例： `replicasOnDifferent: \"no-csi-volumes=true\"` は `autoPlace` 設定を満た"
+"すのに十分なノードが他にない限り、プロパティ `no-csi-volumes=true` を持つノー"
+"ドにボリュームを配置しません。"
+
+#. type: Plain text
+msgid "Distribute volumes across nodes with different values for the same key:"
+msgstr "同じキーの値が異なるノード間でボリュームを分散:"
+
+#. type: Plain text
+msgid ""
+"If no property value is given, LINSTOR will place the volumes across nodes "
+"with different values for that property if possible."
+msgstr ""
+"プロパティの値が指定されていない場合、LINSTOR は、可能であれば、そのプロパ"
+"ティの値が異なるノード間でボリュームを配置します。"
+
+#. type: Plain text
+msgid ""
+"Example: Assuming there are 4 nodes, `node-a1` and `node-a2` are configured "
+"with `zone=a`. `node-b1` and `node-b2` are configured with `zone=b`. Using a "
+"_StorageClass_ with `autoPlace: \"2\"` and `replicasOnDifferent: \"zone\"`, "
+"LINSTOR will create one replica on either `node-a1` or `node-a2` _and_ one "
+"replica on either `node-b1` or `node-b2`."
+msgstr ""
+"例： 4 つのノードがあると仮定し `node-a1` と `node-a2` は `zone=a` で、 "
+"`node-b1` と `node-b2` は `zone=b` で構成されているとします。 _StorageClass_ "
+"を `autoPlace: \"2\"` および `replicasOnDifferent: \"zone\"` で使用すると、"
+"LINSTOR は `node-a1` または `node-a2` のいずれかに 1 つのレプリカを作成し、 "
+"`node-b1` または `node-b2` のいずれかにもう 1 つのレプリカを作成します。"
 
 #. type: Title ====
 #, no-wrap
