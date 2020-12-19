@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-06-06 09:24+0900\n"
+"POT-Creation-Date: 2020-12-19 10:19+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3086,6 +3086,147 @@ msgstr ""
 #, no-wrap
 msgid "Resizing resources"
 msgstr "リソースのサイズ変更"
+
+#. type: Plain text
+msgid ""
+"When growing (extending) DRBD volumes, you need to grow from bottom to top.  "
+"You need to extend the backing block devices on all nodes first.  Then you "
+"can tell DRBD to use the new space."
+msgstr ""
+"DRBD ボリュームを拡張する場合は、下から上に拡張する必要があります。最初に、す"
+"べてのノードで下位ブロックデバイスを拡張する必要があります。次に、DRBD に新し"
+"いスペースを使用するように指示します。"
+
+#. type: Plain text
+msgid ""
+"Once the DRBD volume is extended, you need to still propagate that into "
+"whatever is using DRBD: extend the file system, or make a VM running with "
+"this volume attached aware of the new \"disk size\"."
+msgstr ""
+"DRBD ボリュームが拡張された後、DRBD を使用しているものにそれを伝える必要があ"
+"ります。ファイルシステムを拡張する、あるいはこのボリュームが接続された状態で"
+"実行されている VM に新しい「ディスクサイズ」を認識させます。"
+
+#. type: Plain text
+msgid "That all typically boils down to"
+msgstr "これは通常、次のようになります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# # on all nodes, resize the backing LV:\n"
+"# lvextend -L +${additional_gb}g VG/LV\n"
+"# # on one node:\n"
+"# drbdadm resize ${resource_name}/${volume_number}\n"
+"# # on the Primary only:\n"
+"# # resize the file system using the file system specific tool, see below\n"
+msgstr ""
+"# # on all nodes, resize the backing LV:\n"
+"# lvextend -L +${additional_gb}g VG/LV\n"
+"# # on one node:\n"
+"# drbdadm resize ${resource_name}/${volume_number}\n"
+"# # on the Primary only:\n"
+"# # resize the file system using the file system specific tool, see below\n"
+
+#. type: Plain text
+msgid "See also the next sections <<s-growing-online>> and following."
+msgstr "次のセクション <<s-growing-online>> も参照ください。"
+
+#. type: Plain text
+msgid ""
+"Note that different file systems have different capabilities and different "
+"sets of management tools. For example XFS can only grow.  You point its tool "
+"to the active mount point: `xfs_growfs /where/you/have/it/mounted`."
+msgstr ""
+"ファイルシステムが異なれば、機能や管理ツールのセットも異なることに注意してく"
+"ださい。例えば、XFS は拡張しかできません。また、引数にアクティブなマウントポ"
+"イントを指定します: `xfs_growfs /where/you/have/it/mounted`"
+
+#. type: Plain text
+msgid ""
+"While the EXT family can both grow (even online), and also shrink (only "
+"offline; you have to unmount it first). To resize an ext3 or ext4, you would "
+"point the tool not to the mount point, but to the (mounted)  block device: "
+"`resize2fs /dev/drbd#`"
+msgstr ""
+"EXT ファミリは、拡張（オンラインでも）と縮小（オフラインのみ。最初にマウント"
+"を解除する必要があります）の両方が可能です。 ext3 または ext4 のサイズを変更"
+"するには、引数にマウントポイントではなく、（マウントされた）ブロックデバイス"
+"を指定します: `resize2fs /dev/drbd#`"
+
+#. type: Plain text
+msgid ""
+"Obviously use the correct DRBD (as displayed by `mount` or `df -T`, while "
+"mounted), and *not* the backing block device.  As long as DRBD is up, that's "
+"not supposed to work anyways (`resize2fs: Device or resource busy while "
+"trying to open /dev/mapper/VG-LV Couldn't find valid filesystem superblock."
+"`).  If you tried to do that offline (with DRBD stopped), you may corrupt "
+"DRBD meta data if you ran the file system tools directly against the backing "
+"LV or partition.  So don't."
+msgstr ""
+"デバイスには DRBD デバイス（マウント中に `mount` または `df -T` で表示され"
+"る）を使用し、下位ブロックデバイスは使用しないでください。 DRBD が起動してい"
+"る限り、それは機能しないはずです（ resize2fs ではオープンしにようとするとデバ"
+"イスまたはリソースがビジーで、有効なファイルシステムのスーパーブロックが見つ"
+"かりません）。しかし、オフラインで（DRBDを停止して）実行した場合、ファイルシ"
+"ステムツールを下位 LV またはパーティションに対して直接実行すると、DRBD メタ"
+"データが破壊する可能性があります。よって決して実行しないでください。"
+
+#. type: Plain text
+msgid ""
+"You do the file system resize only *once* on the Primary, against the active "
+"DRBD device.  DRBD replicates the changes to the file system structure.  "
+"That is what you have it for."
+msgstr ""
+"ファイルシステムのサイズ変更は、アクティブな DRBD デバイスに対して、プライマ"
+"リで１回のみ行います。DRBD はファイルシステム構造への変更を複製します。"
+
+#. type: Plain text
+msgid ""
+"Also, don't use resize2fs on XFS volumes, or XFS tools on EXT, or ...  but "
+"the right tool for the file system in use."
+msgstr ""
+"また、XFS ボリュームで resize2fs を使用したり、EXT で XFS ツールを使用したり"
+"しないでください。使用中のファイルシステムに適したツールを使用してください。"
+
+#. type: Plain text
+msgid ""
+"`resize2fs: Bad magic number in super-block while trying to open /dev/drbd7` "
+"is probably just trying to tell you that this is *not* an EXT file system, "
+"and you should try an other tool instead. Maybe `xfs_growfs`? But as "
+"mentioned, that does not take the block device, but the mount point as "
+"argument."
+msgstr ""
+"resize2fs で /dev/drbd7 をオープンしたとき、スーパーブロックの不正なマジック"
+"ナンバーは、これが EXT ファイルシステムではないことを伝えているので、代わりに"
+"他のツールを試す必要があります。例えば `xfs_growfs` です。ブロックデバイスで"
+"はなく、マウントポイントを引数として取ることに注意してください。"
+
+#. type: Plain text
+msgid ""
+"When shrinking (reducing) DRBD volumes, you need to shrink from top to "
+"bottom.  So first make sure no one is using the space you want to cut off.  "
+"Next, shrink the file system (if your file system supports that).  Then tell "
+"DRBD to stop using that space, which is not so easy with DRBD internal meta "
+"data, because they are by design \"at the end\" of the backing device."
+msgstr ""
+"DRBD ボリュームを縮小する場合は、上から下に縮小する必要があります。したがっ"
+"て、最初に、切り取りたいスペースを誰も使用していないことを確認してください。"
+"次に、ファイルシステムを縮小します（ファイルシステムがサポートしている場"
+"合）。次に、DRBD にそのスペースの使用を停止するように指示します。DRBD 内部メ"
+"タデータは下位デバイスの最後にあるので、それほど簡単ではありません。"
+
+#. type: Plain text
+msgid ""
+"Once you are sure that DRBD won't use the space anymore either, you can cut "
+"it off from the backing device, for example using `lvreduce`."
+msgstr ""
+"DRBD がスペースを使用しないことが確実になったら、たとえば `lvreduce` を使用し"
+"て、下位デバイスからスペースを切り離すことができます。"
+
+#. type: Plain text
+msgid "See also <<s-shrinking-online>>, <<s-shrinking-offline>>."
+msgstr "<<s-shrinking-online>>, <<s-shrinking-offline>> も参照ください。"
 
 #. type: Title ====
 #, no-wrap
