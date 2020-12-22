@@ -464,24 +464,25 @@ etcd:
     tag: v3.4.9
 csi-snapshotter:
   enabled: true # <- enable to add k8s snapshotting CRDs and controller. Needed for CSI snapshotting
-  image: quay.io/k8scsi/snapshot-controller:v2.1.0
+  image: k8s.gcr.io/sig-storage/snapshot-controller:v3.0.2
   replicas: 1 <2>
   resources: {} # resource requirements for the cluster snapshot controller. <3>
 stork:
   enabled: true
-  storkImage: docker.io/linbit/stork:latest
+  storkImage: docker.io/openstorage/stork:2.5.0
   schedulerImage: gcr.io/google_containers/kube-scheduler-amd64
   replicas: 1 <2>
   storkResources: {} # resources requirements for the stork plugin containers <3>
   schedulerResources: {} # resource requirements for the kube-scheduler containers <3>
 csi:
   enabled: true
-  pluginImage: "drbd.io/linstor-csi:v0.9.1"
-  csiAttacherImage: quay.io/k8scsi/csi-attacher:v2.2.0
-  csiNodeDriverRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
-  csiProvisionerImage: quay.io/k8scsi/csi-provisioner:v1.6.0
-  csiSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v2.1.0
-  csiResizerImage: quay.io/k8scsi/csi-resizer:v0.5.0
+  pluginImage: "drbd.io/linstor-csi:v0.11.0"
+  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.0.2
+  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.1.0
+  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
+  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v2.0.4
+  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.2
+  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.0.1
   controllerReplicas: 1 <2>
   nodeAffinity: {} <4>
   nodeTolerations: [] <4>
@@ -495,10 +496,10 @@ linstorHttpsClientSecret: "" # <- name of secret containing linstor client certi
 controllerEndpoint: "" # <- override to the generated controller endpoint. use if controller is not deployed via operator
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
-  image: "drbd.io/linstor-operator:v1.0.0-rc1"
+  image: "drbd.io/linstor-operator:v1.3.0"
   resources: {} <3>
   controller:
-    controllerImage: "drbd.io/linstor-controller:v1.7.3"
+    controllerImage: "drbd.io/linstor-controller:v1.11.0"
     luksSecret: ""
     dbCertSecret: ""
     dbUseClientCert: false
@@ -507,16 +508,23 @@ operator:
     tolerations: [] <4>
     resources: {} <3>
   satelliteSet:
-    satelliteImage: "drbd.io/linstor-satellite:v1.7.3"
-    storagePools: null
+    satelliteImage: "drbd.io/linstor-satellite:v1.11.0"
+    storagePools: {}
     sslSecret: ""
     automaticStorageType: None
     affinity: {} <4>
     tolerations: [] <4>
     resources: {} <3>
-    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.24"
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.25"
     kernelModuleInjectionMode: ShippedModules
     kernelModuleInjectionResources: {} <3>
+haController:
+  enabled: true
+  image: drbd.io/linstor-k8s-ha-controller:v0.1.1
+  affinity: {} <4>
+  tolerations: [] <4>
+  resources: {} <3>
+  replicas: 1
 ----
 <1> Sets the pull policy for all images.
 <2> Controls the number of replicas for each component.
@@ -1149,4 +1157,91 @@ Deployment of the scheduler can be disabled using
 
 ----
 --set stork.enabled=false
+----
+
+[[s-kubernetes-ha-controller]]
+=== Fast workload fail over using the High Availability Controller
+
+The LINSTOR High Availability Controller (HA Controller) will speed up the fail over process for stateful workloads using LINSTOR for storage.
+It is deployed by default, and can be scaled to multiple replicas:
+
+[source]
+----
+$ kubectl get pods -l app.kubernetes.io/name=linstor-ha-controller
+NAME                                    READY   STATUS    RESTARTS   AGE
+linstor-ha-controller-f496c5f77-fr76m   1/1     Running   0          89s
+linstor-ha-controller-f496c5f77-jnqtc   1/1     Running   0          89s
+linstor-ha-controller-f496c5f77-zcrqg   1/1     Running   0          89s
+----
+
+In the event of node failures, Kubernetes is very conservative in rescheduling stateful workloads. This means it can
+take more than 15 minutes for Pods to be moved from unreachable nodes. With the information available to DRBD and
+LINSTOR, this process can be sped up significantly.
+
+The HA Controller enables fast fail over for:
+
+* Pods using DRBD backed PersistentVolumes. The DRBD resources must make use of the quorum functionality
+  LINSTOR will configure this automatically for volumes with 2 or more replicas in clusters with at least 3 nodes.
+* The workload does not use any external resources in a way that could lead to a conflicting state if two instances
+  try to use the external resource at the same time. While DRBD can ensure that only one instance can have write access
+  to the storage, it cannot provide the same guarantee for external resources.
+* The Pod is marked with the `linstor.csi.linbit.com/on-storage-lost: remove` label.
+
+==== Example
+
+The following StatefulSet uses the HA Controller to manage fail over of a pod.
+
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-stateful-app
+spec:
+  serviceName: my-stateful-app
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: my-stateful-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: my-stateful-app
+        linstor.csi.linbit.com/on-storage-lost: remove
+    ...
+----
+
+Deploy the set and wait for the pod to start
+
+[source]
+----
+$ kubectl get pod -o wide
+NAME                                        READY   STATUS              RESTARTS   AGE     IP                NODE                    NOMINATED NODE   READINESS GATES
+my-stateful-app-0                           1/1     Running             0          5m      172.31.0.1        node01.ha.cluster       <none>           <none>
+----
+
+Then one of the nodes becomes unreachable. Shortly after, Kubernetes will mark the node as `NotReady`
+
+[source]
+----
+$ kubectl get nodes
+NAME                    STATUS     ROLES     AGE    VERSION
+master01.ha.cluster     Ready      master    12d    v1.19.4
+master02.ha.cluster     Ready      master    12d    v1.19.4
+master03.ha.cluster     Ready      master    12d    v1.19.4
+node01.ha.cluster       NotReady   compute   12d    v1.19.4
+node02.ha.cluster       Ready      compute   12d    v1.19.4
+node03.ha.cluster       Ready      compute   12d    v1.19.4
+----
+
+After about 45 seconds, the Pod will be removed by the HA Controller and re-created by the StatefulSet
+
+----
+$ kubectl get pod -o wide
+NAME                                        READY   STATUS              RESTARTS   AGE     IP                NODE                    NOMINATED NODE   READINESS GATES
+my-stateful-app-0                           0/1     ContainerCreating   0          3s      172.31.0.1        node02.ha.cluster       <none>           <none>
+$ kubectl get events --sort-by=.metadata.creationTimestamp -w
+...
+0s          Warning   ForceDeleted              pod/my-stateful-app-0                                                                   pod deleted because a used volume is marked as failing
+0s          Warning   ForceDetached             volumeattachment/csi-d2b994ff19d526ace7059a2d8dea45146552ed078d00ed843ac8a8433c1b5f6f   volume detached because it is marked as failing
+...
 ----
