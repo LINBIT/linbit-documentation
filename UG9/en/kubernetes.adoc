@@ -435,14 +435,6 @@ NOTE: Due to the Helm's current policy, the Custom Resource Definitions named Li
 More information regarding Helm's current position on CRD's can be found
 https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-1-let-helm-do-it-for-you[here].
 
-[[s-kubernetes-upgrades]]
-==== Upgrades from older deployments
-
-If you are already running a previous version (before v1.0.0) of `linstor-operator`, you
-need to follow the https://github.com/piraeusdatastore/piraeus-operator/blob/master/UPGRADE.md#upgrade-to-v1.0[upstream guide].
-We tried to stay compatible and lower the burden of upgrading as much as possible, but some
-manual steps may still be required.
-
 [[s-kubernetes-advanced-deployments]]
 ==== Advanced deployment options
 
@@ -452,6 +444,7 @@ The helm charts provide a set of further customization options for advanced use 
 ----
 global:
   imagePullPolicy: IfNotPresent # empty pull policy means k8s default is used ("always" if tag == ":latest", "ifnotpresent" else) <1>
+  setSecurityContext: true # Force non-privileged containers to run as non-root users
 # Dependency charts
 etcd:
   persistentVolume:
@@ -470,10 +463,12 @@ csi-snapshotter:
 stork:
   enabled: true
   storkImage: docker.io/openstorage/stork:2.5.0
-  schedulerImage: gcr.io/google_containers/kube-scheduler-amd64
+  schedulerImage: k8s.gcr.io/kube-scheduler-amd64
+  schedulerTag: ""
   replicas: 1 <2>
   storkResources: {} # resources requirements for the stork plugin containers <3>
   schedulerResources: {} # resource requirements for the kube-scheduler containers <3>
+  podsecuritycontext: {}
 csi:
   enabled: true
   pluginImage: "drbd.io/linstor-csi:v0.11.0"
@@ -488,43 +483,56 @@ csi:
   nodeTolerations: [] <4>
   controllerAffinity: {} <4>
   controllerTolerations: [] <4>
+  enableTopology: false
   resources: {} <3>
 priorityClassName: ""
-drbdRepoCred: drbdiocred # <- Specify the kubernetes secret name here
+drbdRepoCred: drbdiocred
 linstorHttpsControllerSecret: "" # <- name of secret containing linstor server certificates+key.
 linstorHttpsClientSecret: "" # <- name of secret containing linstor client certificates+key.
 controllerEndpoint: "" # <- override to the generated controller endpoint. use if controller is not deployed via operator
+psp:
+  privilegedRole: ""
+  unprivilegedRole: ""
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
-  image: "drbd.io/linstor-operator:v1.3.0"
+  image: "drbd.io/linstor-operator:v1.3.1"
+  affinity: {} <4>
+  tolerations: [] <4>
   resources: {} <3>
+  podsecuritycontext: {}
   controller:
-    controllerImage: "drbd.io/linstor-controller:v1.11.0"
+    enabled: true
+    controllerImage: "drbd.io/linstor-controller:v1.11.1"
     luksSecret: ""
     dbCertSecret: ""
     dbUseClientCert: false
     sslSecret: ""
     affinity: {} <4>
-    tolerations: [] <4>
+    tolerations: <4>
+      - key: node-role.kubernetes.io/master
+        operator: "Exists"
+        effect: "NoSchedule"
     resources: {} <3>
+    replicas: 1 <2>
   satelliteSet:
-    satelliteImage: "drbd.io/linstor-satellite:v1.11.0"
+    enabled: true
+    satelliteImage: "drbd.io/linstor-satellite:v1.11.1"
     storagePools: {}
     sslSecret: ""
     automaticStorageType: None
     affinity: {} <4>
     tolerations: [] <4>
     resources: {} <3>
-    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.25"
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.27"
     kernelModuleInjectionMode: ShippedModules
     kernelModuleInjectionResources: {} <3>
 haController:
   enabled: true
-  image: drbd.io/linstor-k8s-ha-controller:v0.1.1
+  image: drbd.io/linstor-k8s-ha-controller:v0.1.3
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
-  replicas: 1
+  replicas: 1 <2>
 ----
 <1> Sets the pull policy for all images.
 <2> Controls the number of replicas for each component.
