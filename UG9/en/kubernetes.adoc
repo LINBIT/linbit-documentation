@@ -5,6 +5,13 @@ indexterm:[Kubernetes]This chapter describes the usage of LINSTOR in Kubernetes
 as managed by the operator and with volumes provisioned using the
 https://github.com/LINBIT/linstor-csi[LINSTOR CSI plugin].
 
+This Chapter goes into great detail regarding all the install time
+options and various configurations possible with LINSTOR and
+Kubernetes. For those more interested in a "quick-start" for testing,
+or those looking for some examples for reference. We have some
+complete <<Helm Install Examples>> of a few common uses near the end
+of the chapter.
+
 [[s-kubernetes-overview]]
 === Kubernetes Overview
 
@@ -395,6 +402,53 @@ On install, add the following arguments to the helm command:
 ----
 --set operator.controller.luksSecret=linstor-pass
 ----
+
+===== Helm Install Examples
+
+Default install. Please note this does not setup any persistence for
+the backing Etcd keyvalue store.
+
+This is not suggested for any use
+outside of testing.
+
+-----
+kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>
+helm repo add linstor https://charts.linstor.io
+helm install linstor-op linstor/linstor
+-----
+
+Install with LINSTOR storage-pools defined at install via
+`sp-values.yaml`, persistent hostPath volumes, 3 Etcd replicas, and by
+compiling the DRBD kernel modules for the host kernels.
+
+This should be adequate for most basic deployments. Please note that
+this deployment is not using the pre-compiled DRBD kernel modules just
+to make this command more portable. Using the pre-compiled binaries
+will make for a much faster install and deployment. Using the
+`Compile` option would not be suggested for use in a large Kubernetes clusters.
+
+-----
+kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>
+helm repo add linstor https://charts.linstor.io
+helm install linstor-etcd linstor/pv-hostpath --set "nodes={<NODE0>,<NODE1>,<NODE2>}"
+helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.replicas=3 --set operator.satelliteSet.kernelModuleInjectionMode=Compile
+-----
+
+Install with LINSTOR storage-pools defined at install via
+`sp-values.yaml`, use an already created postgres DB (preferably
+clustered), instead of etcd, and use already compiled kernel modules for
+DRBD. Additionally, we'll disable the stork scheduler in this example.
+
+The Postgres database in this particular example is reachable via a
+service endpoint named `postgres`. Postgres itself is configured with
+`POSTGRES_DB=postgresdb`, `POSTGRES_USER=postgresadmin`, and
+`POSTGRES_PASSWORD=admin123` 
+
+-----
+kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>
+helm repo add linstor https://charts.linstor.io
+helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.enabled=false --set "operator.controller.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123" --set stork.enabled=false
+-----
 
 [[s-kubernetes-helm-terminate]]
 ===== Terminating Helm deployment
