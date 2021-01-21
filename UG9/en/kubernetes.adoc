@@ -405,14 +405,30 @@ On install, add the following arguments to the helm command:
 
 ===== Helm Install Examples
 
+All the below examples use the following `sp-values.yaml` file. Feel
+free to adjust this for your uses and environment. See <<Preparing
+physical devices>> for further details.
+
+-----
+operator:
+  satelliteSet:
+    storagePools:
+      lvmThinPools:
+      - name: lvm-thin
+        thinVolume: thinpool
+        volumeGroup: ""
+        devicePaths:
+        - /dev/sdb
+----- 
+
 Default install. Please note this does not setup any persistence for
 the backing Etcd keyvalue store.
 
-This is not suggested for any use
+WARNING: This is not suggested for any use
 outside of testing.
 
 -----
-kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>
+kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-password=<YOUR_PASSWORD>
 helm repo add linstor https://charts.linstor.io
 helm install linstor-op linstor/linstor
 -----
@@ -428,16 +444,16 @@ will make for a much faster install and deployment. Using the
 `Compile` option would not be suggested for use in a large Kubernetes clusters.
 
 -----
-kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>
+kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-password=<YOUR_PASSWORD>
 helm repo add linstor https://charts.linstor.io
 helm install linstor-etcd linstor/pv-hostpath --set "nodes={<NODE0>,<NODE1>,<NODE2>}"
 helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.replicas=3 --set operator.satelliteSet.kernelModuleInjectionMode=Compile
 -----
 
 Install with LINSTOR storage-pools defined at install via
-`sp-values.yaml`, use an already created postgres DB (preferably
+`sp-values.yaml`, use an already created Postgres DB (preferably
 clustered), instead of etcd, and use already compiled kernel modules for
-DRBD. Additionally, we'll disable the stork scheduler in this example.
+DRBD. Additionally, we'll disable the Stork scheduler in this example.
 
 The Postgres database in this particular example is reachable via a
 service endpoint named `postgres`. Postgres itself is configured with
