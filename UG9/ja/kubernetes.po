@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-12-19 10:19+0900\n"
+"POT-Creation-Date: 2021-02-04 19:21+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,6 +29,19 @@ msgstr ""
 "indexterm:[Kubernetes] この章では、オペレーターによって管理され、 https://"
 "github.com/LINBIT/linstor-csi[LINSTOR CSI plugin] を使用してプロビジョニング"
 "された KubernetesのLINSTORボリュームについて説明します。"
+
+#. type: Plain text
+msgid ""
+"This Chapter goes into great detail regarding all the install time options "
+"and various configurations possible with LINSTOR and Kubernetes. For those "
+"more interested in a \"quick-start\" for testing, or those looking for some "
+"examples for reference. We have some complete <<Helm Install Examples>> of a "
+"few common uses near the end of the chapter."
+msgstr ""
+"この章では、LINSTOR と Kubernetes で可能なすべてのインストールオプションとさ"
+"まざまな構成について詳しく説明します。テスト目的で「クイックスタート」に興味"
+"がある方、または参照用の例を探している方は、この章の終わり近くに <Helm インス"
+"トール例>> を参照ください。"
 
 #. type: Title ===
 #, no-wrap
@@ -329,7 +342,7 @@ msgid ""
 "    lvmThinPools:\n"
 "    - name: lvm-thin\n"
 "      thinVolume: thinpool\n"
-"      volumeGroup: drbdpool\n"
+"      volumeGroup: \"\"\n"
 "    zfsPools:\n"
 "    - name: my-linstor-zpool\n"
 "      zPool: for-linstor\n"
@@ -348,7 +361,7 @@ msgstr ""
 "    lvmThinPools:\n"
 "    - name: lvm-thin\n"
 "      thinVolume: thinpool\n"
-"      volumeGroup: drbdpool\n"
+"      volumeGroup: \"\"\n"
 "    zfsPools:\n"
 "    - name: my-linstor-zpool\n"
 "      zPool: for-linstor\n"
@@ -998,6 +1011,139 @@ msgstr "--set operator.controller.luksSecret=linstor-pass\n"
 
 #. type: Title =====
 #, no-wrap
+msgid "Helm Install Examples"
+msgstr "Helm インストール例"
+
+#. type: Plain text
+msgid ""
+"All the below examples use the following `sp-values.yaml` file. Feel free to "
+"adjust this for your uses and environment. See <<Configuring storage pool "
+"creation>> for further details."
+msgstr ""
+"以下のすべての例では、次の `sp-values.yaml` ファイルを使用しています。用途や"
+"環境に合わせて調整してください。詳細は <ストレージプール作成の構成> を参照く"
+"ださい。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"operator:\n"
+"  satelliteSet:\n"
+"    storagePools:\n"
+"      lvmThinPools:\n"
+"      - name: lvm-thin\n"
+"        thinVolume: thinpool\n"
+"        volumeGroup: \"\"\n"
+"        devicePaths:\n"
+"        - /dev/sdb\n"
+msgstr ""
+"operator:\n"
+"  satelliteSet:\n"
+"    storagePools:\n"
+"      lvmThinPools:\n"
+"      - name: lvm-thin\n"
+"        thinVolume: thinpool\n"
+"        volumeGroup: \"\"\n"
+"        devicePaths:\n"
+"        - /dev/sdb\n"
+
+#. type: Plain text
+msgid ""
+"Default install. Please note this does not setup any persistence for the "
+"backing etcd keyvalue store."
+msgstr ""
+"デフォルトのインストールです。これにより etcd KeyValue ストアの設定はされない"
+"ことに注意してください。"
+
+#. type: Plain text
+msgid "This is not suggested for any use outside of testing."
+msgstr "警告：これは、テスト以外での使用は推奨されていません。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-password=<YOUR_PASSWORD>\n"
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-op linstor/linstor\n"
+msgstr ""
+"kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-password=<YOUR_PASSWORD>\n"
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-op linstor/linstor\n"
+
+#. type: Plain text
+msgid ""
+"Install with LINSTOR storage-pools defined at install via `sp-values.yaml`, "
+"persistent hostPath volumes, 3 etcd replicas, and by compiling the DRBD "
+"kernel modules for the host kernels."
+msgstr ""
+"`sp-values.yaml` で定義された LINSTOR storage-pools, 永続的な hostPath ボ"
+"リューム, 3 つの etcd レプリカ, ホストカーネル用にコンパイルされた DRBD カー"
+"ネルモジュールを使用してインストールします。"
+
+#. type: Plain text
+msgid ""
+"This should be adequate for most basic deployments. Please note that this "
+"deployment is not using the pre-compiled DRBD kernel modules just to make "
+"this command more portable. Using the pre-compiled binaries will make for a "
+"much faster install and deployment. Using the `Compile` option would not be "
+"suggested for use in a large Kubernetes clusters."
+msgstr ""
+"これは、ほとんどの基本的なデプロイメントに適しています。このデプロイメントで"
+"は、コマンドの移植性を高めるために、コンパイル済みの DRBD カーネルモジュール"
+"を使用していないことに注意してください。コンパイル済みのバイナリを使用する"
+"と、インストールとデプロイメントは速くなります。大規模な Kubernetes クラス"
+"ターでの使用には、 `Compile`  オプションの使用は推奨されません。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-password=<YOUR_PASSWORD>\n"
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-etcd linstor/pv-hostpath --set \"nodes={<NODE0>,<NODE1>,<NODE2>}\"\n"
+"helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.replicas=3 --set operator.satelliteSet.kernelModuleInjectionMode=Compile\n"
+msgstr ""
+"kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-password=<YOUR_PASSWORD>\n"
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install linstor-etcd linstor/pv-hostpath --set \"nodes={<NODE0>,<NODE1>,<NODE2>}\"\n"
+"helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.replicas=3 --set operator.satelliteSet.kernelModuleInjectionMode=Compile\n"
+
+#. type: Plain text
+msgid ""
+"Install with LINSTOR storage-pools defined at install via `sp-values.yaml`, "
+"use an already created Postgres DB (preferably clustered), instead of etcd, "
+"and use already compiled kernel modules for DRBD. Additionally, we'll "
+"disable the Stork scheduler in this example."
+msgstr ""
+"`sp-values.yaml` で定義された LINSTOR storage-pools, etcd の代わりに作成済み"
+"の Postgres DB（できればクラスター化）, DRBD 用にコンパイル済みのカーネルモ"
+"ジュールを使用してインストールします。さらに、この例では Stork スケジューラー"
+"を無効にします。"
+
+#. type: Plain text
+msgid ""
+"The Postgres database in this particular example is reachable via a service "
+"endpoint named `postgres`. Postgres itself is configured with "
+"`POSTGRES_DB=postgresdb`, `POSTGRES_USER=postgresadmin`, and "
+"`POSTGRES_PASSWORD=admin123`"
+msgstr ""
+"この例の Postgres データベースは `postgres` という名前のサービスエンドポイン"
+"トでアクセスできます。Postgres 自体は `POSTGRES_DB = postgresdb`, "
+"`POSTGRES_USER = postgresadmin`, および `POSTGRES_PASSWORD = admin123` で構成"
+"されます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>\n"
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.enabled=false --set \"operator.controller.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123\" --set stork.enabled=false\n"
+msgstr ""
+"kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>\n"
+"helm repo add linstor https://charts.linstor.io\n"
+"helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.enabled=false --set \"operator.controller.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123\" --set stork.enabled=false\n"
+
+#. type: Title =====
+#, no-wrap
 msgid "Terminating Helm deployment"
 msgstr "Helm デプロイメントの終了"
 
@@ -1050,9 +1196,9 @@ msgid ""
 "LinstorSatelliteSet and LinstorController resources. You can delete the "
 "resources associated with your deployment using kubectl"
 msgstr ""
-"LINSTOR サテライトとコントローラーのデプロイメントは、linstornodeset リソース"
-"と LinstorSatelliteSet リソースによって制御されます。kubectl を使用して、デプ"
-"ロイメントに関連付けられているリソースを削除できます。"
+"LINSTOR サテライトとコントローラーのデプロイメントは、LinstorSatelliteSet リ"
+"ソースと LinstorController リソースによって制御されます。kubectl を使用して、"
+"デプロイメントに関連付けられているリソースを削除できます。"
 
 #. type: delimited block -
 #, no-wrap
@@ -1075,7 +1221,7 @@ msgstr ""
 
 #. type: Plain text
 msgid "Delete the Helm deployment."
-msgstr "Helm デプロイメントの削除"
+msgstr "Helm デプロイメントの終了"
 
 #. type: Plain text
 msgid ""
@@ -1106,25 +1252,6 @@ msgstr ""
 
 #. type: Title ====
 #, no-wrap
-msgid "Upgrades from older deployments"
-msgstr "以前のバージョンからのアップグレード"
-
-#. type: Plain text
-msgid ""
-"If you are already running a previous version (before v1.0.0) of `linstor-"
-"operator`, you need to follow the https://github.com/piraeusdatastore/"
-"piraeus-operator/blob/master/UPGRADE.md#upgrade-to-v1.0[upstream guide].  We "
-"tried to stay compatible and lower the burden of upgrading as much as "
-"possible, but some manual steps may still be required."
-msgstr ""
-"`linstor-operator` の以前のバージョン（v1.0.0より前）を既に実行している場合"
-"は、 https://github.com/piraeusdatastore/piraeus-operator/blob/master/"
-"UPGRADE.md#upgrade-to-v1.0[upstream guide] に従う必要があります。互換性を維持"
-"し、アップグレードの負担をできる限り軽減するように努めましたが、いくつかの手"
-"動の手順が依然として必要な場合があります。"
-
-#. type: Title ====
-#, no-wrap
 msgid "Advanced deployment options"
 msgstr "高度なデプロイメントオプション"
 
@@ -1139,6 +1266,7 @@ msgstr "helm チャートは、より高度な使用のための追加オプシ�
 msgid ""
 "global:\n"
 "  imagePullPolicy: IfNotPresent # empty pull policy means k8s default is used (\"always\" if tag == \":latest\", \"ifnotpresent\" else) <1>\n"
+"  setSecurityContext: true # Force non-privileged containers to run as non-root users\n"
 "# Dependency charts\n"
 "etcd:\n"
 "  persistentVolume:\n"
@@ -1151,62 +1279,86 @@ msgid ""
 "    tag: v3.4.9\n"
 "csi-snapshotter:\n"
 "  enabled: true # <- enable to add k8s snapshotting CRDs and controller. Needed for CSI snapshotting\n"
-"  image: quay.io/k8scsi/snapshot-controller:v2.1.0\n"
+"  image: k8s.gcr.io/sig-storage/snapshot-controller:v3.0.2\n"
 "  replicas: 1 <2>\n"
 "  resources: {} # resource requirements for the cluster snapshot controller. <3>\n"
 "stork:\n"
 "  enabled: true\n"
-"  storkImage: docker.io/linbit/stork:latest\n"
-"  schedulerImage: gcr.io/google_containers/kube-scheduler-amd64\n"
+"  storkImage: docker.io/openstorage/stork:2.5.0\n"
+"  schedulerImage: k8s.gcr.io/kube-scheduler-amd64\n"
+"  schedulerTag: \"\"\n"
 "  replicas: 1 <2>\n"
 "  storkResources: {} # resources requirements for the stork plugin containers <3>\n"
 "  schedulerResources: {} # resource requirements for the kube-scheduler containers <3>\n"
+"  podsecuritycontext: {}\n"
 "csi:\n"
 "  enabled: true\n"
-"  pluginImage: \"drbd.io/linstor-csi:v0.9.1\"\n"
-"  csiAttacherImage: quay.io/k8scsi/csi-attacher:v2.2.0\n"
-"  csiNodeDriverRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0\n"
-"  csiProvisionerImage: quay.io/k8scsi/csi-provisioner:v1.6.0\n"
-"  csiSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v2.1.0\n"
-"  csiResizerImage: quay.io/k8scsi/csi-resizer:v0.5.0\n"
+"  pluginImage: \"drbd.io/linstor-csi:v0.11.0\"\n"
+"  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.0.2\n"
+"  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.1.0\n"
+"  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1\n"
+"  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v2.0.4\n"
+"  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.2\n"
+"  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.0.1\n"
 "  controllerReplicas: 1 <2>\n"
 "  nodeAffinity: {} <4>\n"
 "  nodeTolerations: [] <4>\n"
 "  controllerAffinity: {} <4>\n"
 "  controllerTolerations: [] <4>\n"
+"  enableTopology: false\n"
 "  resources: {} <3>\n"
 "priorityClassName: \"\"\n"
-"drbdRepoCred: drbdiocred # <- Specify the kubernetes secret name here\n"
+"drbdRepoCred: drbdiocred\n"
 "linstorHttpsControllerSecret: \"\" # <- name of secret containing linstor server certificates+key.\n"
 "linstorHttpsClientSecret: \"\" # <- name of secret containing linstor client certificates+key.\n"
 "controllerEndpoint: \"\" # <- override to the generated controller endpoint. use if controller is not deployed via operator\n"
+"psp:\n"
+"  privilegedRole: \"\"\n"
+"  unprivilegedRole: \"\"\n"
 "operator:\n"
 "  replicas: 1 # <- number of replicas for the operator deployment <2>\n"
-"  image: \"drbd.io/linstor-operator:v1.0.0-rc1\"\n"
+"  image: \"drbd.io/linstor-operator:v1.3.1\"\n"
+"  affinity: {} <4>\n"
+"  tolerations: [] <4>\n"
 "  resources: {} <3>\n"
+"  podsecuritycontext: {}\n"
 "  controller:\n"
-"    controllerImage: \"drbd.io/linstor-controller:v1.7.3\"\n"
+"    enabled: true\n"
+"    controllerImage: \"drbd.io/linstor-controller:v1.11.1\"\n"
 "    luksSecret: \"\"\n"
 "    dbCertSecret: \"\"\n"
 "    dbUseClientCert: false\n"
 "    sslSecret: \"\"\n"
 "    affinity: {} <4>\n"
-"    tolerations: [] <4>\n"
+"    tolerations: <4>\n"
+"      - key: node-role.kubernetes.io/master\n"
+"        operator: \"Exists\"\n"
+"        effect: \"NoSchedule\"\n"
 "    resources: {} <3>\n"
+"    replicas: 1 <2>\n"
 "  satelliteSet:\n"
-"    satelliteImage: \"drbd.io/linstor-satellite:v1.7.3\"\n"
-"    storagePools: null\n"
+"    enabled: true\n"
+"    satelliteImage: \"drbd.io/linstor-satellite:v1.11.1\"\n"
+"    storagePools: {}\n"
 "    sslSecret: \"\"\n"
 "    automaticStorageType: None\n"
 "    affinity: {} <4>\n"
 "    tolerations: [] <4>\n"
 "    resources: {} <3>\n"
-"    kernelModuleInjectionImage: \"drbd.io/drbd9-rhel7:v9.0.24\"\n"
+"    kernelModuleInjectionImage: \"drbd.io/drbd9-rhel7:v9.0.27\"\n"
 "    kernelModuleInjectionMode: ShippedModules\n"
 "    kernelModuleInjectionResources: {} <3>\n"
+"haController:\n"
+"  enabled: true\n"
+"  image: drbd.io/linstor-k8s-ha-controller:v0.1.3\n"
+"  affinity: {} <4>\n"
+"  tolerations: [] <4>\n"
+"  resources: {} <3>\n"
+"  replicas: 1 <2>\n"
 msgstr ""
 "global:\n"
 "  imagePullPolicy: IfNotPresent # empty pull policy means k8s default is used (\"always\" if tag == \":latest\", \"ifnotpresent\" else) <1>\n"
+"  setSecurityContext: true # Force non-privileged containers to run as non-root users\n"
 "# Dependency charts\n"
 "etcd:\n"
 "  persistentVolume:\n"
@@ -1219,59 +1371,82 @@ msgstr ""
 "    tag: v3.4.9\n"
 "csi-snapshotter:\n"
 "  enabled: true # <- enable to add k8s snapshotting CRDs and controller. Needed for CSI snapshotting\n"
-"  image: quay.io/k8scsi/snapshot-controller:v2.1.0\n"
+"  image: k8s.gcr.io/sig-storage/snapshot-controller:v3.0.2\n"
 "  replicas: 1 <2>\n"
 "  resources: {} # resource requirements for the cluster snapshot controller. <3>\n"
 "stork:\n"
 "  enabled: true\n"
-"  storkImage: docker.io/linbit/stork:latest\n"
-"  schedulerImage: gcr.io/google_containers/kube-scheduler-amd64\n"
+"  storkImage: docker.io/openstorage/stork:2.5.0\n"
+"  schedulerImage: k8s.gcr.io/kube-scheduler-amd64\n"
+"  schedulerTag: \"\"\n"
 "  replicas: 1 <2>\n"
 "  storkResources: {} # resources requirements for the stork plugin containers <3>\n"
 "  schedulerResources: {} # resource requirements for the kube-scheduler containers <3>\n"
+"  podsecuritycontext: {}\n"
 "csi:\n"
 "  enabled: true\n"
-"  pluginImage: \"drbd.io/linstor-csi:v0.9.1\"\n"
-"  csiAttacherImage: quay.io/k8scsi/csi-attacher:v2.2.0\n"
-"  csiNodeDriverRegistrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0\n"
-"  csiProvisionerImage: quay.io/k8scsi/csi-provisioner:v1.6.0\n"
-"  csiSnapshotterImage: quay.io/k8scsi/csi-snapshotter:v2.1.0\n"
-"  csiResizerImage: quay.io/k8scsi/csi-resizer:v0.5.0\n"
+"  pluginImage: \"drbd.io/linstor-csi:v0.11.0\"\n"
+"  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.0.2\n"
+"  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.1.0\n"
+"  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1\n"
+"  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v2.0.4\n"
+"  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.2\n"
+"  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.0.1\n"
 "  controllerReplicas: 1 <2>\n"
 "  nodeAffinity: {} <4>\n"
 "  nodeTolerations: [] <4>\n"
 "  controllerAffinity: {} <4>\n"
 "  controllerTolerations: [] <4>\n"
+"  enableTopology: false\n"
 "  resources: {} <3>\n"
 "priorityClassName: \"\"\n"
-"drbdRepoCred: drbdiocred # <- Specify the kubernetes secret name here\n"
+"drbdRepoCred: drbdiocred\n"
 "linstorHttpsControllerSecret: \"\" # <- name of secret containing linstor server certificates+key.\n"
 "linstorHttpsClientSecret: \"\" # <- name of secret containing linstor client certificates+key.\n"
 "controllerEndpoint: \"\" # <- override to the generated controller endpoint. use if controller is not deployed via operator\n"
+"psp:\n"
+"  privilegedRole: \"\"\n"
+"  unprivilegedRole: \"\"\n"
 "operator:\n"
 "  replicas: 1 # <- number of replicas for the operator deployment <2>\n"
-"  image: \"drbd.io/linstor-operator:v1.0.0-rc1\"\n"
+"  image: \"drbd.io/linstor-operator:v1.3.1\"\n"
+"  affinity: {} <4>\n"
+"  tolerations: [] <4>\n"
 "  resources: {} <3>\n"
+"  podsecuritycontext: {}\n"
 "  controller:\n"
-"    controllerImage: \"drbd.io/linstor-controller:v1.7.3\"\n"
+"    enabled: true\n"
+"    controllerImage: \"drbd.io/linstor-controller:v1.11.1\"\n"
 "    luksSecret: \"\"\n"
 "    dbCertSecret: \"\"\n"
 "    dbUseClientCert: false\n"
 "    sslSecret: \"\"\n"
 "    affinity: {} <4>\n"
-"    tolerations: [] <4>\n"
+"    tolerations: <4>\n"
+"      - key: node-role.kubernetes.io/master\n"
+"        operator: \"Exists\"\n"
+"        effect: \"NoSchedule\"\n"
 "    resources: {} <3>\n"
+"    replicas: 1 <2>\n"
 "  satelliteSet:\n"
-"    satelliteImage: \"drbd.io/linstor-satellite:v1.7.3\"\n"
-"    storagePools: null\n"
+"    enabled: true\n"
+"    satelliteImage: \"drbd.io/linstor-satellite:v1.11.1\"\n"
+"    storagePools: {}\n"
 "    sslSecret: \"\"\n"
 "    automaticStorageType: None\n"
 "    affinity: {} <4>\n"
 "    tolerations: [] <4>\n"
 "    resources: {} <3>\n"
-"    kernelModuleInjectionImage: \"drbd.io/drbd9-rhel7:v9.0.24\"\n"
+"    kernelModuleInjectionImage: \"drbd.io/drbd9-rhel7:v9.0.27\"\n"
 "    kernelModuleInjectionMode: ShippedModules\n"
 "    kernelModuleInjectionResources: {} <3>\n"
+"haController:\n"
+"  enabled: true\n"
+"  image: drbd.io/linstor-k8s-ha-controller:v0.1.3\n"
+"  affinity: {} <4>\n"
+"  tolerations: [] <4>\n"
+"  resources: {} <3>\n"
+"  replicas: 1 <2>\n"
 
 #. type: Plain text
 msgid "Sets the pull policy for all images."
@@ -1820,6 +1995,616 @@ msgstr "kubectl get pod -w # podがアンスケジュールされるまで待つ
 msgid "kubectl delete pvc my-first-linstor-volume # remove the PersistentVolumeClaim, the PersistentVolume, and the LINSTOR Volume.\n"
 msgstr "kubectl delete pvc my-first-linstor-volume # PersistentVolumeClaim、PersistentVolume、Linstorボリュームを削除する。\n"
 
+#. type: Title ====
+#, no-wrap
+msgid "Available parameters in a StorageClass"
+msgstr "StorageClass で使用可能なパラメータ"
+
+#. type: Plain text
+msgid ""
+"The following storage class contains all currently available parameters to "
+"configure the provisioned storage"
+msgstr ""
+"次のストレージクラスには、プロビジョニングされたストレージを構成するために現"
+"在使用可能なすべてのパラメーターが含まれています。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"apiVersion: storage.k8s.io/v1\n"
+"kind: StorageClass\n"
+"metadata:\n"
+"  name: full-example\n"
+"provisioner: linstor.csi.linbit.com\n"
+"parameters:\n"
+"  # CSI related parameters\n"
+"  csi.storage.k8s.io/fstype: xfs\n"
+"  # LINSTOR parameters\n"
+"  autoPlace: \"2\"\n"
+"  placementCount: \"2\"\n"
+"  resourceGroup: \"full-example\"\n"
+"  storagePool: \"my-storage-pool\"\n"
+"  disklessStoragePool: \"DfltDisklessStorPool\"\n"
+"  layerList: \"drbd,storage\"\n"
+"  placementPolicy: \"AutoPlace\"\n"
+"  allowRemoteVolumeAccess: \"true\"\n"
+"  encryption: \"true\"\n"
+"  nodeList: \"diskful-a,diskful-b\"\n"
+"  clientList: \"diskless-a,diskless-b\"\n"
+"  replicasOnSame: \"zone=a\"\n"
+"  replicasOnDifferent: \"rack\"\n"
+"  disklessOnRemaining: \"false\"\n"
+"  doNotPlaceWithRegex: \"tainted.*\"\n"
+"  fsOpts: \"nodiscard\"\n"
+"  mountOpts: \"noatime\"\n"
+"  postMountXfsOpts: \"extsize 2m\"\n"
+"  # DRBD parameters\n"
+"  DrbdOptions/*: <x>\n"
+msgstr ""
+"apiVersion: storage.k8s.io/v1\n"
+"kind: StorageClass\n"
+"metadata:\n"
+"  name: full-example\n"
+"provisioner: linstor.csi.linbit.com\n"
+"parameters:\n"
+"  # CSI related parameters\n"
+"  csi.storage.k8s.io/fstype: xfs\n"
+"  # LINSTOR parameters\n"
+"  autoPlace: \"2\"\n"
+"  placementCount: \"2\"\n"
+"  resourceGroup: \"full-example\"\n"
+"  storagePool: \"my-storage-pool\"\n"
+"  disklessStoragePool: \"DfltDisklessStorPool\"\n"
+"  layerList: \"drbd,storage\"\n"
+"  placementPolicy: \"AutoPlace\"\n"
+"  allowRemoteVolumeAccess: \"true\"\n"
+"  encryption: \"true\"\n"
+"  nodeList: \"diskful-a,diskful-b\"\n"
+"  clientList: \"diskless-a,diskless-b\"\n"
+"  replicasOnSame: \"zone=a\"\n"
+"  replicasOnDifferent: \"rack\"\n"
+"  disklessOnRemaining: \"false\"\n"
+"  doNotPlaceWithRegex: \"tainted.*\"\n"
+"  fsOpts: \"nodiscard\"\n"
+"  mountOpts: \"noatime\"\n"
+"  postMountXfsOpts: \"extsize 2m\"\n"
+"  # DRBD parameters\n"
+"  DrbdOptions/*: <x>\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "csi.storage.k8s.io/fstype"
+msgstr "csi.storage.k8s.io/fstype"
+
+#. type: Plain text
+msgid ""
+"Sets the file system type to create for `volumeMode: FileSystem` PVCs. "
+"Currently supported are:"
+msgstr ""
+"`volumeMode: FileSystem` PVC 用に作成するファイルシステムタイプを設定します。"
+"現在サポートされているのは次のとおりです。"
+
+#. type: Plain text
+msgid "`ext4` (default)"
+msgstr "`ext4` (デフォルト)"
+
+#. type: Plain text
+msgid "`xfs`"
+msgstr "`xfs`"
+
+#. type: Title ====
+#, no-wrap
+msgid "autoPlace"
+msgstr "autoPlace"
+
+#. type: Plain text
+msgid ""
+"`autoPlace` is an integer that determines the amount of replicas a volume of "
+"this _StorageClass_ will have.  For instance, `autoPlace: \"3\"` will "
+"produce volumes with three-way replication. If neither `autoPlace` nor "
+"`nodeList` are set, volumes will be <<s-autoplace-linstor,automatically "
+"placed>> on one node."
+msgstr ""
+"`autoPlace` はこの _StorageClass_ が持つボリュームの複製数を指定します。例え"
+"ば、 `autoPlace: \"3\"` は３つの複製をもつボリュームを生成します。 "
+"`autoPlace` または `nodeList` が指定されていない場合は、１つのノード上にボ"
+"リュームが生成されます。<<s-autoplace-linstor,自動配備>> を参照ください。"
+
+#. type: Plain text
+msgid ""
+"If you use this option, you must not use <<s-kubernetes-nodelist,nodeList>>."
+msgstr ""
+"このオプションを使用する場合は、 <<s-kubernetes-nodelist,nodeList>> を使用し"
+"ないでください。"
+
+#. type: Plain text
+msgid ""
+"You have to use quotes, otherwise Kubernetes will complain about a malformed "
+"_StorageClass_."
+msgstr ""
+"引用符を使用する必要があります。そうしないと、Kubernetes は不正な形式の "
+"_StorageClass_ について文句を言います。"
+
+#. type: Plain text
+msgid ""
+"This option (and all options which affect autoplacement behavior) modifies "
+"the number of LINSTOR nodes on which the underlying storage for volumes will "
+"be provisioned and is orthogonal to which _kubelets_ those volumes will be "
+"accessible from."
+msgstr ""
+"このオプション（および自動配置の動作に影響を与えるすべてのオプション）は、ボ"
+"リューム用のストレージがプロビジョニングされるLINSTORノードの数を変更し、 "
+"_kubelets_ からこれらのボリュームにアクセスできるようにします。"
+
+#. type: Title ====
+#, no-wrap
+msgid "placementCount"
+msgstr "placementCount"
+
+#. type: Plain text
+msgid "`placementCount` is an alias for <<s-kubernetes-autoplace,`autoPlace`>>"
+msgstr ""
+"`placementCount` は <<s-kubernetes-autoplace,`autoPlace`>> のエイリアスです。"
+
+#. type: Title ====
+#, no-wrap
+msgid "resourceGroup"
+msgstr "resourceGroup"
+
+#. type: Plain text
+msgid ""
+"The <<s-linstor-resource-groups, LINSTOR Resource Group (RG)>> to associate "
+"with this StorageClass. If not set, a new RG will be created for each new "
+"PVC."
+msgstr ""
+"この StorageClass に関連付けられた <<s-linstor-resource-groups, LINSTOR "
+"Resource Group (RG)>> 。設定されていない場合、新しい PVC ごとに新しい RG が作"
+"成されます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "storagePool"
+msgstr "storagePool"
+
+#. type: Plain text
+msgid ""
+"`storagePool` is the name of the LINSTOR <<s-storage_pools,storage pool>> "
+"that will be used to provide storage to the newly-created volumes."
+msgstr ""
+"`storagePool` は LINSTOR <<s-storage_pools,ストレージプール>> の名前で、新規"
+"に作成されたボリュームにストレージを供給するときに使用されます。"
+
+#. type: Plain text
+msgid ""
+"Only nodes configured with this same _storage pool_ with be considered for "
+"<<s-kubernetes-autoplace,autoplacement>>. Likewise, for _StorageClasses_ "
+"using <<s-kubernetes-nodelist,nodeList>> all nodes specified in that list "
+"must have this _storage pool_ configured on them."
+msgstr ""
+"これと同じ _storage pool_ で構成されたノードのみが <<s-kubernetes-autoplace,"
+"autoplacement>> に使用されます。同様に <<s-kubernetes-nodelist,nodeList>> を"
+"使う _StorageClasses_ ではそのリストで指定されたすべてのノードが _storage "
+"pool_ を構成している必要があります。"
+
+#. type: Title ====
+#, no-wrap
+msgid "disklessStoragePool"
+msgstr "disklessStoragePool"
+
+#. type: Plain text
+msgid ""
+"`disklessStoragePool` is an optional parameter that only effects LINSTOR "
+"volumes assigned disklessly to _kubelets_ i.e., as clients. If you have a "
+"custom _diskless storage pool_ defined in LINSTOR, you'll specify that here."
+msgstr ""
+"`disklessStoragePool` はオプションでノードが _kubelets_ にディスクレス、すな"
+"わちクライアントとして割り当てられるようにするときに使用します。LINSTOR でカ"
+"スタムディスクレスストレージプールが定義されている場合は、ここで指定します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "layerList"
+msgstr "layerList"
+
+#. type: Plain text
+msgid ""
+"A comma-seperated list of layers to use for the created volumes. The "
+"available layers and their order are described towards the end of <<s-"
+"linstor-without-drbd, this section>>. Defaults to `drbd,storage`"
+msgstr ""
+"作成されたボリュームで使用するレイヤーのコンマ区切りのリスト。使用可能なレイ"
+"ヤーと順序は <<s-linstor-without-drbd, このセクション>> の後半に記述されてい"
+"ます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "placementPolicy"
+msgstr "placementPolicy"
+
+#. type: Plain text
+msgid "Select from one of the available volume schedulers:"
+msgstr "使用可能なボリュームスケジューラの 1 つから選択します。"
+
+#. type: Plain text
+msgid ""
+"`AutoPlace`, the default: Use LINSTOR autoplace, influenced by <<s-"
+"kubernetes-replicasonsame>> and <<s-kubernetes-replicasondifferent>>"
+msgstr ""
+"`AutoPlace`, デフォルト: LINSTOR autoplace を使う。 <<s-kubernetes-"
+"replicasonsame>> と <<s-kubernetes-replicasondifferent>> の影響をうける。"
+
+#. type: Plain text
+msgid ""
+"`FollowTopology`: Use CSI Topology information to place at least one volume "
+"in each \"preferred\" zone. Only useable if CSI Topology is enabled."
+msgstr ""
+"`FollowTopology`: CSI トポロジ情報を使用して、各 \"preferred\" ゾーンに少なく"
+"とも 1 つのボリュームを配置します。CSI トポロジが有効になっている場合にのみ使"
+"用できます。"
+
+#. type: Plain text
+msgid "`Manual`: Use only the nodes listed in `nodeList` and `clientList`."
+msgstr ""
+"`Manual`: `nodeList` と `clientList` にリストされているノードのみを使用する。"
+
+#. type: Plain text
+msgid ""
+"`Balanced`: **EXPERIMENTAL** Place volumes across failure domains, using the "
+"least used storage pool on each selected node."
+msgstr ""
+"`Balanced`: **実験的** 選択した各ノードで最も使用されていないストレージプール"
+"を使用して、障害のあるドメイン全体にボリュームを配置する。"
+
+#. type: Title ====
+#, no-wrap
+msgid "allowRemoteVolumeAccess"
+msgstr "allowRemoteVolumeAccess"
+
+#. type: Plain text
+msgid ""
+"Disable remote access to volumes. This implies that volumes can only be "
+"accessed from the initial set of nodes selected on creation. CSI Topology "
+"processing is required to place pods on the correct nodes."
+msgstr ""
+"ボリュームへのリモートアクセスを無効にします。これは、ボリュームは、作成時に"
+"選択されたノードの初期セットからのみアクセスできることを意味します。ポッドを"
+"正しいノードに配置するには、CSI トポロジ処理が必要です。"
+
+#. type: Title ====
+#, no-wrap
+msgid "encryption"
+msgstr "encryption"
+
+#. type: Plain text
+msgid ""
+"`encryption` is an optional parameter that determines whether to encrypt "
+"volumes. LINSTOR must be <<s-linstor-encrypted-volumes,configured for "
+"encryption>> for this to work properly."
+msgstr ""
+"`encryption` はオプションで、ボリュームを暗号化するかどうかを指定します。"
+"LINSTOR はこれが正しく動作するように適切に設定されている必要があります。"
+
+#. type: Title ====
+#, no-wrap
+msgid "nodeList"
+msgstr "nodeList"
+
+#. type: Plain text
+msgid ""
+"`nodeList` is a list of nodes for volumes to be assigned to. This will "
+"assign the volume to each node and it will be replicated among all of them. "
+"This can also be used to select a single node by hostname, but it's more "
+"flexible to use <<s-kubernetes-replicasonsame,replicasOnSame>> to select a "
+"single node."
+msgstr ""
+"`nodeList` はボリュームが割り当てられるノードのリストです。ボリュームがそれぞ"
+"れのノードに割り当てられそれらの間で複製が行われます。これはホスト名で１つの"
+"ノードを指定できますが、 これには <<s-kubernetes-replicasonsame,"
+"replicasOnSame>> を使うほうが柔軟性があります。"
+
+#. type: Plain text
+msgid ""
+"If you use this option, you must not use <<s-kubernetes-autoplace,"
+"autoPlace>>."
+msgstr ""
+"このオプションを使用する場合は <<s-kubernetes-autoplace,autoPlace>> を使用し"
+"ないでください。"
+
+#. type: Plain text
+msgid ""
+"This option determines on which LINSTOR nodes the underlying storage for "
+"volumes will be provisioned and is orthogonal from which _kubelets_ these "
+"volumes will be accessible."
+msgstr ""
+"このオプションは、ボリュームのストレージをどのLINSTORノード上でプロビジョニン"
+"グするかを決定し、 _kubelets_ からこれらのボリュームにアクセスできるようにし"
+"ます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "clientList"
+msgstr "clientList"
+
+#. type: Plain text
+msgid ""
+"`clientList` is a list of nodes for diskless volumes to be assigned to. Use "
+"in conjunction with <<s-kubernetes-nodelist>>."
+msgstr ""
+"`clientList` は、割り当てられるディスクレスボリュームのノードのリストです。 "
+"<<s-kubernetes-nodelist>> と組み合わせて使用します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "replicasOnSame"
+msgstr "replicasOnSame"
+
+#.  These should link to the linstor documentation about node properties, but those
+#.  do not exist at the time of this commit.
+#. type: Plain text
+msgid ""
+"`replicasOnSame` is a list of `key` or `key=value` items used as "
+"autoplacement selection labels when <<s-kubernetes-autoplace,autoplace>> is "
+"used to determine where to provision storage. These labels correspond to "
+"LINSTOR node properties."
+msgstr ""
+"`replicasOnSame` は自動配置選択ラベルとして使用される `key` または "
+"`key=value` アイテムのリストです。これは <<s-kubernetes-autoplace,"
+"autoplace>> がストレージをプロビジョニングする場所を決定するために使用されま"
+"す。これらのラベルは、LINSTOR ノードのプロパティに対応しています。"
+
+#. type: Plain text
+msgid ""
+"LINSTOR node properties are different from kubernetes node labels. You can "
+"see the properties of a node by running `linstor node list-properties "
+"<nodename>`. You can also set additional properties (\"auxiliary properties"
+"\"): `linstor node set-property <nodename> --aux <key> <value>`."
+msgstr ""
+"LINSTOR ノードのプロパティは、kubernetes ノードのラベルとは異なります。"
+"`linstor node list-properties <nodename>` を実行すると、ノードのプロパティを"
+"確認できます。`linstor node set-property <nodename> --aux <key> <value>` で追"
+"加のプロパティ（\"補助プロパティ\"）を設定することもできます。"
+
+#. type: Plain text
+msgid ""
+"Let's explore this behavior with examples assuming a LINSTOR cluster such "
+"that `node-a` is configured with the following auxiliary property `zone=z1` "
+"and `role=backups`, while `node-b` is configured with only `zone=z1`."
+msgstr ""
+"`node-a` が補助プロパティ `zone=z1`, `role=backups` で、 `node-b` が "
+"`zone=z1` のみで構成されているような LINSTOR クラスターを想定した例でこの動作"
+"を調べてみましょう。"
+
+#. type: Plain text
+msgid ""
+"If we configure a _StorageClass_ with `autoPlace: \"1\"` and "
+"`replicasOnSame: \"zone=z1 role=backups\"`, then all volumes created from "
+"that _StorageClass_ will be provisioned on `node-a`, since that is the only "
+"node with all of the correct key=value pairs in the LINSTOR cluster. This is "
+"the most flexible way to select a single node for provisioning."
+msgstr ""
+"`autoPlace: \"1\"` と `replicasOnSame: \"zone=z1 role=backups\"` を持つ "
+"_StorageClass_ を設定すると、この _StorageClass_ から生成されるすべてのボ"
+"リュームは `node-a` にプロビジョニングされます。これは LINSTOR クラスタ内です"
+"べての key = value ペアを持つ唯一のノードだからです。これは、プロビジョニング"
+"に１つのノードを選択する最も柔軟な方法です。"
+
+#. type: Plain text
+msgid ""
+"This guide assumes LINSTOR CSI version 0.10.0 or newer. All properties "
+"referenced in `replicasOnSame` and `replicasOnDifferent` are interpreted as "
+"auxiliary properties. If you are using an older version of LINSTOR CSI, you "
+"need to add the `Aux/` prefix to all property names. So `replicasOnSame: "
+"\"zone=z1\"` would be `replicasOnSame: \"Aux/zone=z1\"` Using `Aux/` "
+"manually will continue to work on newer LINSTOR CSI versions."
+msgstr ""
+"このガイドは、LINSTOR CSI バージョン 0.10.0 以降を想定しています。 "
+"`replicasOnSame` および `replicasOnDifferent` で参照されるすべてのプロパティ"
+"は、補助プロパティとして解釈されます。古いバージョンの LINSTOR CSI を使用して"
+"いる場合は、すべてのプロパティ名に `Aux/` プレフィックスを追加する必要があり"
+"ます。したがって、 `replicasOnSame: \"zone=z1\"` は `replicasOnSame: \"Aux/"
+"zone=z1\"` になります。 `Aux/` を手動で追加すると、新しい LINSTOR CSI バー"
+"ジョンで引き続き機能します。"
+
+#. type: Plain text
+msgid ""
+"If we configure a _StorageClass_ with `autoPlace: \"1\"` and "
+"`replicasOnSame: \"zone=z1\"`, then volumes will be provisioned on either "
+"`node-a` or `node-b` as they both have the `zone=z1` aux prop."
+msgstr ""
+"`autoPlace: \"1\"` と `replicasOnSame: \"zone=z1\"` を持つ _StorageClass_ を"
+"設定すると、ボリュームは `node-a` か `node-b` のどちらかにプロビジョニングさ"
+"れます。これは、両方が `zone=z1` aux prop を持つからです。"
+
+#. type: Plain text
+msgid ""
+"If we configure a _StorageClass_ with `autoPlace: \"2\"` and "
+"`replicasOnSame: \"zone=z1 role=backups\"`, then provisioning will fail, as "
+"there are not two or more nodes that have the appropriate auxiliary "
+"properties."
+msgstr ""
+"`autoPlace: \"2\"` と `replicasOnSame: \"zone=z1 role=backups\"` を持つ "
+"_StorageClass_ を設定すると、適切な補助プロパティを持つノードが2つ以上ないた"
+"めプロビジョニングは失敗します。"
+
+#. type: Plain text
+msgid ""
+"If we configure a _StorageClass_ with `autoPlace: \"2\"` and "
+"`replicasOnSame: \"zone=z1\"`, then volumes will be provisioned on both "
+"`node-a` and `node-b` as they both have the `zone=z1` aux prop."
+msgstr ""
+"`autoPlace: \"2\"` と `replicasOnSame: \"zone=z1\"` を持つ _StorageClass_ を"
+"設定すると、ボリュームは `node-a` と `node-b` の両方にプロビジョニングされま"
+"す。これは、両方が `zone=z1` aux prop を持つからです。"
+
+#. type: Plain text
+msgid ""
+"You can also use a property key without providing a value to ensure all "
+"replicas are placed on nodes with the same property value, with caring about "
+"the particular value. Assuming there are 4 nodes, `node-a1` and `node-a2` "
+"are configured with `zone=a`. `node-b1` and `node-b2` are configured with "
+"`zone=b`. Using `autoPlace: \"2\"` and `replicasOnSame: \"zone\"` will place "
+"on either `node-a1` and `node-a2` OR on `node-b1` and `node-b2`."
+msgstr ""
+"値を指定せずにプロパティキーを使用して、特定の値を考慮しながら、すべてのレプ"
+"リカが同じプロパティ値を持つノードに配置されるようにすることもできます。 4つ"
+"のノードがあると仮定し `node-a1` と `node-a2` は `zone=a` で構成、 `node-b1` "
+"と node-b2` は `zone=b` で構成されているとします。 `autoPlace: \"2\"` と "
+"`replicasOnSame: \"zone\"` を使用すると `node-a1` と `node-a2`、または `node-"
+"b1` と `node-b2` のいずれかに配置されます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "replicasOnDifferent"
+msgstr "replicasOnDifferent"
+
+#. type: Plain text
+msgid ""
+"`replicasOnDifferent` takes a list of properties to consider, same as <<s-"
+"kubernetes-replicasonsame,replicasOnSame>>.  There are two modes of using "
+"`replicasOnDifferent`:"
+msgstr ""
+"`replicasOnDifferent` は <<s-kubernetes-replicasonsame,replicasOnSame>> と同"
+"じように、考慮すべきプロパティのリストを取ります。 `replicasOnDifferent` の使"
+"用には 2 つのモードがあります。"
+
+#. type: Plain text
+msgid "Preventing volume placement on specific nodes:"
+msgstr "特定のノードでのボリューム配置の防止:"
+
+#. type: Plain text
+msgid ""
+"If a value is given for the property, the nodes which have that property-"
+"value pair assigned will be considered last."
+msgstr ""
+"プロパティに値が指定されている場合、そのプロパティと値のペアが割り当てられて"
+"いるノードが最後に考慮されます。"
+
+#. type: Plain text
+msgid ""
+"Example: `replicasOnDifferent: \"no-csi-volumes=true\"` will place no volume "
+"on any node with property `no-csi-volumes=true` unless there are not enough "
+"other nodes to fulfill the `autoPlace` setting."
+msgstr ""
+"例： `replicasOnDifferent: \"no-csi-volumes=true\"` は `autoPlace` 設定を満た"
+"すのに十分なノードが他にない限り、プロパティ `no-csi-volumes=true` を持つノー"
+"ドにボリュームを配置しません。"
+
+#. type: Plain text
+msgid "Distribute volumes across nodes with different values for the same key:"
+msgstr "同じキーの値が異なるノード間でボリュームを分散します。"
+
+#. type: Plain text
+msgid ""
+"If no property value is given, LINSTOR will place the volumes across nodes "
+"with different values for that property if possible."
+msgstr ""
+"プロパティ値が指定されていない場合、LINSTOR は、可能であれば、そのプロパティ"
+"の値が異なるノード間でボリュームを配置します。"
+
+#. type: Plain text
+msgid ""
+"Example: Assuming there are 4 nodes, `node-a1` and `node-a2` are configured "
+"with `zone=a`. `node-b1` and `node-b2` are configured with `zone=b`. Using a "
+"_StorageClass_ with `autoPlace: \"2\"` and `replicasOnDifferent: \"zone\"`, "
+"LINSTOR will create one replica on either `node-a1` or `node-a2` _and_ one "
+"replica on either `node-b1` or `node-b2`."
+msgstr ""
+"例： 4 つのノードがあると仮定し `node-a1` と `node-a2` は `zone=a` で、 "
+"`node-b1` と `node-b2` は `zone=b` で構成されているとします。 _StorageClass_ "
+"を `autoPlace: \"2\"` および `replicasOnDifferent: \"zone\"` で使用すると、"
+"LINSTOR は `node-a1` または `node-a2` のいずれかに 1 つのレプリカを作成し、 "
+"`node-b1` または `node-b2` のいずれかにもう 1 つのレプリカを作成します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "disklessOnRemaining"
+msgstr "disklessOnRemaining"
+
+#. type: Plain text
+msgid ""
+"Create a diskless resource on _all_ nodes that were not assigned a diskful "
+"resource."
+msgstr ""
+"ディスクフルリソースが割り当てられていないすべてのノードにディスクレスリソー"
+"スを作成します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "doNotPlaceWithRegex"
+msgstr "doNotPlaceWithRegex"
+
+#. type: Plain text
+msgid ""
+"Do not place the resource on a node which has a resource with a name "
+"matching the regex."
+msgstr "正規表現と一致する名前のリソースを持つノードにリソースを配置しない。"
+
+#. type: Title ====
+#, no-wrap
+msgid "fsOpts"
+msgstr "fsOpts"
+
+#. type: Plain text
+msgid ""
+"`fsOpts` is an optional parameter that passes options to the volume's "
+"filesystem at creation time."
+msgstr ""
+"`fsOpts` はオプションで、作成時にボリュームのファイルシステムに渡すオプション"
+"を指定します。"
+
+#. type: Plain text
+msgid ""
+"Please note these values are specific to your chosen <<s-kubernetes-"
+"filesystem, filesystem>>."
+msgstr ""
+"これらの値は選択した <<s-kubernetes-filesystem, filesystem>> 固有です。"
+
+#. type: Title ====
+#, no-wrap
+msgid "mountOpts"
+msgstr "mountOpts"
+
+#. type: Plain text
+msgid ""
+"`mountOpts` is an optional parameter that passes options to the volume's "
+"filesystem at mount time."
+msgstr ""
+"`mountOpts` はオプションで、マウント時にボリュームのファイルシステムに渡すオ"
+"プションを指定します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "postMountXfsOpts"
+msgstr "postMountXfsOpts"
+
+#. type: Plain text
+msgid ""
+"Extra arguments to pass to `xfs_io`, which gets called before right before "
+"first use of the volume."
+msgstr ""
+"ボリュームを最初に使用する直前に呼び出される `xfs_io` に渡す追加の引数。"
+
+#. type: Title ====
+#, no-wrap
+msgid "DrbdOptions/*: <x>"
+msgstr "DrbdOptions/*: <x>"
+
+#. type: Plain text
+msgid ""
+"Advanced DRBD options to pass to LINSTOR. For example, to change the "
+"replication protocol, use `DrbdOptions/Net/protocol: \"A\"`."
+msgstr ""
+"LINSTOR に渡す高度な DRBD オプション。たとえば、レプリケーションプロトコルを"
+"変更するには `DrbdOptions/Net/protocol: \"A\"` を使用します。"
+
+#. type: Plain text
+msgid ""
+"The full list of options is available https://app.swaggerhub.com/apis-docs/"
+"Linstor/Linstor/1.5.0#/developers/resourceDefinitionModify[here]"
+msgstr ""
+"オプションの完全なリストは https://app.swaggerhub.com/apis-docs/Linstor/"
+"Linstor/1.5.0#/developers/resourceDefinitionModify で入手できます。"
+
 #. type: Title ===
 #, no-wrap
 msgid "Snapshots"
@@ -2078,11 +2863,11 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"See <<s-kubernetes-localstoragepolicy,localStoragePolicy>> to see how this "
-"default behavior can be modified."
+"See <<s-kubernetes-placementpolicy>> to see how this default behavior can be "
+"modified."
 msgstr ""
-"このデフォルトの動作を変更するには <<s-kubernetes-localstoragepolicy,"
-"localStoragePolicy>> を参照ください。"
+"このデフォルトの動作を変更するには <<s-kubernetes-placementpolicy>> を参照く"
+"ださい。"
 
 #. type: Title ===
 #, no-wrap
@@ -2190,564 +2975,202 @@ msgstr "--set stork.enabled=false\n"
 
 #. type: Title ===
 #, no-wrap
-msgid "Advanced Configuration"
-msgstr "高度な設定"
+msgid "Fast workload fail over using the High Availability Controller"
+msgstr "高可用性コントローラーを使用した高速ワークロードフェイルオーバー"
 
 #. type: Plain text
 msgid ""
-"In general, all configuration for LINSTOR volumes in Kubernetes should be "
-"done via the _StorageClass_ parameters, as seen with the _storagePool_ in "
-"the basic example above. We'll give all the available options an in-depth "
-"treatment here."
+"The LINSTOR High Availability Controller (HA Controller) will speed up the "
+"fail over process for stateful workloads using LINSTOR for storage.  It is "
+"deployed by default, and can be scaled to multiple replicas:"
 msgstr ""
-"KubernetesのLinstorボリュームのすべての構成は、上で使用したサンプルのように"
-"_StorageClass_ のパラメータ経由で設定されます。以下に利用可能なオプションの詳"
-"細を示します。"
+"LINSTOR 高可用性コントローラー（HA コントローラー）は、ストレージに LINSTOR "
+"を使用して、ステートフルワークロードのフェイルオーバープロセスを高速化しま"
+"す。デフォルトでデプロイされ、複数のレプリカにスケーリングされます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl get pods -l app.kubernetes.io/name=linstor-ha-controller\n"
+"NAME                                    READY   STATUS    RESTARTS   AGE\n"
+"linstor-ha-controller-f496c5f77-fr76m   1/1     Running   0          89s\n"
+"linstor-ha-controller-f496c5f77-jnqtc   1/1     Running   0          89s\n"
+"linstor-ha-controller-f496c5f77-zcrqg   1/1     Running   0          89s\n"
+msgstr ""
+"$ kubectl get pods -l app.kubernetes.io/name=linstor-ha-controller\n"
+"NAME                                    READY   STATUS    RESTARTS   AGE\n"
+"linstor-ha-controller-f496c5f77-fr76m   1/1     Running   0          89s\n"
+"linstor-ha-controller-f496c5f77-jnqtc   1/1     Running   0          89s\n"
+"linstor-ha-controller-f496c5f77-zcrqg   1/1     Running   0          89s\n"
+
+#. type: Plain text
+msgid ""
+"In the event of node failures, Kubernetes is very conservative in "
+"rescheduling stateful workloads. This means it can take more than 15 minutes "
+"for Pods to be moved from unreachable nodes. With the information available "
+"to DRBD and LINSTOR, this process can be sped up significantly."
+msgstr ""
+"ノードに障害が発生した場合、Kubernetes はステートフルワークロードの再スケ"
+"ジュールを非常に慎重に行います。これは、ポッドが到達不能なノードから移動され"
+"るまでに 15 分以上かかる可能性があることを意味します。DRBD と LINSTOR が利用"
+"できる情報により、このプロセスを大幅にスピードアップできます。"
+
+#. type: Plain text
+msgid "The HA Controller enables fast fail over for:"
+msgstr "HA コントローラーは、以下に対して高速フェイルオーバーを有効にします。"
+
+#. type: Plain text
+msgid ""
+"Pods using DRBD backed PersistentVolumes. The DRBD resources must make use "
+"of the quorum functionality LINSTOR will configure this automatically for "
+"volumes with 2 or more replicas in clusters with at least 3 nodes."
+msgstr ""
+"DRBD でバックアップされた PersistentVolumes を使用するポッド。DRBD リソース"
+"は、クォーラム機能を使用する必要があります。LINSTOR は、少なくとも 3 つのノー"
+"ドを持つクラスター内の 2 つ以上のレプリカを持つボリュームに対してこれを自動的"
+"に構成します。"
+
+#. type: Plain text
+msgid ""
+"The workload does not use any external resources in a way that could lead to "
+"a conflicting state if two instances try to use the external resource at the "
+"same time. While DRBD can ensure that only one instance can have write "
+"access to the storage, it cannot provide the same guarantee for external "
+"resources."
+msgstr ""
+"ワークロードが、2 つのインスタンスが同時に外部リソースを使用しようとした場合"
+"に、競合状態につながる可能性のある方法で外部リソースを使用していないとき。 "
+"DRBD は、1 つのインスタンスのみがストレージへの書き込みアクセス権を持つことが"
+"できることを保証できますが、外部リソースに対して同じ保証を提供することはでき"
+"ません。"
+
+#. type: Plain text
+msgid ""
+"The Pod is marked with the `linstor.csi.linbit.com/on-storage-lost: remove` "
+"label."
+msgstr ""
+"ポッドに `linstor.csi.linbit.com/on-storage-lost: remove` ラベルが付いてい"
+"る。"
 
 #. type: Title ====
 #, no-wrap
-msgid "nodeList"
-msgstr "nodeList"
+msgid "Example"
+msgstr "サンプル"
 
 #. type: Plain text
 msgid ""
-"`nodeList` is a list of nodes for volumes to be assigned to. This will "
-"assign the volume to each node and it will be replicated among all of them. "
-"This can also be used to select a single node by hostname, but it's more "
-"flexible to use <<s-kubernetes-replicasonsame,replicasOnSame>> to select a "
-"single node."
+"The following StatefulSet uses the HA Controller to manage fail over of a "
+"pod."
 msgstr ""
-"`nodeList` はボリュームが割り当てられるノードのリストです。ボリュームがそれぞ"
-"れのノードに割り当てられそれらの間で複製が行われます。これはホスト名で１つの"
-"ノードを指定できますが、 これには <<s-kubernetes-replicasonsame,"
-"replicasOnSame>> を使うほうが柔軟性があります。"
+"次の StatefulSet は、HA コントローラーを使用してポッドのフェイルオーバーを管"
+"理します。"
 
-#. type: Plain text
-msgid ""
-"If you use this option, you must not use <<s-kubernetes-autoplace,"
-"autoPlace>>."
-msgstr ""
-"このオプションを使用する場合は <<s-kubernetes-autoplace,autoPlace>> を使用し"
-"ないでください。"
-
-#. type: Plain text
-msgid ""
-"This option determines on which LINSTOR nodes the underlying storage for "
-"volumes will be provisioned and is orthogonal from which _kubelets_ these "
-"volumes will be accessible."
-msgstr ""
-"このオプションは、ボリュームのストレージをどのLINSTORノード上でプロビジョニン"
-"グするかを決定し、 _kubelets_ からこれらのボリュームにアクセスできるようにし"
-"ます。"
-
-#. type: Plain text
-msgid "Example: `nodeList: \"node-a node-b node-c\"`"
-msgstr "例: `nodeList: \"node-a node-b node-c\"`"
-
-#. type: Plain text
-msgid "Example: `nodeList: \"node-a\"`"
-msgstr "例: `nodeList: \"node-a\"`"
-
-#. type: Title ====
+#. type: delimited block -
 #, no-wrap
-msgid "autoPlace"
-msgstr "autoPlace"
+msgid ""
+"apiVersion: apps/v1\n"
+"kind: StatefulSet\n"
+"metadata:\n"
+"  name: my-stateful-app\n"
+"spec:\n"
+"  serviceName: my-stateful-app\n"
+"  selector:\n"
+"    matchLabels:\n"
+"      app.kubernetes.io/name: my-stateful-app\n"
+"  template:\n"
+"    metadata:\n"
+"      labels:\n"
+"        app.kubernetes.io/name: my-stateful-app\n"
+"        linstor.csi.linbit.com/on-storage-lost: remove <1>\n"
+"    ...\n"
+msgstr ""
+"apiVersion: apps/v1\n"
+"kind: StatefulSet\n"
+"metadata:\n"
+"  name: my-stateful-app\n"
+"spec:\n"
+"  serviceName: my-stateful-app\n"
+"  selector:\n"
+"    matchLabels:\n"
+"      app.kubernetes.io/name: my-stateful-app\n"
+"  template:\n"
+"    metadata:\n"
+"      labels:\n"
+"        app.kubernetes.io/name: my-stateful-app\n"
+"        linstor.csi.linbit.com/on-storage-lost: remove <1>\n"
+"    ...\n"
 
 #. type: Plain text
 msgid ""
-"`autoPlace` is an integer that determines the amount of replicas a volume of "
-"this _StorageClass_ will have.  For instance, `autoPlace: \"3\"` will "
-"produce volumes with three-way replication. If neither `autoPlace` nor "
-"`nodeList` are set, volumes will be <<s-autoplace-linstor,automatically "
-"placed>> on one node."
+"The label is applied to Pod template, **not** the StatefulSet. The label was "
+"applied correctly, if your Pod appears in the output of `kubectl get pods -l "
+"linstor.csi.linbit.com/on-storage-lost=remove`."
 msgstr ""
-"`autoPlace` はこの _StorageClass_ が持つボリュームの複製数を指定します。例え"
-"ば、 `autoPlace: \"3\"` は３つの複製をもつボリュームを生成します。 "
-"`autoPlace` または `nodeList` が指定されていない場合は、１つのノード上にボ"
-"リュームが生成されます。<<s-autoplace-linstor,自動配備>> を参照ください。"
+"ラベルは、StatefulSet ではなくポッドテンプレートに適用されます。ポッドが "
+"`kubectl get pods -l linstor.csi.linbit.com/on-storage-lost=remove` の出力に"
+"表示される場合、ラベルは正しく適用さています。"
 
 #. type: Plain text
-msgid ""
-"If you use this option, you must not use <<s-kubernetes-nodelist,nodeList>>."
-msgstr ""
-"このオプションを使用する場合は、 <<s-kubernetes-nodelist,nodeList>> を使用し"
-"ないでください。"
+msgid "Deploy the set and wait for the pod to start"
+msgstr "セットをデプロイし、ポッドが開始するのを待ちます。"
 
-#. type: Plain text
-msgid ""
-"You have to use quotes, otherwise Kubernetes will complain about a malformed "
-"_StorageClass_."
-msgstr ""
-"引用符を使用する必要があります。そうしないと、Kubernetes は不正な形式の "
-"_StorageClass_ について文句を言います。"
-
-#. type: Plain text
-msgid ""
-"This option (and all options which affect autoplacement behavior) modifies "
-"the number of LINSTOR nodes on which the underlying storage for volumes will "
-"be provisioned and is orthogonal to which _kubelets_ those volumes will be "
-"accessible from."
-msgstr ""
-"このオプション（および自動配置の動作に影響を与えるすべてのオプション）は、ボ"
-"リューム用のストレージがプロビジョニングされるLINSTORノードの数を変更し、 "
-"_kubelets_ からこれらのボリュームにアクセスできるようにします。"
-
-#. type: Plain text
-msgid "Example: `autoPlace: \"2\"`"
-msgstr "例: `autoPlace: \"2\"`"
-
-#. type: Plain text
-msgid "Default: `autoPlace: \"1\"`"
-msgstr "例: `autoPlace: \"1\"`"
-
-#. type: Title ====
+#. type: delimited block -
 #, no-wrap
-msgid "replicasOnSame"
-msgstr "replicasOnSame"
-
-#.  These should link to the linstor documentation about node properties, but those
-#.  do not exist at the time of this commit.
-#. type: Plain text
 msgid ""
-"`replicasOnSame` is a list of `key` or `key=value` items used as "
-"autoplacement selection labels when <<s-kubernetes-autoplace,autoplace>> is "
-"used to determine where to provision storage. These labels correspond to "
-"LINSTOR node properties."
+"$ kubectl get pod -o wide\n"
+"NAME                                        READY   STATUS              RESTARTS   AGE     IP                NODE                    NOMINATED NODE   READINESS GATES\n"
+"my-stateful-app-0                           1/1     Running             0          5m      172.31.0.1        node01.ha.cluster       <none>           <none>\n"
 msgstr ""
-"`replicasOnSame` は自動配置選択ラベルとして使用される `key` または "
-"`key=value` アイテムのリストです。これは <<s-kubernetes-autoplace,"
-"autoplace>> がストレージをプロビジョニングする場所を決定するために使用されま"
-"す。これらのラベルは、LINSTOR ノードのプロパティに対応しています。"
+"$ kubectl get pod -o wide\n"
+"NAME                                        READY   STATUS              RESTARTS   AGE     IP                NODE                    NOMINATED NODE   READINESS GATES\n"
+"my-stateful-app-0                           1/1     Running             0          5m      172.31.0.1        node01.ha.cluster       <none>           <none>\n"
 
 #. type: Plain text
 msgid ""
-"LINSTOR node properties are different from kubernetes node labels. You can "
-"see the properties of a node by running `linstor node list-properties "
-"<nodename>`. You can also set additional properties (\"auxiliary properties"
-"\"): `linstor node set-property <nodename> --aux <key> <value>`."
+"Then one of the nodes becomes unreachable. Shortly after, Kubernetes will "
+"mark the node as `NotReady`"
 msgstr ""
-"LINSTOR ノードのプロパティは、kubernetes ノードのラベルとは異なります。"
-"`linstor node list-properties <nodename>` を実行すると、ノードのプロパティを"
-"確認できます。`linstor node set-property <nodename> --aux <key> <value>` で追"
-"加のプロパティ（\"補助プロパティ\"）を設定することもできます。"
+"次に、ノードの 1 つが到達不能になります。その後まもなく、Kubernetes はノード"
+"を `NotReady` としてマークします"
 
-#. type: Plain text
-msgid ""
-"Let's explore this behavior with examples assuming a LINSTOR cluster such "
-"that `node-a` is configured with the following auxiliary property `zone=z1` "
-"and `role=backups`, while `node-b` is configured with only `zone=z1`."
-msgstr ""
-"`node-a` が補助プロパティ `zone=z1`, `role=backups` で、 `node-b` が "
-"`zone=z1` のみで構成されているような LINSTOR クラスターを想定した例でこの動作"
-"を調べてみましょう。"
-
-#. type: Plain text
-msgid ""
-"If we configure a _StorageClass_ with `autoPlace: \"1\"` and "
-"`replicasOnSame: \"zone=z1 role=backups\"`, then all volumes created from "
-"that _StorageClass_ will be provisioned on `node-a`, since that is the only "
-"node with all of the correct key=value pairs in the LINSTOR cluster. This is "
-"the most flexible way to select a single node for provisioning."
-msgstr ""
-"`autoPlace: \"1\"` と `replicasOnSame: \"zone=z1 role=backups\"` を持つ "
-"_StorageClass_ を設定すると、この _StorageClass_ から生成されるすべてのボ"
-"リュームは `node-a` にプロビジョニングされます。これは LINSTOR クラスタ内です"
-"べての key = value ペアを持つ唯一のノードだからです。これは、プロビジョニング"
-"に１つのノードを選択する最も柔軟な方法です。"
-
-#. type: Plain text
-msgid ""
-"This guide assumes LINSTOR CSI version 0.10.0 or newer. All properties "
-"referenced in `replicasOnSame` and `replicasOnDifferent` are interpreted as "
-"auxiliary properties. If you are using an older version of LINSTOR CSI, you "
-"need to add the `Aux/` prefix to all property names. So `replicasOnSame: "
-"\"zone=z1\"` would be `replicasOnSame: \"Aux/zone=z1\"` Using `Aux/` "
-"manually will continue to work on newer LINSTOR CSI versions."
-msgstr ""
-"このガイドは、LINSTOR CSI バージョン 0.10.0 以降を想定しています。 "
-"`replicasOnSame` および `replicasOnDifferent` で参照されるすべてのプロパティ"
-"は、補助プロパティとして解釈されます。古いバージョンの LINSTOR CSI を使用して"
-"いる場合は、すべてのプロパティ名に `Aux/` プレフィックスを追加する必要があり"
-"ます。したがって、 `replicasOnSame: \"zone=z1\"` は `replicasOnSame: \"Aux/"
-"zone=z1\"` になります。 `Aux/` を手動で追加すると、新しい LINSTOR CSI バー"
-"ジョンで引き続き機能します。"
-
-#. type: Plain text
-msgid ""
-"If we configure a _StorageClass_ with `autoPlace: \"1\"` and "
-"`replicasOnSame: \"zone=z1\"`, then volumes will be provisioned on either "
-"`node-a` or `node-b` as they both have the `zone=z1` aux prop."
-msgstr ""
-"`autoPlace: \"1\"` と `replicasOnSame: \"zone=z1\"` を持つ _StorageClass_ を"
-"設定すると、ボリュームは `node-a` か `node-b` のどちらかにプロビジョニングさ"
-"れます。これは、両方が `zone=z1` aux prop を持つからです。"
-
-#. type: Plain text
-msgid ""
-"If we configure a _StorageClass_ with `autoPlace: \"2\"` and "
-"`replicasOnSame: \"zone=z1 role=backups\"`, then provisioning will fail, as "
-"there are not two or more nodes that have the appropriate auxiliary "
-"properties."
-msgstr ""
-"`autoPlace: \"2\"` と `replicasOnSame: \"zone=z1 role=backups\"` を持つ "
-"_StorageClass_ を設定すると、適切な補助プロパティを持つノードが2つ以上ないた"
-"めプロビジョニングは失敗します。"
-
-#. type: Plain text
-msgid ""
-"If we configure a _StorageClass_ with `autoPlace: \"2\"` and "
-"`replicasOnSame: \"zone=z1\"`, then volumes will be provisioned on both "
-"`node-a` and `node-b` as they both have the `zone=z1` aux prop."
-msgstr ""
-"`autoPlace: \"2\"` と `replicasOnSame: \"zone=z1\"` を持つ _StorageClass_ を"
-"設定すると、ボリュームは `node-a` と `node-b` の両方にプロビジョニングされま"
-"す。これは、両方が `zone=z1` aux prop を持つからです。"
-
-#. type: Plain text
-msgid ""
-"You can also use a property key without providing a value to ensure all "
-"replicas are placed on nodes with the same property value, with caring about "
-"the particular value. Assuming there are 4 nodes, `node-a1` and `node-a2` "
-"are configured with `zone=a`. `node-b1` and `node-b2` are configured with "
-"`zone=b`. Using `autoPlace: \"2\"` and `replicasOnSame: \"zone\"` will place "
-"on either `node-a1` and `node-a2` OR on `node-b1` and `node-b2`."
-msgstr ""
-"値を指定せずにプロパティキーを使用して、特定の値を考慮しながら、すべてのレプ"
-"リカが同じプロパティ値を持つノードに配置されるようにすることもできます。 4つ"
-"のノードがあると仮定し `node-a1` と `node-a2` は `zone=a` で構成、 `node-b1` "
-"と node-b2` は `zone=b` で構成されているとします。 `autoPlace: \"2\"` と "
-"`replicasOnSame: \"zone\"` を使用すると `node-a1` と `node-a2`、または `node-"
-"b1` と `node-b2` のいずれかに配置されます。"
-
-#. type: Title ====
+#. type: delimited block -
 #, no-wrap
-msgid "replicasOnDifferent"
-msgstr "replicasOnDifferent"
+msgid ""
+"$ kubectl get nodes\n"
+"NAME                    STATUS     ROLES     AGE    VERSION\n"
+"master01.ha.cluster     Ready      master    12d    v1.19.4\n"
+"master02.ha.cluster     Ready      master    12d    v1.19.4\n"
+"master03.ha.cluster     Ready      master    12d    v1.19.4\n"
+"node01.ha.cluster       NotReady   compute   12d    v1.19.4\n"
+"node02.ha.cluster       Ready      compute   12d    v1.19.4\n"
+"node03.ha.cluster       Ready      compute   12d    v1.19.4\n"
+msgstr ""
+"$ kubectl get nodes\n"
+"NAME                    STATUS     ROLES     AGE    VERSION\n"
+"master01.ha.cluster     Ready      master    12d    v1.19.4\n"
+"master02.ha.cluster     Ready      master    12d    v1.19.4\n"
+"master03.ha.cluster     Ready      master    12d    v1.19.4\n"
+"node01.ha.cluster       NotReady   compute   12d    v1.19.4\n"
+"node02.ha.cluster       Ready      compute   12d    v1.19.4\n"
+"node03.ha.cluster       Ready      compute   12d    v1.19.4\n"
 
 #. type: Plain text
 msgid ""
-"`replicasOnDifferent` takes a list of properties to consider, same as <<s-"
-"kubernetes-replicasonsame,replicasOnSame>>.  There are two modes of using "
-"`replicasOnDifferent`:"
+"After about 45 seconds, the Pod will be removed by the HA Controller and re-"
+"created by the StatefulSet"
 msgstr ""
-"`replicasOnDifferent` は <<s-kubernetes-replicasonsame,replicasOnSame>> と同"
-"じように、考慮すべきプロパティのリストを取ります。 `replicasOnDifferent` の使"
-"用には 2 つのモードがあります。"
+"約 45 秒後、ポッドは HA コントローラーによって削除され、StatefulSet によって"
+"再作成されます。"
 
-#. type: Plain text
-msgid "Preventing volume placement on specific nodes:"
-msgstr "特定のノードでのボリューム配置の防止:"
-
-#. type: Plain text
-msgid ""
-"If a value is given for the property, the nodes which have that property-"
-"value pair assigned will be considered last."
-msgstr ""
-"プロパティに値が指定されている場合、そのプロパティと値のペアが割り当てられて"
-"いるノードが最後に考慮されます。"
-
-#. type: Plain text
-msgid ""
-"Example: `replicasOnDifferent: \"no-csi-volumes=true\"` will place no volume "
-"on any node with property `no-csi-volumes=true` unless there are not enough "
-"other nodes to fulfill the `autoPlace` setting."
-msgstr ""
-"例： `replicasOnDifferent: \"no-csi-volumes=true\"` は `autoPlace` 設定を満た"
-"すのに十分なノードが他にない限り、プロパティ `no-csi-volumes=true` を持つノー"
-"ドにボリュームを配置しません。"
-
-#. type: Plain text
-msgid "Distribute volumes across nodes with different values for the same key:"
-msgstr "同じキーの値が異なるノード間でボリュームを分散:"
-
-#. type: Plain text
-msgid ""
-"If no property value is given, LINSTOR will place the volumes across nodes "
-"with different values for that property if possible."
-msgstr ""
-"プロパティの値が指定されていない場合、LINSTOR は、可能であれば、そのプロパ"
-"ティの値が異なるノード間でボリュームを配置します。"
-
-#. type: Plain text
-msgid ""
-"Example: Assuming there are 4 nodes, `node-a1` and `node-a2` are configured "
-"with `zone=a`. `node-b1` and `node-b2` are configured with `zone=b`. Using a "
-"_StorageClass_ with `autoPlace: \"2\"` and `replicasOnDifferent: \"zone\"`, "
-"LINSTOR will create one replica on either `node-a1` or `node-a2` _and_ one "
-"replica on either `node-b1` or `node-b2`."
-msgstr ""
-"例： 4 つのノードがあると仮定し `node-a1` と `node-a2` は `zone=a` で、 "
-"`node-b1` と `node-b2` は `zone=b` で構成されているとします。 _StorageClass_ "
-"を `autoPlace: \"2\"` および `replicasOnDifferent: \"zone\"` で使用すると、"
-"LINSTOR は `node-a1` または `node-a2` のいずれかに 1 つのレプリカを作成し、 "
-"`node-b1` または `node-b2` のいずれかにもう 1 つのレプリカを作成します。"
-
-#. type: Title ====
+#. type: delimited block -
 #, no-wrap
-msgid "localStoragePolicy"
-msgstr "localStoragePolicy"
-
-#. type: Plain text
 msgid ""
-"`localStoragePolicy` determines, via volume topology, which LINSTOR "
-"__Satellite__s volumes should be assigned and from where Kubernetes will "
-"access volumes. The behavior of each option is explained below in detail."
+"$ kubectl get pod -o wide\n"
+"NAME                                        READY   STATUS              RESTARTS   AGE     IP                NODE                    NOMINATED NODE   READINESS GATES\n"
+"my-stateful-app-0                           0/1     ContainerCreating   0          3s      172.31.0.1        node02.ha.cluster       <none>           <none>\n"
+"$ kubectl get events --sort-by=.metadata.creationTimestamp -w\n"
+"...\n"
+"0s          Warning   ForceDeleted              pod/my-stateful-app-0                                                                   pod deleted because a used volume is marked as failing\n"
+"0s          Warning   ForceDetached             volumeattachment/csi-d2b994ff19d526ace7059a2d8dea45146552ed078d00ed843ac8a8433c1b5f6f   volume detached because it is marked as failing\n"
+"...\n"
 msgstr ""
-"`localStoragePolicy` はボリュームトポロジを通して、どの LINSTOR _Satellite_ "
-"ボリュームを割り当てるべきか、そして Kubernetes がどこからボリュームにアクセ"
-"スするかを決定します。各オプションの動作については、後ほど詳しく説明します。"
-
-#. type: Plain text
-msgid ""
-"If you specify a <<s-kubernetes-nodelist,nodeList>>, volumes will be created "
-"on those nodes, irrespective of the `localStoragePolicy`; however, the "
-"accessibility reporting will still be as described."
-msgstr ""
-"<<s-kubernetes-nodelist,nodeList>> を指定すると、`localStoragePolicy` に関係"
-"なく、ボリュームはそれらのノード上に作成されます。ただし、アクセスに関するレ"
-"ポートでは説明どおりになります。"
-
-#. type: Plain text
-msgid ""
-"You must set `volumeBindingMode: WaitForFirstConsumer` in the _StorageClass_ "
-"and the LINSTOR __Satellite__s running on the __kubelet__s must be able to "
-"support the diskfull placement of volumes as they are configured in that "
-"_StorageClass_ for <<s-kubernetes-localstoragepolicy-required,required>> or "
-"<<s-kubernetes-localstoragepolicy-preferred,preferred>> to work properly."
-msgstr ""
-"_StorageClass_ で `volumeBindingMode：WaitForFirstConsumer` を設定する必要が"
-"あります。また、__kubelet__ 上で実行している LINSTOR __Satellite__ は、 <<s-"
-"kubernetes-localstoragepolicy-required,required>> または <<s-kubernetes-"
-"localstoragepolicy-preferred,preferred>> が正しく動作するように、その "
-"_StorageClass_ で構成されているボリュームのディスクフル配置をサポートできる必"
-"要があります。"
-
-#. type: Plain text
-msgid ""
-"Use `topologyKey: \"linbit.com/hostname\"` rather than `topologyKey: "
-"\"kubernetes.io/hostname\"` if you are setting `affinity` in your _Pod_ or "
-"_StatefulSet_ specs."
-msgstr ""
-"_Pod_ や _StatefulSet_ の spec で affinity を設定している場合、 "
-"`topologyKey：\"kubernetes.io/hostname\"` ではなく `topologyKey：\"linbit."
-"com/hostname\"` を使用してください。"
-
-#. type: Plain text
-msgid "Example: `localStoragePolicy: required`"
-msgstr "例: `localStoragePolicy: required`"
-
-#. type: Title =====
-#, no-wrap
-msgid "ignore (default)"
-msgstr "ignore (デフォルト)"
-
-#. type: Plain text
-msgid ""
-"When `localStoragePolicy` is set to `ignore`, regular autoplacement occurs "
-"based on <<s-kubernetes-autoplace,autoplace>>, <<s-kubernetes-replicasonsame,"
-"replicasOnSame>>, and <<s-kubernetes-replicasonsame,replicasOnDifferent>>. "
-"Volume location will not affect _Pod_ scheduling in Kubernetes and the "
-"volumes will be accessed over the network if they're not local to the "
-"_kubelet_ where the _Pod_ was scheduled."
-msgstr ""
-"`localStoragePolicy` が `ignore` に設定されている場合、通常の自動配置が <<s-"
-"kubernetes-autoplace,autoplace>>, <<s-kubernetes-replicasonsame,"
-"replicasOnSame>>, <<s-kubernetes-replicasonsame,replicasOnDifferent>> に基づ"
-"いて行われます。 ボリュームの場所は、Kubernetes での _Pod_ スケジューリングに"
-"影響を与えず、ボリュームが _Pod_ がスケジュールされた _kubelet_ にローカルで"
-"ない場合でも、ネットワークを介してアクセスされます。"
-
-#. type: Title =====
-#, no-wrap
-msgid "required"
-msgstr "required"
-
-#. type: Plain text
-msgid ""
-"When `localStoragePolicy` is set to `required`, Kubernetes will report a "
-"list of places that it wants to schedule a _Pod_ in order of preference. The "
-"plugin will attempt to provision the volume(s) according to that preference. "
-"The number of volumes to be provisioned in total is based off of <<s-"
-"kubernetes-autoplace,autoplace>>."
-msgstr ""
-"`localStoragePolicy` が `required` に設定されていると、Kubernetes は設定に"
-"従って _Pod_ をスケジュールしたい場所のリストを報告します。プラグインはその設"
-"定に従ってボリュームのプロビジョニングを試みます。プロビジョニングされるボ"
-"リューム数の合計は <<s-kubernetes-autoplace,autoplace>> に基づいています。"
-
-#. type: Plain text
-msgid ""
-"If all preferences have been attempted, but no volumes where successfully "
-"assigned volume creation will fail."
-msgstr ""
-"すべての設定が試行されたが、正常に割り当てられたボリュームがない場合、ボ"
-"リュームの作成は失敗します。"
-
-#. type: Plain text
-msgid ""
-"In case of multiple replicas when all preferences have been attempted, and "
-"at least one has succeeded, but there are still replicas remaining to be "
-"provisioned, <<s-kubernetes-autoplace,autoplace>> behavior will apply for "
-"the remaining volumes."
-msgstr ""
-"複製が複数ある場合、すべての設定が試行され、少なくとも1つが成功したときに、ま"
-"だプロビジョニングされる複製が残っている場合、 <<s-kubernetes-autoplace,"
-"autoplace>> が残りのボリュームに動作が適用されます。"
-
-#. type: Plain text
-msgid ""
-"With this option set, Kubernetes will consider volumes that are not locally "
-"present on a _kubelet_ to be unaccessible from that _kubelet_."
-msgstr ""
-"このオプションを設定すると、Kubernetes は _kubelet_ にローカルに存在しないボ"
-"リュームはその _kubelet_ からアクセスできないと見なします。"
-
-#. type: Title =====
-#, no-wrap
-msgid "preferred"
-msgstr "preferred"
-
-#. type: Plain text
-msgid ""
-"When `localStoragePolicy` is set to `preferred`, volume placement behavior "
-"will be the same as when it's set to <<s-kubernetes-localstoragepolicy-"
-"required,required>> with the exception that volume creation will not fail if "
-"no preference was able to be satisfied.  Volume accessibility will be the "
-"same as when set to <<s-kubernetes-localstoragepolicy-ignore,ignore>>."
-msgstr ""
-"`localStoragePolicy` が `preferred` に設定されている場合、ボリューム配置の動"
-"作は、設定を満たすことができなかった場合でも、ボリュームの作成は失敗しないと"
-"いう点を除いて <<s-kubernetes-localstoragepolicy-required,required>> と同じで"
-"す。ボリュームへのアクセスは <<s-kubernetes-localstoragepolicy-ignore,"
-"ignore>> に設定した場合と同じになります。"
-
-#. type: Title ====
-#, no-wrap
-msgid "storagePool"
-msgstr "storagePool"
-
-#. type: Plain text
-msgid ""
-"`storagePool` is the name of the LINSTOR <<s-storage_pools,storage pool>> "
-"that will be used to provide storage to the newly-created volumes."
-msgstr ""
-"`storagePool` は LINSTOR <<s-storage_pools,ストレージプール>> の名前で、新規"
-"に作成されたボリュームにストレージを供給するときに使用されます。"
-
-#. type: Plain text
-msgid ""
-"Only nodes configured with this same _storage pool_ with be considered for "
-"<<s-kubernetes-autoplace,autoplacement>>. Likewise, for _StorageClasses_ "
-"using <<s-kubernetes-nodelist,nodeList>> all nodes specified in that list "
-"must have this _storage pool_ configured on them."
-msgstr ""
-"これと同じ _storage pool_ で構成されたノードのみが <<s-kubernetes-autoplace,"
-"autoplacement>> に使用されます。同様に <<s-kubernetes-nodelist,nodeList>> を"
-"使う _StorageClasses_ ではそのリストで指定されたすべてのノードが _storage "
-"pool_ を構成している必要があります。"
-
-#. type: Plain text
-msgid "Example: `storagePool: my-storage-pool`"
-msgstr "例: `storagePool: my-storage-pool`"
-
-#. type: Title ====
-#, no-wrap
-msgid "disklessStoragePool"
-msgstr "disklessStoragePool"
-
-#.  This should link to the linstor section talking about diskless storage pools
-#.  when that gets written.
-#. type: Plain text
-msgid ""
-"`disklessStoragePool` is an optional parameter that only effects LINSTOR "
-"volumes assigned disklessly to _kubelets_ i.e., as clients. If you have a "
-"custom _diskless storage pool_ defined in LINSTOR, you'll specify that here."
-msgstr ""
-"`disklessStoragePool` はオプションでノードが _kubelets_ にディスクレス、すな"
-"わちクライアントとして割り当てられるようにするときに使用します。LINSTOR でカ"
-"スタムディスクレスストレージプールが定義されている場合は、ここで指定します。"
-
-#. type: Plain text
-msgid "Example: `disklessStoragePool: my-custom-diskless-pool`"
-msgstr "例: `disklessStoragePool: my-custom-diskless-pool`"
-
-#. type: Title ====
-#, no-wrap
-msgid "encryption"
-msgstr "encryption"
-
-#. type: Plain text
-msgid ""
-"`encryption` is an optional parameter that determines whether to encrypt "
-"volumes. LINSTOR must be <<s-linstor-encrypted-Volumes,configured for "
-"encryption>> for this to work properly."
-msgstr ""
-"`encryption` はオプションで、ボリュームを暗号化するかどうかを指定します。"
-"LINSTOR はこれが正しく動作するように適切に設定されている必要があります。"
-
-#. type: Plain text
-msgid "Example: `encryption: \"true\"`"
-msgstr "例: `encryption: \"true\"`"
-
-#. type: Title ====
-#, no-wrap
-msgid "filesystem"
-msgstr "filesystem"
-
-#. type: Plain text
-msgid ""
-"`filesystem` is an option parameter to specify the filesystem for non raw "
-"block volumes. Currently supported options are `xfs` and `ext4`."
-msgstr ""
-"`filesystem` は下位のブロックボリュームのファイルシステムを指定するためのオプ"
-"ションパラメータです。現在サポートされているオプションは `xfs` と `ext4` で"
-"す。"
-
-#. type: Plain text
-msgid "Example: `filesystem: \"xfs\"`"
-msgstr "例: `filesystem: \"xfs\"`"
-
-#. type: Plain text
-msgid "Default: `filesystem: \"ext4\"`"
-msgstr "デフォルト: `filesystem: \"ext4\"`"
-
-#. type: Title ====
-#, no-wrap
-msgid "fsOpts"
-msgstr "fsOpts"
-
-#. type: Plain text
-msgid ""
-"`fsOpts` is an optional parameter that passes options to the volume's "
-"filesystem at creation time."
-msgstr ""
-"`fsOpts` はオプションで、作成時にボリュームのファイルシステムに渡すオプション"
-"を指定します。"
-
-#. type: Plain text
-msgid ""
-"Please note these values are specific to your chosen <<s-kubernetes-"
-"filesystem, filesystem>>."
-msgstr ""
-"これらの値は選択した <<s-kubernetes-filesystem, filesystem>> 固有です。"
-
-#. type: Plain text
-msgid "Example: `fsOpts: \"-b 2048\"`"
-msgstr "例: `fsOpts: \"-b 2048\"`"
-
-#. type: Title ====
-#, no-wrap
-msgid "mountOpts"
-msgstr "mountOpts"
-
-#. type: Plain text
-msgid ""
-"`mountOpts` is an optional parameter that passes options to the volume's "
-"filesystem at mount time."
-msgstr ""
-"`mountOpts` はオプションで、マウント時にボリュームのファイルシステムに渡すオ"
-"プションを指定します。"
-
-#. type: Plain text
-msgid "Example: `mountOpts: \"sync,noatime\"`"
-msgstr "例: `mountOpts: \"sync,noatime\"`"
