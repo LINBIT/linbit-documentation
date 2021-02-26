@@ -1,16 +1,17 @@
 [[s-vsan-users-guide]]
 = LINBIT VSAN User Guide
-:Author Initials: Joel Zhou
 :toc:
-:icons:
-:numbered:
-:website: https://www.linbit.com/
+:icons: font
+:icon-set: fa
+:sectnums:
 
-[[p-intro]]
-= Introduction
-LINBIT VSAN is a LINBIT DRBD and LINSTOR based Software-Defined Storage solution for hyper-converged infrastructure.
+[[s-intro]]
+== Introduction
+LINBIT VSAN is a software-defined storage solution for hyper-converged infrastructure, based on LINBIT's DRBD and LINSTOR.
 
-It is built with VMware ESXi as a target platform in mind, but it is independent of the hypervisor software itself, so theoretically it should work on any other hypervisor software.
+It uses CentOS 8 as a foundation and utilizes software by LINBIT to provide highly available storage to hypervisors through a convenient iSCSI target.
+
+It is built primarily with VMware ESXi as a target platform in mind, but it is fully independent of the hypervisor software, so it should also work on any other virtualization platform.
 
 .Warning
 ********
@@ -18,30 +19,37 @@ Please note that not all best practices recommended by LINBIT's tech guides are 
 For example, it is not yet possible to configure multiple links to separate application and replication traffic.
 ********
 
-[[p-architecture]]
-= Architecture
+[[s-architecture]]
+== Architecture
+
+Logically, LINBIT VSAN fits inbetween the hypervisor and the virtual machines it provides storage for.
+
 image::images/vsan-architecture.svg[1]
 
-[[p-prerequisites]]
-= Prerequisites
-- Validated LINBIT credentials, which is also used to log in to https://my.linbit.com/[LINBIT's Customer Portal]
-- VSAN installation medium (ISO or OVA file)
-- Working virtualization platform
-- Internet access for all VSAN VMs footnote:[Internet access is only required during the initial setup, not for continued operation.]
+In practice, VSAN runs one of its instances as a virtual machine on each hypervisor in the cluster.
+The hypervisor passes its local storage through to VSAN, which then replicates its contents across the cluster.
+One of the VSAN virtual machines exports an iSCSI target through a static IP, which can then be fed back to the hypervisor in order to provide a highly available datastore. This in turn can be used to store virtual machines and disk images on solid, redundant storage.
+
+[[s-prerequisites]]
+== Prerequisites
+- LINBIT customer credentials, which are also used to log in to https://my.linbit.com/[LINBIT's Customer Portal]. You can get these by https://www.linbit.com/request-linstor-vsan-download/[requesting an evaluation].
+- VSAN installation medium (ISO or OVA file). The download link will be sent to you when you request an evaluation.
+- A virtualization platform, such as VMware ESXi.
+- Internet access for all VSAN VMs.footnote:[Internet access is only required during the initial setup, not for continued operation.]
 
 [[s-node-count]]
-== Node count
+=== Node count
 Because VSAN makes use of DRBD's quorum mechanism, a VSAN cluster needs to consist of at least three member nodes.
 
 The usual limitations and caveats of systems using quorum apply -- for example, an odd number of nodes is greatly preferred over an even one.
 Please refer to the https://www.linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-feature-quorum[DRBD9 User's Guide] for more information.
 
-[[p-installation]]
-= Installation
+[[s-installation]]
+== Installation
 LINBIT currently distributes VSAN in two formats, as an ISO image which gives a generic way to install VSAN on any kind of virtualization platform, and as an OVA file which can be imported into VMware ESXi easily and directly.
 
 [[s-installation-iso]]
-== Installing via ISO file
+=== Installing via ISO file
 Because VSAN is based on CentOS 8, you have to create one VM on each hypervisor node manually. You then need to attach a virtual or local disk for VSAN itself, and assign or pass-through local storage devices which will be used by VSAN for data replication. Make sure those local storage devices are untouched during VSAN installation (for example, do not create any partitions). Of course, one or more network adapters and IPs are mandatory for each VSAN VM.
 
 .Notice
@@ -57,7 +65,7 @@ VSAN ISO contains a customized kickstart file to auto-configure CentOS 8, please
 ********
 
 [[s-iso-networking]]
-=== Networking
+==== Networking
 
 VSAN relies on a network connection being made available on boot. By default, the CentOS installer configures the network interface to *not* automatically connect.
 
@@ -67,14 +75,14 @@ Please make sure that, when configuring the network interface, the "Connect auto
 image::images/vsan-connect-automatically.png[]
 
 [[s-iso-time]]
-=== Time
+==== Time
 
 In a cluster of multiple servers, it is important to ensure that the clocks of the individual nodes are in sync with each other.
 
 This is easiest achieved by using NTP (Network Time Protocol). Please make sure that NTP is enabled in the CentOS setup and that the nodes' clocks are synchronized after the installation is done.
 
 [[s-installation-ova]]
-== Installing via OVA file
+=== Installing via OVA file
 Simply import OVA file into your VMware Cluster, then deploy it to each ESXi node. Thanks to this pre-baked VMware image file, you do not have to install VSAN one by one, just assign or pass-through local storage devices to each of VSAN VMs and start all VSAN VMs, and you are done!
 
 
@@ -87,13 +95,13 @@ It is highly recommended to log into the machine and change the password immedia
 *******
 
 [[p-initialization]]
-= Initialization
-After all VSAN VMs are installed and rebooted, access any one of them via your browser to setup VSAN. VSAN gives you a one-stop Web UI wizard to configure the storage cluster, step by step screenshots are located https://www.linbit.com/linbit-vsan-software-defined-storage-for-vmware/[here], and there is also a https://www.youtube.com/watch?v=m8G7l3CHugg[walk-through video].
+== Initialization
+After all VSAN VMs are installed and rebooted, access any one of them via your browser to setup VSAN. VSAN gives you a one-stop Web UI wizard to configure the storage cluster. Step by step screenshots can be found https://www.linbit.com/linbit-vsan-software-defined-storage-for-vmware%e2%80%8b/[on LINBIT's website], and there is also a https://www.youtube.com/watch?v=m8G7l3CHugg[walk-through video].
 
 For general help with the terms and concepts used during the setup, please refer to the https://www.linbit.com/drbd-user-guide/linstor-guide-1_0-en/[LINSTOR User's Guide].
 
 [[p-administration]]
-= Administration
+== Administration
 The VSAN Web UI is built to enable an administrator to handle most basic tasks with ease.
 
 If you are familiar with the technologies under the hood, you are free to directly use the underlying operating system and treat it as a standard CentOS-based LINSTOR cluster.
