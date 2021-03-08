@@ -242,7 +242,7 @@ and DRBD will not be disrupted by any means.
 If you are using the embedded default H2 database and the linstor-controller package is upgraded an automatic
 backup file of the database will be created in the default `/var/lib/linstor` directory.
 This file is a good restore point if for any reason a linstor-controller database migration should fail,
-than it is recommended to report the error to Linbit and restore the old database file and downgrade to your previous
+than it is recommended to report the error to LINBIT and restore the old database file and downgrade to your previous
 controller version.
 
 If you use any external database or etcd, it is recommended to do a manually backup of your current database to have
@@ -267,7 +267,7 @@ registry (reach out to sales@linbit.com for credentials):
 # docker login drbd.io
 ----------------------------
 
-The containers available in this repo are:
+The containers available in this repository are:
 
 * drbd.io/drbd9-rhel8
 * drbd.io/drbd9-rhel7
@@ -760,7 +760,7 @@ LINSTOR has currently three strategies:
 space of the storage pool. However, this strategy only considers the actually
 allocated space (in case of thinly provisioned storage pool this might grow
 with time without creating new resources)
-  * `MinReservedSpace`: Unlink the "MaxFreeSpace", this strategy considers the
+  * `MinReservedSpace`: Unlike the "MaxFreeSpace", this strategy considers the
 reserved spaced. That is the space that a thin volume can grow to before reaching
 its limit. The sum of reserved spaces might exceed the storage pools capacity,
 which is as overprovisioning.
@@ -1083,7 +1083,7 @@ The following table shows which layer can be followed by which child-layer:
 
 NOTE: One layer can only occur once in the layer-list
 
-TIP: For information about the prerequisites for the `luks` layer,
+TIP: For information about the prerequisites for the `LUKS` layer,
 refer to the Encrypted Volumes section of this User's Guide.
 
 ==== NVMe-oF/NVMe-TCP LINSTOR Layer
@@ -1122,7 +1122,7 @@ has to be given as you create the resource-definition:
 
 NOTE: As default the -l (layer-stack) parameter is set to `drbd,
 storage` when DRBD is used. If you want to create LINSTOR resources
-with neither NVMe nor DBRD you have to set the `-l` parameter to only
+with neither NVMe nor DRBD you have to set the `-l` parameter to only
 `storage`.
 
 Create the volume-definition for our resource:
@@ -1154,7 +1154,7 @@ The `-d` parameter creates the resource on this node as diskless.
 Now you can  mount the resource `nvmedata` on one of your nodes.
 
 IMPORTANT: If your nodes have more than one NIC you should force the
-route between them for NVMe-of/NVME-TCP, otherwise multiple NIC's
+route between them for NVMe-of/NVME-TCP, otherwise multiple NICs
 could cause troubles.
 
 ==== OpenFlex(TM) Layer
@@ -1166,7 +1166,7 @@ Composable Infrastructure] takes the role of a combined layer acting as a
 storage layer (like LVM) and also providing the allocated space as an NVMe target.
 OpenFlex has a REST API which is also used by LINSTOR to operate with.
 
-As OpenFlex combines concepts of LINSTORs storage as well as NVMe-layer, LINSTOR was
+As OpenFlex combines concepts of LINSTOR's storage as well as NVMe-layer, LINSTOR was
 added both, a new storage driver for the storage pools as well as a dedicated `openflex`
 layer which uses the mentioned REST API.
 
@@ -1214,7 +1214,7 @@ $ linstor storage-pool create openflex ofNode1 sp0 0
 ----
 
 * `ofNode1` and `sp0` are the node name and storage pool name, respectively, just as usual for the
-LINSTORs create storage pool command
+LINSTOR's create storage pool command
 * The last `0` is the identifier of the OpenFlex storage pool within the previously defined storage device
 
 Once all necessary storage pools are created in LINSTOR, the next steps are similar to
@@ -1723,7 +1723,7 @@ peer-resources.
 === External database
 
 It is possible to have LINSTOR working with an external database provider
-like Postgresql, MariaDB and since version 1.1.0 even ETCD key value store is supported.
+like PostgreSQL, MariaDB and since version 1.1.0 even ETCD key value store is supported.
 
 To use an external database there are a few additional steps to configure.
 You have to create a DB/Schema and user to use for linstor, and configure this in the
@@ -1731,9 +1731,9 @@ You have to create a DB/Schema and user to use for linstor, and configure this i
 
 
 [[s-postgresql]]
-==== Postgresql
+==== PostgreSQL
 
-A sample Postgresql `linstor.toml` looks like this:
+A sample PostgreSQL `linstor.toml` looks like this:
 
 ------------------------------------------------------
 [db]
@@ -1743,7 +1743,7 @@ connection_url = "jdbc:postgresql://localhost/linstor"
 ------------------------------------------------------
 
 [[s-mariadb_mysql]]
-==== MariaDB/Mysql
+==== MariaDB/MySQL
 
 A sample MariaDB `linstor.toml` looks like this:
 
@@ -1754,7 +1754,7 @@ password = "linstor"
 connection_url = "jdbc:mariadb://localhost/LINSTOR?createDatabaseIfNotExist=true"
 ------------------------------------------------------
 
-NOTE: The LINSTOR schema/database is created as `LINSTOR` so make sure the mariadb connection string
+NOTE: The LINSTOR schema/database is created as `LINSTOR` so make sure the MariaDB connection string
 refers to the `LINSTOR` schema, as in the example above.
 
 
@@ -2177,7 +2177,7 @@ This feature uses the following properties to adapt the behaviour.
  * `DrbdOptions/AutoEvictMinReplicaCount` sets the number of replicas that should always
 be present. You can set this property on the controller to change a global default, or on
 a specific resource-definition or resource-group to change it only for that
-resource-definiton or resource-group. If this property is left empty, the place-count
+resource-definition or resource-group. If this property is left empty, the place-count
 set for the auto-placer of the corresponding resource-group will be used.
 
  * `DrbdOptions/AutoEvictAfterTime` describes how long a node can be offline in minutes
@@ -2203,7 +2203,7 @@ feature off by setting it to false on the controller, although this might not wo
 completely if you already set different values for individual nodes, since those values take precedence
 over the global default.
 
-Afer the linstor-controller loses the connection to a satellite, aside from trying to
+After the linstor-controller loses the connection to a satellite, aside from trying to
 reconnect, it starts a timer for that satellite. As soon as that timer exceeds
 `DrbdOptions/AutoEvictAfterTime` and all of the DRBD-connections to the DRBD-resources
 on that satellite are broken, the controller will check whether or not
@@ -2255,7 +2255,7 @@ In case a resource-definition has an nvme-target as well as an nvme-initiator re
 both bottom-most devices of each node will receive the setting. In case of the target the
 bottom-most device will be the volume of LVM or ZFS, whereas in case of the initiator the
 bottom-most device will be the connected nvme-device, regardless which other layers
-are stacked ontop of that.
+are stacked on top of that.
 
 
 [[s-linstor-getting-help]]
@@ -2264,7 +2264,7 @@ are stacked ontop of that.
 A quick way to list available commands on the command line is to type
 `linstor`.
 
-Further information on subcommands (e.g., list-nodes) can be retrieved in
+Further information on sub-commands (e.g., list-nodes) can be retrieved in
 two ways:
 
 ----------------------------
@@ -2272,7 +2272,7 @@ two ways:
 # linstor help node list
 ----------------------------
 
-Using the 'help' subcommand is especially helpful when LINSTOR is executed
+Using the 'help' sub-command is especially helpful when LINSTOR is executed
 in interactive mode (`linstor interactive`).
 
 One of the most helpful features of LINSTOR is its rich tab-completion,
