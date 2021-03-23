@@ -309,7 +309,7 @@ and optionally set is as the default backend:
 ----
 [DEFAULT]
 ...
-default_volume_type = linstor-drbd
+default_volume_type = linstor-drbd-volume
 enabled_backends = lvm,linstor-drbd
 ...
 ----
@@ -389,14 +389,14 @@ Before creating volumes using Cinder, you have to create a volume type. This can
 [source,shell]
 ----
 # Create a volume using the default backend
-$ openstack volume type create default volume
+$ openstack volume type create default
 +-------------+--------------------------------------+
 | Field       | Value                                |
 +-------------+--------------------------------------+
 | description | None                                 |
 | id          | 58365ffb-959a-4d91-8821-5d72e5c39c26 |
 | is_public   | True                                 |
-| name        | default1                             |
+| name        | default                              |
 +-------------+--------------------------------------+
 # Create a volume using a specific backend
 $ openstack volume type create --property volume_backend_name=linstor-drbd linstor-drbd-volume
@@ -421,7 +421,7 @@ the volume type. You can get a list of available options by running:
 
 [source,shell]
 ----
-$ cinder get-capabilities cinder-01.openstack.test@linstor-drbd-cinderpool
+$ cinder get-capabilities cinder-01.openstack.test@linstor-drbd
 +---------------------+------------------------------------------------------------------+
 | Volume stats        | Value                                                            |
 +---------------------+------------------------------------------------------------------+
@@ -461,9 +461,12 @@ Once you have a volume type configured, you can start using it to provision new 
 For example, to create a simple 1Gb volume on the command line you can use:
 [source,shell]
 ----
-openstack volume create --type linstor-drbd --size 1 --availability-zone nova linstor-test-vol
+openstack volume create --type linstor-drbd-volume --size 1 --availability-zone nova linstor-test-vol
 openstack volume list
 ----
+
+NOTE: If you set `default_volume_type = linstor-drbd-volume` in your `/etc/cinder/cinder.conf`,
+you may omit the `--type linstor-drbd-volume` from the `openstack volume create ...` command above.
 
 === Troubleshooting
 
