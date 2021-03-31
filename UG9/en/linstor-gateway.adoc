@@ -1,0 +1,247 @@
+[[ch-linstor-gateway]]
+== Exporting Highly Available Storage using LINSTOR Gateway
+
+*LINSTOR Gateway* manages highly available iSCSI targets and NFS exports by leveraging on LINSTOR and
+Pacemaker. Setting up LINSTOR - including storage pools and resource groups - as well as Corosync and
+Pacemaker's properties are a prerequisite to use this tool.
+
+[[s-linstor-gateway-requirements]]
+=== Requirements
+
+==== LINSTOR
+
+A LINSTOR cluster is required to operate LINSTOR Gateway. It is *highly recommended* to run the LINSTOR
+controller as a Pacemaker resource. This needs to be configured manually. Such a resource could look like the
+following: (optional)
+
+-----------------
+primitive p_linstor-controller systemd:linstor-controller \
+        op start interval=0 timeout=100s \
+        op stop interval=0 timeout=100s \
+        op monitor interval=30s timeout=100s
+-----------------
+
+For both iSCSI and NFS, `storage pool` , `resource group` and a `volume group` for LINSTOR Gateway needs to be
+present. Lets do it;
+
+Creating the storage pool in 3 nodes using the phsical device `/dev/sdb`;
+
+-----------------
+linstor physical-storage create-device-pool --pool-name lvpool LVM LINSTOR1 /dev/sdb --storage-pool lvmpool
+linstor physical-storage create-device-pool --pool-name lvpool LVM LINSTOR2 /dev/sdb --storage-pool lvmpool
+linstor physical-storage create-device-pool --pool-name lvpool LVM LINSTOR3 /dev/sdb --storage-pool lvmpool
+-----------------
+
+We also need resource groups and volume groups;
+
+-----------------
+linstor rg c iSCSI_group --storage-pool lvmpool --place-count 2
+linstor rg c nfs_group --storage-pool lvmpool --place-count 3
+-----------------
+
+-----------------
+linstor vg c iSCSI_group
+linstor vg c nfs_group
+-----------------
+
+For a more detailed explanation of the storage pool, resource group and volume group creation, check the
+https://linbit.com/drbd-user-guide/LINSTOR-guide-1_0-en/#s-storage_pools[LINSTOR user guide]
+
+==== Pacemaker
+
+A working Corosync/Pacemaker cluster is expected on the machine where LINSTOR Gateway is running.
+The https://github.com/LINBIT/drbd-utils/blob/master/scripts/drbd-attr[drbd-attr] resource agent is required
+to run LINSTOR Gateway. This is included in LINBIT's `drbd-utils` package for Ubuntu based distributions, or
+the drbd-pacemaker package on RHEL/CentOS.  LINSTOR Gateway sets up all required Pacemaker resource and
+constraints by itself, except for the LINSTOR controller resource.
+
+==== iSCSI & NFS
+
+LINSTOR Gateway uses Pacemaker's `ocf::heartbeat:iSCSITarget` resource agent for its iSCSI integration, which
+requires an iSCSI implementation to be installed. Using `targetcli` is recommended.
+
+For iSCSI, please install targetcli.
+
+-----------------
+yum install targetcli
+-----------------
+
+For nfs, nfs-server needs to be enabled and ready;
+
+-----------------
+systemctl enable --now nfs-server
+-----------------
+
+[[s-linstor-gateway-preparation]]
+=== Preparation
+First, let's check that all the components are available. This guide assumes you already installed and
+configured a LINSTOR cluster. Volume Group, Storage Pool and Resource Group should be defined before using
+linstor-iscsi or linstor-nfs.
+
+Tools need to be present in server;
+
+* linstor-client (managing the LINSTOR cluster)
+* drbd-attr resource agent (part of drbd-utils in Debian/Ubuntu, and part of drbd-pacemaker for other
+  Linux distrubutions)
+* targetcli (for iSCSI)
+* nfs-utils, nfs-server
+* pcs or crmsh for pacemaker client. (checking the status of the iSCSI or nfs targets)
+
+[[s-linstor-gateway-checking]]
+=== Checking the Cluster
+
+Check the LINSTOR cluster status with;
+
+-----------------
+[root@LINSTOR1 ~]# linstor n l
+╭────────────────────────────────────────────────────────────╮
+┊ Node     ┊ NodeType  ┊ Addresses                  ┊ State  ┊
+╞════════════════════════════════════════════════════════════╡
+┊ LINSTOR1 ┊ COMBINED  ┊ 172.16.16.111:3366 (PLAIN) ┊ Online ┊
+┊ LINSTOR2 ┊ SATELLITE ┊ 172.16.16.112:3366 (PLAIN) ┊ Online ┊
+┊ LINSTOR3 ┊ SATELLITE ┊ 172.16.16.113:3366 (PLAIN) ┊ Online ┊
+╰────────────────────────────────────────────────────────────╯
+-----------------
+Check the LINSTOR storage pool list with;
+
+-----------------
+root@LINSTOR1 ~]# linstor sp l
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+┊ StoragePool          ┊ Node     ┊ Driver   ┊ PoolName ┊ FreeCapacity ┊ TotalCapacity ┊ CanSnapshots ┊ State ┊
+╞═════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+┊ DfltDisklessStorPool ┊ LINSTOR1 ┊ DISKLESS ┊          ┊              ┊               ┊ False        ┊ Ok    ┊
+┊ DfltDisklessStorPool ┊ LINSTOR2 ┊ DISKLESS ┊          ┊              ┊               ┊ False        ┊ Ok    ┊
+┊ DfltDisklessStorPool ┊ LINSTOR3 ┊ DISKLESS ┊          ┊              ┊               ┊ False        ┊ Ok    ┊
+┊ lvmpool              ┊ LINSTOR1 ┊ LVM      ┊ lvpool   ┊    10.00 GiB ┊     10.00 GiB ┊ False        ┊ Ok    ┊
+┊ lvmpool              ┊ LINSTOR2 ┊ LVM      ┊ lvpool   ┊    10.00 GiB ┊     10.00 GiB ┊ False        ┊ Ok    ┊
+┊ lvmpool              ┊ LINSTOR3 ┊ LVM      ┊ lvpool   ┊    10.00 GiB ┊     10.00 GiB ┊ False        ┊ Ok    ┊
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+-----------------
+
+LINSTOR resource group list (please do not forget to create volume group for the resource group with:
+`linstor vg c iscsi_group`)
+
+-----------------
+[root@LINSTOR1 ~]# linstor rg l
+╭────────────────────────────────────────────────────────────────╮
+┊ ResourceGroup ┊ SelectFilter            ┊ VlmNrs ┊ Description ┊
+╞════════════════════════════════════════════════════════════════╡
+┊ DfltRscGrp    ┊ PlaceCount: 2           ┊        ┊             ┊
+╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡
+┊ iscsi_group   ┊ PlaceCount: 2           ┊ 0      ┊             ┊
+┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊
+╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡
+┊ nfs_group     ┊ PlaceCount: 3           ┊ 0      ┊             ┊
+┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊
+╰────────────────────────────────────────────────────────────────╯
+
+-----------------
+
+Check and disable stonith. Stonith is a technique for fencing node in clusters. We have 3 nodes here so quorum
+will be used instead of fencing.
+
+-----------------
+pcs property set stonith-enabled=false
+pcs property show
+-----------------
+
+Check the pacemaker cluster health
+
+-----------------
+[root@LINSTOR1 ~]# pcs status
+Cluster name: LINSTOR
+Cluster Summary:
+  * Stack: corosync
+  * Current DC: LINSTOR1 (version 2.0.5.linbit-1.0.el7-ba59be712) - partition with quorum
+  * Last updated: Wed Mar 24 21:24:10 2021
+  * Last change:  Wed Mar 24 21:24:01 2021 by root via cibadmin on LINSTOR1
+  * 3 nodes configured
+  * 0 resource instances configured
+
+Node List:
+  * Online: [ LINSTOR1 LINSTOR2 LINSTOR3 ]
+
+Full List of Resources:
+  * No resources
+
+Daemon Status:
+  corosync: active/enabled
+  pacemaker: active/enabled
+  pcsd: active/enabled
+-----------------
+
+[[s-linstor-gateway-setup-iscsi]]
+=== Setting up iSCSI target
+
+
+Now, everything looks good, let's start creating our first iSCSI lun. linstor-iscsi tool will be used for all
+iSCSI related actions. Please check "linstor-iscsi help" for detailed usage. At first it creates a new
+resource within the LINSTOR system under the specified name and using the specified resource group. After that
+it creates resource primitives in the Pacemaker cluster including all necessary order and location
+constraints. The Pacemaker primitives are prefixed with `p_`, contain the resource name and a resource type
+postfix.
+
+------------------------
+linstor-iscsi create --iqn=iqn.2021-04.com.linbit:lun4 --ip=172.16.16.101/24 --username=foo --lun=4 --password=bar --resource-group=iSCSI_group --size=1G
+------------------------
+
+This command will create a 1G iSCSI disk with the provided username and password in the resource group defined
+`iSCSI_group` DRBD and pacemaker resources will be automatically created by linstor-iscsi. You can check the
+pacemaker resources with "pcs status" command.
+
+------------------------
+[root@LINSTOR1 ~]# linstor-iscsi list
++-----------------------------+-----+---------------+-----------+--------------+---------+
+|             IQN             | LUN | Pacemaker LUN | Pacemaker | Pacemaker IP | LINSTOR |
++-----------------------------+-----+---------------+-----------+--------------+---------+
+| iqn.2020-06.com.linbit:lun4 |   4 |       ✓       |     ✓     |      ✓       |    ✓    |
++-----------------------------+-----+---------------+-----------+--------------+---------+
+------------------------
+
+[[s-linstor-gateway-delete-iscsi]]
+=== Deleting iSCSI target
+
+The following command will delete the iSCSI target from pacemaker as well as the LINSTOR cluster;
+
+------------------------
+linstor-iscsi delete -i iqn.2021-04.com.linbit:lun4 -l 4
+------------------------
+
+[[s-linstor-gateway-setup-nfs]]
+=== Setting up NFS export
+
+Before creating the nfs exports you need to tell LINSTOR that filesystem will be used for NFS exports will be
+EXT4. in order to do that, we'll apply a property to the resource group of NFS resources simply by typing;
+
+------------------------
+linstor rg set-property nfs_group FileSystem/Type ext4
+------------------------
+
+The following command will create a NFS export in the cluster. At first it creates a new resource within the
+LINSTOR system under the specified name and using the specified resource group. After that it creates resource
+primitives in the Pacemaker cluster including all necessary order and location constraints. The Pacemaker
+primites are prefixed with p_, contain the resource name and a resource type postfix.
+
+------------------------
+linstor-nfs create --resource=nfstest --service-ip=172.16.16.102/32 --allowed-ips=172.16.16.0/24 --resource-group=nfs_group --size=1G
+------------------------
+
+You can simply list the nfs exports with the command below;
+
+------------------------
+[root@LINSTOR1 ~]# LINSTOR-nfs list
++---------------+------------------+-----------------------+------------+------------+
+| Resource name | LINSTOR resource | Filesystem mountpoint | NFS export | Service IP |
++---------------+------------------+-----------------------+------------+------------+
+| nfstest       |        ✓         |           ✓           |     ✓      |     ✓      |
++---------------+------------------+-----------------------+------------+------------+
+------------------------
+
+[[s-linstor-gateway-delete-nfs]]
+=== Deleting NFS Export
+
+The following command will delete the nfs export from pacemaker as well as the LINSTOR cluster;
+
+------------------------
+[root@LINSTOR1 ~]# linstor-nfs delete -r nfstest
+------------------------
