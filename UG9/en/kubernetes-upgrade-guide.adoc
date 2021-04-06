@@ -26,16 +26,31 @@ helm repo update
 helm upgrade linstor-op linstor/linstor
 ----
 
-If you used any customizations on the initial install, pass the same options to `helm upgrade`. For example:
+If you used any customizations on the initial install, pass the same options to `helm upgrade`. The options currently
+in use can be retrieved from Helm.
 
 ----
-helm install linstor-op linstor/linstor -f <file>
-----
-
-would become
-
-----
-helm upgrade linstor-op linstor/linstor -f <file>
+# Retrieve the currently set options
+$ helm get values linstor-op
+USER-SUPPLIED VALUES:
+USER-SUPPLIED VALUES: null
+drbdRepoCred: drbdiocred
+operator:
+  satelliteSet:
+    kernelModuleInjectionImage: drbd.io/drbd9-rhel8:v9.0.28
+    storagePools:
+      lvmThinPools:
+      - devicePaths:
+        - /dev/vdb
+        name: thinpool
+        thinVolume: thinpool
+        volumeGroup: ""
+# Save current options
+$ helm get values linstor-op > orig.yaml
+# modify values here as needed. for example selecting a newer DRBD image
+$ vim orig.yaml
+# Start the upgrade
+$ helm upgrade linstor-op linstor/linstor -f orig.yaml
 ----
 
 This triggers the rollout of new pods. After a short wait, all pods should be running and ready.
@@ -48,6 +63,24 @@ volumes and volumes already in use by a pod will continue to work without interr
 ==== Upgrade instructions for specific versions
 
 Some versions require special steps, see below.
+
+===== Upgrade to v1.4
+
+This version introduces a new default version for the Etcd image, so take extra care that Etcd is using
+persistent storage. *Upgrading the Etcd image without persistent storage will corrupt the cluster*.
+
+If you are upgrading an existing cluster without making use of new Helm options, no additional steps are necessary.
+
+If you plan to use the newly introduced `additionalProperties` and `additionalEnv` settings, you have to replace
+the installed CustomResourceDefinitions with newer versions. Helm does not upgrade the CRDs on a chart upgrade
+
+----
+$ helm pull linstor/linstor --untar
+$ kubectl replace -f linstor/crds/
+customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced
+customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced
+customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced
+----
 
 ===== Upgrade to v1.3
 

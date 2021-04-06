@@ -173,7 +173,7 @@ This file can be passed to the helm installation like this:
 
 [source]
 ----
-helm install -f <file> linstor linstor/linstor
+helm install -f <file> linstor-op linstor/linstor
 ----
 
 ====== After install
@@ -584,6 +584,8 @@ operator:
         effect: "NoSchedule"
     resources: {} <3>
     replicas: 1 <2>
+    additionalEnv: [] <5>
+    additionalProperties: {} <6>
   satelliteSet:
     enabled: true
     satelliteImage: "drbd.io/linstor-satellite:v1.11.1"
@@ -596,6 +598,7 @@ operator:
     kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.27"
     kernelModuleInjectionMode: ShippedModules
     kernelModuleInjectionResources: {} <3>
+    additionalEnv: [] <5>
 haController:
   enabled: true
   image: drbd.io/linstor-k8s-ha-controller:v0.1.3
@@ -616,6 +619,9 @@ Most containers need a minimal amount of resources, except for:
 https://kubernetes.io/docs/concepts/scheduling-eviction/[kubernetes docs on affinity and toleration].
 This may be especially important for the `operator.satelliteSet` and `csi.node*` values. To schedule a pod using
 a LINSTOR persistent volume, the node requires a running LINSTOR satellite and LINSTOR CSI pod.
+<5> Sets additional environments variables to pass to the Linstor Controller and Satellites. Uses the same format as
+https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/[the `env` value of a container]
+<6> Sets additional properties on the Linstor Controller. Expects a simple mapping of `<property-key>: <value>`.
 
 [[s-kubernetes-ha-deployment]]
 ===== High Availability Deployment
@@ -678,31 +684,40 @@ For instance:
 kubectl exec linstor-op-cs-controller-<deployment-info> -- linstor storage-pool list
 ----
 
+For a convenient shortcut to the above command, download https://github.com/piraeusdatastore/kubectl-linstor/releases[`kubectl-linstor`]
+and install it alongside `kubectl`. Then you can use `kubectl linstor` to get access to the complete Linstor CLI
+
+----
+$ kubectl linstor node list
+╭───────────────────────────────────────────────────────────────────────────────────────────────╮
+┊ Node                                      ┊ NodeType   ┊ Addresses                   ┊ State  ┊
+╞═══════════════════════════════════════════════════════════════════════════════════════════════╡
+┊ kube-node-01.test                         ┊ SATELLITE  ┊ 10.43.224.26:3366 (PLAIN)   ┊ Online ┊
+┊ kube-node-02.test                         ┊ SATELLITE  ┊ 10.43.224.27:3366 (PLAIN)   ┊ Online ┊
+┊ kube-node-03.test                         ┊ SATELLITE  ┊ 10.43.224.28:3366 (PLAIN)   ┊ Online ┊
+┊ linstor-op-cs-controller-85b4f757f5-kxdvn ┊ CONTROLLER ┊ 172.24.116.114:3366 (PLAIN) ┊ Online ┊
+╰───────────────────────────────────────────────────────────────────────────────────────────────╯
+----
+
+It also expands references to PVCs to the matching Linstor resource
+
+----
+$ kubectl linstor resource list -r pvc:my-namespace/demo-pvc-1 --all
+pvc:my-namespace/demo-pvc-1 -> pvc-2f982fb4-bc05-4ee5-b15b-688b696c8526
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+┊ ResourceName                             ┊ Node              ┊ Port ┊ Usage  ┊ Conns ┊    State   ┊ CreatedOn           ┊
+╞═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+┊ pvc-2f982fb4-bc05-4ee5-b15b-688b696c8526 ┊ kube-node-01.test ┊ 7000 ┊ Unused ┊ Ok    ┊   UpToDate ┊ 2021-02-05 09:16:09 ┊
+┊ pvc-2f982fb4-bc05-4ee5-b15b-688b696c8526 ┊ kube-node-02.test ┊ 7000 ┊ Unused ┊ Ok    ┊ TieBreaker ┊ 2021-02-05 09:16:08 ┊
+┊ pvc-2f982fb4-bc05-4ee5-b15b-688b696c8526 ┊ kube-node-03.test ┊ 7000 ┊ InUse  ┊ Ok    ┊   UpToDate ┊ 2021-02-05 09:16:09 ┊
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+----
+
+It also expands references of the form `pod:[<namespace>/]<podname>` into a list resources in use by the pod.
+
 This should only be necessary for investigating problems and accessing advanced functionality.
 Regular operation such as creating volumes should be achieved via the
 <<s-kubernetes-basic-configuration-and-deployment,Kubernetes integration>>.
-
-[[s-kubernetes-linstor-csi-plugin-deployment]]
-=== LINSTOR CSI Plugin Deployment
-
-The operator Helm chart deploys the LINSTOR CSI plugin for you so if you used
-that, you can skip this section.
-
-If you are integrating LINSTOR using a different method, you will need to install the LINSTOR CSI plugin.
-Instructions for deploying the CSI plugin can be found on the
-https://github.com/LINBIT/linstor-csi[project's github]. This will result in a
-linstor-csi-controller _Deployment_ and a linstor-csi-node _DaemonSet_ running in the
-kube-system namespace.
-
-----
-NAME                           READY   STATUS    RESTARTS   AGE     IP              NODE
-linstor-csi-controller-ab789   5/5     Running   0          3h10m   191.168.1.200   kubelet-a
-linstor-csi-node-4fcnn         2/2     Running   0          3h10m   192.168.1.202   kubelet-c
-linstor-csi-node-f2dr7         2/2     Running   0          3h10m   192.168.1.203   kubelet-d
-linstor-csi-node-j66bc         2/2     Running   0          3h10m   192.168.1.201   kubelet-b
-linstor-csi-node-qb7fw         2/2     Running   0          3h10m   192.168.1.200   kubelet-a
-linstor-csi-node-zr75z         2/2     Running   0          3h10m   192.168.1.204   kubelet-e
-----
 
 [[s-kubernetes-basic-configuration-and-deployment]]
 === Basic Configuration and Deployment
@@ -1245,11 +1260,11 @@ It is deployed by default, and can be scaled to multiple replicas:
 
 [source]
 ----
-$ kubectl get pods -l app.kubernetes.io/name=linstor-ha-controller
-NAME                                    READY   STATUS    RESTARTS   AGE
-linstor-ha-controller-f496c5f77-fr76m   1/1     Running   0          89s
-linstor-ha-controller-f496c5f77-jnqtc   1/1     Running   0          89s
-linstor-ha-controller-f496c5f77-zcrqg   1/1     Running   0          89s
+$ kubectl get pods -l app.kubernetes.io/name=linstor-op-ha-controller
+NAME                                       READY   STATUS    RESTARTS   AGE
+linstor-op-ha-controller-f496c5f77-fr76m   1/1     Running   0          89s
+linstor-op-ha-controller-f496c5f77-jnqtc   1/1     Running   0          89s
+linstor-op-ha-controller-f496c5f77-zcrqg   1/1     Running   0          89s
 ----
 
 In the event of node failures, Kubernetes is very conservative in rescheduling stateful workloads. This means it can
