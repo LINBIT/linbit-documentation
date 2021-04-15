@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-02-22 10:42+0900\n"
+"POT-Creation-Date: 2021-04-14 14:39+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,541 +17,868 @@ msgstr "OpenStackでのLINSTORボリューム"
 
 #. type: Plain text
 msgid ""
-"indexterm:[Openstack]indexterm:[Cinder]indexterm:[Nova]indexterm:[LINSTOR] "
-"This chapter describes DRBD in Openstack for persistent, replicated, and "
-"high-performance block storage with https://github.com/LINBIT/openstack-"
-"cinder/tree/stein-linstor[LINSTOR Driver]."
+"indexterm:[Openstack]indexterm:[Cinder] This chapter describes using LINSTOR "
+"to provision persistent, replicated, and high-performance block storage for "
+"Openstack."
 msgstr ""
-"indexterm:[Openstack]indexterm:[Cinder]indexterm:[Nova]indexterm:[LINSTOR] こ"
-"の章では、永続的で複製された高性能ブロックストレージであるDRBDの https://"
-"github.com/LINBIT/openstack-cinder/tree/stein-linstor[LINSTOR ドライバ] につ"
-"いてOpenstackでの使用法を説明します。"
+"indexterm:[Openstack]indexterm:[Cinder] この章では、LINSTOR を使用して、"
+"Openstack 用の永続的で複製された高性能のブロックストレージをプロビジョニング"
+"する方法について説明します。"
 
 #. type: Title ===
 #, no-wrap
 msgid "Openstack Overview"
-msgstr "Openstackの概要"
+msgstr "Openstack の概要"
 
 #. type: Plain text
 msgid ""
-"Openstack consists of a wide range of individual services; the two that are "
-"mostly relevant to DRBD are Cinder and Nova.  *Cinder* is the block storage "
-"service, while *Nova* is the compute node service that's responsible for "
-"making the volumes available for the VMs."
+"Openstack consists of a wide range of individual services; The service "
+"responsible for provisioning and managing block storage is called https://"
+"docs.openstack.org/cinder/latest/[Cinder]. Other openstack services such as "
+"the compute instance service https://docs.openstack.org/nova/latest[Nova] "
+"can request volumes from Cinder. Cinder will then make a volume accessible "
+"to the requesting service."
 msgstr ""
-"Openstackは幅広い個別のサービスで構成されています。DRBDに最も関連性の高い2つ"
-"は、CinderとNovaです。 *Cinder* はブロックストレージサービスです。 *Nova* は"
-"VMで使用可能なボリュームを作成する計算ノードサービスです。"
+"Openstack は、さまざまな個別のサービスで構成されています。ブロックストレージ"
+"のプロビジョニングと管理を担当するサービスは https://docs.openstack.org/"
+"cinder/latest/[Cinder] と呼ばれます。コンピューティングインスタンスサービス "
+"https://docs.openstack.org/nova/latest[Nova] などの他の openstack サービス"
+"は、Cinder にボリュームをリクエストできます。その後、Cinder は、要求元のサー"
+"ビスがボリュームにアクセスできるようにします。"
 
 #. type: Plain text
 msgid ""
-"The LINSTOR driver for OpenStack manages DRBD/LINSTOR clusters and makes "
-"them available within the OpenStack environment, especially within Nova "
-"compute instances.  LINSTOR-backed Cinder volumes will seamlessly provide "
-"all the features of DRBD/LINSTOR while allowing OpenStack to manage all "
-"their deployment and management.  The driver will allow OpenStack to create "
-"and delete persistent LINSTOR volumes as well as managing and deploying "
-"volume snapshots and raw volume images."
+"LINSTOR can integrate with Cinder using a *volume driver*. The volume driver "
+"translates calls to the Cinder API to LINSTOR commands. For example: "
+"requesting a volume from Cinder will create new resources in LINSTOR, Cinder "
+"Volume snapshots translate to snapshots in LINSTOR and so on."
 msgstr ""
-"OpenStackのLINSTORドライバは、DRBD/LINSTORクラスタを管理し、OpenStack環境、特"
-"にNova computeインスタンス内で使用されます。LINSTORでサポートされているCinder"
-"ボリュームは、DRBD/LINSTORのすべての機能をシームレスに提供し、OpenStackはすべ"
-"ての配備と管理を実行できます。ドライバは、OpenStackが永続的なLINSTORボリュー"
-"ムの作成と削除、ボリュームスナップショットとローボリュームイメージの管理と配"
-"備を可能にします。"
-
-#. type: Plain text
-msgid ""
-"Aside from using the kernel-native DRBD protocols for replication, the "
-"LINSTOR driver also allows using iSCSI with LINSTOR cluster(s) to provide "
-"maximum compatibility. For more information on these two options, please see "
-"<<s-openstack-linstor-transport-protocol>>."
-msgstr ""
-"カーネル特有のDRBDプロトコルをレプリケーションに使用する以外に、LINSTORドライ"
-"バでは、LINSTORクラスタでiSCSIを使用して最大の互換性を得ることができます。こ"
-"れら2つのオプションの詳細については、 <<s-openstack-linstor-transport-"
-"protocol>> を参照ください。"
+"LINSTOR は、ボリュームドライバーを使用して Cinder と統合できます。ボリューム"
+"ドライバーは、CinderAPI への呼び出しを LINSTOR コマンドに変換します。例えば "
+"Cinderにボリュームを要求すると、LINSTOR に新しいリソースが作成され、Cinder ボ"
+"リュームのスナップショットは LINSTOR のスナップショットに変換されます。"
 
 #. type: Title ===
 #, no-wrap
 msgid "LINSTOR for Openstack Installation"
-msgstr "OpenstackのLINSTORインストレーション"
+msgstr "Openstack のLINSTOR インストレーション"
 
 #. type: Plain text
 msgid ""
 "An initial installation and configuration of DRBD and LINSTOR must be "
-"completed prior to installing OpenStack driver.  Each LINSTOR node in a "
-"cluster should also have a Storage Pool defined as well.  Details about "
-"LINSTOR installation can be found <<s-linstor-init-cluster, here>>."
+"completed prior to using the OpenStack driver."
 msgstr ""
-"OpenStackドライバをインストールする前に、DRBDとLINSTORの初期インストールと設"
-"定を完了する必要があります。クラスタ内の各LINSTORノードにもストレージプールが"
-"定義されている必要があります。 LINSTORのインストールに関する詳細は、 <<s-"
-"linstor-init-cluster, こちら>> を参照ください。"
+"OpenStack ドライバーを使用する前に、DRBD と LINSTOR の初期インストールと構成"
+"を完了する必要があります。"
+
+#. type: Plain text
+msgid "A detailed installation guide can be found <<s-installation,here>>."
+msgstr ""
+"インストールガイドの詳細は <<s-installation,こちら>> を参照ください。また以下"
+"も参照ください。"
+
+#. type: Plain text
+msgid "<<s-linstor-init-cluster,Initialize>> your cluster"
+msgstr "<<s-linstor-init-cluster,クラスタの初期化>>"
+
+#. type: Plain text
+msgid "Learn how to use the <<s-using_the_linstor_client,LINSTOR client>>"
+msgstr "<<s-using_the_linstor_client,LINSTOR クライアントの使用法>>"
+
+#. type: Plain text
+msgid ""
+"<<s-adding_nodes_to_your_cluster,Add all storage nodes>> to the LINSTOR "
+"cluster"
+msgstr ""
+"<<s-adding_nodes_to_your_cluster,すべてのストレージノードをLINSTORクラスター"
+"に追加>>"
+
+#. type: Plain text
+msgid ""
+"At this point you should be able to list your storage cluster nodes using "
+"the LINSTOR client:"
+msgstr ""
+"この時点で、LINSTOR クライアントを使用してストレージクラスターノードを一覧表"
+"示できるはずです。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ linstor node info\n"
+"╭────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ Node                      ┊ NodeType  ┊ Addresses                 ┊ State  ┊\n"
+"╞════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ cinder-01.openstack.test  ┊ COMBINED  ┊ 10.43.224.21:3366 (PLAIN) ┊ Online ┊\n"
+"┊ cinder-02.openstack.test  ┊ COMBINED  ┊ 10.43.224.22:3366 (PLAIN) ┊ Online ┊\n"
+"┊ storage-01.openstack.test ┊ SATELLITE ┊ 10.43.224.11:3366 (PLAIN) ┊ Online ┊\n"
+"┊ storage-02.openstack.test ┊ SATELLITE ┊ 10.43.224.12:3366 (PLAIN) ┊ Online ┊\n"
+"┊ storage-03.openstack.test ┊ SATELLITE ┊ 10.43.224.13:3366 (PLAIN) ┊ Online ┊\n"
+"╰────────────────────────────────────────────────────────────────────────────╯\n"
+msgstr ""
+"╭────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ Node                      ┊ NodeType  ┊ Addresses                 ┊ State  ┊\n"
+"╞════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ cinder-01.openstack.test  ┊ COMBINED  ┊ 10.43.224.21:3366 (PLAIN) ┊ Online ┊\n"
+"┊ cinder-02.openstack.test  ┊ COMBINED  ┊ 10.43.224.22:3366 (PLAIN) ┊ Online ┊\n"
+"┊ storage-01.openstack.test ┊ SATELLITE ┊ 10.43.224.11:3366 (PLAIN) ┊ Online ┊\n"
+"┊ storage-02.openstack.test ┊ SATELLITE ┊ 10.43.224.12:3366 (PLAIN) ┊ Online ┊\n"
+"┊ storage-03.openstack.test ┊ SATELLITE ┊ 10.43.224.13:3366 (PLAIN) ┊ Online ┊\n"
+"╰────────────────────────────────────────────────────────────────────────────╯\n"
+
+#. type: Plain text
+msgid ""
+"At this point you should <<s-storage_pools,configure one or more storage "
+"pools>> per node. This guide assumes the storage pool is named `cinderpool`. "
+"LINSTOR should list the storage pool for each node, including the diskless "
+"storage pool created by default."
+msgstr ""
+"また、ノードごとに 1 つ以上の <<s-storage_pools,ストレージプール>> を構成する"
+"必要があります。このガイドでは、ストレージプールの名前が `cinderpool` である"
+"と仮定しています。LINSTOR は デフォルトで作成されたディスクレスストレージプー"
+"ルを含む、各ノードのストレージプールを一覧表示します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ linstor storage-pool list\n"
+"╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ StoragePool          ┊ Node                      ┊ Driver   ┊ PoolName        ┊ FreeCapacity ┊ TotalCapacity ┊ CanSnapshots ┊ State ┊\n"
+"╞═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ DfltDisklessStorPool ┊ cinder-01.openstack.test  ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ cinder-02.openstack.test  ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ storage-01.openstack.test ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ storage-02.openstack.test ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ storage-03.openstack.test ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ cinderpool           ┊ storage-01.openstack.test ┊ LVM_THIN ┊ ssds/cinderpool ┊      100 GiB ┊       100 GiB ┊ True         ┊ Ok    ┊\n"
+"┊ cinderpool           ┊ storage-02.openstack.test ┊ LVM_THIN ┊ ssds/cinderpool ┊      100 GiB ┊       100 GiB ┊ True         ┊ Ok    ┊\n"
+"┊ cinderpool           ┊ storage-03.openstack.test ┊ LVM_THIN ┊ ssds/cinderpool ┊      100 GiB ┊       100 GiB ┊ True         ┊ Ok    ┊\n"
+"╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n"
+msgstr ""
+"$ linstor storage-pool list\n"
+"╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ StoragePool          ┊ Node                      ┊ Driver   ┊ PoolName        ┊ FreeCapacity ┊ TotalCapacity ┊ CanSnapshots ┊ State ┊\n"
+"╞═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ DfltDisklessStorPool ┊ cinder-01.openstack.test  ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ cinder-02.openstack.test  ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ storage-01.openstack.test ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ storage-02.openstack.test ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ storage-03.openstack.test ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ cinderpool           ┊ storage-01.openstack.test ┊ LVM_THIN ┊ ssds/cinderpool ┊      100 GiB ┊       100 GiB ┊ True         ┊ Ok    ┊\n"
+"┊ cinderpool           ┊ storage-02.openstack.test ┊ LVM_THIN ┊ ssds/cinderpool ┊      100 GiB ┊       100 GiB ┊ True         ┊ Ok    ┊\n"
+"┊ cinderpool           ┊ storage-03.openstack.test ┊ LVM_THIN ┊ ssds/cinderpool ┊      100 GiB ┊       100 GiB ┊ True         ┊ Ok    ┊\n"
+"╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n"
 
 #. type: Title ====
 #, no-wrap
-msgid "Here's a synopsis on quickly setting up a LINSTOR cluster on Ubuntu:"
-msgstr "UbuntuでLINSTORクラスタをすばやく設定する方法について"
-
-#. type: Title =====
-#, no-wrap
-msgid "Install DRBD and LINSTOR on Cinder node as a LINSTOR Controller node:"
-msgstr "LINSTORコントローラノードとしてCinderノードにDRBDとLINSTORをインストール"
-
-#. type: delimited block -
-#, no-wrap
-msgid "# First, set up LINBIT repository per support contract\n"
-msgstr "# まず、サポート契約のLINBITリポジトリを設定します\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Install DRBD and LINSTOR packages\n"
-"sudo apt update\n"
-"sudo apt install -y drbd-dkms lvm2\n"
-"sudo apt install -y linstor-controller linstor-satellite linstor-client\n"
-"sudo apt install -y drbdtop\n"
-msgstr ""
-"# DRBDとLINSTORパッケージをインストールします\n"
-"sudo apt update\n"
-"sudo apt install -y drbd-dkms lvm2\n"
-"sudo apt install -y linstor-controller linstor-satellite linstor-client\n"
-"sudo apt install -y drbdtop\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Start both LINSTOR Controller and Satellite Services\n"
-"systemctl enable linstor-controller.service\n"
-"systemctl start linstor-controller.service\n"
-"systemctl enable linstor-satellite.service\n"
-"systemctl start linstor-satellite.service\n"
-msgstr ""
-"# LINSTORコントローラとサテライトの両方を開始します\n"
-"systemctl enable linstor-controller.service\n"
-"systemctl start linstor-controller.service\n"
-"systemctl enable linstor-satellite.service\n"
-"systemctl start linstor-satellite.service\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid "# For Diskless Controller, skip the following two 'sudo' commands\n"
-msgstr "# ディスクレスコントローラの場合は、次の２つの 'sudo' コマンドはスキップします\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# For Diskful Controller, create backend storage for DRBD/LINSTOR by creating\n"
-"# a Volume Group 'drbdpool' and specify appropriate volume location (/dev/vdb)\n"
-"sudo vgcreate drbdpool /dev/vdb\n"
-msgstr ""
-"# ディスクフルコントローラの場合は、DRBD/LINSTOR のバックエンドストレージをボリュームグループ 'drbdpool' として作成します。このとき適切なボリューム (/dev/vdb) を指定します\n"
-"sudo vgcreate drbdpool /dev/vdb\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Create a Logical Volume 'thinpool' within 'drbdpool'\n"
-"# Specify appropriate thin volume size (64G)\n"
-"sudo lvcreate -L 64G -T drbdpool/thinpool\n"
-msgstr ""
-"# 'drbdpool' に論理ボリューム 'thinpool' を作成します\n"
-"# 適切なボリュームサイズ (64G) を指定します\n"
-"sudo lvcreate -L 64G -T drbdpool/thinpool\n"
-
-#. type: Plain text
-msgid "OpenStack measures storage size in GiBs."
-msgstr "OpenStackはGiBでストレージサイズを測定します。"
-
-#. type: Title =====
-#, no-wrap
-msgid "Install DRBD and LINSTOR on other node(s) on the LINSTOR cluster:"
-msgstr "LINSTORクラスタの他のノードにDRBDとLINSTORをインストール"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Install DRBD and LINSTOR packages\n"
-"sudo apt update\n"
-"sudo apt install -y drbd-dkms lvm2\n"
-"sudo apt install -y linstor-satellite\n"
-"sudo apt install -y drbdtop\n"
-msgstr ""
-"# DRBDとLINSTORパッケージをインストールします\n"
-"sudo apt update\n"
-"sudo apt install -y drbd-dkms lvm2\n"
-"sudo apt install -y linstor-satellite\n"
-"sudo apt install -y drbdtop\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Start only the LINSTOR Satellite service\n"
-"systemctl enable linstor-satellite.service\n"
-"systemctl start linstor-satellite.service\n"
-msgstr ""
-"# LINSTOR サテライトサービスだけを開始します\n"
-"systemctl enable linstor-satellite.service\n"
-"systemctl start linstor-satellite.service\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Create backend storage for DRBD/LINSTOR by creating a Volume Group 'drbdpool'\n"
-"# Specify appropriate volume location (/dev/vdb)\n"
-"sudo vgcreate drbdpool /dev/vdb\n"
-msgstr ""
-"# DRBD/LINSTOR のバックエンドストレージをボリュームグループ 'drbdpool' として作成します。このとき適切なボリューム (/dev/vdb) を指定します\n"
-"sudo vgcreate drbdpool /dev/vdb\n"
-
-#. type: Title =====
-#, no-wrap
-msgid "Lastly, from the Cinder node, create LINSTOR Satellite Node(s) and Storage Pool(s)"
-msgstr "最後に、Cinderノードから、LINSTOR サテライトノードとストレージプールを作成"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Create a LINSTOR cluster, including the Cinder node as one of the nodes\n"
-"# For each node, specify node name, its IP address, volume type (diskless) and\n"
-"# volume location (drbdpool/thinpool)\n"
-msgstr ""
-"# LINSTOR クラスタを作成し、ノードのうち１つに Cinder ノードを含めます\n"
-"# ノード毎にノード名、IPアドレス、ボリュームタイプ(ディスクレス)、\n"
-"# ボリュームの場所 (drbdpool/thinpool) を指定します\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Create the controller node as combined controller and satellite node\n"
-"linstor node create cinder-node-name 192.168.1.100 --node-type Combined\n"
-msgstr ""
-"# コントローラノードはコントローラとサテライトの combined ノードとして作成します\n"
-"linstor node create cinder-node-name 192.168.1.100 --node-type Combined\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Create the satellite node(s)\n"
-"linstor node create another-node-name 192.168.1.101\n"
-"# repeat to add more satellite nodes in the LINSTOR cluster\n"
-msgstr ""
-"# サテライトノードを作成します\n"
-"linstor node create another-node-name 192.168.1.101\n"
-"# LINSTOR クラスタにさらにサテライトがある場合は繰り返します\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Create LINSTOR Storage Pool on each nodes\n"
-"# For each node, specify node name, its IP address,\n"
-"# storage pool name (DfltStorPool),\n"
-"# volume type (diskless / lvmthin) and node type (Combined)\n"
-msgstr ""
-"# 各ノードで LINSTOR ストレージプールを作成します\n"
-"# ノードごとにノード名、IPアドレス\n"
-"# ストレージプール名 (DfltStorPool),\n"
-"# ボリュームタイプ (diskless / lvmthin) とノードタイプ(Combined) を指定します\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Create diskless Controller node on the Cinder controller\n"
-"linstor storage-pool create diskless cinder-node-name DfltStorPool\n"
-msgstr ""
-"# Cinder コントローラでディスクレスコントローラノードを作成します\n"
-"linstor storage-pool create diskless cinder-node-name DfltStorPool\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Create diskful Satellite nodes\n"
-"linstor storage-pool create lvmthin another-node-name DfltStorPool drbdpool/thinpool\n"
-"# repeat to add a storage pool to each node in the LINSTOR cluster\n"
-msgstr ""
-"# ディスクフルサテライトノードを作成します\n"
-"linstor storage-pool create lvmthin another-node-name DfltStorPool drbdpool/thinpool\n"
-"# LINSTOR クラスタにさらにサテライトがある場合は繰り返します\n"
-
-#. type: Title ====
-#, no-wrap
-msgid "Install the LINSTOR driver file"
-msgstr "LINSTORドライバファイルをインストール"
+msgid "Install the LINSTOR driver"
+msgstr "LINSTOR ドライバをインストール"
 
 #. type: Plain text
 msgid ""
-"The _linstor driver_ will be officially available starting OpenStack Stein "
-"release. The latest release is located at https://github.com/LINBIT/"
-"openstack-cinder/blob/stein-linstor/cinder/volume/drivers/linstordrv."
-"py[LINBIT OpenStack Repo].  It is a single Python file called *linstordrv."
-"py*.  Depending on your OpenStack installation, its destination may vary."
+"Starting with OpenStack Stein, the LINSTOR driver is part of the Cinder "
+"project. While the driver can be used as is, it might be missing features or "
+"fixes available in newer version. Due to OpenStacks update policy for stable "
+"versions, most improvements to the driver will not get back-ported to older "
+"stable releases."
 msgstr ""
-"_linstorドライバ_ は OpenStack Stein リリースから正式に利用可能になります。最"
-"新リリースは https://github.com/LINBIT/openstack-cinder/blob/stein-linstor/"
-"cinder/volume/drivers/linstordrv.py[LINBIT OpenStack Repo] にあります。 "
-"*linstordrv.py* という単一のPythonファイルです。OpenStackのインストール形態に"
-"よっては、インストール先が異なります。"
+"OpenStack Stein 以降、LINSTOR ドライバーは Cinder プロジェクトの一部です。ド"
+"ライバはそのまま使用できますが、新しいバージョンで利用できる機能や修正が不足"
+"している可能性があります。安定バージョンの OpenStacks 更新ポリシーにより、ド"
+"ライバーに対するほとんどの改善は、古い安定リリースにバックポートされません。"
 
 #. type: Plain text
 msgid ""
-"Place the driver ( linstordrv.py ) in an appropriate location within your "
-"OpenStack Cinder node."
+"https://github.com/LINBIT/openstack-cinder[LINBIT maintains a fork] of the "
+"Cinder repository with all improvements to the LINSTOR driver backported to "
+"the supported stable versions. Currently, these are:"
 msgstr ""
-"ドライバ（linstordrv.py）をOpenStack Cinderノードの適切な場所にインストールし"
+"LINBIT は Cinder リポジトリーの https://github.com/LINBIT/openstack-"
+"cinder[フォーク] をメンテナンスしています。ここには、サポートされている安定し"
+"たバージョンにバックポートされた LINSTOR ドライバーのすべての改善が含まれてい"
+"ます。現在、これらは次のとおりです。"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"| OpenStack Release    | Included Version | LINBIT Version | LINBIT Branch\n"
+"| `victoria`           | 1.0.1            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Fvictoria[`linstor/stable/victoria`]\n"
+"| `ussuri`             | 1.0.1            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Fussuri[`linstor/stable/ussuri`]\n"
+"| `train`              | 1.0.0            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Ftrain[`linstor/stable/train`]\n"
+"| `stein`              | 1.0.0            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Fstein[`linstor/stable/stein`]\n"
+"| `rocky`              | n/a              | n/a            | n/a\n"
+"| `queens`             | n/a              | n/a            | n/a\n"
+"| `pike`               | n/a              | n/a            | n/a\n"
+"| `ocata`              | n/a              | n/a            | n/a\n"
+msgstr ""
+"| OpenStack Release    | Included Version | LINBIT Version | LINBIT Branch\n"
+"| `victoria`           | 1.0.1            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Fvictoria[`linstor/stable/victoria`]\n"
+"| `ussuri`             | 1.0.1            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Fussuri[`linstor/stable/ussuri`]\n"
+"| `train`              | 1.0.0            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Ftrain[`linstor/stable/train`]\n"
+"| `stein`              | 1.0.0            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Fstein[`linstor/stable/stein`]\n"
+"| `rocky`              | n/a              | n/a            | n/a\n"
+"| `queens`             | n/a              | n/a            | n/a\n"
+"| `pike`               | n/a              | n/a            | n/a\n"
+"| `ocata`              | n/a              | n/a            | n/a\n"
+
+#. type: Plain text
+msgid ""
+"The exact steps to enable the Linstor Driver depend on your OpenStack "
+"distribution. In general, the `python-linstor` package needs to be installed "
+"on all hosts running the Cinder volume service. The next section will cover "
+"the installation process for common OpenStack distributions."
+msgstr ""
+"Linstor Driver を有効にする正しい手順は、OpenStack ディストリビューションに"
+"よって異なります。一般に `python-linstor` パッケージは、Cinder ボリュームサー"
+"ビスを実行しているすべてのホストにインストールする必要があります。次のセク"
+"ションでは、一般的な OpenStack ディストリビューションへのインストール手順につ"
+"いて説明します。"
+
+#. type: Title =====
+#, no-wrap
+msgid "DevStack"
+msgstr "DevStack"
+
+#. type: Plain text
+msgid ""
+"https://docs.openstack.org/devstack/latest/[DevStack] is a great way to try "
+"out OpenStack in a lab environment.  To use the most recent driver use the "
+"following DevStack configuration:"
+msgstr ""
+"https://docs.openstack.org/devstack/latest/[DevStack] は、ラボ環境で "
+"OpenStack を試すのに最適な方法です。最新のドライバーを使用するには、次の "
+"DevStack 構成を使用します。"
+
+#. type: Block title
+#, no-wrap
+msgid "local.conf"
+msgstr "local.conf"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# This ensures the Linstor Driver has access to the 'python-linstor' package.\n"
+"#\n"
+"# This is needed even if using the included driver!\n"
+"USE_VENV=True\n"
+"ADDITIONAL_VENV_PACKAGES=python-linstor\n"
+msgstr ""
+"# This ensures the Linstor Driver has access to the 'python-linstor' package.\n"
+"#\n"
+"# This is needed even if using the included driver!\n"
+"USE_VENV=True\n"
+"ADDITIONAL_VENV_PACKAGES=python-linstor\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# This is required to select the LINBIT version of the driver\n"
+"CINDER_REPO=https://github.com/LINBIT/openstack-cinder.git\n"
+"# Replace linstor/stable/victoria with the reference matching your Openstack release.\n"
+"CINDER_BRANCH=linstor/stable/victoria\n"
+msgstr ""
+"# This is required to select the LINBIT version of the driver\n"
+"CINDER_REPO=https://github.com/LINBIT/openstack-cinder.git\n"
+"# Replace linstor/stable/victoria with the reference matching your Openstack release.\n"
+"CINDER_BRANCH=linstor/stable/victoria\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Kolla"
+msgstr "Kolla"
+
+#. type: Plain text
+msgid ""
+"https://docs.openstack.org/kolla/latest/[Kolla] packages OpenStack "
+"components in containers. They can then be deployed, for example using "
+"https://docs.openstack.org/kolla-ansible/latest/[Kolla Ansible] You can take "
+"advantage of the available customisation options for kolla containers to set "
+"up the Linstor driver."
+msgstr ""
+"https://docs.openstack.org/kolla/latest/[Kolla] は OpenStack コンポーネントを"
+"コンテナーにパッケージ化します。次に、例えば https://docs.openstack.org/"
+"kolla-ansible/latest/[Kolla Ansible] を使用してデプロイできます。kolla コンテ"
+"ナーで使用可能なカスタマイズオプションを利用して、Linstor ドライバーをセット"
+"アップできます。"
+
+#. type: Plain text
+msgid ""
+"To ensure that the required `python-linstor` package is installed, use the "
+"following override file:"
+msgstr ""
+"必要な `python-linstor` パッケージがインストールされるようにするには、次の"
+"オーバーライドファイルを使用します。"
+
+#. type: Block title
+#, no-wrap
+msgid "template-override.j2"
+msgstr "template-override.j2"
+
+#. type: delimited block -
+#, no-wrap
+msgid "{% extends parent_template %}\n"
+msgstr "{% extends parent_template %}\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# Cinder\n"
+"{% set cinder_base_pip_packages_append = ['python-linstor'] %}\n"
+msgstr ""
+"# Cinder\n"
+"{% set cinder_base_pip_packages_append = ['python-linstor'] %}\n"
+
+#. type: Plain text
+msgid ""
+"To install the LINBIT version of the driver, update your `kolla-build.conf`"
+msgstr ""
+"LINBIT バージョンのドライバーをインストールするには `kolla-build.conf` を更新"
+"します。"
+
+#. type: Block title
+#, no-wrap
+msgid "/etc/kolla/kolla-build.conf"
+msgstr "/etc/kolla/kolla-build.conf"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[cinder-base]\n"
+"type = git\n"
+"location = https://github.com/LINBIT/openstack-cinder.git\n"
+"# Replace linstor/stable/victoria with the reference matching your Openstack release.\n"
+"reference = linstor/stable/victoria\n"
+msgstr ""
+"[cinder-base]\n"
+"type = git\n"
+"location = https://github.com/LINBIT/openstack-cinder.git\n"
+"# Replace linstor/stable/victoria with the reference matching your Openstack release.\n"
+"reference = linstor/stable/victoria\n"
+
+#. type: Plain text
+msgid "To rebuild the Cinder containers, run:"
+msgstr "Cinder コンテナを再構築するには、次のコマンドを実行します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# A private registry used to store the kolla container images\n"
+"REGISTRY=deployment-registry.example.com\n"
+"# The image namespace in the registry\n"
+"NAMESPACE=kolla\n"
+"# The tag to apply to all images. Use the release name for compatibility with kolla-ansible\n"
+"TAG=victoria\n"
+"kolla-build -t source --template-override template-override.j2 cinder --registry $REGISTRY --namespace $NAMESPACE --tag $TAG\n"
+msgstr ""
+"# A private registry used to store the kolla container images\n"
+"REGISTRY=deployment-registry.example.com\n"
+"# The image namespace in the registry\n"
+"NAMESPACE=kolla\n"
+"# The tag to apply to all images. Use the release name for compatibility with kolla-ansible\n"
+"TAG=victoria\n"
+"kolla-build -t source --template-override template-override.j2 cinder --registry $REGISTRY --namespace $NAMESPACE --tag $TAG\n"
+
+#. type: Plain text
+msgid "====== Kolla Ansible"
+msgstr "====== Kolla Ansible"
+
+#. type: Plain text
+msgid ""
+"When deploying OpenStack using Kolla Ansible, you need to make sure that:"
+msgstr ""
+"Kolla Ansible を使用して OpenStack をデプロイする場合は、次のことを確認する必"
+"要があります。"
+
+#. type: Plain text
+msgid "the custom Cinder images, created in the section above, are used"
+msgstr "上記のセクションで作成されたカスタム Cinder イメージが使用される"
+
+#. type: Plain text
+msgid "deployment of Cinder services is enabled"
+msgstr "Cinder サービスのデプロイが有効である"
+
+#. type: Block title
+#, no-wrap
+msgid "/etc/kolla/globals.yml"
+msgstr "/etc/kolla/globals.yml"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# use \"source\" images\n"
+"kolla_install_type: source\n"
+"# use the same registry as for running kolla-build above\n"
+"docker_registry: deployment-registry.example.com\n"
+"# use the same namespace as for running kolla-build above\n"
+"docker_namespace: kolla\n"
+"# deploy cinder block storage service\n"
+"enable_cinder: \"yes\"\n"
+"# disable verification of cinder backends, kolla-ansible only supports a small subset of available backends for this\n"
+"skip_cinder_backend_check: True\n"
+"# add the LINSTOR backend to the enabled backends. For backend configuration see below\n"
+"cinder_enabled_backends:\n"
+"  - name: linstor-drbd\n"
+msgstr ""
+"# use \"source\" images\n"
+"kolla_install_type: source\n"
+"# use the same registry as for running kolla-build above\n"
+"docker_registry: deployment-registry.example.com\n"
+"# use the same namespace as for running kolla-build above\n"
+"docker_namespace: kolla\n"
+"# deploy cinder block storage service\n"
+"enable_cinder: \"yes\"\n"
+"# disable verification of cinder backends, kolla-ansible only supports a small subset of available backends for this\n"
+"skip_cinder_backend_check: True\n"
+"# add the LINSTOR backend to the enabled backends. For backend configuration see below\n"
+"cinder_enabled_backends:\n"
+"  - name: linstor-drbd\n"
+
+#. type: Plain text
+msgid ""
+"You can place the Linstor driver configuration in one of the override "
+"directories for kolla-ansible. For more details on the available "
+"configuration options, see the section below."
+msgstr ""
+"Linstor ドライバー構成は kolla-ansible のオーバーライドディレクトリの 1 つに"
+"配置できます。使用可能な構成オプションの詳細については、以下のセクションを参"
+"照してください。"
+
+#. type: Block title
+#, no-wrap
+msgid "/etc/kolla/config/cinder/cinder-volume.conf"
+msgstr "/etc/kolla/config/cinder/cinder-volume.conf"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[linstor-drbd]\n"
+"volume_backend_name = linstor-drbd\n"
+"volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver\n"
+"linstor_autoplace_count = 2\n"
+"linstor_default_storage_pool_name = cinderpool\n"
+"linstor_default_uri = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test\n"
+msgstr ""
+"[linstor-drbd]\n"
+"volume_backend_name = linstor-drbd\n"
+"volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver\n"
+"linstor_autoplace_count = 2\n"
+"linstor_default_storage_pool_name = cinderpool\n"
+"linstor_default_uri = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "OpenStack Ansible"
+msgstr "OpenStack Ansible"
+
+#. type: Plain text
+msgid ""
+"https://docs.openstack.org/openstack-ansible/[OpenStack Ansible] provides "
+"Ansible playbooks to configure and deploy of OpenStack environments. It "
+"allows for fine-grained customization of the deployment, letting you set up "
+"the Linstor driver directly."
+msgstr ""
+"https://docs.openstack.org/openstack-ansible/[OpenStack Ansible] は、"
+"OpenStack 環境を構成およびデプロイするための Ansible プレイブックを提供しま"
+"す。これにより、デプロイメントをきめ細かくカスタマイズできるため、Linstor ド"
+"ライバーを直接セットアップできます。"
+
+#. type: Block title
+#, no-wrap
+msgid "/etc/openstack_ansile/user_variables.yml"
+msgstr "/etc/openstack_ansile/user_variables.yml"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"cinder_git_repo: https://github.com/LINBIT/openstack-cinder.git\n"
+"cinder_git_install_branch: linstor/stable/victoria\n"
+msgstr ""
+"cinder_git_repo: https://github.com/LINBIT/openstack-cinder.git\n"
+"cinder_git_install_branch: linstor/stable/victoria\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"cinder_user_pip_packages:\n"
+"  - python-linstor\n"
+msgstr ""
+"cinder_user_pip_packages:\n"
+"  - python-linstor\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"cinder_backends: <1>\n"
+"  linstor-drbd:\n"
+"   volume_backend_name: linstor-drbd\n"
+"   volume_driver: cinder.volume.drivers.linstordrv.LinstorDrbdDriver\n"
+"   linstor_autoplace_count: 2\n"
+"   linstor_default_storage_pool_name: cinderpool\n"
+"   linstor_default_uri: linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test\n"
+msgstr ""
+"cinder_backends: <1>\n"
+"  linstor-drbd:\n"
+"   volume_backend_name: linstor-drbd\n"
+"   volume_driver: cinder.volume.drivers.linstordrv.LinstorDrbdDriver\n"
+"   linstor_autoplace_count: 2\n"
+"   linstor_default_storage_pool_name: cinderpool\n"
+"   linstor_default_uri: linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test\n"
+
+#. type: Plain text
+msgid ""
+"A detailed description of the available backend parameters can be found in "
+"the section below"
+msgstr ""
+"使用可能なバックエンドパラメータの詳細な説明は、以下のセクションにあります。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Generic Cinder deployment"
+msgstr "汎用 Cinder デプロイメント"
+
+#. type: Plain text
+msgid ""
+"For other forms of OpenStack deployments, this guide can only provide non-"
+"specific hints."
+msgstr ""
+"他の形式の OpenStack デプロイメントの場合、このガイドでは一般的なヒントのみを"
+"提供できます。"
+
+#. type: Plain text
+msgid ""
+"To update the Linstor driver version, find your cinder installation. Some "
+"likely paths are:"
+msgstr ""
+"Linstor ドライバーのバージョンを更新するには、インストールされた cinder ディ"
+"レクトリを見つけてください。考えられるパスは次のとおりです。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"/usr/lib/python3.6/dist-packages/cinder/\n"
+"/usr/lib/python3.6/site-packages/cinder/\n"
+"/usr/lib/python2.7/dist-packages/cinder/\n"
+"/usr/lib/python2.7/site-packages/cinder/\n"
+msgstr ""
+"/usr/lib/python3.6/dist-packages/cinder/\n"
+"/usr/lib/python3.6/site-packages/cinder/\n"
+"/usr/lib/python2.7/dist-packages/cinder/\n"
+"/usr/lib/python2.7/site-packages/cinder/\n"
+
+#. type: Plain text
+msgid ""
+"The Linstor driver consists of a single file called `linstordrv.py`, located "
+"in the Cinder directory:"
+msgstr ""
+"Linstor ドライバーは、cinder ディレクトリにある `linstordrv.py` というファイ"
+"ルです。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$CINDER_PATH/volume/drivers/linstordrv.py\n"
+msgstr "$CINDER_PATH/volume/drivers/linstordrv.py\n"
+
+#. type: Plain text
+msgid ""
+"To update the driver, replace the file with one from the LINBIT repository"
+msgstr ""
+"ドライバを更新するには、ファイルを LINBIT リポジトリのファイルに置き換えます"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"RELEASE=linstor/stable/victoria\n"
+"curl -fL \"https://raw.githubusercontent.com/LINBIT/openstack-cinder/$RELEASE/cinder/volume/drivers/linstordrv.py\" > $CINDER_PATH/volume/drivers/linstordrv.py\n"
+msgstr ""
+"RELEASE=linstor/stable/victoria\n"
+"curl -fL \"https://raw.githubusercontent.com/LINBIT/openstack-cinder/$RELEASE/cinder/volume/drivers/linstordrv.py\" > $CINDER_PATH/volume/drivers/linstordrv.py\n"
+
+#. type: Plain text
+msgid ""
+"You might also need to remove the Python cache for the update to be "
+"registered:"
+msgstr ""
+"登録されたものを更新するには、Python キャッシュを削除する必要がある場合もあり"
 "ます。"
 
-#. type: Plain text
-msgid "For Devstack:"
-msgstr "Devstackの場合:"
-
 #. type: delimited block -
 #, no-wrap
-msgid "/opt/stack/cinder/cinder/volume/drivers/linstordrv.py\n"
-msgstr "/opt/stack/cinder/cinder/volume/drivers/linstordrv.py\n"
-
-#. type: Plain text
-msgid "For Ubuntu:"
-msgstr "Ubuntuの場合:"
-
-#. type: delimited block -
-#, no-wrap
-msgid "/usr/lib/python2.7/dist-packages/cinder/volume/drivers/linstordrv.py\n"
-msgstr "/usr/lib/python2.7/dist-packages/cinder/volume/drivers/linstordrv.py\n"
-
-#. type: Plain text
-msgid "For RDO Packstack:"
-msgstr "RDO Packstackの場合:"
-
-#. type: delimited block -
-#, no-wrap
-msgid "/usr/lib/python2.7/site-packages/cinder/volume/drivers/linstordrv.py\n"
-msgstr "/usr/lib/python2.7/site-packages/cinder/volume/drivers/linstordrv.py\n"
+msgid "rm -rf $CINDER_PATH/volume/drivers/__pycache__\n"
+msgstr "rm -rf $CINDER_PATH/volume/drivers/__pycache__\n"
 
 #. type: Title ===
 #, no-wrap
-msgid "Cinder Configuration for LINSTOR"
-msgstr "LINSTORのCinder構成"
+msgid "Configure a Linstor Backend for Cinder"
+msgstr "Cinder 用の Linstor バックエンドを構成"
 
-#. type: Title ====
-#, no-wrap
-msgid "Edit Cinder configuration file *cinder.conf* in /etc/cinder/ as follows:"
-msgstr "/etc/cinder/ 内のCinder設定ファイル *cinder.conf* を次のように編集"
+#. type: Plain text
+msgid ""
+"To use the Linstor driver, configure the Cinder volume service. This is done "
+"by editing the Cinder configuration file and then restarting the Cinder "
+"Volume service."
+msgstr ""
+"Linstor ドライバーを使用するには、Cinder ボリュームサービスを構成します。"
+"Cinder 構成ファイルを編集してから、Cinder ボリュームサービスを再起動すること"
+"で構成できます。"
 
-#. type: Title =====
+#. type: Plain text
+msgid ""
+"Most of the time, the Cinder configuration file is located at `/etc/cinder/"
+"cinder.conf`. Some deployment options allow manipulating this file in "
+"advance. See the section above for specifics."
+msgstr ""
+"ほとんどの場合、Cinder 構成ファイルは `/etc/cinder/cinder.conf` にあります。"
+"一部のデプロイメントでは、このファイルを事前に編集できます。詳細は上記のセク"
+"ションを参照してください。"
+
+#. type: Plain text
+msgid ""
+"To configure a new volume backend using Linstor, add the following section "
+"to `cinder.conf`"
+msgstr ""
+"Linstor を使用して新しいボリュームバックエンドを構成するには、次のセクション"
+"を `cinder.conf` に追加します。"
+
+#. type: delimited block -
 #, no-wrap
-msgid "Enable LINSTOR driver by adding 'linstor' to enabled_backends"
-msgstr "enabled_backendsに 'linstor' を追加してLINSTORドライバを有効"
+msgid ""
+"[linstor-drbd]\n"
+"volume_backend_name = linstor-drbd <1>\n"
+"volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver <2>\n"
+"linstor_default_uri = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test <3>\n"
+"linstor_default_storage_pool_name = cinderpool <4>\n"
+"linstor_autoplace_count = 2 <5>\n"
+"linstor_controller_diskless = true <6>\n"
+"... <7>\n"
+msgstr ""
+"[linstor-drbd]\n"
+"volume_backend_name = linstor-drbd <1>\n"
+"volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver <2>\n"
+"linstor_default_uri = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test <3>\n"
+"linstor_default_storage_pool_name = cinderpool <4>\n"
+"linstor_autoplace_count = 2 <5>\n"
+"linstor_controller_diskless = true <6>\n"
+"... <7>\n"
+
+#. type: Plain text
+msgid ""
+"The parameters described here are based on the latest release provided by "
+"Linbit. The driver included in OpenStack might not support all of these "
+"parameters. Take a look at the https://docs.openstack.org/cinder/latest/"
+"configuration/block-storage/drivers/linstor-driver.html[OpenStack driver "
+"documentation] to find out more."
+msgstr ""
+"ここで説明するパラメーターは、Linbit が提供する最新のリリースに基づいていま"
+"す。 OpenStack に含まれているドライバーは、これらのパラメーターのすべてをサ"
+"ポートしているとは限りません。詳細は https://docs.openstack.org/cinder/"
+"latest/configuration/block-storage/drivers/linstor-driver.html[OpenStack ドラ"
+"イバーのドキュメント] を参照ください。"
+
+#. type: Plain text
+msgid ""
+"The name of the volume backend. Needs to be unique in the Cinder "
+"configuration. The whole section should share the same name. This name is "
+"referenced again in `cinder.conf` in the `enabled_backends` setting and when "
+"creating a new volume type."
+msgstr ""
+"ボリュームバックエンド名。 Cinder 構成で一意である必要があります。セクション"
+"全体で同じ名前を共有する必要があります。この名前は `enabled_backends` 設定の "
+"`cinder.conf` で、および新しいボリュームタイプを作成するときに再び参照されま"
+"す。"
+
+#. type: Plain text
+msgid "The version of the Linstor driver to use. There are two options:"
+msgstr "使用する Linstor ドライバーのバージョン。2 つのオプションがあります。"
+
+#. type: Plain text
+msgid "`cinder.volume.drivers.linstordrv.LinstorDrbdDriver`"
+msgstr "`cinder.volume.drivers.linstordrv.LinstorDrbdDriver`"
+
+#. type: Plain text
+msgid "`cinder.volume.drivers.linstordrv.LinstorIscsiDriver`"
+msgstr "`cinder.volume.drivers.linstordrv.LinstorIscsiDriver`"
+
+#. type: Plain text
+msgid ""
+"Which driver you should use depends on your Linstor set up and requirements. "
+"Details on each choice are documented in <<s-openstack-linstor-transport-"
+"options, the section below.>>"
+msgstr ""
+"どのドライバーを使用するかは Linstor のセットアップと要件によって異なります。"
+"各選択肢の詳細は <<s-openstack-linstor-transport-options, 以下のセクション>> "
+"を参照ください。"
+
+#. type: Plain text
+msgid ""
+"The URL(s) of the Linstor Controller(s). Multiple Controllers can be "
+"specified to make use of <<s-linstor_ha,Linstor High Availability>>. If not "
+"set, defaults to `linstor://localhost`."
+msgstr ""
+"Linstor コントローラーの URL。 <<s-linstor_ha,Linstor 高可用性>> を利用するた"
+"めに、複数のコントローラーを指定できます。設定されていない場合、デフォルトは "
+"`linstor://localhost` です。"
+
+#. type: Plain text
+msgid ""
+"The storage pools to use when placing resources. Applies to all diskfull "
+"resources created. Defaults to `DfltStorPool`."
+msgstr ""
+"リソースを配置するときに使用するストレージプール。作成されたすべてのディスク"
+"フルリソースに適用されます。デフォルトは `DfltStorPool` です。"
+
+#. type: Plain text
+msgid ""
+"The number of replicas to create for the given volume. A value of `0` will "
+"create a replica on all nodes. Defaults to `0`."
+msgstr ""
+"特定のボリュームに対して作成する複製数。値が `0` の場合、すべてのノードに複製"
+"が作成されます。デフォルトは `0` です。"
+
+#. type: Plain text
+msgid ""
+"If set to true, ensures that at least one (diskless) replica is deployed on "
+"the Cinder Controller host. This is useful for ISCSI transports. Defaults to "
+"`true`."
+msgstr ""
+"true に設定すると、少なくとも 1 つの（ディスクレス）複製が Cinder コントロー"
+"ラーホストにデプロイされることを保証します。これは、iSCSIトランスポートに役立"
+"ちます。デフォルトは `true`です。"
+
+#. type: Plain text
+msgid ""
+"You can specify more generic Cinder options here, for example `target_helper "
+"= tgtadm` for the ISCSI connector."
+msgstr ""
+"ここでは、より一般的な Cinder オプションを指定できます。たとえば、iSCSI コネ"
+"クタの場合は `target_helper = tgtadm` です。"
+
+#. type: Plain text
+msgid ""
+"You can also configure multiple Linstor backends, choosing a different name "
+"and configuration options for each."
+msgstr ""
+"複数の Linstor バックエンドを構成して、それぞれに異なる名前と構成オプションを"
+"選択することもできます。"
+
+#. type: Plain text
+msgid ""
+"After configuring the Linstor backend, it should also be enabled. Add it to "
+"the list of enabled backends in `cinder.conf`, and optionally set is as the "
+"default backend:"
+msgstr ""
+"Linstor バックエンドを構成した後、それも有効にする必要があります。これを "
+"`cinder.conf` の有効なバックエンドのリストに追加し、オプションでデフォルトの"
+"バックエンドとして設定します。"
 
 #. type: delimited block -
 #, no-wrap
 msgid ""
 "[DEFAULT]\n"
 "...\n"
-"enabled_backends=lvm, linstor\n"
+"default_volume_type = linstor-drbd-volume\n"
+"enabled_backends = lvm,linstor-drbd\n"
 "...\n"
 msgstr ""
 "[DEFAULT]\n"
 "...\n"
-"enabled_backends=lvm, linstor\n"
+"default_volume_type = linstor-drbd-volume\n"
+"enabled_backends = lvm,linstor-drbd\n"
 "...\n"
 
-#. type: Title =====
-#, no-wrap
-msgid "Add the following configuration options at the end of the cinder.conf"
-msgstr "cinder.confの最後に次の設定オプションを追加"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"[linstor]\n"
-"volume_backend_name = linstor\n"
-"volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver\n"
-"linstor_default_volume_group_name=drbdpool\n"
-"linstor_default_uri=linstor://localhost\n"
-"linstor_default_storage_pool_name=DfltStorPool\n"
-"linstor_default_resource_size=1\n"
-"linstor_volume_downsize_factor=4096\n"
-msgstr ""
-"[linstor]\n"
-"volume_backend_name = linstor\n"
-"volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver\n"
-"linstor_default_volume_group_name=drbdpool\n"
-"linstor_default_uri=linstor://localhost\n"
-"linstor_default_storage_pool_name=DfltStorPool\n"
-"linstor_default_resource_size=1\n"
-"linstor_volume_downsize_factor=4096\n"
-
-#. type: Title ====
-#, no-wrap
-msgid "Update Python python libraries for the driver"
-msgstr "ドライバ用のPythonのPythonライブラリを更新"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"sudo pip install google --upgrade\n"
-"sudo pip install protobuf --upgrade\n"
-"sudo pip install eventlet --upgrade\n"
-msgstr ""
-"sudo pip install google --upgrade\n"
-"sudo pip install protobuf --upgrade\n"
-"sudo pip install eventlet --upgrade\n"
-
-#. type: Title ====
-#, no-wrap
-msgid "Create a new backend type for LINSTOR"
-msgstr "LINSTOR用の新しいバックエンドタイプを作成"
-
 #. type: Plain text
 msgid ""
-"Run these commands from the Cinder node once environment variables are "
-"configured for OpenStack command line operation."
+"As a last step, if you changed the Cinder configuration or updated the "
+"driver itself, make sure to restart the Cinder service(s). Please check the "
+"documentation for your OpenStack Distribution on how to restart services."
 msgstr ""
-"OpenStackコマンドライン用に環境変数を設定した後、これらのコマンドをCinderノー"
-"ドから実行します。"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"cinder type-create linstor\n"
-"cinder type-key linstor set volume_backend_name=linstor\n"
-msgstr ""
-"cinder type-create linstor\n"
-"cinder type-key linstor set volume_backend_name=linstor\n"
+"最後のステップとして、Cinder 構成を変更した場合、またはドライバー自体を更新し"
+"た場合は、必ず Cinder サービスを再起動してください。サービスを再起動する方法"
+"については、OpenStack ディストリビューションのドキュメントを確認してくださ"
+"い。"
 
 #. type: Title ====
 #, no-wrap
-msgid "Restart the Cinder services to finalize"
-msgstr "最後にCinderサービスを再起動"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"sudo systemctl restart devstack@c-vol.service\n"
-"sudo systemctl restart devstack@c-api.service\n"
-"sudo systemctl restart devstack@c-sch.service\n"
-msgstr ""
-"sudo systemctl restart devstack@c-vol.service\n"
-"sudo systemctl restart devstack@c-api.service\n"
-"sudo systemctl restart devstack@c-sch.service\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"sudo systemctl restart openstack-cinder-volume.service\n"
-"sudo systemctl restart openstack-cinder-api.service\n"
-"sudo systemctl restart openstack-cinder-scheduler.service\n"
-msgstr ""
-"sudo systemctl restart openstack-cinder-volume.service\n"
-"sudo systemctl restart openstack-cinder-api.service\n"
-"sudo systemctl restart openstack-cinder-scheduler.service\n"
-
-#. type: Plain text
-msgid "For full OpenStack:"
-msgstr "フルOpenStackの場合:"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"sudo systemctl restart cinder-volume.service\n"
-"sudo systemctl restart cinder-api.service\n"
-"sudo systemctl restart cinder-scheduler.service\n"
-msgstr ""
-"sudo systemctl restart cinder-volume.service\n"
-"sudo systemctl restart cinder-api.service\n"
-"sudo systemctl restart cinder-scheduler.service\n"
-
-#. type: Title ====
-#, no-wrap
-msgid "Verify proper installation:"
-msgstr "適切なインストールを確認"
-
-#. type: Plain text
-msgid ""
-"Once the Cinder service is restarted, a new Cinder volume with LINSTOR "
-"backend may be created using the Horizon GUI or command line.  Use following "
-"as a guide for creating a volume with the command line."
-msgstr ""
-"Cinderサービスを再起動すると、Horizon GUIまたはコマンドラインを使用して、"
-"LINSTORバックエンドの新しいCinderボリュームを作成できます。コマンドラインを使"
-"用してボリュームを作成する際には、以下のガイドを参考にしてください。"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Check to see if there are any recurring errors with the driver.\n"
-"# Occasional 'ERROR' keyword associated with the database is normal.\n"
-"# Use Ctrl-C to stop the log output to move on.\n"
-"sudo systemctl -f -u devstack@c-* | grep error\n"
-msgstr ""
-"# ドライバに何らかの定期的なエラーがないかどうか確認してください。\n"
-"# 特にデータベースに関連付けられている 'ERROR' キーワードが正常であるか。\n"
-"# Ctrl-C でログ出力を停止します。\n"
-"sudo systemctl -f -u devstack@c-* | grep error\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# Create a LINSTOR test volume.  Once the volume is created, volume list\n"
-"# command should show one new Cinder volume.  The 'linstor' command then\n"
-"# should list actual resource nodes within the LINSTOR cluster backing that\n"
-"# Cinder volume.\n"
-"openstack volume create --type linstor --size 1 --availability-zone nova linstor-test-vol\n"
-"openstack volume list\n"
-"linstor resource list\n"
-msgstr ""
-"# LINSTOR テストボリュームを作成します。ボリュームが作成された後、volume list\n"
-"# コマンドは１つの新しい Cinder ボリュームを表示します。 'linstor' コマンドは\n"
-"# Cinder ボリュームのクラスタバッキング内に実際のリソースノードを表示します\n"
-"openstack volume create --type linstor --size 1 --availability-zone nova linstor-test-vol\n"
-"openstack volume list\n"
-"linstor resource list\n"
-
-#. type: Title ====
-#, no-wrap
-msgid "Additional Configuration"
-msgstr "追加設定"
-
-#. type: Plain text
-msgid "More to come"
-msgstr "More to come"
-
-#. type: Title ===
-#, no-wrap
-msgid "Choosing the Transport Protocol"
+msgid "Choice of Transport Protocol"
 msgstr "トランスポートプロトコルの選択"
 
 #. type: Plain text
-msgid "There are two main ways to run DRBD/LINSTOR with Cinder:"
-msgstr "CinderでDRBD/LINSTORを実行するには、主に2つの方法があります。"
-
-#. type: Plain text
-msgid "accessing storage via <<s-openstack-linstor-iscsi,iSCSI exports>>, and"
-msgstr "<<s-openstack-linstor-iscsi,iSCSI exports>> を使う"
-
-#. type: Plain text
 msgid ""
-"using <<s-openstack-linstor-drbd,the DRBD transport protocol>> on the wire "
-"with"
-msgstr "<<s-openstack-linstor-drbd,the DRBD transport protocol>> を使う"
-
-#. type: Plain text
-msgid "LINSTOR."
-msgstr " "
-
-#. type: Plain text
-msgid ""
-"These are not exclusive; you can define multiple backends, have some of them "
-"use iSCSI, and others the DRBD protocol."
+"The Transport Protocol in Cinder is how clients (for example nova-compute) "
+"access the actual volumes. With Linstor, you can choose between two "
+"different drivers that use different transports."
 msgstr ""
-"これらは排他的ではありません。複数のバックエンドを定義し、それらのうちのいく"
-"つかはiSCSIを使用し、他のものはDRBDプロトコルを使用できます。"
+"Cinder のトランスポートプロトコルは、クライアント（たとえば、nova-compute）が"
+"実際のボリュームにアクセスする方法です。Linstor を使用すると、異なるトランス"
+"ポートを使用する 2 つの異なるドライバーを選択できます。"
 
-#. type: Title ====
+#. type: Plain text
+msgid ""
+"`cinder.volume.drivers.linstordrv.LinstorDrbdDriver`, which uses DRBD as "
+"transport"
+msgstr ""
+"`cinder.volume.drivers.linstordrv.LinstorDrbdDriver` : トランスポートプロトコ"
+"ルとして DRBD を使用"
+
+#. type: Plain text
+msgid ""
+"`cinder.volume.drivers.linstordrv.LinstorIscsiDriver`, which uses ISCSI as "
+"transport"
+msgstr ""
+"`cinder.volume.drivers.linstordrv.LinstorIscsiDriver` : トランスポートプロト"
+"コルとして iSCSI を使用"
+
+#. type: Title =====
 #, no-wrap
-msgid "iSCSI Transport"
-msgstr "iSCSIトランスポート"
+msgid "Using DRBD as Transport Protocol"
+msgstr "トランスポートプロトコルとして DRBD を使用"
+
+#. type: Plain text
+msgid ""
+"The `LinstorDrbdDriver` works by ensuring a replica of the volume is "
+"available locally on the node where a client (i.e. nova-compute) issued a "
+"request. This only works if _all_ compute nodes are also running Linstor "
+"Satellites that are part of the same Linstor cluster."
+msgstr ""
+"`LinstorDrbdDriver` は、クライアント（つまり、nova-compute）がリクエストを発"
+"行したノードでボリュームの複製がローカルで利用できるようにすることで機能しま"
+"す。これはすべての compute ノードが同じ Linstor クラスターの一部である "
+"Linstor サテライトを実行している場合にのみ機能します。"
+
+#. type: Plain text
+msgid "The advantages of this option are:"
+msgstr "このオプションの利点は次のとおりです。"
+
+#. type: Plain text
+msgid ""
+"Once set up, the Cinder host is no longer involved in the data path. All "
+"read and write to the volume are handled by the local DRBD module, which "
+"will handle replication across its configured peers."
+msgstr ""
+"セットアップが完了すると、Cinder ホストはデータパスに関与しなくなります。ボ"
+"リュームへのすべての読み書きは、構成された対向ノード間でのレプリケーションを"
+"処理するローカル DRBD モジュールによって処理されます。"
+
+#. type: Plain text
+msgid ""
+"Since the Cinder host is not involved in the data path, any disruptions to "
+"the Cinder service do not affect volumes that are already attached."
+msgstr ""
+"Cinder ホストはデータパスに関与していないため、Cinder サービスが中断しても、"
+"すでに接続されているボリュームには影響しません。"
+
+#. type: Plain text
+msgid ""
+"A drawback is the reduced compatibility: Not all hosts and hypervisors "
+"support using DRBD volumes. This restricts deployment to Linux hosts and "
+"`kvm` hypervisors."
+msgstr ""
+"欠点は、互換性が低下することです。すべてのホストとハイパーバイザーが DRBD ボ"
+"リュームの使用をサポートしているわけではありません。これにより、Linux ホスト"
+"と `kvm` ハイパーバイザーがデプロイメント対象と制限されます。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Using ISCSI as Transport Protocol"
+msgstr "iSCSI トランスポートプロトコルを使用"
 
 #. type: Plain text
 msgid ""
@@ -559,9 +886,9 @@ msgid ""
 "advantage of maximum compatibility - iSCSI can be used with every "
 "hypervisor, be it VMWare, Xen, HyperV, or KVM."
 msgstr ""
-"Cinderボリュームをエクスポートするデフォルトの方法は、iSCSI経由です。これによ"
-"り最大の互換性が得られます。iSCSIは、VMWare、Xen、HyperV、またはKVMなどのあら"
-"ゆるハイパーバイザーで使用できます。"
+"Cinder ボリュームをエクスポートするデフォルトの方法は、iSCSI 経由です。これに"
+"より最大の互換性が得られます。iSCSI は、VMWare、Xen、HyperV、または KVM など"
+"のあらゆるハイパーバイザーで使用できます。"
 
 #. type: Plain text
 msgid ""
@@ -570,139 +897,393 @@ msgid ""
 "pass the kernel/userspace border, and these transitions will cost some "
 "performance."
 msgstr ""
-"欠点は、すべてのデータを（ユーザースペースの）iSCSIデーモンで処理するために"
-"Cinderノードに送信する必要があることです。これは、データがカーネル/ユーザス"
+"欠点は、すべてのデータを（ユーザースペースの）iSCSI デーモンで処理するために"
+"Cinder ノードに送信する必要があることです。これは、データがカーネル/ユーザス"
 "ペース境界を通過する必要があることを意味し、パフォーマンスに影響を与えます。"
 
-#. type: Title ====
-#, no-wrap
-msgid "DRBD/LINSTOR Transport"
-msgstr "DRBD/LINSTORトランスポート"
+#. type: Plain text
+msgid ""
+"Another drawback is the introduction of a single point of failure. If a "
+"Cinder node running the iSCSI daemon crashes, other nodes lose access to "
+"their volumes.  There are ways to configure Cinder for automatic fail-over "
+"to mitigate this, but it requires considerable effort."
+msgstr ""
+"もう1つの欠点は、単一障害点になりうる点です。iSCSI デーモンを実行している "
+"Cinder ノードがクラッシュすると、他のノードはボリュームにアクセスできなくなり"
+"ます。これを軽減するために自動フェイルオーバー用に Cinder を構成する方法はい"
+"くつかありますが、かなりの労力が必要です。"
 
 #. type: Plain text
 msgid ""
-"The alternative is to get the data to the VMs by using DRBD as the transport "
-"protocol. This means that DRBD 9footnote:[LINSTOR must be installed on "
-"Cinder node. Please see the note at <<s-openstack-linstor-drbd-external-"
-"NOTE>>.] needs to be installed on the Cinder node as well."
+"For ISCSI to work, the Cinder host needs access to a local replica of every "
+"volume. This can be achieved by either setting "
+"`linstor_controller_diskless=True` or using `linstor_autoplace_count=0`."
 msgstr ""
-"DRBDをトランスポートプロトコルとして使用してVMにデータを送信する方法もありま"
-"す。これは DRBD 9footnote:[LINSTORをCinderノードにインストールする必要があり"
-"ます。 <<s-openstack-linstor-drbd-external-NOTE>> を参照ください。]もCinder"
-"ノードにインストールする必要があることを意味します。"
-
-#. type: Plain text
-msgid ""
-"Since OpenStack only functions in Linux, using DRBD/LINSTOR Transport "
-"restricts deployment only on Linux hosts with KVM at the moment."
-msgstr ""
-"OpenStackはLinuxのみで機能するため、DRBD/LINSTOR トランスポートを使用すると、"
-"現時点でKVMを搭載したLinuxホストでのみでの配備に制限されます。"
-
-#. type: Plain text
-msgid ""
-"One advantage of that solution is that the storage access requests of the "
-"VMs can be sent via the DRBD kernel module to the storage nodes, which can "
-"then directly access the allocated LVs; this means no Kernel/Userspace "
-"transitions on the data path, and consequently better performance. Combined "
-"with RDMA capable hardware you should get about the same performance as with "
-"VMs accessing a FC backend directly."
-msgstr ""
-"この解決策の1つの利点は、VMのストレージアクセス要求がDRBDカーネルモジュールを"
-"介してストレージノードに送信され、ストレージノードが割り当てられたLVに直接ア"
-"クセスできることです。これは、データパス上にカーネル/ユーザスペースの遷移がな"
-"いことを意味し、結果的にパフォーマンスが向上します。 RDMA対応のハードウェアと"
-"組み合わせると、FCバックエンドに直接アクセスするVMとほぼ同じパフォーマンスが"
-"得られます。"
-
-#. type: Plain text
-msgid ""
-"Another advantage is that you will be implicitly benefitting from the HA "
-"background of DRBD: using multiple storage nodes, possibly available over "
-"different network connections, means redundancy and avoiding a single point "
-"of failure."
-msgstr ""
-"もう1つの利点は、DRBDのHAバックグラウンドから暗黙的に利益を得ることです。複数"
-"のストレージノードを使用すると、異なるネットワーク接続で使用できる可能性があ"
-"り冗長性を意味し、単一障害点を回避します。"
-
-#. type: Plain text
-msgid ""
-"Default configuration options for Cinder driver assumes the Cinder node to "
-"be a *Diskless* LINSTOR node.  If the node is a *Diskful* node, please "
-"change the 'linstor_controller_diskless=True' to "
-"'linstor_controller_diskless=False' and restart the Cinder services."
-msgstr ""
-"Cinderドライバのデフォルトの設定オプションは、Cinderノードがディスクレス"
-"LINSTORノードであることを前提としています。ノードがディスクフルノードの場合"
-"は、 'linstor_controller_diskless = True' を 'linstor_controller_diskless = "
-"False' に変更して、Cinderサービスを再起動してください。"
+"iSCSI が機能するには、Cinder ホストがすべてのボリュームのローカルレプリカにア"
+"クセスする必要があります。これは `linstor_controller_diskless=True` を設定す"
+"るか、 `linstor_autoplace_count=0` を使用することで実現できます。"
 
 #. type: Title ====
 #, no-wrap
-msgid "Configuring the Transport Protocol"
-msgstr "トランスポートプロトコルの設定"
+msgid "Verify status of Linstor backends"
+msgstr "Linstor バックエンドのステータスを確認"
 
 #. type: Plain text
 msgid ""
-"In the LINSTOR section in `cinder.conf` you can define which transport "
-"protocol to use.  The initial setup described at the beginning of this "
-"chapter is set to use DRBD transport.  You can configure as necessary as "
-"shown below.  Then Horizonfootnote:[The OpenStack GUI] should offer these "
-"storage backends at volume creation time."
+"To verify that all backends are up and running, you can use the OpenStack "
+"command line client:"
 msgstr ""
-"`cinder.conf` のLINSTORセクションで、使用するトランスポートプロトコルを定義す"
-"ることができます。この章の冒頭で説明した初期設定では、DRBDトランスポートを使"
-"用するように設定されています。必要に応じて以下のように設定することができま"
-"す。その後、Horizonfootnote:[OpenStack GUI]は、ボリューム作成時にこれらのスト"
-"レージバックエンドを提供する必要があります。"
-
-#. type: Plain text
-msgid "To use iSCSI with LINSTOR:"
-msgstr "LINSTORでiSCSIを使用するには:"
+"すべてのバックエンドが稼働していることを確認するには、OpenStack コマンドライ"
+"ンを使用できます。"
 
 #. type: delimited block -
 #, no-wrap
-msgid "    volume_driver=cinder.volume.drivers.drbdmanagedrv.DrbdManageIscsiDriver\n"
-msgstr "    volume_driver=cinder.volume.drivers.drbdmanagedrv.DrbdManageIscsiDriver\n"
-
-#. type: Plain text
-msgid "To use DRBD Kernel Module with LINSTOR:"
-msgstr "LINSTORでDRBDカーネルモジュールを使用するには:"
-
-#. type: delimited block -
-#, no-wrap
-msgid "    volume_driver=cinder.volume.drivers.drbdmanagedrv.DrbdManageDrbdDriver\n"
-msgstr "    volume_driver=cinder.volume.drivers.drbdmanagedrv.DrbdManageDrbdDriver\n"
+msgid ""
+"$ openstack volume service list\n"
+"+------------------+----------------------------------------+------+---------+-------+----------------------------+\n"
+"| Binary           | Host                                   | Zone | Status  | State | Updated At                 |\n"
+"+------------------+----------------------------------------+------+---------+-------+----------------------------+\n"
+"| cinder-scheduler | cinder-01.openstack.test               | nova | enabled | up    | 2021-03-10T12:24:37.000000 |\n"
+"| cinder-volume    | cinder-01.openstack.test@linstor-drbd  | nova | enabled | up    | 2021-03-10T12:24:34.000000 |\n"
+"| cinder-volume    | cinder-01.openstack.test@linstor-iscsi | nova | enabled | up    | 2021-03-10T12:24:35.000000 |\n"
+"+------------------+----------------------------------------+------+---------+-------+----------------------------+\n"
+msgstr ""
+"$ openstack volume service list\n"
+"+------------------+----------------------------------------+------+---------+-------+----------------------------+\n"
+"| Binary           | Host                                   | Zone | Status  | State | Updated At                 |\n"
+"+------------------+----------------------------------------+------+---------+-------+----------------------------+\n"
+"| cinder-scheduler | cinder-01.openstack.test               | nova | enabled | up    | 2021-03-10T12:24:37.000000 |\n"
+"| cinder-volume    | cinder-01.openstack.test@linstor-drbd  | nova | enabled | up    | 2021-03-10T12:24:34.000000 |\n"
+"| cinder-volume    | cinder-01.openstack.test@linstor-iscsi | nova | enabled | up    | 2021-03-10T12:24:35.000000 |\n"
+"+------------------+----------------------------------------+------+---------+-------+----------------------------+\n"
 
 #. type: Plain text
 msgid ""
-"The old class name \"DrbdManageDriver\" is being kept for the time because "
-"of compatibility reasons; it's just an alias to the iSCSI driver."
+"If you have the Horizon GUI deployed, check `Admin > System Information > "
+"Block Storage Service` instead."
 msgstr ""
-"互換性の理由から古いクラス名 \"DrbdManageDriver\" は当面維持されます。これは"
-"単にiSCSIドライバのエイリアスです。"
+"Horizon GUI をデプロイしている場合は、代わりに `Admin > System Information > "
+"Block Storage Service` を確認してください。"
 
 #. type: Plain text
-msgid "To summarize:"
-msgstr "要約:"
+msgid ""
+"In the above example all configured services are `enabled` and `up`. If "
+"there are any issues, please check the logs of the Cinder Volume service."
+msgstr ""
+"上記の例では、構成されているすべてのサービスが `enabled` と `up` になっていま"
+"す。問題がある場合は、Cinder ボリュームサービスのログを確認してください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Create a new volume type for Linstor"
+msgstr "Linstor の新しいボリュームタイプを作成"
 
 #. type: Plain text
-msgid "You'll need the LINSTOR Cinder driver 0.1.0 or later, and LINSTOR 0.6.5"
-msgstr "LINSTOR Cinderドライバ0.1.0以降とLINSTOR 0.6.5以降が必要である。"
+msgid ""
+"Before creating volumes using Cinder, you have to create a volume type. This "
+"can either be done via the command line:"
+msgstr ""
+"Cinder を使用してボリュームを作成する前に、ボリュームタイプを作成する必要があ"
+"ります。これは、コマンドラインから実行できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# Create a volume using the default backend\n"
+"$ openstack volume type create default\n"
+"+-------------+--------------------------------------+\n"
+"| Field       | Value                                |\n"
+"+-------------+--------------------------------------+\n"
+"| description | None                                 |\n"
+"| id          | 58365ffb-959a-4d91-8821-5d72e5c39c26 |\n"
+"| is_public   | True                                 |\n"
+"| name        | default                              |\n"
+"+-------------+--------------------------------------+\n"
+"# Create a volume using a specific backend\n"
+"$ openstack volume type create --property volume_backend_name=linstor-drbd linstor-drbd-volume\n"
+"+-------------+--------------------------------------+\n"
+"| Field       | Value                                |\n"
+"+-------------+--------------------------------------+\n"
+"| description | None                                 |\n"
+"| id          | 08562ea8-e90b-4f95-87c8-821ac64630a5 |\n"
+"| is_public   | True                                 |\n"
+"| name        | linstor-drbd-volume                  |\n"
+"| properties  | volume_backend_name='linstor-drbd'   |\n"
+"+-------------+--------------------------------------+\n"
+msgstr ""
+"# Create a volume using the default backend\n"
+"$ openstack volume type create default\n"
+"+-------------+--------------------------------------+\n"
+"| Field       | Value                                |\n"
+"+-------------+--------------------------------------+\n"
+"| description | None                                 |\n"
+"| id          | 58365ffb-959a-4d91-8821-5d72e5c39c26 |\n"
+"| is_public   | True                                 |\n"
+"| name        | default                              |\n"
+"+-------------+--------------------------------------+\n"
+"# Create a volume using a specific backend\n"
+"$ openstack volume type create --property volume_backend_name=linstor-drbd linstor-drbd-volume\n"
+"+-------------+--------------------------------------+\n"
+"| Field       | Value                                |\n"
+"+-------------+--------------------------------------+\n"
+"| description | None                                 |\n"
+"| id          | 08562ea8-e90b-4f95-87c8-821ac64630a5 |\n"
+"| is_public   | True                                 |\n"
+"| name        | linstor-drbd-volume                  |\n"
+"| properties  | volume_backend_name='linstor-drbd'   |\n"
+"+-------------+--------------------------------------+\n"
 
 #. type: Plain text
-msgid "or later."
-msgstr " "
+msgid ""
+"Alternatively, you can create volume types via the Horizon GUI. Navigate to "
+"`Admin > Volume > Volume Types` and click \"Create Volume Type\". You can "
+"assign it a backend by adding the `volume_backend_name` as \"Extra Specs\" "
+"to it."
+msgstr ""
+"あるいは Horizon GUI でボリュームタイプを作成することもできます。`Admin > "
+"Volume > Volume Types` から \"Create Volume Type\" をクリックします。 "
+"`volume_backend_name` を \"Extra Specs\" として追加することで、バックエンドを"
+"割り当てることができます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Advanced Configuration of volume types"
+msgstr "ボリュームタイプの詳細設定"
 
 #. type: Plain text
-msgid "The <<s-openstack-linstor-drbd,DRBD transport protocol>> should be"
-msgstr "<<s-openstack-linstor-drbd,DRBD transport protocol>> を"
+msgid ""
+"You can enable advanced configuration options by adding more properties "
+"(command line) or \"Extra Specs\" (Horizon GUI) to the volume type. You can "
+"get a list of available options by running:"
+msgstr ""
+"ボリュームタイプにプロパティ（コマンドライン）または \"Extra Specs"
+"\"（Horizon GUI）を追加することで、高度な構成オプションを追加できます。次のコ"
+"マンドを実行すると、使用可能なオプションのリストを取得できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ cinder get-capabilities cinder-01.openstack.test@linstor-drbd\n"
+"+---------------------+------------------------------------------------------------------+\n"
+"| Volume stats        | Value                                                            |\n"
+"+---------------------+------------------------------------------------------------------+\n"
+"| description         | None                                                             |\n"
+"| display_name        | None                                                             |\n"
+"| driver_version      | 1.1.0                                                            |\n"
+"| namespace           | OS::Storage::Capabilities::cinder-01.openstack.test@linstor-drbd |\n"
+"| pool_name           | None                                                             |\n"
+"| replication_targets | []                                                               |\n"
+"| storage_protocol    | DRBD                                                             |\n"
+"| vendor_name         | LINBIT                                                           |\n"
+"| visibility          | None                                                             |\n"
+"| volume_backend_name | linstor-drbd                                                     |\n"
+"+---------------------+------------------------------------------------------------------+\n"
+"+---------------------+---------------------------------------+\n"
+"| Backend properties  | Value                                 |\n"
+"+---------------------+---------------------------------------+\n"
+"| compression         | description : Enables compression.    |\n"
+"|                     | title : Compression                   |\n"
+"|                     | type : boolean                        |\n"
+"| qos                 | description : Enables QoS.            |\n"
+"|                     | title : QoS                           |\n"
+"|                     | type : boolean                        |\n"
+"| replication_enabled | description : Enables replication.    |\n"
+"|                     | title : Replication                   |\n"
+"|                     | type : boolean                        |\n"
+"| thin_provisioning   | description : Sets thin provisioning. |\n"
+"|                     | title : Thin Provisioning             |\n"
+"|                     | type : boolean                        |\n"
+"+---------------------+---------------------------------------+\n"
+msgstr ""
+"$ cinder get-capabilities cinder-01.openstack.test@linstor-drbd\n"
+"+---------------------+------------------------------------------------------------------+\n"
+"| Volume stats        | Value                                                            |\n"
+"+---------------------+------------------------------------------------------------------+\n"
+"| description         | None                                                             |\n"
+"| display_name        | None                                                             |\n"
+"| driver_version      | 1.1.0                                                            |\n"
+"| namespace           | OS::Storage::Capabilities::cinder-01.openstack.test@linstor-drbd |\n"
+"| pool_name           | None                                                             |\n"
+"| replication_targets | []                                                               |\n"
+"| storage_protocol    | DRBD                                                             |\n"
+"| vendor_name         | LINBIT                                                           |\n"
+"| visibility          | None                                                             |\n"
+"| volume_backend_name | linstor-drbd                                                     |\n"
+"+---------------------+------------------------------------------------------------------+\n"
+"+---------------------+---------------------------------------+\n"
+"| Backend properties  | Value                                 |\n"
+"+---------------------+---------------------------------------+\n"
+"| compression         | description : Enables compression.    |\n"
+"|                     | title : Compression                   |\n"
+"|                     | type : boolean                        |\n"
+"| qos                 | description : Enables QoS.            |\n"
+"|                     | title : QoS                           |\n"
+"|                     | type : boolean                        |\n"
+"| replication_enabled | description : Enables replication.    |\n"
+"|                     | title : Replication                   |\n"
+"|                     | type : boolean                        |\n"
+"| thin_provisioning   | description : Sets thin provisioning. |\n"
+"|                     | title : Thin Provisioning             |\n"
+"|                     | type : boolean                        |\n"
+"+---------------------+---------------------------------------+\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Using volumes"
+msgstr "ボリュームの使用"
 
 #. type: Plain text
-msgid "preferred whenever possible; iSCSI won't offer any locality benefits."
-msgstr "推奨。iSCSIは互換性重視の場合使用する。"
+msgid ""
+"Once you have a volume type configured, you can start using it to provision "
+"new volumes."
+msgstr ""
+"ボリュームタイプを構成したら、それを使用して新しいボリュームのプロビジョニン"
+"グを開始できます。"
 
 #. type: Plain text
-msgid "Take care to not run out of disk space, especially with thin volumes."
-msgstr "ディスク容量が不足しないように、特に Thin ボリュームでは注意する。"
+msgid ""
+"For example, to create a simple 1Gb volume on the command line you can use:"
+msgstr ""
+"たとえば、コマンドラインで単純な 1Gb ボリュームを作成するには、次のコマンドを"
+"使用できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"openstack volume create --type linstor-drbd-volume --size 1 --availability-zone nova linstor-test-vol\n"
+"openstack volume list\n"
+msgstr ""
+"openstack volume create --type linstor-drbd-volume --size 1 --availability-zone nova linstor-test-vol\n"
+"openstack volume list\n"
+
+#. type: Plain text
+msgid ""
+"If you set `default_volume_type = linstor-drbd-volume` in your `/etc/cinder/"
+"cinder.conf`, you may omit the `--type linstor-drbd-volume` from the "
+"`openstack volume create ...` command above."
+msgstr ""
+"`/etc/cinder/cinder.conf` に `default_volume_type = linstor-drbd-volume` を設"
+"定した場合、上記の `openstack volume create ...` コマンドから `--type "
+"linstor-drbd-volume` を省略できます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Troubleshooting"
+msgstr "トラブルシューティング"
+
+#. type: Plain text
+msgid ""
+"This section describes what to do in case you encounter problems with using "
+"Linstor volumes and snapshots."
+msgstr ""
+"このセクションでは、Linstor ボリュームとスナップショットの使用で問題が発生し"
+"た場合の対処方法について説明します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Checking for error messages in Horizon"
+msgstr "Horizon でエラーメッセージを確認する"
+
+#. type: Plain text
+msgid ""
+"Every volume and snapshot has a Messages tab in the Horizon dashboard. In "
+"case of errors, the list of messages can be used as a starting point for "
+"further investigation. Some common messages in case of errors:"
+msgstr ""
+"すべてのボリュームとスナップショットには、Horizon ダッシュボードに Messages "
+"タブがあります。エラーが発生した場合は、メッセージのリストをさらに調査するた"
+"めの開始点として使用できます。以下はエラーの場合によくあるメッセージです。"
+
+#. type: Plain text
+#, no-wrap
+msgid "  create volume from backend storage:Driver failed to create the volume.\n"
+msgstr "  create volume from backend storage:Driver failed to create the volume.\n"
+
+#. type: Plain text
+msgid ""
+"There was an error creating a new volume. Check the Cinder Volume service "
+"logs for more details"
+msgstr ""
+"新しいボリュームの作成中にエラーが発生しました。詳細については、Cinder ボ"
+"リュームサービスログを確認してください。"
+
+#. type: Plain text
+#, no-wrap
+msgid "  schedule allocate volume:Could not find any available weighted backend.\n"
+msgstr "  schedule allocate volume:Could not find any available weighted backend.\n"
+
+#. type: Plain text
+msgid ""
+"If this is the only error message, this means the Cinder Scheduler could not "
+"find a volume backend suitable for creating the volume. This is most likely "
+"because:"
+msgstr ""
+"これが唯一のエラーメッセージである場合、Cinder スケジューラがボリュームの作成"
+"に適したボリュームバックエンドを見つけられなかったことを意味します。これは以"
+"下の理由が考えられます。"
+
+#. type: Plain text
+msgid ""
+"The volume backend is offline. See <<s-openstack-linstor-backend-status>>"
+msgstr ""
+"ボリュームバックエンドはオフラインである。詳細は <<s-openstack-linstor-"
+"backend-status>> を参照ください。"
+
+#. type: Plain text
+msgid ""
+"The volume backend has not enough free capacity to fulfil the request. Check "
+"the output of `cinder get-pools --detail` and `linstor storage-pool list` to "
+"ensure that the requested capacity is available."
+msgstr ""
+"ボリュームバックエンドには、リクエストを満たすのに十分な空き容量がありませ"
+"ん。 `cinder get-pools--detail` と `linstor storage-pool list` の出力をチェッ"
+"クして、リクエストされた容量が使用可能であることを確認します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Checking the Cinder Volume Service"
+msgstr "Cinder ボリュームサービスの確認"
+
+#. type: Plain text
+msgid "The Linstor driver is called as part of the Cinder Volume service."
+msgstr ""
+"Linstor ドライバーは、Cinder ボリュームサービスの一部として呼び出されます。"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"| Distribution | Log location or command\n"
+"| DevStack     | `journalctl -u devstack@c-vol`\n"
+"| TODO         | others\n"
+msgstr ""
+"| Distribution | Log location or command\n"
+"| DevStack     | `journalctl -u devstack@c-vol`\n"
+"| TODO         | others\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Checking the compute srvice logs"
+msgstr "Compute サービスログの確認"
+
+#. type: Plain text
+msgid ""
+"Some issues will not be logged in the Cinder Service but in the actual "
+"consumer of the volumes, most likely the compute service (Nova). As with the "
+"volume service, the exact host and location to check depends on your "
+"Openstack distribution:"
+msgstr ""
+"一部の問題は Cinder サービスログに記録されませんが、ボリュームの実際のコン"
+"シューマー、おそらく Compute サービス（Nova）に記録されます。ボリュームサービ"
+"スと同様に、確認するホストと正確な場所は、Openstack ディストリビューションに"
+"よって異なります。"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"| Distribution | Log location or command\n"
+"| DevStack     | `journalctl -u devstack@n-cpu`\n"
+"| TODO         | others\n"
+msgstr ""
+"| Distribution | Log location or command\n"
+"| DevStack     | `journalctl -u devstack@n-cpu`\n"
+"| TODO         | others\n"
