@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-02-04 19:22+0900\n"
+"POT-Creation-Date: 2021-04-14 14:39+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -572,7 +572,7 @@ msgid ""
 "package is upgraded an automatic backup file of the database will be created "
 "in the default `/var/lib/linstor` directory.  This file is a good restore "
 "point if for any reason a linstor-controller database migration should fail, "
-"than it is recommended to report the error to Linbit and restore the old "
+"than it is recommended to report the error to LINBIT and restore the old "
 "database file and downgrade to your previous controller version."
 msgstr ""
 "組み込みのデフォルトH2データベースを使用していて、linstor-controllerパッケー"
@@ -633,7 +633,7 @@ msgid "# docker login drbd.io\n"
 msgstr "# docker login drbd.io\n"
 
 #. type: Plain text
-msgid "The containers available in this repo are:"
+msgid "The containers available in this repository are:"
 msgstr "このリポジトリで利用可能なコンテナは以下です。"
 
 #. type: Plain text
@@ -1697,7 +1697,7 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"`MinReservedSpace`: Unlink the \"MaxFreeSpace\", this strategy considers the "
+"`MinReservedSpace`: Unlike the \"MaxFreeSpace\", this strategy considers the "
 "reserved spaced. That is the space that a thin volume can grow to before "
 "reaching its limit. The sum of reserved spaces might exceed the storage "
 "pools capacity, which is as overprovisioning."
@@ -1856,6 +1856,257 @@ msgstr ""
 #, no-wrap
 msgid "Further LINSTOR tasks"
 msgstr "LINSTOR 応用タスク"
+
+#. type: Title ===
+#, no-wrap
+msgid "LINSTOR high availability"
+msgstr "LINSTOR 高可用性"
+
+#. type: Plain text
+msgid ""
+"By default a LINSTOR cluster consists of exactly one LINSTOR controller. "
+"Making LINSTOR highly-available involves providing replicated storage for "
+"the controller database, multiple LINSTOR controllers where only one is "
+"active at a time, and a service manager that takes care of mounting/"
+"unmounting the highly-available storage and starting/stopping LINSTOR "
+"controllers."
+msgstr ""
+"デフォルトでは、LINSTOR クラスターは 1 つの LINSTOR コントローラーで構成され"
+"ます。LINSTOR の高可用性を実現するには、コントローラーデータベースの複製され"
+"たストレージ、一度に 1 つだけがアクティブになる複数の LINSTOR コントロー"
+"ラー、および高可用性ストレージのマウント/アンマウントと LINSTOR コントロー"
+"ラーの開始/停止を処理するサービスマネージャーを提供する必要があります。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Highly-available Storage"
+msgstr "高可用性ストレージ"
+
+#. type: Plain text
+msgid ""
+"For configuring the highly-available storage we use LINSTOR itself. This has "
+"the advantage that the storage is under LINSTOR control and can for example "
+"be easily extended to new cluster nodes. Just create a new resource with "
+"200MB in size. This could look like this, you certainly need to adapt the "
+"storage pool name:"
+msgstr ""
+"高可用性ストレージを構成するには、LINSTOR 自体を使用します。これには、スト"
+"レージが LINSTOR の制御下にあり、たとえば新しいクラスターノードに簡単に拡張で"
+"きるという利点があります。サイズが 200MB の新しいリソースを作成するだけです。"
+"これは次のようになります。ストレージプール名は環境に合わせて変更してくださ"
+"い。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor resource-definition create linstor_db\n"
+"# linstor volume-definition create linstor_db 200M\n"
+"# linstor resource create linstor_db -s pool1 --auto-place 3\n"
+msgstr ""
+"# linstor resource-definition create linstor_db\n"
+"# linstor volume-definition create linstor_db 200M\n"
+"# linstor resource create linstor_db -s pool1 --auto-place 3\n"
+
+#. type: Plain text
+msgid ""
+"From now on we assume the resource's name is \"linstor_db\". It is crucial "
+"that your cluster qualifies for auto-quorum (see Section <<s-linstor-auto-"
+"quorum>>)."
+msgstr ""
+"これ以降、リソース名は \"linstor_db\" であると仮定します。クラスターが自動"
+"クォーラム (<<s-linstor-auto-quorum>> を参照) の対象になっていることが重要で"
+"す。"
+
+#. type: Plain text
+msgid ""
+"After the resource is created, it is time to move the LINSTOR DB to the new "
+"storage and to create a `systemd` mount service. First we stop the current "
+"controller and disable it, as it will be managed by `drbdd` later."
+msgstr ""
+"リソースが作成されたら、LINSTOR DB を新しいストレージに移動し `systemd` マウ"
+"ントサービスを作成します。後ほど `drbdd` によって管理されるため、最初に現在の"
+"コントローラーを停止して無効にします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# systemctl disable --now linstor-controller\n"
+"# cat /etc/systemd/system/var-lib-linstor.mount\n"
+"[Unit]\n"
+"Description=Filesystem for the LINSTOR controller\n"
+msgstr ""
+"# systemctl disable --now linstor-controller\n"
+"# cat /etc/systemd/system/var-lib-linstor.mount\n"
+"[Unit]\n"
+"Description=Filesystem for the LINSTOR controller\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Mount]\n"
+"# you can use the minor like /dev/drbdX or the udev symlink\n"
+"What=/dev/drbd/by-res/linstor_db/0\n"
+"Where=/var/lib/linstor\n"
+"# mv /var/lib/linstor{,.orig}\n"
+"# mkfs.ext4 /dev/drbd/by-res/linstor_db/0\n"
+"# systemctl start var-lib-linstor.mount\n"
+"# cp -r /var/lib/linstor.orig/* /var/lib/linstor\n"
+"# systemctl start linstor-controller\n"
+msgstr ""
+"[Mount]\n"
+"# you can use the minor like /dev/drbdX or the udev symlink\n"
+"What=/dev/drbd/by-res/linstor_db/0\n"
+"Where=/var/lib/linstor\n"
+"# mv /var/lib/linstor{,.orig}\n"
+"# mkfs.ext4 /dev/drbd/by-res/linstor_db/0\n"
+"# systemctl start var-lib-linstor.mount\n"
+"# cp -r /var/lib/linstor.orig/* /var/lib/linstor\n"
+"# systemctl start linstor-controller\n"
+
+#. type: Plain text
+msgid ""
+"copy the `/etc/systemd/system/var-lib-linstor.mount` mount file to all the "
+"standby nodes for the linstor controller.  Again, do not `systemctl enable` "
+"any of these services, they get managed by `drbdd`."
+msgstr ""
+"`/etc/systemd/system/var-lib-linstor.mount` マウントファイルを linstor コント"
+"ローラーのすべてのスタンバイノードにコピーします。繰り返しますが、これらの"
+"サービスを `systemctl enable` しないでください。これらは `drbdd` によって管理"
+"されます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Multiple LINSTOR controllers"
+msgstr "複数のLINSTORコントローラー"
+
+#. type: Plain text
+msgid ""
+"The next step is to install LINSTOR controllers on all nodes that have "
+"access to the \"linstor\" DRBD resource (as they need to mount the DRBD "
+"volume) and which you want to become a possible LINSTOR controller. It is "
+"important that the controllers are manged by `drbdd`, so make sure the "
+"`linstor-controller.service` is disabled on all nodes! To be sure, execute "
+"`systemctl disable linstor-controller` on all cluster nodes and `systemctl "
+"stop linstor-controller` on all nodes except the one it is currently running "
+"from the previous step."
+msgstr ""
+"次のステップは、\"linstor\" DRBD リソースにアクセスでき（DRBD ボリュームをマ"
+"ウントする必要があるため）、LINSTOR コントローラーになる可能性のあるすべての"
+"ノードに LINSTOR コントローラーをインストールすることです。コントローラが "
+"`drbdd` によって管理されていることが重要なので、すべてのノードで `linstor-"
+"controller.service` が無効になっていることを確認してください。すべてのクラス"
+"ターノードで `systemctl disable linstor-controller` を実行し、前の手順で現在"
+"実行しているノードを除くすべてのノードで `systemctl stop linstor-controller` "
+"を実行します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Managing the services"
+msgstr "サービスの管理"
+
+#. type: Plain text
+msgid ""
+"For starting and stopping the mount service and the linstor-controller "
+"service we use `drbdd`. Install this component on all nodes that could "
+"become a LINSTOR controller and edit their `/etc/drbdd.toml` configuration "
+"file. It should contain an enabled promoter plugin section like this:"
+msgstr ""
+"マウントサービスと linstor-controller サービスの開始と停止には `drbdd` を使用"
+"します。LINSTOR コントローラーになる可能性のあるすべてのノードにこのコンポー"
+"ネントをインストールし、それらの `/etc/drbdd.toml` 構成ファイルを編集します。"
+"次のような有効な promoter プラグインセクションが含まれている必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[[promoter]]\n"
+"[promoter.resources.linstor_db]\n"
+"start = [\"var-lib-linstor.mount\", \"linstor-controller.service\"]\n"
+msgstr ""
+"[[promoter]]\n"
+"[promoter.resources.linstor_db]\n"
+"start = [\"var-lib-linstor.mount\", \"linstor-controller.service\"]\n"
+
+#. type: Plain text
+msgid ""
+"Depending on your requirements you might also want to set an `on-stop-"
+"failure` action."
+msgstr "要件によっては `on-stop-failure` アクションを設定します。"
+
+#. type: Plain text
+msgid ""
+"After that restart `drbdd` and enable it on all the nodes you configured it."
+msgstr "その後 `drbdd` を再起動し、構成したすべてのノードで有効にします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# systemctl restart drbdd\n"
+"# systemctl enable drbdd\n"
+msgstr ""
+"# systemctl restart drbdd\n"
+"# systemctl enable drbdd\n"
+
+#. type: Plain text
+msgid ""
+"Check that there are no warnings from drbdd in the logs by running "
+"`systemctl status drbdd`.  As there is already an active LINSTOR controller "
+"things will just stay the way they are."
+msgstr ""
+"`systemctl status drbdd` を実行して、ログに drbdd からの警告がないことを確認"
+"します。すでにアクティブな LINSTOR コントローラーが存在するため、状況に変化は"
+"あらわれません。"
+
+#. type: Plain text
+msgid ""
+"The last but never the less important step is to configure the LINSTOR "
+"satellite services to not delete (and then regenerate) the resource file for "
+"the LINSTOR controller DB at its startup. Also the satellite needs to start "
+"after `drbdd`. Do not edit the service files directly, but use `systemctl "
+"edit`. Edit the service file on all nodes that could become a LINSTOR "
+"controller and that are also LINSTOR satellites."
+msgstr ""
+"最後のステップは、起動時に LINSTOR コントローラー DB のリソースファイルを削除"
+"（および再生成）しないように LINSTOR サテライトサービスを構成することです。ま"
+"た、サテライトは `drbdd` の後に開始する必要があります。サービスファイルを直接"
+"編集するのではなく`systemctl edit` を使用してください。LINSTOR コントローラー"
+"になる可能性があり、LINSTOR サテライトでもあるすべてのノードでサービスファイ"
+"ルを編集します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# systemctl edit linstor-satellite\n"
+"[Service]\n"
+"Environment=LS_KEEP_RES=linstor_db\n"
+"[Unit]\n"
+"After=drbdd.service\n"
+msgstr ""
+"# systemctl edit linstor-satellite\n"
+"[Service]\n"
+"Environment=LS_KEEP_RES=linstor_db\n"
+"[Unit]\n"
+"After=drbdd.service\n"
+
+#. type: Plain text
+msgid ""
+"After this change you should execute `systemctl restart linstor-satellite` "
+"on all satellite nodes."
+msgstr ""
+"この変更後、すべてのサテライトノードで `systemctl restart linstor-satellite` "
+"を実行する必要があります。"
+
+#. type: Plain text
+msgid ""
+"Be sure to configure your LINSTOR client for use with multiple controllers "
+"as described in the section titled, <<s-using_the_linstor_client>> and make "
+"sure you also configured your integration plugins (e.g., the Proxmox plugin) "
+"to be ready for multiple LINSTOR controllers."
+msgstr ""
+"<<s-using_the_linstor_client>> というタイトルのセクションで説明されているよう"
+"に、複数のコントローラーで使用するように LINSTOR クライアントを構成してくださ"
+"い。また、統合プラグイン（ Proxmox プラグインなど）も複数の LINSTOR コント"
+"ローラーに対応できるように構成したことを確認してください。"
 
 #. type: Title ===
 #, no-wrap
@@ -2189,7 +2440,7 @@ msgstr "1つのレイヤーは、layer-list で1回しか使用できません�
 
 #. type: Plain text
 msgid ""
-"For information about the prerequisites for the `luks` layer, refer to the "
+"For information about the prerequisites for the `LUKS` layer, refer to the "
 "Encrypted Volumes section of this User's Guide."
 msgstr ""
 "`luks` レイヤの必要条件についての情報はこのユーザガイドの暗号化ボリュームの節"
@@ -2323,7 +2574,7 @@ msgstr "これでリソース `nvmedata` をノードの1つにマウントで�
 #. type: Plain text
 msgid ""
 "If your nodes have more than one NIC you should force the route between them "
-"for NVMe-of/NVME-TCP, otherwise multiple NIC's could cause troubles."
+"for NVMe-of/NVME-TCP, otherwise multiple NICs could cause troubles."
 msgstr ""
 "ノードに複数のNICがある場合は、NVMe-of/NVME-TCP に対してそれらの間の経路を強"
 "制する必要があります。そうしないと、複数のNICで問題が発生する可能性がありま"
@@ -2352,7 +2603,7 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"As OpenFlex combines concepts of LINSTORs storage as well as NVMe-layer, "
+"As OpenFlex combines concepts of LINSTOR's storage as well as NVMe-layer, "
 "LINSTOR was added both, a new storage driver for the storage pools as well "
 "as a dedicated `openflex` layer which uses the mentioned REST API."
 msgstr ""
@@ -2483,7 +2734,7 @@ msgstr "$ linstor storage-pool create openflex ofNode1 sp0 0\n"
 #. type: Plain text
 msgid ""
 "`ofNode1` and `sp0` are the node name and storage pool name, respectively, "
-"just as usual for the LINSTORs create storage pool command"
+"just as usual for the LINSTOR's create storage pool command"
 msgstr ""
 "`ofNode1` と `sp0` は、LINSTORs create storage pool コマンドの場合と同様に、"
 "それぞれノード名とストレージプール名です。"
@@ -3629,7 +3880,7 @@ msgstr "外部データベース"
 #. type: Plain text
 msgid ""
 "It is possible to have LINSTOR working with an external database provider "
-"like Postgresql, MariaDB and since version 1.1.0 even ETCD key value store "
+"like PostgreSQL, MariaDB and since version 1.1.0 even ETCD key value store "
 "is supported."
 msgstr ""
 "LINSTORはPostgresqlやMariaDBのような外部データベースとともに動作させることも"
@@ -3648,12 +3899,12 @@ msgstr ""
 
 #. type: Title ====
 #, no-wrap
-msgid "Postgresql"
-msgstr "Postgresql"
+msgid "PostgreSQL"
+msgstr "PostgreSQL"
 
 #. type: Plain text
-msgid "A sample Postgresql `linstor.toml` looks like this:"
-msgstr "Postgresqlのサンプル `linstor.toml` は以下のようになります。"
+msgid "A sample PostgreSQL `linstor.toml` looks like this:"
+msgstr "PostgreSQL のサンプル `linstor.toml` は以下のようになります。"
 
 #. type: delimited block -
 #, no-wrap
@@ -3670,8 +3921,8 @@ msgstr ""
 
 #. type: Title ====
 #, no-wrap
-msgid "MariaDB/Mysql"
-msgstr "MariaDB/Mysql"
+msgid "MariaDB/MySQL"
+msgstr "MariaDB/MySQL"
 
 #. type: Plain text
 msgid "A sample MariaDB `linstor.toml` looks like this:"
@@ -3692,10 +3943,10 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"The LINSTOR schema/database is created as `LINSTOR` so make sure the mariadb "
+"The LINSTOR schema/database is created as `LINSTOR` so make sure the MariaDB "
 "connection string refers to the `LINSTOR` schema, as in the example above."
 msgstr ""
-"LINSTORの schema/database は `LINSTOR` として作成されます。よって、mariadbの"
+"LINSTORの schema/database は `LINSTOR` として作成されます。よって、MariaDB の"
 "接続が `LINSTOR` schema を参照していることを確認してください。"
 
 #. type: Title ====
@@ -4086,11 +4337,15 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"The recommended place is the `logging` section in the `/etc/linstor/linstor."
-"toml` file:"
+"The recommended place is the `logging` section in the configuration file.  "
+"The default configuration file location is `/etc/linstor/linstor.toml` for "
+"the controller and `/etc/linstor/linstor_satellite.toml` for the satellite.  "
+"Configure the logging level as follows:"
 msgstr ""
-"推奨される場所は `/etc/linstor/linstor.toml` ファイルの `logging` セクション"
-"です。"
+"推奨される場所は、構成ファイルの `logging` セクションです。デフォルトの設定"
+"ファイルの場所は、コントローラの場合は `/etc/linstor/linstor.toml` 、サテライ"
+"トの場合は `/etc/linstor/linstor_satellite.toml` です。次のようにログレベルを"
+"構成します。"
 
 #. type: delimited block -
 #, no-wrap
@@ -4251,10 +4506,10 @@ msgstr "error_reports"
 #. type: Plain text
 msgid ""
 "These are all default `true`, to disabled e.g. error-report data: `http://"
-"localhost:3070/metrics?error_reports=false`"
+"localhost:3370/metrics?error_reports=false`"
 msgstr ""
 "これらはすべてデフォルトで `true` であり、無効にするには、例えば error-"
-"report データの場合 `http://localhost:3070/metrics?error_reports=false` とし"
+"report データの場合 `http://localhost:3370/metrics?error_reports=false` とし"
 "ます。"
 
 #. type: Title ====
@@ -4646,9 +4901,9 @@ msgstr ""
 "`DrbdOptions/AutoEvictMinReplicaCount` は、常に存在する必要があるレプリカの数"
 "を設定します。このプロパティをコントローラに設定してグローバルデフォルトを変"
 "更したり、特定の resource-definition または resource-group に設定して、その "
-"resource-definition または resource-group に対してのみ変更したりできます。この"
-"プロパティを空のままにすると、対応する resource-group の auto-place に設定さ"
-"れた値が place-count に使用されます。"
+"resource-definition または resource-group に対してのみ変更したりできます。こ"
+"のプロパティを空のままにすると、対応する resource-group の auto-place に設定"
+"された値が place-count に使用されます。"
 
 #. type: Plain text
 msgid ""
@@ -4707,7 +4962,7 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"Afer the linstor-controller loses the connection to a satellite, aside from "
+"After the linstor-controller loses the connection to a satellite, aside from "
 "trying to reconnect, it starts a timer for that satellite. As soon as that "
 "timer exceeds `DrbdOptions/AutoEvictAfterTime` and all of the DRBD-"
 "connections to the DRBD-resources on that satellite are broken, the "
@@ -4744,13 +4999,12 @@ msgid ""
 "The evicted satellite itself will not be able to reestablish connection with "
 "the controller.  Even if the node is up and running, a manual reconnect will "
 "fail. It is also not possible to delete the satellite, even if it is working "
-"as it should be. Should you wish to get rid of an evicted node, you need to "
-"use the `node lost` command. The satellite can, however, be restored.  This "
-"will remove the EVICTED-flag from the satellite and allow you to use it "
-"again. Previously configured network interfaces, storage pools, properties "
-"and similar entities as well as non-DRBD-related resources and resources "
-"that could not be autoplaced somewhere else will still be on the satellite. "
-"To restore a satellite, use"
+"as it should be. The satellite can, however, be restored.  This will remove "
+"the EVICTED-flag from the satellite and allow you to use it again. "
+"Previously configured network interfaces, storage pools, properties and "
+"similar entities as well as non-DRBD-related resources and resources that "
+"could not be autoplaced somewhere else will still be on the satellite. To "
+"restore a satellite, use"
 msgstr ""
 "取り除かれたサテライト自体は、コントローラーとの接続を再確立できません。ノー"
 "ドが稼働している場合でも、手動での再接続は失敗します。また、正常に動作してい"
@@ -4766,6 +5020,15 @@ msgstr ""
 #, no-wrap
 msgid "# linstor node restore [nodename]\n"
 msgstr "# linstor node restore [nodename]\n"
+
+#. type: Plain text
+msgid ""
+"Should you wish to instead throw everything that once was on that node, "
+"including the node itself, away, you need to use the `node lost` command "
+"instead."
+msgstr ""
+"代わりに、ノード自体を含め、そのノードにあったすべてのものを破棄したい場合"
+"は、代わりに `node lost` コマンドを使用する必要があります。"
 
 #. type: Title ===
 #, no-wrap
@@ -4810,7 +5073,7 @@ msgid ""
 "resource, both bottom-most devices of each node will receive the setting. In "
 "case of the target the bottom-most device will be the volume of LVM or ZFS, "
 "whereas in case of the initiator the bottom-most device will be the "
-"connected nvme-device, regardless which other layers are stacked ontop of "
+"connected nvme-device, regardless which other layers are stacked on top of "
 "that."
 msgstr ""
 "LINSTOR ボリュームが複数の \"stacked\" ボリュームで構成されている場合（たとえ"
@@ -4843,7 +5106,7 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"Further information on subcommands (e.g., list-nodes) can be retrieved in "
+"Further information on sub-commands (e.g., list-nodes) can be retrieved in "
 "two ways:"
 msgstr "サブコマンドのさらなる情報は次の２つの方法で確認できます。"
 
@@ -4858,11 +5121,11 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"Using the 'help' subcommand is especially helpful when LINSTOR is executed "
+"Using the 'help' sub-command is especially helpful when LINSTOR is executed "
 "in interactive mode (`linstor interactive`)."
 msgstr ""
-"LINSTORがインタラクティブモード(`linstor interactive`)で動作しているときには "
-"'help' サブコマンドはとても役にたちます。"
+"LINSTOR がインタラクティブモード（ `linstor interactive` ）で動作しているとき"
+"には 'help' サブコマンドはとても役にたちます。"
 
 #. type: Plain text
 msgid ""
