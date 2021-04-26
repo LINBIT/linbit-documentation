@@ -850,7 +850,7 @@ From now on we assume the resource's name is "linstor_db". It is crucial that yo
 cluster qualifies for auto-quorum (see Section <<s-linstor-auto-quorum>>).
 
 After the resource is created, it is time to move the LINSTOR DB to the new storage and to create a `systemd`
-mount service. First we stop the current controller and disable it, as it will be managed by `drbdd` later.
+mount service. First we stop the current controller and disable it, as it will be managed by `drbd-reactor` later.
 
 ----------------------------
 # systemctl disable --now linstor-controller
@@ -870,20 +870,20 @@ Where=/var/lib/linstor
 ----------------------------
 
 copy the `/etc/systemd/system/var-lib-linstor.mount` mount file to all the standby nodes for the linstor controller.
-Again, do not `systemctl enable` any of these services, they get managed by `drbdd`.
+Again, do not `systemctl enable` any of these services, they get managed by `drbd-reactor`.
 
 ==== Multiple LINSTOR controllers
 The next step is to install LINSTOR controllers on all nodes that have access
 to the "linstor" DRBD resource (as they need to mount the DRBD volume) and
 which you want to become a possible LINSTOR controller. It is important that the controllers
-are manged by `drbdd`, so make sure the `linstor-controller.service` is
+are manged by `drbd-reactor`, so make sure the `linstor-controller.service` is
 disabled on all nodes! To be sure, execute `systemctl disable
 linstor-controller` on all cluster nodes and `systemctl stop
 linstor-controller` on all nodes except the one it is currently running from the previous step.
 
 ==== Managing the services
-For starting and stopping the mount service and the linstor-controller service we use `drbdd`. Install this
-component on all nodes that could become a LINSTOR controller and edit their `/etc/drbdd.toml` configuration
+For starting and stopping the mount service and the linstor-controller service we use `drbd-reactor`. Install this
+component on all nodes that could become a LINSTOR controller and edit their `/etc/drbd-reactor.d/linstor.toml` configuration
 file. It should contain an enabled promoter plugin section like this:
 
 ----------------------------
@@ -892,21 +892,21 @@ file. It should contain an enabled promoter plugin section like this:
 start = ["var-lib-linstor.mount", "linstor-controller.service"]
 ----------------------------
 
-Depending on your requirements you might also want to set an `on-stop-failure` action.
+Depending on your requirements you might also want to set an `on-stop-failure` action and set `stop-services-on-exit`.
 
-After that restart `drbdd` and enable it on all the nodes you configured it.
+After that restart `drbd-reactor` and enable it on all the nodes you configured it.
 ----------------------------
-# systemctl restart drbdd
-# systemctl enable drbdd
+# systemctl restart drbd-reactor
+# systemctl enable drbd-reactor
 ----------------------------
 
-Check that there are no warnings from drbdd in the logs by running `systemctl status drbdd`.
+Check that there are no warnings from drbd-reactor in the logs by running `systemctl status drbd-reactor`.
 As there is already an active LINSTOR controller things will just stay the way they are.
 
 The last but never the less important step is to configure the LINSTOR
 satellite services to not delete (and then regenerate) the resource file for the
 LINSTOR controller DB at its startup. Also the satellite needs to start after
-`drbdd`. Do not edit the service files directly, but use `systemctl edit`. Edit
+`drbd-reactor`. Do not edit the service files directly, but use `systemctl edit`. Edit
 the service file on all nodes that could become a LINSTOR controller and that
 are also LINSTOR satellites.
 
@@ -915,7 +915,7 @@ are also LINSTOR satellites.
 [Service]
 Environment=LS_KEEP_RES=linstor_db
 [Unit]
-After=drbdd.service
+After=drbd-reactor.service
 --------------
 
 After this change you should execute `systemctl restart linstor-satellite` on all satellite nodes.
