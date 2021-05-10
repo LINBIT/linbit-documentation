@@ -7,17 +7,12 @@
 
 [[s-intro]]
 == Introduction
-LINBIT VSAN is a software-defined storage solution for hyper-converged infrastructure, based on LINBIT's DRBD and LINSTOR.
-
-It uses CentOS 8 as a foundation and utilizes software by LINBIT to provide highly available storage to hypervisors through a convenient iSCSI target.
+LINBIT VSAN is a software-defined storage solution for hyper-converged infrastructure, based on LINBIT's https://github.com/LINBIT/drbd[DRBD] and https://github.com/LINBIT/linstor-server[LINSTOR]. It uses CentOS 8 as a foundation and utilizes software by LINBIT to provide highly available storage to hypervisors through a convenient iSCSI target.
 
 It is built primarily with VMware ESXi as a target platform in mind, but it is fully independent of the hypervisor software, so it should also work on any other virtualization platform.
 
-.Warning
-********
-Please note that not all best practices recommended by LINBIT's tech guides are implemented yet.
+NOTE: Please note that not all best practices recommended by LINBIT's tech guides are implemented yet.
 For example, it is not yet possible to configure multiple links to separate application and replication traffic.
-********
 
 [[s-architecture]]
 == Architecture
@@ -27,42 +22,82 @@ Logically, LINBIT VSAN fits inbetween the hypervisor and the virtual machines it
 image::images/vsan-architecture.svg[1]
 
 In practice, VSAN runs one of its instances as a virtual machine on each hypervisor in the cluster.
-The hypervisor passes its local storage through to VSAN, which then replicates its contents across the cluster.
-One of the VSAN virtual machines exports an iSCSI target through a static IP, which can then be fed back to the hypervisor in order to provide a highly available datastore. This in turn can be used to store virtual machines and disk images on solid, redundant storage.
+The hypervisor passes its local storage through to VSAN, which then replicates the storage's data across the cluster.
+One of the VSAN virtual machines exports an iSCSI target through a static IP.
+This iSCSI target can be fed back to the hypervisor in order to provide a highly available datastore.
+The resulting datastore can be used to store virtual machines and disk images on solid, redundant storage.
 
 [[s-prerequisites]]
 == Prerequisites
+
+Before you can start using LINBIT VSAN, you need a few things first:
+
 - LINBIT customer credentials, which are also used to log in to https://my.linbit.com/[LINBIT's Customer Portal]. You can get these by https://www.linbit.com/request-linstor-vsan-download/[requesting an evaluation].
-- VSAN installation medium (ISO or OVA file). The download link will be sent to you when you request an evaluation.
+- A VSAN installation medium. You will receive a download link upon requesting an evaluation.
 - A virtualization platform, such as VMware ESXi.
-- Internet access for all VSAN VMs.footnote:[Internet access is only required during the initial setup, not for continued operation.]
+- Unrestricted internet access for all VSAN virtual machines.footnote:[Internet access is only required during the initial setup, not for continued operation.]
 
 [[s-node-count]]
-=== Node count
+=== Number of Nodes
 Because VSAN makes use of DRBD's quorum mechanism, a VSAN cluster needs to consist of at least three member nodes.
 
 The usual limitations and caveats of systems using quorum apply -- for example, an odd number of nodes is greatly preferred over an even one.
-Please refer to the https://www.linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-feature-quorum[DRBD9 User's Guide] for more information.
+Please refer to the https://www.linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-feature-quorum["Quorum" section of the DRBD9 User's Guide] for more information.
 
 [[s-installation]]
-== Installation
-LINBIT currently distributes VSAN in two formats, as an ISO image which gives a generic way to install VSAN on any kind of virtualization platform, and as an OVA file which can be imported into VMware ESXi easily and directly.
+== Operating System Installation
+LINBIT currently distributes VSAN in the following formats:
+
+* As an *OVA image*, for environments based on a *VMware hypervisor*.
+* As an *ISO image*, for solutions powered by *any other hypervisor*.
+
+[[s-installation-ova]]
+=== Installing via OVA file
+
+This is the easiest method, geared towards users of a *VMware hypervisor*.
+
+Take the following steps to set up your LINBIT VSAN cluster:
+
+1. Import the OVA image into your VMware cluster. Make sure you create exactly one VSAN virtual machine on each hypervisor.
+2. Pass through the local storage devices that should be used by VSAN for data replication.
++
+TIP: Make sure the storage devices you pass through remain completely empty. For example, do not create any partitions or LVM volumes.
+
+3. Start all VSAN virtual machines. Because the image already contains a pre-baked operating system, you are done! Next, start <<p-initialization,the VSAN initialization process>> by navigating to the IP of one of your virtual machines using your browser.
+
+TIP: By default, the OVA image configures its network via DHCP. If you need more control (for example, a static IP or multiple addresses), you need to log into the VSAN virtual machine with the default credentials, and configure it directly using the stock operating system tools.
+
+[WARNING]
+============
+When installing the operating system via the OVA image, a default password is set so that the machine can be administered over SSH.
+
+*The default password for the `root` user is `linbit`*.
+
+Upon first login to a VSAN virtual machine, the user is prompted to change the default password.
+
+It is *highly recommended* to log into the machine over SSH and change the password immediately after installation.
+============
 
 [[s-installation-iso]]
 === Installing via ISO file
-Because VSAN is based on CentOS 8, you have to create one VM on each hypervisor node manually. You then need to attach a virtual or local disk for VSAN itself, and assign or pass-through local storage devices which will be used by VSAN for data replication. Make sure those local storage devices are untouched during VSAN installation (for example, do not create any partitions). Of course, one or more network adapters and IPs are mandatory for each VSAN VM.
 
-.Notice
-*******
-Make sure you have your LINBIT customer credentials at hand and that all VSAN VMs can access the internet before you proceed. Also make sure that your subscription has enough allowed nodes for the VSAN deployment.
-*******
+This method is appropriate as a fall-back option for all *non-VMware hypervisors* that do not support importing OVA files.
+Of course it can also be used on VMware hypervisors if greater flexibility in the operating system setup process is desired.
 
-Start all VSAN VMs on all hypervisor nodes and install the Operating System step by step, similar to a regular CentOS 8 installation.
+Take the following steps to set up your LINBIT VSAN cluster:
 
-.Warning
-********
-VSAN ISO contains a customized kickstart file to auto-configure CentOS 8, please *do not* install via your own kickstart file to automate the installation process!
-********
+1. Create one virtual machine for LINBIT VSAN on each hypervisor node.
+2. Attach one virtual or local disk for the operating system itself.
+3. Pass through the local storage devices that should be used by VSAN for data replication.
++
+TIP: Make sure the storage devices you pass through remain completely empty. For example, do not create any partitions or LVM volumes.
+4. Assign at least one network adapter to each of the virtual machines. VSAN acquires an IP address via DHCP.
+5. Start the virtual machines and complete the operating system setup on each machine. This is similar to a regular CentOS 8 installation process.
++
+WARNING: Do not use a kickstart file to automate the installation process. The VSAN ISO already contains a kickstart file to customize certain aspects of the CentOS 8 installer; providing an additional kickstart file will cause conflicts.
++
+TIP: Make sure you take note of the special requirements regarding <<s-iso-networking,Networking>> and <<s-iso-time,Time>> during the setup process.
+6. Done! Next, start <<p-initialization,the VSAN initialization process>> by navigating to the IP of one of your virtual machines using your browser.
 
 [[s-iso-networking]]
 ==== Networking
@@ -81,27 +116,46 @@ In a cluster of multiple servers, it is important to ensure that the clocks of t
 
 This is easiest achieved by using NTP (Network Time Protocol). Please make sure that NTP is enabled in the CentOS setup and that the nodes' clocks are synchronized after the installation is done.
 
-[[s-installation-ova]]
-=== Installing via OVA file
-Simply import OVA file into your VMware Cluster, then deploy it to each ESXi node. Thanks to this pre-baked VMware image file, you do not have to install VSAN one by one, just assign or pass-through local storage devices to each of VSAN VMs and start all VSAN VMs, and you are done!
-
-
-By default, the OVA image configures its network via DHCP. If you need to configure a different method (e.g. static IP or multiple IPs), you need to log into the VSAN VM with the default credentials, and configure it directly in CentOS 8.
-
-.Warning
-*******
-When using the OVA image, the default password for the `root` user is set to `linbit`.
-It is highly recommended to log into the machine and change the password immediately after installation.
-*******
-
 [[p-initialization]]
 == Initialization
-After all VSAN VMs are installed and rebooted, access any one of them via your browser to setup VSAN. VSAN gives you a one-stop Web UI wizard to configure the storage cluster. Step by step screenshots can be found https://www.linbit.com/linbit-vsan-software-defined-storage-for-vmware%e2%80%8b/[on LINBIT's website], and there is also a https://www.youtube.com/watch?v=m8G7l3CHugg[walk-through video].
 
-For general help with the terms and concepts used during the setup, please refer to the https://www.linbit.com/drbd-user-guide/linstor-guide-1_0-en/[LINSTOR User's Guide].
+After the operating system is installed and all VSAN virtual machines are booted, you can proceed to set up your VSAN cluster.
+
+[TIP]
+===========
+To ensure the setup experience is as smooth as possible, make sure you meet the following requirements before starting the initialization process:
+
+* You have your LINBIT customer credentials at hand.
+* All VSAN virtual machines can access the internet *without restrictions*.
+* Check the https://my.linbit.com/[LINBIT Customer Portal] and verify that you are authorized to register the correct number of nodes.
+===========
+
+To get started, navigate to the IP address of one VSAN virtual machine with your browser.
+
+If you are not sure what the IP address of your virtual machine is, refer to the helpful message VSAN prints to the console and when logging in over SSH:
+
+```
+Welcome to LINBIT VSAN version 0.9.12
+
+Please visit the following URL in your
+browser to start the setup process:
+
+https://192.168.122.190:443
+
+Last login: Mon May 10 14:26:07 2021 from 192.168.122.1
+[root@uninitialized-2704efc50652198ea06592f8 ~]#
+```
+
+VSAN gives you a one-stop Web UI wizard to configure the storage cluster. Follow the instructions in the wizard to complete the installation.
+
+Step by step screenshots can be found https://www.linbit.com/linbit-vsan-software-defined-storage-for-vmware%e2%80%8b/[on LINBIT's website], and there is also a https://www.youtube.com/watch?v=m8G7l3CHugg[walk-through video].
+
+TIP: For general help with the terms and concepts used during the setup, refer to the https://www.linbit.com/drbd-user-guide/linstor-guide-1_0-en/[LINSTOR User's Guide].
 
 [[p-administration]]
 == Administration
-The VSAN Web UI is built to enable an administrator to handle most basic tasks with ease.
+The VSAN Web UI intenionally offers relatively minimal administration and monitoring capabilities.
 
-If you are familiar with the technologies under the hood, you are free to directly use the underlying operating system and treat it as a standard CentOS-based LINSTOR cluster.
+One of VSAN's design philosophies is that, after the setup is completed, it should be as close to a regular Linux system as possible.
+
+So, if you are familiar with the technologies under the hood, you are free to directly use the underlying operating system and treat it as a standard CentOS-based LINSTOR cluster.
