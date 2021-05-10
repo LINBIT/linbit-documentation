@@ -49,7 +49,7 @@ $ linstor node info
 ╰────────────────────────────────────────────────────────────────────────────╯
 ----
 
-At this point you should <<s-storage_pools,configure one or more storage pools>> per node. This guide assumes the
+You should <<s-storage_pools,configure one or more storage pools>> per node. This guide assumes the
 storage pool is named `cinderpool`. LINSTOR should list the storage pool for each node, including the diskless storage
 pool created by default.
 
@@ -70,6 +70,28 @@ $ linstor storage-pool list
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ----
 
+[[s-update_the_linstor_driver]]
+==== Upgrades of LINSTOR driver
+
+If this is a fresh installation, skip this section and continue with <<s-install_the_linstor_driver>>.
+
+===== From 1.x to 2.x
+
+Driver version 2 dropped some static configuration options in favour of managing these options at runtime via
+<<s-openstack-volume-types,volume types>>.
+
+[frame="topbot",options="header"]
+|====
+| Option in `cinder.conf` | Status | Replace with
+| `linstor_autoplace_count` | removed | Use the `linstor:redundancy` property on the volume type. Using a value of 0 for full cluster replication is not supported, use the advanced options of <<s-autoplace-linstor, the LINSTOR autoplacer>>
+| `linstor_controller_diskless` | removed | No replacement needed, the driver will create a diskless resource on the cinder host when required
+| `linstor_default_blocksize` | removed | This setting had no effect.
+| `linstor_default_storage_pool_name` | deprecated | This setting is deprecated for removal in a future version. Use the `linstor:storage_pool` property on the volume type instead.
+| `linstor_default_uri` | deprecated | Replaced by the more aptly named `linstor_uris`.
+| `linstor_default_volume_group_name` | removed | Creating nodes and storage pools was completely removed in Driver version 2. See <<s-openstack-linstor-install>>
+| `linstor_volume_downsize_factor` | removed | This setting served no purpose, it was removed without replacement.
+|====
+
 [[s-install_the_linstor_driver]]
 ==== Install the LINSTOR driver
 
@@ -77,20 +99,20 @@ Starting with OpenStack Stein, the LINSTOR driver is part of the Cinder project.
 might be missing features or fixes available in newer version. Due to OpenStacks update policy for stable versions, most
 improvements to the driver will not get back-ported to older stable releases.
 
-https://github.com/LINBIT/openstack-cinder[LINBIT maintains a fork] of the Cinder repository with all improvements to the LINSTOR driver backported to the supported
-stable versions. Currently, these are:
+https://github.com/LINBIT/openstack-cinder[LINBIT maintains a fork] of the Cinder repository with all improvements to
+the LINSTOR driver backported to the supported stable versions. Currently, these are:
 
 [frame="topbot",options="header"]
 |====
 | OpenStack Release    | Included Version | LINBIT Version | LINBIT Branch
-| `victoria`           | 1.0.1            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Fvictoria[`linstor/stable/victoria`]
-| `ussuri`             | 1.0.1            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Fussuri[`linstor/stable/ussuri`]
-| `train`              | 1.0.0            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Ftrain[`linstor/stable/train`]
-| `stein`              | 1.0.0            | 1.1.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor/stable%2Fstein[`linstor/stable/stein`]
+| `wallaby`            | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fwallavy[`linstor/stable/wallaby`]
+| `victoria`           | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fvictoria[`linstor/stable/victoria`]
+| `ussuri`             | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fussuri[`linstor/stable/ussuri`]
+| `train`              | 1.0.0            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Ftrain[`linstor/stable/train`]
+| `stein`              | 1.0.0            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fstein[`linstor/stable/stein`]
 | `rocky`              | n/a              | n/a            | n/a
 | `queens`             | n/a              | n/a            | n/a
 | `pike`               | n/a              | n/a            | n/a
-| `ocata`              | n/a              | n/a            | n/a
 |====
 
 The exact steps to enable the Linstor Driver depend on your OpenStack distribution. In general, the `python-linstor`
@@ -189,9 +211,7 @@ the available configuration options, see the section below.
 [linstor-drbd]
 volume_backend_name = linstor-drbd
 volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver
-linstor_autoplace_count = 2
-linstor_default_storage_pool_name = cinderpool
-linstor_default_uri = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test
+linstor_uris = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test
 ----
 
 ===== OpenStack Ansible
@@ -212,9 +232,7 @@ cinder_backends: <1>
   linstor-drbd:
    volume_backend_name: linstor-drbd
    volume_driver: cinder.volume.drivers.linstordrv.LinstorDrbdDriver
-   linstor_autoplace_count: 2
-   linstor_default_storage_pool_name: cinderpool
-   linstor_default_uri: linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test
+   linstor_uris: linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test
 ----
 
 <1> A detailed description of the available backend parameters can be found in the section below
@@ -265,11 +283,16 @@ To configure a new volume backend using Linstor, add the following section to `c
 [linstor-drbd]
 volume_backend_name = linstor-drbd <1>
 volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver <2>
-linstor_default_uri = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test <3>
-linstor_default_storage_pool_name = cinderpool <4>
-linstor_autoplace_count = 2 <5>
-linstor_controller_diskless = true <6>
-... <7>
+linstor_uris = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test <3>
+linstor_trusted_ca = /path/to/trusted/ca.cert <4>
+linstor_client_key = /path/to/client.key <5>
+linstor_client_cert = /path/to/client.cert <5>
+# Deprecated or removed in 2.0.0
+linstor_default_storage_pool_name = cinderpool <6>
+linstor_autoplace_count = 2 <7>
+linstor_controller_diskless = true <8>
+# non-linstor-specific options
+... <9>
 ----
 
 NOTE: The parameters described here are based on the latest release provided by Linbit. The driver included in OpenStack
@@ -290,17 +313,25 @@ Which driver you should use depends on your Linstor set up and requirements. Det
 
 <3> The URL(s) of the Linstor Controller(s). Multiple Controllers can be specified to make use of
 <<s-linstor_ha,Linstor High Availability>>. If not set, defaults to `linstor://localhost`.
++
+NOTE: In driver versions prior to 2.0.0, this option is called `linstor_default_uri`
 
-<4> The storage pools to use when placing resources. Applies to all diskfull resources created. Defaults to
-`DfltStorPool`.
+<4> If <<s-linstor-rest-api-https,HTTPS is enabled>> the referenced certificate is used to verify the Linstor Controller
+authenticity.
 
-<5> The number of replicas to create for the given volume. A value of `0` will create a replica on all nodes. Defaults
-to `0`.
+<5> If <<s-linstor-rest-api-https,HTTPS is enabled>> the referenced key and certificate will be presented to the Linstor
+Controller for authentication.
 
-<6> If set to true, ensures that at least one (diskless) replica is deployed on the Cinder Controller host. This is
+<6> *Deprecated in 2.0.0, use <<s-openstack-volume-types,volume types>> instead.* The storage pools to use when placing
+resources. Applies to all diskfull resources created. Defaults to `DfltStorPool`.
+
+<7> *Removed in 2.0.0, use <<s-openstack-volume-types,volume types>> instead.* The number of replicas to create for the given
+volume. A value of `0` will create a replica on all nodes. Defaults to `0`.
+
+<8> *Removed in 2.0.0, volumes are created on demand by the driver. If set to true, ensures that at least one (diskless) replica is deployed on the Cinder Controller host. This is
 useful for ISCSI transports. Defaults to `true`.
 
-<7> You can specify more generic Cinder options here, for example `target_helper = tgtadm` for the ISCSI connector.
+<9> You can specify more generic Cinder options here, for example `target_helper = tgtadm` for the ISCSI connector.
 
 NOTE: You can also configure multiple Linstor backends, choosing a different name and configuration options for each.
 
@@ -339,8 +370,16 @@ The advantages of this option are:
 * Since the Cinder host is not involved in the data path, any disruptions to the Cinder service do not affect
   volumes that are already attached.
 
-A drawback is the reduced compatibility: Not all hosts and hypervisors support using DRBD volumes. This
-restricts deployment to Linux hosts and `kvm` hypervisors.
+====== Known limitations:
+
+* Not all hosts and hypervisors support using DRBD volumes. This restricts deployment to Linux hosts and `kvm` hypervisors.
+* Resizing of attached and in-use volumes does not fully work. While the resize itself is successful, the compute service
+  will not propagate it to the VM until after a restart.
+* Multi-attach (attaching the same volume on multiple VMs) is not supported.
+* https://docs.openstack.org/cinder/latest/configuration/block-storage/volume-encryption.html#create-an-encrypted-volume-type[Encrypted volumes]
+  only work if udev rules for DRBD devices are in place.
++
+NOTE: `udev` rules are either part of the `drbd-utils` package or have their own `drbd-udev` package.
 
 ===== Using ISCSI as Transport Protocol
 
@@ -357,8 +396,9 @@ node running the iSCSI daemon crashes, other nodes lose access to their volumes.
 There are ways to configure Cinder for automatic fail-over to mitigate this, but
 it requires considerable effort.
 
-NOTE: For ISCSI to work, the Cinder host needs access to a local replica of every volume. This can be achieved by
-either setting `linstor_controller_diskless=True` or using `linstor_autoplace_count=0`.
+NOTE: In driver versions prior to 2.0.0, the Cinder host needs access to a local replica of every volume. This can be
+achieved by either setting `linstor_controller_diskless=True` or using `linstor_autoplace_count=0`. Newer driver
+versions will create such a volume on demand.
 
 [[s-openstack-linstor-backend-status]]
 ==== Verify status of Linstor backends
@@ -382,6 +422,7 @@ If you have the Horizon GUI deployed, check `Admin > System Information > Block 
 In the above example all configured services are `enabled` and `up`. If there are any issues, please check
 the logs of the Cinder Volume service.
 
+[[s-openstack-volume-types]]
 === Create a new volume type for Linstor
 
 Before creating volumes using Cinder, you have to create a volume type. This can either be done via the command line:
@@ -416,43 +457,51 @@ Alternatively, you can create volume types via the Horizon GUI. Navigate to `Adm
 
 ==== Advanced Configuration of volume types
 
-You can enable advanced configuration options by adding more properties (command line) or "Extra Specs" (Horizon GUI) to
-the volume type. You can get a list of available options by running:
+Each volume type can be customized by adding properties or "Extra Specs" as they are called in the Horizon GUI.
 
-[source,shell]
+To add a property to a volume type on the command line use:
 ----
-$ cinder get-capabilities cinder-01.openstack.test@linstor-drbd
-+---------------------+------------------------------------------------------------------+
-| Volume stats        | Value                                                            |
-+---------------------+------------------------------------------------------------------+
-| description         | None                                                             |
-| display_name        | None                                                             |
-| driver_version      | 1.1.0                                                            |
-| namespace           | OS::Storage::Capabilities::cinder-01.openstack.test@linstor-drbd |
-| pool_name           | None                                                             |
-| replication_targets | []                                                               |
-| storage_protocol    | DRBD                                                             |
-| vendor_name         | LINBIT                                                           |
-| visibility          | None                                                             |
-| volume_backend_name | linstor-drbd                                                     |
-+---------------------+------------------------------------------------------------------+
-+---------------------+---------------------------------------+
-| Backend properties  | Value                                 |
-+---------------------+---------------------------------------+
-| compression         | description : Enables compression.    |
-|                     | title : Compression                   |
-|                     | type : boolean                        |
-| qos                 | description : Enables QoS.            |
-|                     | title : QoS                           |
-|                     | type : boolean                        |
-| replication_enabled | description : Enables replication.    |
-|                     | title : Replication                   |
-|                     | type : boolean                        |
-| thin_provisioning   | description : Sets thin provisioning. |
-|                     | title : Thin Provisioning             |
-|                     | type : boolean                        |
-+---------------------+---------------------------------------+
+openstack volume type set linstor_drbd_b --property linstor:redundancy=5
 ----
+
+Alternatively, you can set the property via the GUI by navigating tp `Admin > Volume > Volume Types`. In the `Actions`
+column, open the dropdown menu and click the `View Extra Specs` button. This opens a dialog you can use to create, edit
+and delete properties.
+
+===== Available volume type properties
+
+linstor:diskless_on_remaining::
+Create diskless replicas on non-selected nodes after auto-placing.
+
+linstor:do_not_place_with_regex::
+Do not place the resource on a node which has a resource with a name matching the regex.
+
+linstor:layer_list::
+Comma-separated list of layers to apply for resources. If empty, defaults to DRBD,Storage.
+
+linstor:provider_list::
+Comma-separated list of providers to use. If empty, Linstor will automatically choose a suitable provider.
+
+linstor:redundancy::
+Number of replicas to create. Defaults to 2.
+
+linstor:replicas_on_different::
+A comma-separated list of key or key=value items used as autoplacement selection labels when autoplace is used to
+determine where to provision storage.
+
+linstor:replicas_on_same::
+A comma-separated list of key or key=value items used as autoplacement selection labels when autoplace is used to
+determine where to provision storage.
+
+linstor:storage_pool::
+Comma-separated list of storage pools to use when auto-placing.
+
+linstor:property:*::
+If a key is prefixed by `linstor:property:`, it is interpreted as a LINSTOR property. The property gets set on the <<s-linstor-resource-groups,Resource Group>>
+created for the volume type.
++
+For example: To change the <<s-linstor-auto-quorum,quorum policy>> `DrbdOptions/auto-quorum` needs to be set. This can
+be done by setting the `linstor:property:DrbdOptions/auto-quorum` property.
 
 === Using volumes
 
@@ -498,7 +547,6 @@ The Linstor driver is called as part of the Cinder Volume service.
 |====
 | Distribution | Log location or command
 | DevStack     | `journalctl -u devstack@c-vol`
-| TODO         | others
 |====
 
 ==== Checking the compute srvice logs
@@ -510,7 +558,6 @@ service (Nova). As with the volume service, the exact host and location to check
 |====
 | Distribution | Log location or command
 | DevStack     | `journalctl -u devstack@n-cpu`
-| TODO         | others
 |====
 
 // Keep the empty line before this comment, otherwise the next chapter is folded into this
