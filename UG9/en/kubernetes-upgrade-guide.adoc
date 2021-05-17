@@ -64,6 +64,32 @@ volumes and volumes already in use by a pod will continue to work without interr
 
 Some versions require special steps, see below.
 
+===== Upgrade to v1.5
+
+This version introduces a <<s-kubernetes-monitoring,monitoring>> component for DRBD resources. This requires a new image
+and a replacement of the existing `LinstorSatelliteSet` CRD. Helm does not upgrade the CRDs on a chart upgrade,
+instead please run:
+
+----
+$ helm repo update
+$ helm pull linstor/linstor --untar
+$ kubectl replace -f linstor/crds/
+customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced
+customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced
+customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced
+----
+
+If you do not plan to use the provided <<s-kubernetes-monitoring,monitoring>> you still need to apply the above steps,
+otherwise you will get an errors like the following
+
+----
+Error: UPGRADE FAILED: error validating "": error validating data: ValidationError(LinstorSatelliteSet.spec): unknown field "monitoringImage" in com.linbit.linstor.v1.LinstorSatelliteSet.spec
+----
+
+NOTE: Some Helm versions fail to set the monitoring image even after replacing the CRDs. In that case, the in-cluster
+LinstorSatelliteSet will show an empty `monitoringImage` value. Edit the resource using
+`kubectl edit linstorsatellitesets` and set the value to `drbd.io/drbd-reactor:v0.3.0` to enable monitoring.
+
 ===== Upgrade to v1.4
 
 This version introduces a new default version for the Etcd image, so take extra care that Etcd is using

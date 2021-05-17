@@ -524,15 +524,15 @@ etcd:
   resources: {} # resource requirements for etcd containers <3>
   image:
     repository: gcr.io/etcd-development/etcd
-    tag: v3.4.9
+    tag: v3.4.15
 csi-snapshotter:
   enabled: true # <- enable to add k8s snapshotting CRDs and controller. Needed for CSI snapshotting
-  image: k8s.gcr.io/sig-storage/snapshot-controller:v3.0.2
+  image: k8s.gcr.io/sig-storage/snapshot-controller:v3.0.3
   replicas: 1 <2>
   resources: {} # resource requirements for the cluster snapshot controller. <3>
 stork:
   enabled: true
-  storkImage: docker.io/openstorage/stork:2.5.0
+  storkImage: docker.io/openstorage/stork:2.6.2
   schedulerImage: k8s.gcr.io/kube-scheduler-amd64
   schedulerTag: ""
   replicas: 1 <2>
@@ -541,13 +541,13 @@ stork:
   podsecuritycontext: {}
 csi:
   enabled: true
-  pluginImage: "drbd.io/linstor-csi:v0.11.0"
-  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.0.2
-  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.1.0
-  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
-  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v2.0.4
-  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.2
-  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.0.1
+  pluginImage: "drbd.io/linstor-csi:v0.13.0"
+  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.1.0
+  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.2.0
+  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.1.0
+  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v2.1.1
+  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.3
+  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.1.0
   controllerReplicas: 1 <2>
   nodeAffinity: {} <4>
   nodeTolerations: [] <4>
@@ -565,14 +565,14 @@ psp:
   unprivilegedRole: ""
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
-  image: "drbd.io/linstor-operator:v1.3.1"
+  image: "drbd.io/linstor-operator:v1.5.0"
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
   podsecuritycontext: {}
   controller:
     enabled: true
-    controllerImage: "drbd.io/linstor-controller:v1.11.1"
+    controllerImage: "drbd.io/linstor-controller:v1.12.3"
     luksSecret: ""
     dbCertSecret: ""
     dbUseClientCert: false
@@ -588,14 +588,15 @@ operator:
     additionalProperties: {} <6>
   satelliteSet:
     enabled: true
-    satelliteImage: "drbd.io/linstor-satellite:v1.11.1"
+    satelliteImage: "drbd.io/linstor-satellite:v1.12.3"
     storagePools: {}
     sslSecret: ""
     automaticStorageType: None
     affinity: {} <4>
     tolerations: [] <4>
     resources: {} <3>
-    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.27"
+    monitoringImage: "drbd.io/drbd-reactor:v0.3.0"
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.29"
     kernelModuleInjectionMode: ShippedModules
     kernelModuleInjectionResources: {} <3>
     additionalEnv: [] <5>
@@ -628,6 +629,30 @@ https://kubernetes.io/docs/tasks/inject-data-application/define-environment-vari
 To create a High Availability deployment of all components, take a look at the https://github.com/piraeusdatastore/piraeus-operator/blob/b00fd34/doc/scheduling.md[upstream guide]
 The default values are chosen so that scaling the components to multiple replicas ensures that the replicas are placed on different nodes. This ensures
 that a single node failures will not interrupt the service.
+
+[[s-kubernetes-monitoring]]
+===== Monitoring with Prometheus
+Starting with Linstor Operator v1.5.0, you can use [Prometheus](https://prometheus.io/) to monitor Linstor components.
+The operator will set up monitoring containers along the existing components and make them available as a `Service`.
+
+If you use the [Prometheus Operator](https://prometheus-operator.dev/), the Linstor Operator will also set up the `ServiceMonitor`
+instances. The metrics will automatically be collected by the Prometheus instance associated to the operator, assuming
+[watching the Piraeus namespace is enabled](https://prometheus-operator.dev/docs/kube/monitoring-other-namespaces/).
+
+To disable exporting of metrics, set `operator.satelliteSet.monitoringImage` to an empty value.
+
+====== Linstor Controller Monitoring
+
+The Linstor Controller exports cluster-wide metrics. Metrics are exported on the existing controller service, using the
+path [`/metrics`](https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/#s-linstor-monitoring).
+
+====== DRBD Resource Monitoring
+
+All satellites are bundled with a secondary container that uses [`drbd-reactor`](https://github.com/LINBIT/drbd-reactor/)
+to export metrics directly from DRBD. The metrics are available on port 9942, for convenience a headless service named
+`<linstorsatelliteset-name>-monitoring` is provided.
+
+If you want to disable the monitoring container, set `monitoringImage` to `""` in your LinstorSatelliteSet resource.
 
 [[s-kubernetes-deploy-external-controller]]
 ==== Deploying with an external LINSTOR controller
