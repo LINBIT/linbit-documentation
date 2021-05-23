@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-10-11 10:46+0900\n"
+"POT-Creation-Date: 2021-05-24 08:25+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -399,219 +399,29 @@ msgstr ""
 #. type: Plain text
 msgid ""
 "You will also have to make changes to the `handlers` section depending on "
-"the cluster infrastructure being used:"
+"the cluster infrastructure being used."
 msgstr ""
 "同時に、使用するクラスタインフラストラクチャによっては `handlers` セクション"
 "も変更しなければなりません。"
 
 #. type: Plain text
 msgid ""
-"Heartbeat-based Pacemaker clusters can employ the configuration outlined in "
-"<<s-pacemaker-fencing-dopd>>."
+"Corosync-based Pacemaker clusters can use the functionality explained in <<s-"
+"pacemaker-fencing-cib>>."
 msgstr ""
-"Heartbeatを使用したPacemakerクラスタは <<s-pacemaker-fencing-dopd>>で説明して"
-"いる設定を使用できます。"
-
-#. type: Plain text
-msgid ""
-"Both Corosync- and Heartbeat-based clusters can use the functionality "
-"explained in <<s-pacemaker-fencing-cib>>."
-msgstr ""
-"CorosyncとHeartbeatを使用したクラスタは <<s-pacemaker-fencing-cib>>で説明され"
-"ている機能を使うことができます。"
+"Corosync を使用したクラスタは <<s-pacemaker-fencing-cib>>で説明されている機能"
+"を使うことができます。"
 
 #. type: Plain text
 msgid ""
 "It is absolutely vital to configure at least two independent cluster "
-"communications channels for this functionality to work correctly. Heartbeat-"
-"based Pacemaker clusters should define at least two cluster communication "
-"links in their `ha.cf` configuration files. Corosync clusters should list at "
-"least two redundant rings in `corosync.conf`."
+"communications channels for this functionality to work correctly. Corosync "
+"clusters should list at least two redundant rings in `corosync.conf`, "
+"respectively several paths for knet."
 msgstr ""
 "最低でも2つの独立したクラスタ通信チャネルを設定しなければ、この機能は正しく動"
-"作しません。HeartbeatベースのPacemakerクラスタでは `ha.cf` 設定ファイルに最低"
-"2つのクラスタ通信のリンクを定義する必要があります。Corosyncクラスタでは最低2"
-"つの冗長リングを `corosync.conf` に記載しなければなりません。"
-
-#. type: Title ====
-#, no-wrap
-msgid "Resource-level fencing with `dopd`"
-msgstr "`dopd` でのリソースレベルフェンシング"
-
-#. type: Plain text
-msgid ""
-"indexterm:[dopd]In Heartbeat-based Pacemaker clusters, DRBD can use a "
-"resources-level fencing facility named the _DRBD outdate-peer daemon_, or "
-"`dopd` for short."
-msgstr ""
-"indexterm:[dopd]Heartbeatを使用したPacemakerクラスタでは、DRBDは _DRBD "
-"outdate-peer daemon_ 、または略して `dopd` と呼ばれるリソースレベルのフェンシ"
-"ング機能を使用できます。"
-
-#. type: Title =====
-#, no-wrap
-msgid "Heartbeat configuration for `dopd`"
-msgstr "`dopd` 用のHeartbeat設定"
-
-#. type: Plain text
-msgid ""
-"To enable dopd, you must add these lines to your indexterm:[ha.cf (Heartbeat "
-"configuration file)]`/etc/ha.d/ha.cf` file:"
-msgstr ""
-"dopdを有効にするには、次の行をindexterm:[ha.cf (Heartbeat configuration "
-"file)] `/etc/ha.d/ha.cf` ファイルに追加します。"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"respawn hacluster /usr/lib/heartbeat/dopd\n"
-"apiauth dopd gid=haclient uid=hacluster\n"
-msgstr ""
-"respawn hacluster /usr/lib/heartbeat/dopd\n"
-"apiauth dopd gid=haclient uid=hacluster\n"
-
-#. type: Plain text
-msgid ""
-"You may have to adjust ``dopd``'s path according to your preferred "
-"distribution. On some distributions and architectures, the correct path is `/"
-"usr/lib64/heartbeat/dopd`."
-msgstr ""
-"使用するディストリビューションに応じて `dopd` のパスを調整する必要がありま"
-"す。一部のディストリビューションとアーキテクチャでは、正しいパスが `/usr/"
-"lib64/heartbeat/dopd` になります。"
-
-#. type: Plain text
-msgid ""
-"After you have made this change and copied `ha.cf` to the peer node, put "
-"Pacemaker in maintenance mode and run `/etc/init.d/heartbeat reload` to have "
-"Heartbeat re-read its configuration file. Afterwards, you should be able to "
-"verify that you now have a running `dopd` process."
-msgstr ""
-"変更を行い `ha.cf` を対向ノードにコピーをしたら、設定ファイルを読み込むために"
-"Pacemakerをメンテナンスモードにして '/etc/init.d/heartbeat reload' を実行しま"
-"す。その後、 `dopd` プロセスが動作していることを確認できるでしょう。"
-
-#. type: Plain text
-msgid ""
-"You can check for this process either by running `ps ax | grep dopd` or by "
-"issuing `killall -0 dopd`."
-msgstr ""
-"このプロセスを確認するには、 `ps ax | grep dopd` を実行するか、 `killall -0 "
-"dopd` を使用します。"
-
-#. type: Title =====
-#, no-wrap
-msgid "DRBD Configuration for `dopd`"
-msgstr "`dopd` 用のDRBD設定"
-
-#. type: Plain text
-msgid ""
-"Once `dopd` is running, add these items to your DRBD resource configuration:"
-msgstr "`dopd` が起動したら、DRBDリソース設定にアイテムを追加します。"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"resource <resource> {\n"
-"    handlers {\n"
-"        fence-peer \"/usr/lib/heartbeat/drbd-peer-outdater -t 5\";\n"
-"        ...\n"
-"    }\n"
-"    net {\n"
-"        fencing resource-only;\n"
-"        ...\n"
-"    }\n"
-"    ...\n"
-"}\n"
-msgstr ""
-"resource <resource> {\n"
-"    handlers {\n"
-"        fence-peer \"/usr/lib/heartbeat/drbd-peer-outdater -t 5\";\n"
-"        ...\n"
-"    }\n"
-"    net {\n"
-"        fencing resource-only;\n"
-"        ...\n"
-"    }\n"
-"    ...\n"
-"}\n"
-
-#. type: Plain text
-msgid ""
-"As with `dopd`, your distribution may place the `drbd-peer-outdater` binary "
-"in `/usr/lib64/heartbeat` depending on your system architecture."
-msgstr ""
-"`dopd` と同様に、システムのアーキテクチャやディストリビューションによっては "
-"`drbd-peer-outdater` バイナリは `/usr/lib64/heartbeat` に配置されます。"
-
-#. type: Plain text
-msgid ""
-"Finally, copy your `drbd.conf` to the peer node and issue `drbdadm adjust "
-"resource` to reconfigure your resource and reflect your changes."
-msgstr ""
-"最後に、`drbd.conf` を対向ノードにコピーし、 `drbdadm adjust resource` を実行"
-"して、リソースを再構成し、変更内容を反映します。"
-
-#. type: Title =====
-#, no-wrap
-msgid "Testing `dopd` functionality"
-msgstr "`dopd` 機能のテスト"
-
-#. type: Plain text
-msgid ""
-"To test whether your `dopd` setup is working correctly, interrupt the "
-"replication link of a configured and connected resource while Heartbeat "
-"services are running normally. You may do so simply by physically unplugging "
-"the network link, but that is fairly invasive. Instead, you may insert a "
-"temporary `iptables` rule to drop incoming DRBD traffic to the TCP port used "
-"by your resource."
-msgstr ""
-"設定した `dopd` が正しく動作しているか確認するためには、Heartbeatサービスが正"
-"常に動作しているときに、構成済みの接続されているリソースのレプリケーションリ"
-"ンクを遮断します。ネットワークリンクを物理的に取り外すことで簡単にできます"
-"が、少々強引ではあります。あるいは、一時的に `iptables` ルールを追加して、"
-"DRBD用TCPトラフィックを遮断します。"
-
-#. type: Plain text
-msgid ""
-"After this, you will be able to observe the resource <<s-connection-states,"
-"connection state>> change from indexterm:[connection state]indexterm:"
-"[Connected (connection state)] _Connected_ to indexterm:[connection "
-"state]indexterm:[Connecting (connection state)]_Connecting_. Allow a few "
-"seconds to pass, and you should see the <<s-disk-states,disk state>>become "
-"indexterm:[disk state]indexterm:[Outdated (disk state)]_Outdated/DUnknown_. "
-"That is what `dopd` is responsible for."
-msgstr ""
-"すると、リソースの<<s-connection-states,コネクションステータス>>がindexterm:"
-"[connection state]indexterm:[Connected (connection state)] _Connected_ から"
-"indexterm:[connection state]indexterm:[Connecting (connection "
-"state)]_Connecting_ に変わります。数秒後に<<s-disk-states,ディスク状態>>が"
-"indexterm:[disk state]indexterm:[Outdated (disk state)]`Outdated/DUnknown` に"
-"変化します。これで `dopd` が機能していることを確認できます。"
-
-#. type: Plain text
-msgid ""
-"Any attempt to switch the outdated resource to the primary role will fail "
-"after this."
-msgstr ""
-"これ以降は、古いリソースをプライマリロールに切り替えようとしても失敗します。"
-
-#. type: Plain text
-msgid ""
-"When re-instituting network connectivity (either by plugging the physical "
-"link or by removing the temporary `iptables` rule you inserted previously), "
-"the connection state will change to _Connected_, and then promptly to "
-"_SyncTarget_ (assuming changes occurred on the primary node during the "
-"network interruption). Then you will be able to observe a brief "
-"synchronization period, and finally, the previously outdated resource will "
-"be marked as indexterm:[disk state]indexterm:[UpToDate (disk "
-"state)]_UpToDate_ again."
-msgstr ""
-"物理リンクを接続するか、一時的な `iptables` ルールを削除してネットワーク接続"
-"を再確立すると、コネクションステータスが Connected に変化し、すぐに "
-"`SyncTarget` になります(ネットワーク遮断中に、プライマリノードで変化が起こっ"
-"た場合)。同期が終了すると、無効状態であったリソースに再度indexterm:[disk "
-"state]indexterm:[UpToDate (disk state)] `UpToDate` のマークが付きます。"
+"作しません。Corosync クラスタでは最低 2 つの冗長リング、それぞれ knet のいく"
+"つかのパスを `corosync.conf` に記載しなければなりません。"
 
 #. type: Title ====
 #, no-wrap

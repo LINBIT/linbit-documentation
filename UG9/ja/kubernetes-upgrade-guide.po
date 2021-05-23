@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-02-04 19:22+0900\n"
+"POT-Creation-Date: 2021-05-24 08:25+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -99,24 +99,57 @@ msgstr ""
 #. type: Plain text
 msgid ""
 "If you used any customizations on the initial install, pass the same options "
-"to `helm upgrade`. For example:"
+"to `helm upgrade`. The options currently in use can be retrieved from Helm."
 msgstr ""
 "初期インストールでカスタマイズを使用した場合は、同じオプションを `helm "
-"upgrade` に渡します。例えば:"
+"upgrade` に渡します。現在使用されているオプションは、Helm から取得できます。"
 
 #. type: delimited block -
 #, no-wrap
-msgid "helm install linstor-op linstor/linstor -f <file>\n"
-msgstr "helm install linstor-op linstor/linstor -f <file>\n"
-
-#. type: Plain text
-msgid "would become"
-msgstr "は以下のようにします。"
-
-#. type: delimited block -
-#, no-wrap
-msgid "helm upgrade linstor-op linstor/linstor -f <file>\n"
-msgstr "helm upgrade linstor-op linstor/linstor -f <file>\n"
+msgid ""
+"# Retrieve the currently set options\n"
+"$ helm get values linstor-op\n"
+"USER-SUPPLIED VALUES:\n"
+"USER-SUPPLIED VALUES: null\n"
+"drbdRepoCred: drbdiocred\n"
+"operator:\n"
+"  satelliteSet:\n"
+"    kernelModuleInjectionImage: drbd.io/drbd9-rhel8:v9.0.28\n"
+"    storagePools:\n"
+"      lvmThinPools:\n"
+"      - devicePaths:\n"
+"        - /dev/vdb\n"
+"        name: thinpool\n"
+"        thinVolume: thinpool\n"
+"        volumeGroup: \"\"\n"
+"# Save current options\n"
+"$ helm get values linstor-op > orig.yaml\n"
+"# modify values here as needed. for example selecting a newer DRBD image\n"
+"$ vim orig.yaml\n"
+"# Start the upgrade\n"
+"$ helm upgrade linstor-op linstor/linstor -f orig.yaml\n"
+msgstr ""
+"# Retrieve the currently set options\n"
+"$ helm get values linstor-op\n"
+"USER-SUPPLIED VALUES:\n"
+"USER-SUPPLIED VALUES: null\n"
+"drbdRepoCred: drbdiocred\n"
+"operator:\n"
+"  satelliteSet:\n"
+"    kernelModuleInjectionImage: drbd.io/drbd9-rhel8:v9.0.28\n"
+"    storagePools:\n"
+"      lvmThinPools:\n"
+"      - devicePaths:\n"
+"        - /dev/vdb\n"
+"        name: thinpool\n"
+"        thinVolume: thinpool\n"
+"        volumeGroup: \"\"\n"
+"# Save current options\n"
+"$ helm get values linstor-op > orig.yaml\n"
+"# modify values here as needed. for example selecting a newer DRBD image\n"
+"$ vim orig.yaml\n"
+"# Start the upgrade\n"
+"$ helm upgrade linstor-op linstor/linstor -f orig.yaml\n"
 
 #. type: Plain text
 msgid ""
@@ -147,6 +180,119 @@ msgstr "特定のバージョンのアップグレード手順"
 #. type: Plain text
 msgid "Some versions require special steps, see below."
 msgstr "一部のバージョンでは特別な手順が必要です。以下を参照ください。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrade to v1.5"
+msgstr "v1.5 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"This version introduces a <<s-kubernetes-monitoring,monitoring>> component "
+"for DRBD resources. This requires a new image and a replacement of the "
+"existing `LinstorSatelliteSet` CRD. Helm does not upgrade the CRDs on a "
+"chart upgrade, instead please run:"
+msgstr ""
+"このバージョンでは DRBD リソースの <<s-kubernetes-monitoring,監視>> コンポー"
+"ネントが導入されます。これには、新しいイメージと既存の `LinstorSatelliteSet` "
+"CRD の置き換えが必要です。 Helm は chart upgrade で CRD をアップグレードしま"
+"せん。代わりに、以下を実行してください。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ helm repo update\n"
+"$ helm pull linstor/linstor --untar\n"
+"$ kubectl replace -f linstor/crds/\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced\n"
+msgstr ""
+"$ helm repo update\n"
+"$ helm pull linstor/linstor --untar\n"
+"$ kubectl replace -f linstor/crds/\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced\n"
+
+#. type: Plain text
+msgid ""
+"If you do not plan to use the provided <<s-kubernetes-monitoring,"
+"monitoring>> you still need to apply the above steps, otherwise you will get "
+"an errors like the following"
+msgstr ""
+"提供されている <<s-kubernetes-monitoring,監視機能>> を使用する予定がない場合"
+"でも、上記の手順を適用する必要があります。そうしないと、次のようなエラーが発"
+"生します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "Error: UPGRADE FAILED: error validating \"\": error validating data: ValidationError(LinstorSatelliteSet.spec): unknown field \"monitoringImage\" in com.linbit.linstor.v1.LinstorSatelliteSet.spec\n"
+msgstr "Error: UPGRADE FAILED: error validating \"\": error validating data: ValidationError(LinstorSatelliteSet.spec): unknown field \"monitoringImage\" in com.linbit.linstor.v1.LinstorSatelliteSet.spec\n"
+
+#. type: Plain text
+msgid ""
+"Some Helm versions fail to set the monitoring image even after replacing the "
+"CRDs. In that case, the in-cluster LinstorSatelliteSet will show an empty "
+"`monitoringImage` value. Edit the resource using `kubectl edit "
+"linstorsatellitesets` and set the value to `drbd.io/drbd-reactor:v0.3.0` to "
+"enable monitoring."
+msgstr ""
+"一部の Helm バージョンでは、CRD を交換した後でも監視イメージを設定できませ"
+"ん。その場合、クラスター内の LinstorSatelliteSet は空の `monitoringImage` 値"
+"を表示します。 `kubectl edit linstorsatellitesets` を使用してリソースを編集"
+"し、値を `drbd.io/drbd-reactor:v0.3.0` に設定して、監視を有効にします。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrade to v1.4"
+msgstr "v1.4 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"This version introduces a new default version for the Etcd image, so take "
+"extra care that Etcd is using persistent storage. *Upgrading the Etcd image "
+"without persistent storage will corrupt the cluster*."
+msgstr ""
+"このバージョンでは、Etcd イメージの新しいデフォルトバージョンが導入されている"
+"ため、Etcd が永続ストレージを使用していることに特に注意してください。永続スト"
+"レージなしで Etcd イメージをアップグレードすると、クラスターが壊れるので注意"
+"してください。"
+
+#. type: Plain text
+msgid ""
+"If you are upgrading an existing cluster without making use of new Helm "
+"options, no additional steps are necessary."
+msgstr ""
+"新しい Helm オプションを使用せずに既存のクラスターをアップグレードする場合、"
+"追加の手順は必要ありません。"
+
+#. type: Plain text
+msgid ""
+"If you plan to use the newly introduced `additionalProperties` and "
+"`additionalEnv` settings, you have to replace the installed "
+"CustomResourceDefinitions with newer versions. Helm does not upgrade the "
+"CRDs on a chart upgrade"
+msgstr ""
+"新しく導入された `additionalProperties` および `additionalEnv` 設定を使用する"
+"場合は、インストールされている CustomResourceDefinitions を新しいバージョンに"
+"置き換える必要があります。Helm は chart upgrade で CRD をアップグレードしませ"
+"ん。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ helm pull linstor/linstor --untar\n"
+"$ kubectl replace -f linstor/crds/\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced\n"
+msgstr ""
+"$ helm pull linstor/linstor --untar\n"
+"$ kubectl replace -f linstor/crds/\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced\n"
 
 #. type: Title =====
 #, no-wrap
