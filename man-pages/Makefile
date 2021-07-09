@@ -12,24 +12,30 @@ else
 MANDIR=$(DRBD_UTILS)/documentation
 endif
 
+ifneq ($(lang),en)
+DRBD_UTILS_LANG=$(lang)
+endif
+
 MANDIR_v9=$(MANDIR)/$(DRBD_UTILS_LANG)/v9
 MANDIR_v84=$(MANDIR)/$(DRBD_UTILS_LANG)/v84
 
 MANPAGES_v9_5=$(wildcard $(MANDIR_v9)/*.5)
+MANPAGES_v9_7=$(wildcard $(MANDIR_v9)/*.7)
 MANPAGES_v9_8=$(wildcard $(MANDIR_v9)/*.8)
-MANPAGES_v9=$(MANPAGES_v9_5) $(MANPAGES_v9_8)
+MANPAGES_v9=$(MANPAGES_v9_5) $(MANPAGES_v9_7) $(MANPAGES_v9_8)
 
 MANPAGES_v84_5=$(wildcard $(MANDIR_v84)/*.5)
 MANPAGES_v84_8=$(wildcard $(MANDIR_v84)/*.8)
 MANPAGES_v84=$(MANPAGES_v84_5) $(MANPAGES_v84_8)
 
 OUTMANS_v9_5=$(patsubst $(MANDIR_v9)/%.5,$(OUTDIRHTML)/v9/%.5.html, $(MANPAGES_v9_5))
+OUTMANS_v9_7=$(patsubst $(MANDIR_v9)/%.7,$(OUTDIRHTML)/v9/%.7.html, $(MANPAGES_v9_7))
 OUTMANS_v9_8=$(patsubst $(MANDIR_v9)/%.8,$(OUTDIRHTML)/v9/%.8.html, $(MANPAGES_v9_8))
 
 OUTMANS_v84_5=$(patsubst $(MANDIR_v84)/%.5,$(OUTDIRHTML)/v84/%.5.html, $(MANPAGES_v84_5))
 OUTMANS_v84_8=$(patsubst $(MANDIR_v84)/%.8,$(OUTDIRHTML)/v84/%.8.html, $(MANPAGES_v84_8))
 
-OUTMANS=$(OUTMANS_v9_5) $(OUTMANS_v9_8) $(OUTMANS_v84_5) $(OUTMANS_v84_8)
+OUTMANS=$(OUTMANS_v9_5) $(OUTMANS_v9_7) $(OUTMANS_v9_8) $(OUTMANS_v84_5) $(OUTMANS_v84_8)
 
 define run-mandoc =
 	cat $< | mandoc -Thtml -Ostyle=mandoc.css 1> $@
@@ -37,12 +43,15 @@ define run-mandoc =
 	echo $@ | grep -q 84 && mps="$(MANPAGES_v84)" || mps="$(MANPAGES_v9)"; \
 	for mp in $$mps; do \
 		last=$$(echo -n $$mp | tail -c 1); \
-		bn=$$(basename $$(basename $$mp .5) .8); \
+		bn=$$(basename $$(basename $$(basename $$mp .5) .8) .7); \
 		sed -i "s/<b>$$bn<\/b>/<b><a href=\"$$bn.$$last.html\">$$bn<\/a><\/b>/g" $@; \
 	done;
 endef
 
 $(OUTDIRHTML)/v9/%.5.html: $(MANDIR_v9)/%.5
+	$(run-mandoc)
+
+$(OUTDIRHTML)/v9/%.7.html: $(MANDIR_v9)/%.7
 	$(run-mandoc)
 
 $(OUTDIRHTML)/v9/%.8.html: $(MANDIR_v9)/%.8
@@ -100,7 +109,7 @@ html: style $(OUTMANS) $(OUTDIRHTML)/v84/index.html $(OUTDIRHTML)/v9/index.html
 
 html-finalize: html
 	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL) && touch $(OUTDIRHTMLFINAL)/.empty
-	tar -czvf $(OUTDIRHTMLFINAL)/$$(basename $$PWD)-$$(date +%F).tar.gz $(OUTDIRHTML)
+	for d in v84 v9; do (cd $(OUTDIRHTML)/$$d; zip ../../$(OUTDIRHTMLFINAL)/man-pages-$$d.zip ./*.html); done
 
 pdf:
 	$(error "pdf generation is not supported")
