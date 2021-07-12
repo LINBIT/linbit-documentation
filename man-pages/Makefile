@@ -16,6 +16,12 @@ ifneq ($(lang),en)
 DRBD_UTILS_LANG=$(lang)
 endif
 
+ifeq ($(lang),)
+MAN_LANG=en
+else
+MAN_LANG=$(lang)
+endif
+
 MANDIR_v9=$(MANDIR)/$(DRBD_UTILS_LANG)/v9
 MANDIR_v84=$(MANDIR)/$(DRBD_UTILS_LANG)/v84
 
@@ -109,7 +115,13 @@ html: style $(OUTMANS) $(OUTDIRHTML)/v84/index.html $(OUTDIRHTML)/v9/index.html
 
 html-finalize: html
 	rm -rf $(OUTDIRHTMLFINAL) && mkdir $(OUTDIRHTMLFINAL) && touch $(OUTDIRHTMLFINAL)/.empty
-	for d in v84 v9; do (cd $(OUTDIRHTML)/$$d; zip ../../$(OUTDIRHTMLFINAL)/man-pages-$$d.zip ./*.html); done
+	for d in v84 v9; do \
+		case "$$d" in \
+			v84) fn=8.4;; \
+			v9) fn=9.0;; \
+		esac; \
+		(cd $(OUTDIRHTML)/$$d; zip ../../$(OUTDIRHTMLFINAL)/man-pages-$(MAN_LANG)-$${fn}.zip ./*.html);\
+	done
 
 pdf:
 	$(error "pdf generation is not supported")
