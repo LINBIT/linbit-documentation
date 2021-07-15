@@ -1090,6 +1090,7 @@ NOTE: One layer can only occur once in the layer-list
 TIP: For information about the prerequisites for the `LUKS` layer,
 refer to the Encrypted Volumes section of this User's Guide.
 
+[[s-nvme-layer]]
 ==== NVMe-oF/NVMe-TCP LINSTOR Layer
 
 NVMe-oF/NVMe-TCP allows LINSTOR to connect diskless resources to a
@@ -1161,6 +1162,7 @@ IMPORTANT: If your nodes have more than one NIC you should force the
 route between them for NVMe-of/NVME-TCP, otherwise multiple NICs
 could cause troubles.
 
+[[s-openflex]]
 ==== OpenFlex(TM) Layer
 
 Since version 1.5.0 the additional Layer `openflex` can be used in LINSTOR.
@@ -1332,18 +1334,95 @@ metadata.
 [[s-storage-layer]]
 ==== Storage Layer
 
+The storage layer will provide new devices from well known volume managers like LVM, ZFS or
+others. Every layer combination needs to be based on a storage layer, even if the resource
+should be diskless - for that type there is a dedicated `diskless` provider type.
+
+For a list of providers with their properties please see <<s-storage-proviers, Storage Providers>>.
+
 For some storage providers LINSTOR has special properties:
 
-* `StorDriver/LvcreateOptions`: The value of this property is appended to every
-`lvcreate ...` call LINSTOR executes.
-* `StorDriver/ZfscreateOptions`: The value of this property is appended to every
-`zfs create ...` call LINSTOR executes.
 * `StorDriver/WaitTimeoutAfterCreate`: If LINSTOR expects a device to appear after creation
 (for example after calls of `lvcreate`, `zfs create`,...), LINSTOR waits per default 500ms
 for the device to appear. These 500ms can be overridden by this property.
 * `StorDriver/dm_stats`: If set to `true` LINSTOR calls `dmstats create $device` after
 creation and `dmstats delete $device --allregions` after deletion of a volume.
 Currently only enabled for LVM and LVM_THIN storage providers.
+
+[[s-storage-providers]]
+=== Storage Providers
+
+LINSTOR has a few storage providers. The most used ones are LVM and ZFS. But also for those
+two providers there are already sub-types for their thinly provisioned variants.
+
+* Diskless: This provider type is mostly required to have a storage pool that can be configured
+with LINSTOR properties like `PrefNic` as described in <<s-managing_network_interface_cards,
+Managing Network Interface Cards>>.
+* LVM / LVM-Thin: The adminstrator is expected to specify the LVM volume group or the thin-pool
+(in form of "LV/thinpool") in order to use the corresponding storage type. These drivers support
+following properties for fine-tuning:
+** `StorDriver/LvcreateOptions`: The value of this property is appended to every
+  `lvcreate ...` call LINSTOR executes.
+* ZFS / ZFS-Thin: The administrator is expected to specify the ZPool that LINSTOR should use.
+These drivers support following properties for fine-tuning:
+** `StorDriver/ZfscreateOptions`: The value of this property is appended to every
+  `zfs create ...` call LINSTOR executes.
+* File / FileThin: Mostly used for demonstration / experiments. LINSTOR will basically reserve a
+file in a given directory and will configure a https://man7.org/linux/man-pages/man4/loop.4.html[loop device]
+on top of that file.
+* OpenFlex: This special storage provider currently requires to be run on a "special satellite".
+Please see <<s-openflex, OpenFlex(TM) Layer>> for more details.
+* SPDK: The administrator is expected to speicify the logical volume store which LINSTOR should use.
+The usage of this storage provider implies the usage of the <<s-nvme-layer,NVME Layer>>.
+** Remote-SPDK: This special storage provider currently requires to be run on a "special satellite".
+Please see <<s-remote-spdk, Remote SPDK Provider>> for more details.
+
+[[s-remote-spdk]]
+==== Remote SPDK Provider
+A storage pool with the type remote SPDK can only be created on a "special satellite". For this
+you first need to start a new satellite using the command:
+
+----
+$ linstor node create-remote-spdk-target nodeName 192.168.1.110
+----
+
+This will start a new satellite instance running on the same machine as the controller. This special
+satellite will do all the REST based RPC communication towards the remote SPDK proxy. As the help message
+of the LINSTOR command shows, the administrator might want to use additional settings when creating
+this special satellite:
+
+----
+$ linstor node create-remote-spdk-target -h
+usage: linstor node create-remote-spdk-target [-h] [--api-port API_PORT]
+                                              [--api-user API_USER]
+                                              [--api-user-env API_USER_ENV]
+                                              [--api-pw [API_PW]]
+                                              [--api-pw-env API_PW_ENV]
+                                              node_name api_host
+----
+
+The difference between the `--api-\*` and their corresponding `--api-\*-env` versions is that the
+version with the `-env` ending will look for an environment variable containing the actual value to use
+whereas the `--api-\*` version directly take the value which is stored in the LINSTOR property.
+Administrators might not want to save the `--api-pw` in plaintext, which would be clearly visible
+using commands like `linstor node list-property <nodeName>`.
+
+Once that special satellite is up and running the actual storage pool can be created:
+
+----
+$ linstor storage-pool create remotespdk -h
+usage: linstor storage-pool create remotespdk [-h]
+                                              [--shared-space SHARED_SPACE]
+                                              [--external-locking]
+                                              node_name name driver_pool_name
+----
+
+Whereas `node_name` is self-explanatory, `name` is the name of the LINSTOR storage pool and
+`driver_pool_name` refers to the SPDK logical volume store.
+
+Once this _remotespdk_ storage pool is created the remaining procedure is quite similar as
+using NVMe: First the target has to be created by creating a simple "diskful" resource followed
+by a second resource having the `--nvme-initiator` option enabled.
 
 
 [[s-managing_network_interface_cards]]
