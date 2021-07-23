@@ -24,8 +24,12 @@ To install the `linstor-docker-volume` plugin provided by LINBIT, you'll
 need to have a working LINSTOR cluster. After that the plugin can be installed from the public docker hub.
 
 ----
-# docker plugin install linbit/linstor-docker-volume
+# docker plugin install linbit/linstor-docker-volume --grant-all-permissions
 ----
+
+NOTE: The `--grant-all-permissions` flag will automatically grant all
+permissions needed to successfully install the plugin. If you'd like to
+manually accept these, omit the flag from the command above.
 
 [[s-docker-linstor-configuration]]
 === LINSTOR Plugin for Docker Configuration
@@ -66,10 +70,10 @@ In the following we expect a cluster consisting of three nodes
 On node alpha:
 
 ----
-$ docker volume create -d linstor \
-             --opt fs=xfs --opt size=200 lsvol
+$ docker volume create -d linbit/linstor-docker-volume \
+        --opt fs=xfs --opt size=200 lsvol
 $ docker run -it --rm --name=cont \
-             -v lsvol:/data --volume-driver=linstor busybox sh
+        -v lsvol:/data --volume-driver=linbit/linstor-docker-volume busybox sh
 $ root@cont: echo "foo" > /data/test.txt
 $ root@cont: exit
 ----
@@ -78,7 +82,7 @@ On node bravo:
 
 ----
 $ docker run -it --rm --name=cont \
-             -v lsvol:/data --volume-driver=linstor busybox sh
+        -v lsvol:/data --volume-driver=linbit/linstor-docker-volume busybox sh
 $ root@cont: cat /data/test.txt
   foo
 $ root@cont: exit
@@ -88,23 +92,34 @@ $ docker volume rm lsvol
 ==== Example 2 - one diskful assignment by name, two nodes diskless
 
 ----
-$ docker volume create -d linstor --opt nodes=bravo lsvol
+$ docker volume create -d linbit/linstor-docker-volume --opt nodes=bravo lsvol
 ----
 
 ==== Example 3 - one diskful assignment, no matter where, two nodes diskless
 
 ----
-$ docker volume create -d linstor --opt replicas=1 lsvol
+$ docker volume create -d linbit/linstor-docker-volume --opt replicas=1 lsvol
 ----
 
 ==== Example 4 - two diskful assignments by name, charlie diskless
 
 ----
-$ docker volume create -d linstor --opt nodes=alpha,bravo lsvol
+$ docker volume create -d linbit/linstor-docker-volume --opt nodes=alpha,bravo lsvol
 ----
 
 ==== Example 5 - two diskful assignments, no matter where, one node diskless
 
 ----
-$ docker volume create -d linstor --opt replicas=2 lsvol
+$ docker volume create -d linbit/linstor-docker-volume --opt replicas=2 lsvol
 ----
+
+==== Example 6 - using LINSTOR volumes with services from Docker swarm manager node
+
+----
+$ docker service create \
+        --mount type=volume,src=lsvol,dst=/data,volume-driver=linbit/linstor-docker-volume \
+        --name swarmsrvc busybox sh -c "while true; do sleep 1000s; done"
+----
+
+TIP: Docker services do not accept the `-v` or `--volume` syntax, you
+must use the `--mount` syntax. Docker `run` will accept either syntax.
