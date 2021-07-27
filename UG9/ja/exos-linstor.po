@@ -1,0 +1,654 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2021-07-27 17:01+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#.  vim: :set ft=asciidoc tw=70 fo-=a sw=8 ts=8 noet spell
+#. type: Title ==
+#, no-wrap
+msgid "LINSTOR EXOS Integration"
+msgstr "LINSTOR EXOSの統合"
+
+#. type: Plain text
+msgid ""
+"The https://www.seagate.com/support/raid-storage-systems/all-flash-and-disk-"
+"arrays/[EXOS] storage manager from Seagate could be configured as one large "
+"block device managed by LINSTOR like a local drive but this would prevent "
+"concurrent sharing of LINSTOR resources between multiple servers out of the "
+"same pool."
+msgstr ""
+"Seagate社の https://www.seagate.com/support/raid-storage-systems/all-flash-"
+"and-disk-arrays/[EXOS] ストレージマネージャーは、ローカルドライブのように"
+"LINSTORで管理される1つの大きなブロックデバイスとして構成することができます"
+"が、これでは同じプール外の複数のサーバー間でLINSTORリソースを同時に共有できな"
+"くなります。"
+
+#. type: Plain text
+msgid ""
+"LINSTOR integration with EXOS enables multiple server nodes to allocate and "
+"connect to LINSTOR resources serviced by the same EXOS pool.  Thus all of "
+"the EXOS storage management features such as SSD/HDD tiering, SSD caching, "
+"snapshots, and thin provisioning are available for LINSTOR resources and "
+"Kubernetes Storage Classes."
+msgstr ""
+"LINSTORとEXOSの統合により、複数のサーバーノードが同一のEXOSプールで提供される"
+"LINSTORリソースを割り当て、接続することができます。 そのため、SSD/HDD階層化、"
+"SSDキャッシング、スナップショット、シンプロビジョニングなど、EXOSのストレージ"
+"管理機能のすべてがLINSTORリソースやKubernetes Storage Classで利用可能になりま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"After configuration, LINSTOR will dynamically map Resource replicas as LUNs "
+"presented to server nodes through one of the two EXOS controllers."
+msgstr ""
+"設定後、LINSTORは2つのEXOSコントローラのうち1つを介してサーバーノードに提示さ"
+"れるLUNとしてResourceレプリカを動的にマッピングします。"
+
+#. type: Plain text
+msgid ""
+"Since the EXOS controllers are managed by a secure network API, LINSTOR must "
+"be configured with proper networking and username/password combination.  The "
+"diagram below is showing the relationship between LINSTOR cluster and EXOS "
+"Enclosures."
+msgstr ""
+"EXOSコントローラはセキュアなネットワークAPIで管理されているため、LINSTORは適"
+"切なネットワークとユーザー名/パスワードの組み合わせで設定する必要がありま"
+"す。 以下の図は、LINSTORクラスタとEXOSエンクロージャの関係を示しています。"
+
+#. type: Positional ($1) AttributeList argument for macro 'image'
+#, no-wrap
+msgid "ExosIntegeration"
+msgstr "EXOS統合"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/linstor-exos-integration.png"
+msgstr "images/linstor-exos-integration.png"
+
+#. type: Plain text
+msgid ""
+"Multi-host setup allows up to 8 LINSTOR nodes to be directly connected with "
+"48Gbit SAS links for low latency and high throughput."
+msgstr ""
+"マルチホストの設定では、最大8台のLINSTORノードを48Gbit SASリンクで直接接続"
+"し、低レイテンシーと高スループットを実現します。"
+
+#. type: Plain text
+msgid ""
+"Load balancing and server failover are managed & enabled by LINSTOR while "
+"volume creation is handled by the EXOS hardware RAID engine."
+msgstr ""
+"ロードバランシングとサーバーのフェイルオーバーはLINSTORによって管理、有効化さ"
+"れ、ボリューム作成はEXOSハードウェアRAIDエンジンによって処理されます。"
+
+#. type: Plain text
+msgid ""
+"The EXOS storage provider in LINSTOR offers native integration with EXOS' "
+"REST-API."
+msgstr ""
+"LINSTORのEXOSストレージプロバイダは、EXOS REST-APIとのネイティブな統合を提供"
+"しています。"
+
+#. type: Plain text
+msgid ""
+"This section will describe how to enable EXOS integration and configure "
+"LINSTOR to manage storage backed by an EXOS enclosure."
+msgstr ""
+"このセクションでは、EXOSの統合を有効にし、LINSTORがEXOSエンクロージャーでバッ"
+"クアップされたストレージを管理するための設定方法を説明します。"
+
+#. type: Plain text
+msgid ""
+"EXOS storage systems offer a feature rich set of configuration options to "
+"match any enterprise storage demand.  To maximize ease of use, this guide is "
+"based on the following defaults and assumptions:"
+msgstr ""
+"EXOSストレージシステムには、あらゆるエンタープライズストレージのニーズに対応"
+"する豊富な構成オプションが用意されています。使いやすさを最大限に高めるため"
+"に、このガイドは次のデフォルトおよび前提条件に基づいています。"
+
+#. type: Plain text
+msgid ""
+"Dual Controllers - EXOS systems controllers are Active/Active with automatic "
+"failover.  Both controllers IP address must be configured also in the "
+"LINSTOR properties for full support."
+msgstr ""
+"デュアルコントローラ:EXOSシステムコントローラはアクティブ/アクティブであり、"
+"自動フェイルオーバー機能を備えています。完全にサポートするには、両方のコント"
+"ローラのIPアドレスをLINSTORプロパティでも構成する必要があります。"
+
+#. type: Plain text
+msgid ""
+"Dual EXOS Pools - Optimal performance is achieved when data from pool A is "
+"accessed through Controller A.  If a node is connected to both Controller A "
+"and B of same controller, LINSTOR will configure Linux multipath which will "
+"detect best route."
+msgstr ""
+"デュアルEXOSプール:プールAのデータがコントローラAを介してアクセスされる場合、"
+"最適なパフォーマンスが得られます。ノードが同じコントローラのコントローラAとコ"
+"ントローラBの両方に接続されている場合、LINSTORはLinuxマルチパスを構成し、最適"
+"なルートを検出します。"
+
+#. type: Plain text
+msgid ""
+"EXOS Pool Serial Numbers - When a EXOS pool is created, it receives a unique "
+"serial number.  Each one has to be configured as a backing storage in "
+"LINSTOR to create a link between EXOS enclosure & LINSTOR. With that "
+"information, LINSTOR can understand if you are referring to EXOS Pool A or "
+"Pool B."
+msgstr ""
+"EXOS Pool Serial Numbers:EXOSプールが作成されると、一意のシリアル番号が受信さ"
+"れます。各プールは、EXOSエンクロージャとLINSTOR間のリンクを作成するために、"
+"LINSTORの下位ストレージとして構成する必要があります。この情報により、LINSTOR"
+"はEXOSプールAまたはプールBを参照しているかどうかを把握できます。"
+
+#. type: Plain text
+msgid ""
+"Creating EXOS Pools - The administrator is required to create EXOS Pools A "
+"and B prior to configuring LINSTOR.  EXOS features such as thin "
+"provisioning, auto tiering, and snapshot options are selected at this time."
+msgstr ""
+"EXOSプールの作成:管理者は、LINSTORを構成する前にEXOSプールAおよびBを作成する"
+"必要があります。この時点では、シンプロビジョニング、自動階層化、スナップ"
+"ショットオプションなどのEXOS機能が選択されています。"
+
+#. type: Plain text
+msgid ""
+"Replicas Within Enclosures - EXOS system have redundant controllers, power "
+"supplies and communication paths to the drives. Some administrators may "
+"desire that resource replicas are not stored in the same enclosure. In this "
+"case the administrator must create multiple LINSTOR Pools configured with "
+"only one EXOS pool member from each enclosure."
+msgstr ""
+"エンクロージャ内のレプリカ-EXOSシステムには、冗長コントローラ、電源装置および"
+"ドライブへの通信パスがあります。管理者によっては、リソースレプリカを同じエン"
+"クロージャに格納しないことを希望する場合があります。この場合、管理者は、各エ"
+"ンクロージャから1つのEXOSプールメンバーのみで構成された複数のLINSTORプールを"
+"作成する必要があります。"
+
+#. type: Title ===
+#, no-wrap
+msgid "EXOS Properties as a LINSTOR Storage Provider"
+msgstr "LINSTORのストレージプロバイダとしてのEXOSプロパティ"
+
+#. type: Plain text
+msgid ""
+"LINSTOR's native integration with EXOS is configured by setting a few "
+"properties on the LINSTOR Controller and creating the appropriate LINSTOR "
+"objects specific to your EXOS enclosures, as described in the sections below."
+msgstr ""
+"LINSTORのEXOSとのネイティブな統合は、LINSTORコントローラにいくつかのプロパ"
+"ティを設定し、以下のセクションで説明するように、EXOSエンクロージャに固有の適"
+"切なLINSTORオブジェクトを作成することによって構成されます。"
+
+#. type: Plain text
+msgid ""
+"The information in the table below is needed from your EXOS enclosures. This "
+"information will be used to populate the appropriate LINSTOR Controller "
+"properties and LINSTOR objects in the sub-sections that follow."
+msgstr ""
+"次の表の情報は、EXOSエンクロージャから取得する必要があります。この情報は、後"
+"続のサブセクションで適切なLINSTORコントローラのプロパティおよびLINSTORオブ"
+"ジェクトを移入するために使用されます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Required Information"
+msgstr "必要な情報"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"|*EXOS Information*|*Description*|*Placeholder in Command Examples*\n"
+"|EXOS Enclosure Name|Uniquely selected by the Admin for a given EXOS enclosure|`<exos_encl_name>`\n"
+"|Controller Hostname|The DNS resolvable hostname for one of the Controllers |`<exos_ctrlr_name>`\n"
+"|Controller IP|IP address of controller |`<exos_ctrlr_ip>`\n"
+"|REST-API Username|Username for REST-API of all EXOS controllers under the given enclosure|`<exos_rest_user>`\n"
+"|REST-API Password|Password for REST-API of all EXOS controllers under the given enclosure|`<exos_rest_pass>`\n"
+"|EXOS Pool Serial Number|The serial number of an EXOS pool to become a member of a LINSTOR Pool|`<exos_pool_sn>`\n"
+msgstr ""
+"|*EXOS Information*|*Description*|*Placeholder in Command Examples*\n"
+"|EXOS Enclosure Name|管理者によって一意に選択された特定のEXOSエンクロージャー |`<exos_encl_name>`\n"
+"|Controller Hostname|コントローラーの1つのDNS解決可能なホスト名 |`<exos_ctrlr_name>`\n"
+"|Controller IP|コントローラのIPアドレス |`<exos_ctrlr_ip>`\n"
+"|REST-API Username|指定されたエンクロージャーの下にあるすべてのEXOSコントローラーのREST-APIのユーザー名|`<exos_rest_user>`\n"
+"|REST-API Password|特定のエンクロージャーの下にあるすべてのEXOSコントローラーのREST-APIのパスワード|`<exos_rest_pass>`\n"
+"|EXOS Pool Serial Number|LINSTORプールのメンバーになるEXOSプールのシリアル番号|`<exos_pool_sn>`\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuration Steps"
+msgstr "設定手順"
+
+#. type: Plain text
+msgid ""
+"Configuring a topology of LINSTOR server nodes and multiple EXOS Storage "
+"systems is described by these steps:"
+msgstr ""
+"LINSTORのサーバノードおよび複数のEXOSストレージシステムのトポロジーの構成手順"
+"は、次のとおりです。"
+
+#. type: Plain text
+msgid "Set global or unique EXOS Controller usernames and passwords."
+msgstr ""
+"グローバルまたはユニークなEXOSコントローラのユーザ名とパスワードを設定しま"
+"す。"
+
+#. type: Plain text
+msgid "Define EXOS enclosures and Controller network identities."
+msgstr "EXOSエンクロージャーおよびコントローラーネットワークIDを定義します。"
+
+#. type: Plain text
+msgid "Create node to enclosure to pool mapping matching physical SAS cabling."
+msgstr ""
+"物理SASケーブル接続に一致するノードとエンクロージャ間のプールマッピングを作成"
+"します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Step 1: EXOS Usernames and Passwords"
+msgstr "ステップ1:EXOSユーザ名とパスワード"
+
+#. type: Plain text
+msgid ""
+"Usernames and passwords can be unique for each EXOS enclosure or be common "
+"for all enclosures depending on how the system administrator has deployed "
+"the EXOS systems.  The default EXOS username and password will be used if "
+"not set for a given EXOS controller.  The defaults are set as follows:"
+msgstr ""
+"ユーザー名とパスワードは、システム管理者がEXOSシステムをどのように展開したか"
+"に応じて、各EXOSエンクロージャに対して一意にするか、またはすべてのエンクロー"
+"ジャに対して共通にすることができます。特定のEXOSコントローラに対して設定され"
+"ていない場合は、デフォルトのEXOSユーザー名とパスワードが使用されます。デフォ"
+"ルトは次のように設定されています。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor exos set-defaults --username <exos_rest_name>\n"
+"# linstor exos set-defaults --password <exos_rest_pass>\n"
+msgstr ""
+"# linstor exos set-defaults --username <exos_rest_name>\n"
+"# linstor exos set-defaults --password <exos_rest_pass>\n"
+
+#. type: Plain text
+msgid "Unique usernames and passwords For EXOS controllers are set by:"
+msgstr ""
+"一意のユーザー名とパスワードEXOSコントローラの場合、次のように設定されます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor controller set-property\n"
+"    StorDriver/Exos/<exos_encl_name>/username <exos_rest_name>\n"
+"# linstor controller set-property\n"
+"    StorDriver/Exos/<exos_encl_name>/Password <exos_rest_pass>\n"
+msgstr ""
+"# linstor controller set-property\n"
+"    StorDriver/Exos/<exos_encl_name>/username <exos_rest_name>\n"
+"# linstor controller set-property\n"
+"    StorDriver/Exos/<exos_encl_name>/Password <exos_rest_pass>\n"
+
+#. type: Plain text
+msgid ""
+"Passwords entered in this fashion will show up as plaintext when using `get-"
+"defaults`."
+msgstr ""
+"この方法で入力されたパスワードは、 `get-defaults` を使用するとプレーンテキス"
+"トとして表示されます。"
+
+#. type: Plain text
+msgid ""
+"With the above command, LINSTOR will store your password in cleartext in the "
+"LINSTOR properties and visible by a simple `linstor controller list-"
+"properties` command. You can hide it under an environment variable, and use "
+"the `UsernameEnv` and/or `PasswordEnv` properties. This tells LINSTOR to "
+"look in environment variable for the actual username/password, as shown in "
+"the following example:"
+msgstr ""
+"上記のコマンドを使用すると、LINSTORはパスワードをクリアテキストでLINSTORのプ"
+"ロパティに格納し、単純な `linstor controller list-properties` コマンドで表示"
+"できます。これを環境変数の下に隠し、 `UsernameEnv` および/または "
+"`PasswordEnv` プロパティを使用できます。これにより、LINSTORは次の例に示すよう"
+"に、実際のユーザー名/パスワードを環境変数で検索するように指示されます。"
+
+#. type: Plain text
+msgid ""
+"LINSTOR will not modify the environment variables, only read from them. "
+"Storage admin has to make sure the env-vars are correctly set."
+msgstr ""
+"LINSTORは環境変数を変更せず、読み取りのみを行います。ストレージ管理者は、env-"
+"varsが正しく設定されていることを確認する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# echo $EXOS_PW\n"
+"mySecretPassword\n"
+"# linstor controller set-property \\\n"
+"    StorDriver/Exos/<exos_encl_name>/PasswordEnv EXOS_PW\n"
+msgstr ""
+"# echo $EXOS_PW\n"
+"mySecretPassword\n"
+"# linstor controller set-property \\\n"
+"    StorDriver/Exos/<exos_encl_name>/PasswordEnv EXOS_PW\n"
+
+#. type: Plain text
+msgid ""
+"If both property-versions (i.e. `Password` and `PasswordEnv`) are set, the "
+"non-environment version is preferred."
+msgstr ""
+"両方のプロパティバージョン(つまり `Password` と `PasswordEnv` )が設定されてい"
+"る場合は、環境以外のバージョンが優先されます。"
+
+#. type: Plain text
+msgid ""
+"If the satellite is started before the environment variable is set, the "
+"satellite needs to be restarted in order to see the new environment variable"
+msgstr ""
+"環境変数が設定される前にサテライトが開始された場合、新しい環境変数を表示する"
+"にはサテライトを再起動する必要があります。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Step 2: Define EXOS enclosures and controller identities."
+msgstr "ステップ２:EXOSエンクロージャーおよびコントローラーIDの定義"
+
+#. type: Plain text
+msgid ""
+"Registering an EXOS enclosure in LINSTOR can be done with the `create` "
+"command:"
+msgstr ""
+"LINSTORでEXOSエンクロージャを登録するには、次のように `create` コマンドを使い"
+"ます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor exos create <exos_encl_name> <exos_ctrl_a_ip> [<exos_ctrl_b_ip>]\n"
+msgstr "# linstor exos create <exos_encl_name> <exos_ctrl_a_ip> [<exos_ctrl_b_ip>]\n"
+
+#. type: Plain text
+msgid ""
+"If no special `--username` or `--password` is given, the above mentioned "
+"defaults are used."
+msgstr ""
+"特別な `--username` または `--password` が指定されていない場合は、上記のデ"
+"フォルトが使用されます。"
+
+#. type: Plain text
+msgid "The Controller's DNS name and IP address may be used interchangeably."
+msgstr "コントローラのDNS名とIPアドレスは、同じ意味で使用できます。"
+
+#. type: Plain text
+msgid ""
+"If you wish to use a hostname that is not DNS resolvable to reference your "
+"EXOS enclosure within LINSTOR, you may use any name in place of "
+"`<exos_hostname>`, but you will also have to supply the enclosure's IP "
+"address: `linstor node create <desired_name> <enclosure_ip>`"
+msgstr ""
+"DNSで解決できないホスト名を使用してLINSTOR内のEXOSエンクロージャを参照したい"
+"場合は、 `<exos_hostname>` の代わりに任意の名前を使用できますが、エンクロー"
+"ジャのIPアドレスも指定する必要があります。`linstor node "
+"create<desired_name><enclosure_ip>`"
+
+#. type: Plain text
+msgid ""
+"Use the following example to create and inspect the current controller "
+"settings:"
+msgstr "次の例を使用して、現在のコントローラ設定を作成および検査します。"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"# linstor exos create Alpha 172.16.16.12 172.16.16.13\n"
+"# linstor exos list\n"
+"+------------------------------------------------------------------+\n"
+"| Enclosure | Ctrl A IP    | Ctrl B IP    | Health | Health Reason |\n"
+"| Alpha     | 172.16.16.12 | 172.16.16.13 | OK     |               |\n"
+"+------------------------------------------------------------------+\n"
+"----\n"
+msgstr ""
+"# linstor exos create Alpha 172.16.16.12 172.16.16.13\n"
+"# linstor exos list\n"
+"+------------------------------------------------------------------+\n"
+"| Enclosure | Ctrl A IP    | Ctrl B IP    | Health | Health Reason |\n"
+"| Alpha     | 172.16.16.12 | 172.16.16.13 | OK     |               |\n"
+"+------------------------------------------------------------------+\n"
+"----\n"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"\n"
+"For a more in-depth view, you can always ask the LINSTOR controller\n"
+"and/or the LINSTOR nodes for the `Exos`-related properties:\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+"\n"
+"より詳細なビューを表示するには、LINSTORコントローラやLINSTORノードに対して、\n"
+" `Exos` 関連のプロパティを確認する必要があります。\n"
+"\n"
+"[bash]\n"
+"----\n"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"# linstor controller list-properties | grep Exos\n"
+"| StorDriver/Exos/Alpha/A/IP                | 172.16.16.12         |\n"
+"| StorDriver/Exos/Alpha/B/IP                | 172.16.16.13         |\n"
+"----\n"
+msgstr ""
+"# linstor controller list-properties | grep Exos\n"
+"| StorDriver/Exos/Alpha/A/IP                | 172.16.16.12         |\n"
+"| StorDriver/Exos/Alpha/B/IP                | 172.16.16.13         |\n"
+"----\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Step 3:  Create Node to Enclosure to Pool mapping."
+msgstr "ステップ３: ノードにエンクロージャとプールのマッピングの作成"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"\n"
+"A LINSTOR Satellite node can be created as usual.\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+"\n"
+"LINSTORサテライトノードは、通常どおり作成できます。\n"
+"\n"
+"[bash]\n"
+"----\n"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"# linstor node create <satellite_hostname>\n"
+"----\n"
+msgstr ""
+"# linstor node create <satellite_hostname>\n"
+"----\n"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"\n"
+"The storage pool can also be created as usual in LINSTOR. Only\n"
+"the name of the previously registered EXOS enclosure as well as the\n"
+"serial number of the EXOS pool needs to be specified:\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+"\n"
+"ストレージプールは、LINSTORでは通常どおりに作成することもできます。\n"
+"以前に登録されたEXOSエンクロージャの名前とEXOSプールのシリアル番号のみを\n"
+"指定する必要があります。\n"
+"\n"
+"[bash]\n"
+"----\n"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"# linstor storage-pool create exos \\\n"
+"  <satellite_hostname> <linstor_pool_name> <exos_encl_name> <exos_pool_sn>\n"
+"----\n"
+msgstr ""
+"# linstor storage-pool create exos \\\n"
+"  <satellite_hostname> <linstor_pool_name> <exos_encl_name> <exos_pool_sn>\n"
+"----\n"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"\n"
+"the linstor_pool_name can be set to (almost) any unique string for\n"
+"the LINSTOR deployment.\n"
+"\n"
+"Here is an example of mapping an EXOS Pool in EXOS enclosure Alpha to two Satellite nodes:\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+"\n"
+"linstor_pool_nameは、LINSTOR デプロイメントに対して(ほぼ)任意の\n"
+"一意のストリングに設定できます。\n"
+"\n"
+"次に、EXOSエンクロージャAlpha内のEXOSプールを2つのサテライトノードにマッピングする例を示します。\n"
+"\n"
+"[bash]\n"
+"----\n"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"# linstor storage-pool create exos \\\n"
+"   node1 poolA Alpha 00c0ff29a5f5000095a2075d01000000\n"
+"# linstor storage-pool create exos \\\n"
+"   node2 poolA Alpha 00c0ff29a5f5000095a2075d01000000\n"
+"----\n"
+msgstr ""
+"# linstor storage-pool create exos \\\n"
+"   node1 poolA Alpha 00c0ff29a5f5000095a2075d01000000\n"
+"# linstor storage-pool create exos \\\n"
+"   node2 poolA Alpha 00c0ff29a5f5000095a2075d01000000\n"
+"----\n"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"\n"
+"After creating an `exos` storage pool the LINSTOR Satellite will scan\n"
+"the given EXOS enclosure for connected ports. If cabled, these ports will be\n"
+"listed in the following command:\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+"\n"
+"`exos` ストレージプールを作成した後、LINSTOR Satellite は指定されたEXOS\n"
+"エンクロージャ内の接続ポートをスキャンします。ケーブル接続されている場合、\n"
+"これらのポートは次のコマンドにリストされます。\n"
+"\n"
+"[bash]\n"
+"----\n"
+
+#. type: Table
+msgid ""
+"# linstor exos map -p +----------------------------------------------+ | "
+"Node Name | Enclosure Name | Connected Ports |"
+msgstr ""
+"# linstor exos map -p\n"
+"+----------------------------------------------+\n"
+"| Node Name | Enclosure Name | Connected Ports |"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"| node1     | Alpha          | A0, B0          |\n"
+"| node2     | Alpha          | A1, B1          |\n"
+"+----------------------------------------------+\n"
+msgstr ""
+"| node1     | Alpha          | A0, B0          |\n"
+"| node2     | Alpha          | A1, B1          |\n"
+"+----------------------------------------------+\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "The pool configuration is shown by:\n"
+msgstr "プール構成は次のように表示します。\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "[bash]\n"
+msgstr "[bash]\n"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"hr01u09:~ # linstor sp list -s poolA -p\n"
+"+----------------------------------------------------------------------------------------------+\n"
+"| StoragePool | Node  | Driver   | PoolName                               | FreeCapacity | ... |\n"
+msgstr ""
+"hr01u09:~ # linstor sp list -s poolA -p\n"
+"+----------------------------------------------------------------------------------------------+\n"
+"| StoragePool | Node  | Driver   | PoolName                               | FreeCapacity | ... |\n"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"| poolA       | node1 | EXOS     | Alpha_00c0ff29a5f5000095a2075d01000000 |      581 TiB | ... |\n"
+"| poolA       | node2 | EXOS     | Alpha_00c0ff29a5f5000095a2075d01000000 |      581 TiB | ... |\n"
+"+----------------------------------------------------------------------------------------------+\n"
+msgstr ""
+"| poolA       | node1 | EXOS     | Alpha_00c0ff29a5f5000095a2075d01000000 |      581 TiB | ... |\n"
+"| poolA       | node2 | EXOS     | Alpha_00c0ff29a5f5000095a2075d01000000 |      581 TiB | ... |\n"
+"+----------------------------------------------------------------------------------------------+\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "Detailed description of all the available EXOS commands is found with built in help.\n"
+msgstr "使用可能なすべてのEXOSコマンドの詳細な説明は、組み込みヘルプで参照できます。\n"
+
+#. type: Plain text
+msgid "# linstor exos -h"
+msgstr "# linstor exos -h"
+
+#. type: Title ===
+#, no-wrap
+msgid "Creating Resources Backed by EXOS Storage Pools"
+msgstr "EXOSストレージプールによってバックアップされるリソースの作成"
+
+#. type: delimited block -
+msgid ""
+"Creating LINSTOR resources from EXOS backed storage-pools follows normal "
+"LINSTOR usage patterns as described in other sections of the LINSTOR User's "
+"Guide such as the sections describing <<s-linstor-resource-groups,LINSTOR "
+"resource groups>> or the more granular <<s-linstor-new-volume,resource-"
+"definition, volume-definition, resource creation>> workflow."
+msgstr ""
+"EXOS でバックアップされたストレージプールからの LINSTOR リソースの作成は <<s-"
+"linstor-resource-groups,LINSTOR resource groups>> またはより詳細な <<s-"
+"linstor-new-volume,resource-definition, volume-definition, resource "
+"creation>> ワークフローを説明する各セクションなど、LINSTORユーザーガイドの他"
+"のセクションで説明されている通常の LINSTOR 使用パターンに従います。"

@@ -1,0 +1,560 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2021-07-27 17:01+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "Exporting Highly Available Storage using LINSTOR Gateway"
+msgstr "LINSTOR ゲートウェイを使用した高可用性ストレージのエクスポート"
+
+#. type: Plain text
+#, no-wrap
+msgid ""
+"*LINSTOR Gateway* manages highly available iSCSI targets and NFS exports by leveraging on LINSTOR and\n"
+"Pacemaker. Setting up LINSTOR - including storage pools and resource groups - as well as Corosync and\n"
+"Pacemaker's properties are a prerequisite to use this tool.\n"
+msgstr ""
+"*LINSTOR ゲートウェイ* は、LINSTORとPacemakerを活用して、可用性の高いiSCSIターゲットと\n"
+"NFSエクスポートを管理します。ストレージプールとリソースグループを含むLINSTORの設定、\n"
+"およびCorosyncとPacemakerのプロパティは、このツールを使用するための前提条件です。\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Requirements"
+msgstr "要件"
+
+#. type: Title ====
+#, no-wrap
+msgid "LINSTOR"
+msgstr "LINSTOR"
+
+#. type: Plain text
+msgid ""
+"A LINSTOR cluster is required to operate LINSTOR Gateway. It is *highly "
+"recommended* to run the LINSTOR controller as a Pacemaker resource. This "
+"needs to be configured manually. Such a resource could look like the "
+"following: (optional)"
+msgstr ""
+"LINSTOR ゲートウェイを操作するにはLINSTOR クラスタが必要です。LINSTORコント"
+"ローラをpacemakerリソースとして実行することを *強くお薦め* します。これは手動"
+"で構成する必要があります。このようなリソースは次のようになります:(オプション)"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"primitive p_linstor-controller systemd:linstor-controller \\\n"
+"        op start interval=0 timeout=100s \\\n"
+"        op stop interval=0 timeout=100s \\\n"
+"        op monitor interval=30s timeout=100s\n"
+msgstr ""
+"primitive p_linstor-controller systemd:linstor-controller \\\n"
+"        op start interval=0 timeout=100s \\\n"
+"        op stop interval=0 timeout=100s \\\n"
+"        op monitor interval=30s timeout=100s\n"
+
+#. type: Plain text
+msgid ""
+"For both iSCSI and NFS, `storage pool` , `resource group` and a `volume "
+"group` for LINSTOR Gateway needs to be present. Lets do it;"
+msgstr ""
+"iSCSIとNFSの両方について、LINSTORゲートウェイの `storage pool` , `resource "
+"group` 、および `volume group` が存在する必要があります。では、やってみましょ"
+"う。"
+
+#. type: Plain text
+msgid ""
+"Creating the storage pool in 3 nodes using the phsical device `/dev/sdb`;"
+msgstr ""
+"物理デバイス `/dev/sdb` を使用して、3つのノードにストレージプールを作成しま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"linstor physical-storage create-device-pool --pool-name lvpool LVM LINSTOR1 /dev/sdb --storage-pool lvmpool\n"
+"linstor physical-storage create-device-pool --pool-name lvpool LVM LINSTOR2 /dev/sdb --storage-pool lvmpool\n"
+"linstor physical-storage create-device-pool --pool-name lvpool LVM LINSTOR3 /dev/sdb --storage-pool lvmpool\n"
+msgstr ""
+"linstor physical-storage create-device-pool --pool-name lvpool LVM LINSTOR1 /dev/sdb --storage-pool lvmpool\n"
+"linstor physical-storage create-device-pool --pool-name lvpool LVM LINSTOR2 /dev/sdb --storage-pool lvmpool\n"
+"linstor physical-storage create-device-pool --pool-name lvpool LVM LINSTOR3 /dev/sdb --storage-pool lvmpool\n"
+
+#. type: Plain text
+msgid "We also need resource groups and volume groups;"
+msgstr "また、リソースグループとボリュームグループも必要です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"linstor rg c iSCSI_group --storage-pool lvmpool --place-count 2\n"
+"linstor rg c nfs_group --storage-pool lvmpool --place-count 3\n"
+msgstr ""
+"linstor rg c iSCSI_group --storage-pool lvmpool --place-count 2\n"
+"linstor rg c nfs_group --storage-pool lvmpool --place-count 3\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"linstor vg c iSCSI_group\n"
+"linstor vg c nfs_group\n"
+msgstr ""
+"linstor vg c iSCSI_group\n"
+"linstor vg c nfs_group\n"
+
+#. type: Plain text
+msgid ""
+"For a more detailed explanation of the storage pool, resource group and "
+"volume group creation, check the https://linbit.com/drbd-user-guide/LINSTOR-"
+"guide-1_0-en/#s-storage_pools[LINSTOR user guide]"
+msgstr ""
+"ストレージプール、リソースグループ、およびボリュームグループの作成の詳細につ"
+"いては、 https://linbit.com/drbd-user-guide/LINSTOR-guide-1_0-en/#s-"
+"storage_pools[LINSTOR user guide] を参照してください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Pacemaker"
+msgstr "Pacemaker"
+
+#. type: Plain text
+msgid ""
+"A working Corosync/Pacemaker cluster is expected on the machine where "
+"LINSTOR Gateway is running.  The https://github.com/LINBIT/drbd-utils/blob/"
+"master/scripts/drbd-attr[drbd-attr] resource agent is required to run "
+"LINSTOR Gateway. This is included in LINBIT's `drbd-utils` package for "
+"Ubuntu based distributions, or the drbd-pacemaker package on RHEL/CentOS.  "
+"LINSTOR Gateway sets up all required Pacemaker resource and constraints by "
+"itself, except for the LINSTOR controller resource."
+msgstr ""
+"LINSTOR ゲートウェイが稼働しているマシンでは、正常に機能するCorosync/"
+"Pacemaker クラスタが必要です。LINSTOR ゲートウェイを実行するには、 https://"
+"github.com/LINBIT/drbd-utils/blob/master/scripts/drbd-attr[drbd-attr] リソー"
+"スエージェントが必要です。これは、Ubuntuベースのディストリビューション用の"
+"LINBITの `drbd-utils` パッケージ、あるいはRHEL/CentOS用のdrbd-pacemakerパッ"
+"ケージに含まれています。LINSTOR Gatewayは、LINSTORコントローラリソースを除"
+"き、必要なすべてのPacemakerリソースと制約を自動的に設定します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "iSCSI & NFS"
+msgstr "iSCSI & NFS"
+
+#. type: Plain text
+msgid ""
+"LINSTOR Gateway uses Pacemaker's `ocf::heartbeat:iSCSITarget` resource agent "
+"for its iSCSI integration, which requires an iSCSI implementation to be "
+"installed. Using `targetcli` is recommended."
+msgstr ""
+"LINSTOR Gatewayは、iSCSI統合にPacemakerのリソースエージェント `ocf::"
+"heartbeat:iSCSITarget` を使用します。iSCSI統合にはiSCSIインプリメンテーション"
+"をインストールする必要があります。 `targetcli` の使用をお薦めします。"
+
+#. type: Plain text
+msgid "For iSCSI, please install targetcli."
+msgstr "iSCSIの場合は、targetcliをインストールしてください。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "yum install targetcli\n"
+msgstr "yum install targetcli\n"
+
+#. type: Plain text
+msgid "For nfs, nfs-server needs to be enabled and ready;"
+msgstr "nfsの場合、nfs-serverを有効にして自動起動する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "systemctl enable --now nfs-server\n"
+msgstr "systemctl enable --now nfs-server\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Preparation"
+msgstr "準備"
+
+#. type: Plain text
+msgid ""
+"First, let's check that all the components are available. This guide assumes "
+"you already installed and configured a LINSTOR cluster. Volume Group, "
+"Storage Pool and Resource Group should be defined before using linstor-iscsi "
+"or linstor-nfs."
+msgstr ""
+"まず、すべてのコンポーネントが使用可能であることを確認します。このガイドで"
+"は、LINSTORクラスタがすでにインストールおよび構成されていることを前提としてい"
+"ます。linstor-iscsiまたはlinstor-nfsを使用する前に、ボリュームグループ、スト"
+"レージプール、リソースグループを定義する必要があります。"
+
+#. type: Plain text
+msgid "Tools need to be present in server;"
+msgstr "ツールはサーバに存在する必要があります。"
+
+#. type: Plain text
+msgid "linstor-client (managing the LINSTOR cluster)"
+msgstr "linstor-client (LINSTORクラスターの管理)"
+
+#. type: Plain text
+msgid ""
+"drbd-attr resource agent (part of drbd-utils in Debian/Ubuntu, and part of "
+"drbd-pacemaker for other Linux distrubutions)"
+msgstr ""
+"drbd-attr resource agent (Debian/Ubuntu の drbd-utils の一部、および他の "
+"Linux ディストリビューション用の drbd-pacemaker の一部)"
+
+#. type: Plain text
+msgid "targetcli (for iSCSI)"
+msgstr "targetcli (iSCSI 用)"
+
+#. type: Plain text
+msgid "nfs-utils, nfs-server"
+msgstr "nfs-utils, nfs-server"
+
+#. type: Plain text
+msgid ""
+"pcs or crmsh for pacemaker client. (checking the status of the iSCSI or nfs "
+"targets)"
+msgstr ""
+"Pacemaker クライアント用のpcsまたはcrmshコマンド(iSCSIまたはnfsターゲットのス"
+"テータスの確認)。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Checking the Cluster"
+msgstr "クラスターのチェック"
+
+#. type: Plain text
+msgid "Check the LINSTOR cluster status with;"
+msgstr "LINSTORクラスタのステータスを以下で確認する。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[root@LINSTOR1 ~]# linstor n l\n"
+"╭────────────────────────────────────────────────────────────╮\n"
+"┊ Node     ┊ NodeType  ┊ Addresses                  ┊ State  ┊\n"
+"╞════════════════════════════════════════════════════════════╡\n"
+"┊ LINSTOR1 ┊ COMBINED  ┊ 172.16.16.111:3366 (PLAIN) ┊ Online ┊\n"
+"┊ LINSTOR2 ┊ SATELLITE ┊ 172.16.16.112:3366 (PLAIN) ┊ Online ┊\n"
+"┊ LINSTOR3 ┊ SATELLITE ┊ 172.16.16.113:3366 (PLAIN) ┊ Online ┊\n"
+"╰────────────────────────────────────────────────────────────╯\n"
+msgstr ""
+"[root@LINSTOR1 ~]# linstor n l\n"
+"╭────────────────────────────────────────────────────────────╮\n"
+"┊ Node     ┊ NodeType  ┊ Addresses                  ┊ State  ┊\n"
+"╞════════════════════════════════════════════════════════════╡\n"
+"┊ LINSTOR1 ┊ COMBINED  ┊ 172.16.16.111:3366 (PLAIN) ┊ Online ┊\n"
+"┊ LINSTOR2 ┊ SATELLITE ┊ 172.16.16.112:3366 (PLAIN) ┊ Online ┊\n"
+"┊ LINSTOR3 ┊ SATELLITE ┊ 172.16.16.113:3366 (PLAIN) ┊ Online ┊\n"
+"╰────────────────────────────────────────────────────────────╯\n"
+
+#. type: Plain text
+msgid "Check the LINSTOR storage pool list with;"
+msgstr ""
+"次のコマンドを使用して、LINSTORストレージプールリストをチェックします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"root@LINSTOR1 ~]# linstor sp l\n"
+"╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ StoragePool          ┊ Node     ┊ Driver   ┊ PoolName ┊ FreeCapacity ┊ TotalCapacity ┊ CanSnapshots ┊ State ┊\n"
+"╞═════════════════════════════════════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ DfltDisklessStorPool ┊ LINSTOR1 ┊ DISKLESS ┊          ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ LINSTOR2 ┊ DISKLESS ┊          ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ LINSTOR3 ┊ DISKLESS ┊          ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ lvmpool              ┊ LINSTOR1 ┊ LVM      ┊ lvpool   ┊    10.00 GiB ┊     10.00 GiB ┊ False        ┊ Ok    ┊\n"
+"┊ lvmpool              ┊ LINSTOR2 ┊ LVM      ┊ lvpool   ┊    10.00 GiB ┊     10.00 GiB ┊ False        ┊ Ok    ┊\n"
+"┊ lvmpool              ┊ LINSTOR3 ┊ LVM      ┊ lvpool   ┊    10.00 GiB ┊     10.00 GiB ┊ False        ┊ Ok    ┊\n"
+"╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n"
+msgstr ""
+"root@LINSTOR1 ~]# linstor sp l\n"
+"╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ StoragePool          ┊ Node     ┊ Driver   ┊ PoolName ┊ FreeCapacity ┊ TotalCapacity ┊ CanSnapshots ┊ State ┊\n"
+"╞═════════════════════════════════════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ DfltDisklessStorPool ┊ LINSTOR1 ┊ DISKLESS ┊          ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ LINSTOR2 ┊ DISKLESS ┊          ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ LINSTOR3 ┊ DISKLESS ┊          ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ lvmpool              ┊ LINSTOR1 ┊ LVM      ┊ lvpool   ┊    10.00 GiB ┊     10.00 GiB ┊ False        ┊ Ok    ┊\n"
+"┊ lvmpool              ┊ LINSTOR2 ┊ LVM      ┊ lvpool   ┊    10.00 GiB ┊     10.00 GiB ┊ False        ┊ Ok    ┊\n"
+"┊ lvmpool              ┊ LINSTOR3 ┊ LVM      ┊ lvpool   ┊    10.00 GiB ┊     10.00 GiB ┊ False        ┊ Ok    ┊\n"
+"╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n"
+
+#. type: Plain text
+msgid ""
+"LINSTOR resource group list (please do not forget to create volume group for "
+"the resource group with: `linstor vg c iscsi_group`)"
+msgstr ""
+"LINSTORリソースグループリスト( `linstor vg c iscsi_group` を使用してボリュー"
+"ムグループを作るのを忘れないでください)"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[root@LINSTOR1 ~]# linstor rg l\n"
+"╭────────────────────────────────────────────────────────────────╮\n"
+"┊ ResourceGroup ┊ SelectFilter            ┊ VlmNrs ┊ Description ┊\n"
+"╞════════════════════════════════════════════════════════════════╡\n"
+"┊ DfltRscGrp    ┊ PlaceCount: 2           ┊        ┊             ┊\n"
+"╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡\n"
+"┊ iscsi_group   ┊ PlaceCount: 2           ┊ 0      ┊             ┊\n"
+"┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊\n"
+"╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡\n"
+"┊ nfs_group     ┊ PlaceCount: 3           ┊ 0      ┊             ┊\n"
+"┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊\n"
+"╰────────────────────────────────────────────────────────────────╯\n"
+msgstr ""
+"[root@LINSTOR1 ~]# linstor rg l\n"
+"╭────────────────────────────────────────────────────────────────╮\n"
+"┊ ResourceGroup ┊ SelectFilter            ┊ VlmNrs ┊ Description ┊\n"
+"╞════════════════════════════════════════════════════════════════╡\n"
+"┊ DfltRscGrp    ┊ PlaceCount: 2           ┊        ┊             ┊\n"
+"╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡\n"
+"┊ iscsi_group   ┊ PlaceCount: 2           ┊ 0      ┊             ┊\n"
+"┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊\n"
+"╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡\n"
+"┊ nfs_group     ┊ PlaceCount: 3           ┊ 0      ┊             ┊\n"
+"┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊\n"
+"╰────────────────────────────────────────────────────────────────╯\n"
+
+#. type: Plain text
+msgid ""
+"Check and disable stonith. Stonith is a technique for fencing node in "
+"clusters. We have 3 nodes here so quorum will be used instead of fencing."
+msgstr ""
+"stonithをチェックして無効にします。Stonithはクラスタのノードをフェンシングす"
+"るテクニックです。ここには3つのノードがあるため、フェンシングの代わりにクォー"
+"ラムが使用します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"pcs property set stonith-enabled=false\n"
+"pcs property show\n"
+msgstr ""
+"pcs property set stonith-enabled=false\n"
+"pcs property show\n"
+
+#. type: Plain text
+msgid "Check the pacemaker cluster health"
+msgstr "Pacemakerクラスタが正常かチェックする"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[root@LINSTOR1 ~]# pcs status\n"
+"Cluster name: LINSTOR\n"
+"Cluster Summary:\n"
+"  * Stack: corosync\n"
+"  * Current DC: LINSTOR1 (version 2.0.5.linbit-1.0.el7-ba59be712) - partition with quorum\n"
+"  * Last updated: Wed Mar 24 21:24:10 2021\n"
+"  * Last change:  Wed Mar 24 21:24:01 2021 by root via cibadmin on LINSTOR1\n"
+"  * 3 nodes configured\n"
+"  * 0 resource instances configured\n"
+msgstr ""
+"[root@LINSTOR1 ~]# pcs status\n"
+"Cluster name: LINSTOR\n"
+"Cluster Summary:\n"
+"  * Stack: corosync\n"
+"  * Current DC: LINSTOR1 (version 2.0.5.linbit-1.0.el7-ba59be712) - partition with quorum\n"
+"  * Last updated: Wed Mar 24 21:24:10 2021\n"
+"  * Last change:  Wed Mar 24 21:24:01 2021 by root via cibadmin on LINSTOR1\n"
+"  * 3 nodes configured\n"
+"  * 0 resource instances configured\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"Node List:\n"
+"  * Online: [ LINSTOR1 LINSTOR2 LINSTOR3 ]\n"
+msgstr ""
+"Node List:\n"
+"  * Online: [ LINSTOR1 LINSTOR2 LINSTOR3 ]\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"Full List of Resources:\n"
+"  * No resources\n"
+msgstr ""
+"Full List of Resources:\n"
+"  * No resources\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"Daemon Status:\n"
+"  corosync: active/enabled\n"
+"  pacemaker: active/enabled\n"
+"  pcsd: active/enabled\n"
+msgstr ""
+"Daemon Status:\n"
+"  corosync: active/enabled\n"
+"  pacemaker: active/enabled\n"
+"  pcsd: active/enabled\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Setting up iSCSI target"
+msgstr "iSCSIターゲットの設定"
+
+#. type: Plain text
+msgid ""
+"Now, everything looks good, let's start creating our first iSCSI lun. "
+"linstor-iscsi tool will be used for all iSCSI related actions. Please check "
+"\"linstor-iscsi help\" for detailed usage. At first it creates a new "
+"resource within the LINSTOR system under the specified name and using the "
+"specified resource group. After that it creates resource primitives in the "
+"Pacemaker cluster including all necessary order and location constraints. "
+"The Pacemaker primitives are prefixed with `p_`, contain the resource name "
+"and a resource type postfix."
+msgstr ""
+"すべてが良好に見えます。最初にiSCSI LUNの作成を開始します。すべてのiSCSI関連"
+"アクションにlinstor-iscsiツールが使用されます。詳細は、 `linstor-iscsi ヘルプ"
+"` を参照ください。最初に、指定された名前で指定されたリソースグループを使用し"
+"て、LINSTORシステム内に新しいリソースを作成します。その後、必要なすべての順序"
+"および位置制約を含むリソースプリミティブをPacemakerクラスタ内に作成します。"
+"Pacemakerプリミティブの先頭には `p_` が付き、リソース名とリソースタイプの接尾"
+"記号が入ります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "linstor-iscsi create --iqn=iqn.2021-04.com.linbit:lun4 --ip=172.16.16.101/24 --username=foo --lun=4 --password=bar --resource-group=iSCSI_group --size=1G\n"
+msgstr "linstor-iscsi create --iqn=iqn.2021-04.com.linbit:lun4 --ip=172.16.16.101/24 --username=foo --lun=4 --password=bar --resource-group=iSCSI_group --size=1G\n"
+
+#. type: Plain text
+msgid ""
+"This command will create a 1G iSCSI disk with the provided username and "
+"password in the resource group defined `iSCSI_group` DRBD and pacemaker "
+"resources will be automatically created by linstor-iscsi. You can check the "
+"pacemaker resources with \"pcs status\" command."
+msgstr ""
+"このコマンドは、指定されたユーザー名とパスワードを使用して、 `iSCSI_group` "
+"DRBDリソースグループに1G iSCSIディスクを作成します。linstor-iscsiによって"
+"pacemaker リソースが自動的に作成されます。\"pcs status\" コマンドを使用して"
+"pacemaker リソースをチェックできます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[root@LINSTOR1 ~]# linstor-iscsi list\n"
+"+-----------------------------+-----+---------------+-----------+--------------+---------+\n"
+"|             IQN             | LUN | Pacemaker LUN | Pacemaker | Pacemaker IP | LINSTOR |\n"
+"+-----------------------------+-----+---------------+-----------+--------------+---------+\n"
+"| iqn.2020-06.com.linbit:lun4 |   4 |       ✓       |     ✓     |      ✓       |    ✓    |\n"
+"+-----------------------------+-----+---------------+-----------+--------------+---------+\n"
+msgstr ""
+"[root@LINSTOR1 ~]# linstor-iscsi list\n"
+"+-----------------------------+-----+---------------+-----------+--------------+---------+\n"
+"|             IQN             | LUN | Pacemaker LUN | Pacemaker | Pacemaker IP | LINSTOR |\n"
+"+-----------------------------+-----+---------------+-----------+--------------+---------+\n"
+"| iqn.2020-06.com.linbit:lun4 |   4 |       ✓       |     ✓     |      ✓       |    ✓    |\n"
+"+-----------------------------+-----+---------------+-----------+--------------+---------+\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Deleting iSCSI target"
+msgstr "iSCSIターゲットの削除"
+
+#. type: Plain text
+msgid ""
+"The following command will delete the iSCSI target from pacemaker as well as "
+"the LINSTOR cluster;"
+msgstr ""
+"次のコマンドは、pacemakerおよびLINSTORクラスタからiSCSIターゲットを削除しま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "linstor-iscsi delete -i iqn.2021-04.com.linbit:lun4 -l 4\n"
+msgstr "linstor-iscsi delete -i iqn.2021-04.com.linbit:lun4 -l 4\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Setting up NFS export"
+msgstr "NFSエクスポートの設定"
+
+#. type: Plain text
+msgid ""
+"Before creating the nfs exports you need to tell LINSTOR that filesystem "
+"will be used for NFS exports will be EXT4. in order to do that, we'll apply "
+"a property to the resource group of NFS resources simply by typing;"
+msgstr ""
+"NFS エクスポートを作成する前に、使用されるファイルシステムが EXT4 であること"
+"を LINSTOR に通知する必要があります。これを行うには、次のように入力するだけ"
+"で、NFSリソースのリソースグループにプロパティを適用します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "linstor rg set-property nfs_group FileSystem/Type ext4\n"
+msgstr "linstor rg set-property nfs_group FileSystem/Type ext4\n"
+
+#. type: Plain text
+msgid ""
+"The following command will create a NFS export in the cluster. At first it "
+"creates a new resource within the LINSTOR system under the specified name "
+"and using the specified resource group. After that it creates resource "
+"primitives in the Pacemaker cluster including all necessary order and "
+"location constraints. The Pacemaker primites are prefixed with p_, contain "
+"the resource name and a resource type postfix."
+msgstr ""
+"次のコマンドは、クラスタ内にNFSエクスポートを作成します。最初に、指定された名"
+"前で指定されたリソースグループを使用して、LINSTORシステム内に新しいリソースを"
+"作成します。その後、必要なすべての順序およびロケーション制約を含むリソースプ"
+"リミティブがPacemakerクラスタに作成されます。Pacemakerには接頭辞p_が付き、リ"
+"ソース名とリソースタイプの接尾辞が含まれます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "linstor-nfs create --resource=nfstest --service-ip=172.16.16.102/32 --allowed-ips=172.16.16.0/24 --resource-group=nfs_group --size=1G\n"
+msgstr "linstor-nfs create --resource=nfstest --service-ip=172.16.16.102/32 --allowed-ips=172.16.16.0/24 --resource-group=nfs_group --size=1G\n"
+
+#. type: Plain text
+msgid "You can simply list the nfs exports with the command below;"
+msgstr "次のコマンドを使用すると、nfsエクスポートを簡単に一覧表示できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[root@LINSTOR1 ~]# LINSTOR-nfs list\n"
+"+---------------+------------------+-----------------------+------------+------------+\n"
+"| Resource name | LINSTOR resource | Filesystem mountpoint | NFS export | Service IP |\n"
+"+---------------+------------------+-----------------------+------------+------------+\n"
+"| nfstest       |        ✓         |           ✓           |     ✓      |     ✓      |\n"
+"+---------------+------------------+-----------------------+------------+------------+\n"
+msgstr ""
+"[root@LINSTOR1 ~]# LINSTOR-nfs list\n"
+"+---------------+------------------+-----------------------+------------+------------+\n"
+"| Resource name | LINSTOR resource | Filesystem mountpoint | NFS export | Service IP |\n"
+"+---------------+------------------+-----------------------+------------+------------+\n"
+"| nfstest       |        ✓         |           ✓           |     ✓      |     ✓      |\n"
+"+---------------+------------------+-----------------------+------------+------------+\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Deleting NFS Export"
+msgstr "NFS エクスポートの削除"
+
+#. type: Plain text
+msgid ""
+"The following command will delete the nfs export from pacemaker as well as "
+"the LINSTOR cluster;"
+msgstr ""
+"次のコマンドは、pacemakerおよびLINSTORクラスタからnfsエクスポートを削除しま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "[root@LINSTOR1 ~]# linstor-nfs delete -r nfstest\n"
+msgstr "[root@LINSTOR1 ~]# linstor-nfs delete -r nfstest\n"
