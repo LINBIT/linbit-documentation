@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-05-24 08:25+0900\n"
+"POT-Creation-Date: 2021-07-27 17:01+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1900,12 +1900,14 @@ msgstr ""
 #, no-wrap
 msgid ""
 "# linstor resource-definition create linstor_db\n"
-"# linstor resource-definition set-property linstor_db DrbdOptions/Resource/on-no-quorum io-error\n"
+"# linstor resource-definition drbd-options --on-no-quorum=io-error linstor_db\n"
+"# linstor resource-definition drbd-options --auto-promote=no linstor_db\n"
 "# linstor volume-definition create linstor_db 200M\n"
 "# linstor resource create linstor_db -s pool1 --auto-place 3\n"
 msgstr ""
 "# linstor resource-definition create linstor_db\n"
-"# linstor resource-definition set-property linstor_db DrbdOptions/Resource/on-no-quorum io-error\n"
+"# linstor resource-definition drbd-options --on-no-quorum=io-error linstor_db\n"
+"# linstor resource-definition drbd-options --auto-promote=no linstor_db\n"
 "# linstor volume-definition create linstor_db 200M\n"
 "# linstor resource create linstor_db -s pool1 --auto-place 3\n"
 
@@ -1913,11 +1915,11 @@ msgstr ""
 msgid ""
 "From now on we assume the resource's name is \"linstor_db\". It is crucial "
 "that your cluster qualifies for auto-quorum and uses the `io-error` policy "
-"(see Section <<s-linstor-auto-quorum>>)."
+"(see Section <<s-linstor-auto-quorum>>), and that `auto-promote` is disabled."
 msgstr ""
 "これ以降、リソース名は \"linstor_db\" であると仮定します。クラスターが自動"
 "クォーラム (<<s-linstor-auto-quorum>> を参照) の対象になっていて `io-error` "
-"ポリシーを使用していることが重要です。"
+"ポリシーを使用していることが重要です。また `auto-promote` を無効にします。"
 
 #. type: Plain text
 msgid ""
@@ -1964,12 +1966,18 @@ msgstr ""
 #, no-wrap
 msgid ""
 "# mv /var/lib/linstor{,.orig}\n"
+"# mkdir /var/lib/linstor\n"
+"# chattr +i /var/lib/linstor\n"
+"# drbdadm primary linstor_db\n"
 "# mkfs.ext4 /dev/drbd/by-res/linstor_db/0\n"
 "# systemctl start var-lib-linstor.mount\n"
 "# cp -r /var/lib/linstor.orig/* /var/lib/linstor\n"
 "# systemctl start linstor-controller\n"
 msgstr ""
 "# mv /var/lib/linstor{,.orig}\n"
+"# mkdir /var/lib/linstor\n"
+"# chattr +i /var/lib/linstor\n"
+"# drbdadm primary linstor_db\n"
 "# mkfs.ext4 /dev/drbd/by-res/linstor_db/0\n"
 "# systemctl start var-lib-linstor.mount\n"
 "# cp -r /var/lib/linstor.orig/* /var/lib/linstor\n"
@@ -2000,7 +2008,8 @@ msgid ""
 "the `linstor-controller.service` is disabled on all nodes! To be sure, "
 "execute `systemctl disable linstor-controller` on all cluster nodes and "
 "`systemctl stop linstor-controller` on all nodes except the one it is "
-"currently running from the previous step."
+"currently running from the previous step. Also make sure to set `chattr +i /"
+"var/lib/linstor` on all potential controller nodes."
 msgstr ""
 "次のステップは、\"linstor\" DRBD リソースにアクセスでき（DRBD ボリュームをマ"
 "ウントする必要があるため）、LINSTOR コントローラーになる可能性のあるすべての"
@@ -2009,7 +2018,8 @@ msgstr ""
 "`linstor-controller.service` が無効になっていることを確認してください。すべて"
 "のクラスターノードで `systemctl disable linstor-controller` を実行し、前の手"
 "順で現在実行しているノードを除くすべてのノードで `systemctl stop linstor-"
-"controller` を実行します。"
+"controller` を実行します。また、すべての潜在的なコントローラーノードで "
+"`chattr +i /var/lib/linstor` を設定してください。"
 
 #. type: Title ====
 #, no-wrap
@@ -2021,23 +2031,25 @@ msgid ""
 "For starting and stopping the mount service and the linstor-controller "
 "service we use `drbd-reactor`. Install this component on all nodes that "
 "could become a LINSTOR controller and edit their `/etc/drbd-reactor.d/"
-"linstor.toml` configuration file. It should contain an enabled promoter "
+"linstor_db.toml` configuration file. It should contain an enabled promoter "
 "plugin section like this:"
 msgstr ""
 "マウントサービスと linstor-controller サービスの開始と停止には `drbd-"
 "reactor` を使用します。LINSTOR コントローラーになる可能性のあるすべてのノード"
-"にこのコンポーネントをインストールし、それらの `/etc/drbd-reactor.toml` 構成"
-"ファイルを編集します。次のような有効な promoter プラグインセクションが含まれ"
-"ている必要があります。"
+"にこのコンポーネントをインストールし、それらの `/etc/drbd-reactor.d/"
+"linstor_db.toml` 構成ファイルを編集します。次のような有効な promoter プラグイ"
+"ンセクションが含まれている必要があります。"
 
 #. type: delimited block -
 #, no-wrap
 msgid ""
 "[[promoter]]\n"
+"id = \"linstor_db\"\n"
 "[promoter.resources.linstor_db]\n"
 "start = [\"var-lib-linstor.mount\", \"linstor-controller.service\"]\n"
 msgstr ""
 "[[promoter]]\n"
+"id = \"linstor_db\"\n"
 "[promoter.resources.linstor_db]\n"
 "start = [\"var-lib-linstor.mount\", \"linstor-controller.service\"]\n"
 
@@ -2069,27 +2081,27 @@ msgstr ""
 msgid ""
 "Check that there are no warnings from drbd-reactor in the logs by running "
 "`systemctl status drbd-reactor`.  As there is already an active LINSTOR "
-"controller things will just stay the way they are."
+"controller things will just stay the way they are.  Run `drbd-reactorctl "
+"status linstor_db` to check the health of the linstor_db target unit."
 msgstr ""
 "`systemctl status drbd-reactor` を実行して、ログに drbd-reactor からの警告が"
 "ないことを確認します。すでにアクティブな LINSTOR コントローラーが存在するた"
-"め、状況に変化はあらわれません。"
+"め、状況に変化はあらわれません。 `drbd-reactorctl status linstor_db` を実行し"
+"て、linstor_db ターゲットユニットの状態を確認します。"
 
 #. type: Plain text
 msgid ""
 "The last but never the less important step is to configure the LINSTOR "
 "satellite services to not delete (and then regenerate) the resource file for "
-"the LINSTOR controller DB at its startup. Also the satellite needs to start "
-"after `drbd-reactor`. Do not edit the service files directly, but use "
-"`systemctl edit`. Edit the service file on all nodes that could become a "
-"LINSTOR controller and that are also LINSTOR satellites."
+"the LINSTOR controller DB at its startup. Do not edit the service files "
+"directly, but use `systemctl edit`. Edit the service file on all nodes that "
+"could become a LINSTOR controller and that are also LINSTOR satellites."
 msgstr ""
 "最後のステップは、起動時に LINSTOR コントローラー DB のリソースファイルを削除"
-"（および再生成）しないように LINSTOR サテライトサービスを構成することです。ま"
-"た、サテライトは `drbd-reactor` の後に開始する必要があります。サービスファイ"
-"ルを直接編集するのではなく`systemctl edit` を使用してください。LINSTOR コント"
-"ローラーになる可能性があり、LINSTOR サテライトでもあるすべてのノードでサービ"
-"スファイルを編集します。"
+"（および再生成）しないように LINSTOR サテライトサービスを構成することです。"
+"サービスファイルを直接編集するのではなく、 `systemctl edit` を使用してくださ"
+"い。LINSTOR コントローラーとサテライトになるすべてのノードでサービスファイル"
+"を編集します。"
 
 #. type: delimited block -
 #, no-wrap
@@ -2097,14 +2109,10 @@ msgid ""
 "# systemctl edit linstor-satellite\n"
 "[Service]\n"
 "Environment=LS_KEEP_RES=linstor_db\n"
-"[Unit]\n"
-"After=drbd-reactor.service\n"
 msgstr ""
 "# systemctl edit linstor-satellite\n"
 "[Service]\n"
 "Environment=LS_KEEP_RES=linstor_db\n"
-"[Unit]\n"
-"After=drbd-reactor.service\n"
 
 #. type: Plain text
 msgid ""
@@ -3023,25 +3031,29 @@ msgid "Storage Layer"
 msgstr "ストレージレイヤー"
 
 #. type: Plain text
+msgid ""
+"The storage layer will provide new devices from well known volume managers "
+"like LVM, ZFS or others. Every layer combination needs to be based on a "
+"storage layer, even if the resource should be diskless - for that type there "
+"is a dedicated `diskless` provider type."
+msgstr ""
+"ストレージレイヤーは、LVM、ZFS などのよく知られたボリュームマネージャーからの"
+"新しいデバイスを提供します。リソースがディスクレスである必要がある場合（その"
+"タイプは専用の「ディスクレス」プロバイダータイプ）でも、すべてのレイヤーの組"
+"み合わせはストレージレイヤーに基づく必要があります。"
+
+#. type: Plain text
+msgid ""
+"For a list of providers with their properties please see <<s-storage-"
+"proviers, Storage Providers>>."
+msgstr ""
+"プロバイダーのプロパティについては <<s-storage-proviers, Storage Providers>> "
+"を参照ください。"
+
+#. type: Plain text
 msgid "For some storage providers LINSTOR has special properties:"
 msgstr ""
 "一部のストレージプロバイダー用に、LINSTOR には特別なプロパティがあります。"
-
-#. type: Plain text
-msgid ""
-"`StorDriver/LvcreateOptions`: The value of this property is appended to "
-"every `lvcreate ...` call LINSTOR executes."
-msgstr ""
-"`StorDriver/LvcreateOptions`: このプロパティの値は、LINSTOR が実行するすべて"
-"の `lvcreate ...` 呼び出しに追加されます。"
-
-#. type: Plain text
-msgid ""
-"`StorDriver/ZfscreateOptions`: The value of this property is appended to "
-"every `zfs create ...` call LINSTOR executes."
-msgstr ""
-"`StorDriver/ZfscreateOptions`: このプロパティの値は、LINSTOR が実行するすべて"
-"の `zfs create ...` 呼び出しに追加されます。"
 
 #. type: Plain text
 msgid ""
@@ -3066,6 +3078,224 @@ msgstr ""
 "create $device` を呼び出し、ボリュームの削除後に `dmstats delete $device --"
 "allregions` を呼び出します。現在、LVM および LVM_THIN ストレージプロバイダー"
 "に対してのみ有効になっています。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Storage Providers"
+msgstr "ストレージプロバイダー"
+
+#. type: Plain text
+msgid ""
+"LINSTOR has a few storage providers. The most used ones are LVM and ZFS. But "
+"also for those two providers there are already sub-types for their thinly "
+"provisioned variants."
+msgstr ""
+"LINSTOR にはいくつかのストレージプロバイダーがあります。最も使用されているの"
+"は LVM と ZFS です。しかし、これら 2 つのプロバイダーについても、シンプロビ"
+"ジョニングされた異なるサブタイプがすでに存在します。"
+
+#. type: Plain text
+msgid ""
+"Diskless: This provider type is mostly required to have a storage pool that "
+"can be configured with LINSTOR properties like `PrefNic` as described in <<s-"
+"managing_network_interface_cards, Managing Network Interface Cards>>."
+msgstr ""
+"Diskless: このプロバイダータイプには、<<s-managing_network_interface_cards, "
+"Managing Network Interface Cards>> で説明されているように `PrefNic` などの "
+"LINSTOR プロパティで構成できるストレージプールがほとんどの場合必要です。"
+
+#. type: Plain text
+msgid ""
+"LVM / LVM-Thin: The adminstrator is expected to specify the LVM volume group "
+"or the thin-pool (in form of \"LV/thinpool\") in order to use the "
+"corresponding storage type. These drivers support following properties for "
+"fine-tuning:"
+msgstr ""
+"LVM / LVM-Thin: 管理者は、対応するストレージタイプを使用するために、LVM ボ"
+"リュームグループまたはシンプール（\"LV/thinpool\" の形式）を指定する必要があ"
+"ります。これらのドライバーは、チューニング用に次のプロパティをサポートしま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"`StorDriver/LvcreateOptions`: The value of this property is appended to every"
+msgstr ""
+"`StorDriver/LvcreateOptions`: このプロパティの値は、LINSTOR が実行するすべて"
+"の"
+
+#. type: Plain text
+msgid "`lvcreate ...` call LINSTOR executes."
+msgstr "`lvcreate ...` 呼び出しの LINSTOR 実行に追加されます。"
+
+#. type: Plain text
+msgid ""
+"ZFS / ZFS-Thin: The administrator is expected to specify the ZPool that "
+"LINSTOR should use.  These drivers support following properties for fine-"
+"tuning:"
+msgstr ""
+"ZFS / ZFS-Thin: 管理者は、LINSTOR が使用する ZPool を指定する必要があります。"
+"これらのドライバーは、チューニング用に次のプロパティをサポートします。"
+
+#. type: Plain text
+msgid ""
+"`StorDriver/ZfscreateOptions`: The value of this property is appended to "
+"every"
+msgstr ""
+"`StorDriver/ZfscreateOptions`: このプロパティの値は、LINSTOR が実行するすべて"
+"の "
+
+#. type: Plain text
+msgid "`zfs create ...` call LINSTOR executes."
+msgstr "`zfs create ...` 呼び出しの LINSTOR 実行に追加されます。"
+
+#. type: Plain text
+msgid ""
+"File / FileThin: Mostly used for demonstration / experiments. LINSTOR will "
+"basically reserve a file in a given directory and will configure a https://"
+"man7.org/linux/man-pages/man4/loop.4.html[loop device] on top of that file."
+msgstr ""
+"File / FileThin: 主にデモンストレーション/実験に使用されます。LINSTOR は基本"
+"的に、指定されたディレクトリにファイルをリザーブし、そのファイルの上に "
+"https://man7.org/linux/man-pages/man4/loop.4.html[ループデバイス] を構成しま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"OpenFlex: This special storage provider currently requires to be run on a "
+"\"special satellite\".  Please see <<s-openflex, OpenFlex(TM) Layer>> for "
+"more details."
+msgstr ""
+"OpenFlex: この特別なストレージプロバイダーは現在、特別なサテライトで実行する"
+"必要があります。詳細は <<s-openflex, OpenFlex(TM) Layer>> を参照ください。"
+
+#. type: Plain text
+msgid ""
+"SPDK: The administrator is expected to speicify the logical volume store "
+"which LINSTOR should use.  The usage of this storage provider implies the "
+"usage of the <<s-nvme-layer,NVME Layer>>."
+msgstr ""
+"SPDK: 管理者は、LINSTOR が使用する論理ボリュームストアを指定する必要がありま"
+"す。このストレージプロバイダーの使用法は <<s-nvme-layer,NVME Layer>> 使用を意"
+"味します。"
+
+#. type: Plain text
+msgid ""
+"Remote-SPDK: This special storage provider currently requires to be run on a "
+"\"special satellite\".  Please see <<s-remote-spdk, Remote SPDK Provider>> "
+"for more details."
+msgstr ""
+"Remote-SPDK: この特別なストレージプロバイダーは現在、特別なサテライトで実行す"
+"る必要があります。詳細は <<s-remote-spdk, Remote SPDK Provider>> を参照くださ"
+"い。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Remote SPDK Provider"
+msgstr "リモート SPDK プロバイダー"
+
+#. type: Plain text
+msgid ""
+"A storage pool with the type remote SPDK can only be created on a \"special "
+"satellite\". For this you first need to start a new satellite using the "
+"command:"
+msgstr ""
+"リモート SPDK のストレージプールは、特別なサテライトでのみ作成できます。最初"
+"に次のコマンドを使用して新しいサテライトを開始する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ linstor node create-remote-spdk-target nodeName 192.168.1.110\n"
+msgstr "$ linstor node create-remote-spdk-target nodeName 192.168.1.110\n"
+
+#. type: Plain text
+msgid ""
+"This will start a new satellite instance running on the same machine as the "
+"controller. This special satellite will do all the REST based RPC "
+"communication towards the remote SPDK proxy. As the help message of the "
+"LINSTOR command shows, the administrator might want to use additional "
+"settings when creating this special satellite:"
+msgstr ""
+"これにより、コントローラーと同じマシンで実行されている新しいサテライトインス"
+"タンスが開始されます。この特別なサテライトは、リモート SPDK プロキシに対して"
+"すべての REST ベースの RPC 通信を実行します。LINSTOR コマンドのヘルプメッセー"
+"ジが示すように、管理者はこの特別なサテライトを作成するときに設定を追加したい"
+"場合があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ linstor node create-remote-spdk-target -h\n"
+"usage: linstor node create-remote-spdk-target [-h] [--api-port API_PORT]\n"
+"                                              [--api-user API_USER]\n"
+"                                              [--api-user-env API_USER_ENV]\n"
+"                                              [--api-pw [API_PW]]\n"
+"                                              [--api-pw-env API_PW_ENV]\n"
+"                                              node_name api_host\n"
+msgstr ""
+"$ linstor node create-remote-spdk-target -h\n"
+"usage: linstor node create-remote-spdk-target [-h] [--api-port API_PORT]\n"
+"                                              [--api-user API_USER]\n"
+"                                              [--api-user-env API_USER_ENV]\n"
+"                                              [--api-pw [API_PW]]\n"
+"                                              [--api-pw-env API_PW_ENV]\n"
+"                                              node_name api_host\n"
+
+#. type: Plain text
+msgid ""
+"The difference between the `--api-\\*` and their corresponding `--api-\\*-"
+"env` versions is that the version with the `-env` ending will look for an "
+"environment variable containing the actual value to use whereas the `--api-"
+"\\*` version directly take the value which is stored in the LINSTOR "
+"property.  Administrators might not want to save the `--api-pw` in "
+"plaintext, which would be clearly visible using commands like `linstor node "
+"list-property <nodeName>`."
+msgstr ""
+"`--api-\\*` とそれに対応する `--api-\\*-env` バージョンの違いは、 `-env` で終"
+"わるバージョンは、値を含む環境変数を検索することです。一方、 `--api-\\*` バー"
+"ジョンは、LINSTOR プロパティに格納されている値を直接取得します。管理者は `--"
+"api-pw` をプレーンテキストで保存したくない場合があります。これは `linstor "
+"node list-property <nodeName>` などのコマンドで表示されてしまいます。"
+
+#. type: Plain text
+msgid ""
+"Once that special satellite is up and running the actual storage pool can be "
+"created:"
+msgstr ""
+"特別なサテライトが稼働し始めたら、実際のストレージプールを作成できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ linstor storage-pool create remotespdk -h\n"
+"usage: linstor storage-pool create remotespdk [-h]\n"
+"                                              [--shared-space SHARED_SPACE]\n"
+"                                              [--external-locking]\n"
+"                                              node_name name driver_pool_name\n"
+msgstr ""
+"$ linstor storage-pool create remotespdk -h\n"
+"usage: linstor storage-pool create remotespdk [-h]\n"
+"                                              [--shared-space SHARED_SPACE]\n"
+"                                              [--external-locking]\n"
+"                                              node_name name driver_pool_name\n"
+
+#. type: Plain text
+msgid ""
+"Whereas `node_name` is self-explanatory, `name` is the name of the LINSTOR "
+"storage pool and `driver_pool_name` refers to the SPDK logical volume store."
+msgstr ""
+"`node_name` は自明ですが、`name` は LINSTOR ストレージプールの名前であり、 "
+"`driver_pool_name` は SPDK 論理ボリュームストアを指定します。"
+
+#. type: Plain text
+msgid ""
+"Once this _remotespdk_ storage pool is created the remaining procedure is "
+"quite similar as using NVMe: First the target has to be created by creating "
+"a simple \"diskful\" resource followed by a second resource having the `--"
+"nvme-initiator` option enabled."
+msgstr ""
+"この _remotespdk_ ストレージプールが作成されると、残りの手順は NVMe を使用す"
+"る場合と非常に似ています。最初に、単に \"diskful\" リソースでターゲットを作成"
+"し、2 番目のリソースは `-nvme-initiator` オプションを有効にして作成します。"
 
 #. type: Title ===
 #, no-wrap
