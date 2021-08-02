@@ -502,3 +502,46 @@ Exit code;Implication
 6;Peer refused to be outdated because the affected resource was in the primary role.
 7;Peer node was successfully fenced off the cluster. This should never occur unless `fencing` is set to `resource-and-stonith` for the affected resource.
 |=======================================
+
+[[s-drbd-client-internals]]
+=== The client mode
+
+Since version 9.0.13 DRBD supports clients. A client in DRBD speak is
+just a permanently diskless node. In the configuration, it is
+expressed by using the keyword `none` for the backing block device
+(the `disk` keyword). You will notice that in the `drbdsetup status`
+output you will see the `Diskless` disk status displayed in green
+color. (Usually, a disk state of `Diskless` is displayed in red).
+
+Internally all the peers of an intentional diskless node are
+configured with the `peer-device-option` `--bitmap=no`. That means
+that they will not allocate a bitmap slot in the meta-data for the
+intentional diskless peer. On the intentional diskless node the device
+gets marked with the option `--diskless=yes` while it is created with
+the `new-minor` sub-command of `drbdsetup`.
+
+These flags are visible through the `events2` status command:
+
+* a `device` might have the `client:` field. If it reports `yes` the
+  local device was marked to be permanently diskless.
+
+* a `peer-device` might have the `peer-client` filed. If it says `yes`
+  then there is no change-tracking bitmap to that peer.
+
+Relevant commands and implications:
+
+* You can only run `drbdsetup peer-device-options --bitmap=yes ...` if
+  bitmap slots are available in the meta-data, since a bitmap-slot
+  gets allocated.
+
+* The command `drbdsetup peer-device-options --bitmap=no ...` is only
+  possible if the peer is diskless, it does _not_ unallocate the
+  bitmap-slot.
+
+* `drbdsetup forget-peer ...` is used to irrevocable free the
+  bitmap-slot assigned to a certain peer.
+
+* Connecting two peers with disk where one (or both) expect the peer
+  to be permanently diskless fails.
+
+//- list divider. Keep it otherwise next included section is interpreted as list element
