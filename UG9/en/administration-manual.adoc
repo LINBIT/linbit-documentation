@@ -2476,3 +2476,23 @@ long as all the others left in a graceful way. If a single node leaves ungracefu
 it has to assume that all away nodes form a partition and have access to up-to-date
 data. If the other partition might (potentially) be larger than my own partition it
 looses quorum.
+
+[[s-removing-DRBD]]
+=== Removing DRBD
+
+For the unlikely case that you want to remove DRBD, here are the necessary steps.
+
+. Stop the services and unmount the filesystems on top of the DRBD volumes. In case you are
+  using a cluster manager, make sure it ceases to control the services fist.
+. Stop the DRBD resource(s) by using `drbdadm down <res>` or `drbdadm down all`
+.. In case the DRBD resource was using internal meta-data you might choose to
+   resize the filesystem to cover all of the backing device's space. This step
+   effectively removes DRBD's meta-data. This is an action that can not be reversed
+   easily. You can do that with `resize2fs <backing_dev>` for ext[234] family of file systems.
+   It supports resizing of unmounted filesystem and under certain conditions also online
+   grow. XFS can be grown online only with the `xfs_growfs` command.
+. Mount the backing device(s) directly, start the services on top of them
+. Unload the drbd kernel driver modules with `rmmod drbd_transport_tcp` and `rmmod drbd`.
+. Uninstall the drbd software packages.
+
+//- list divider. Keep it otherwise next included section is interpreted as list element
