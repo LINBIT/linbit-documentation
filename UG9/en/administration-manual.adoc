@@ -613,9 +613,9 @@ online migration of virtual machines.
 
 
 [[s-manual-fail-over]]
-=== Basic Manual Fail-over
+=== Basic manual fail-over
 
-If not using Pacemaker and looking to handle fail-overs manually in a
+If not using a cluster manager and looking to handle fail-overs manually in a
 passive/active configuration, the process is as follows.
 
 On the current primary node stop any applications or services using the DRBD device,
@@ -670,6 +670,7 @@ update on both servers.
 [[s-RHEL-systems]]
 ===== RHEL/CentOS systems
 
+ifndef::de-brand[]
 Edit your `/etc/yum.repos.d/linbit.repo` file to reflect the following
 changes.
 
@@ -682,18 +683,23 @@ gpgcheck=0
 
 NOTE: You will have to populate the <hash> and <arch> variables. The
 <hash> is provided by LINBIT support services.
+endif::de-brand[]
+ifdef::de-brand[]
+Edit your `*.repo` file to reflect the necessary changes.
+endif::de-brand[]
 
 [[s-Debian-Systems]]
 ===== Debian/Ubuntu systems
 
+ifndef::de-brand[]
 Edit `/etc/apt/sources.list` (or a file in `/etc/apt/sources.d/`) to reflect the
 following changes.
 
 ----------------------------
-deb http://packages.linbit.com/<hash>/ stretch drbd-9.0
+deb http://packages.linbit.com/<hash>/ bullseye drbd-9.0
 ----------------------------
 
-In case you're not using the `stretch` release, but some other, you'll need to
+In case you're not using the `bullseye` release, but some other, you'll need to
 change that line.
 
 NOTE: You will have to populate the `<hash>` variable. The
@@ -706,6 +712,11 @@ Next you will want to add the DRBD signing key to your trusted keys.
 # gpg --keyserver subkeys.pgp.net --recv-keys  0x282B6E23
 # gpg --export -a 282B6E23 | apt-key add -
 ----------------------------
+endif::de-brand[]
+ifdef::de-brand[]
+Edit `/etc/apt/sources.list` (or a file in `/etc/apt/sources.d/`) to reflect the
+the necessary changes.
+endif::de-brand[]
 
 Lastly perform an `apt update` so Debian recognizes the updated repository.
 
@@ -731,18 +742,22 @@ GIT-hash: e081fb0570183db40caa29b26cb8ee907e9a7db3 build by linbit@buildsystem, 
 
 
 [[s-upgrade-pausing-the-cluster]]
-==== Pausing the cluster
+==== Pausing the services
 
 Now that you know the resources are in sync, start by upgrading the
-secondary node. This can be done manually or if you're using
-Pacemaker put the node in standby mode. Both processes are covered
+secondary node.
+This can be done manually or according to your cluster manager's documentation.
+ifndef::drbd-only[]
+Both processes are covered
 below.  If you're running Pacemaker do not use the manual method.
+endif::drbd-only[]
 
 * Manual Method
 ----------------------------
-bob# /etc/init.d/drbd stop
+bob# systemctl stop drbd@resourcename.target
 ----------------------------
 
+ifndef::drbd-only[]
 * Pacemaker
 
 Put the secondary node into standby mode. In this example 'bob' is secondary.
@@ -753,6 +768,7 @@ bob# crm node standby bob
 
 NOTE: You can watch the status of your cluster using `crm_mon -rf` or watch
 `cat /proc/drbd` until it shows _Unconfigured_ for your resources.
+endif::drbd-only[]
 
 
 [[s-Upgrading-the-packages]]
@@ -779,7 +795,7 @@ But the kernel module is not active yet.
 By now the DRBD module should not be in use anymore, so we unload it via
 
 -------------
-bob# rmmod drbd
+bob# rmmod drbd_transport_tcp; rmmod drbd
 -------------
 
 If there's a message like `ERROR: Module drbd is in use`, then not all
@@ -797,7 +813,6 @@ Typical issues that might prevent unloading are these:
 
 Please note that this list isn't complete - these are just the most common
 examples.
-
 
 Now we can load the new DRBD module:
 
@@ -963,26 +978,23 @@ drbdadm -v --max-peers=<N>  -- --force create-md <resources>
 Now, the only thing left to do is to get the DRBD devices up and running again - a simple `drbdadm up all` should do the trick.
 
 Now, depending on whether you've got a cluster manager or keep track of your
-resources manually, there are two different ways again.
+resources manually, there are two different ways again. If you are using a cluster manager follow its documentation.
 
 * Manually
-+
---
-----------------------------
-bob# /etc/init.d/drbd start
-----------------------------
---
 
+----------------------------
+bob# systemctl start drbd@resourcename.target
+----------------------------
+
+ifndef::drbd-only[]
 * Pacemaker
-+
---
 ----------------------------
 # crm node online bob
 ----------------------------
+endif::drbd-only[]
 
 This should make DRBD connect to the other node, and the resynchronization
 process will start.
---
 
 When the two nodes are _UpToDate_ on all resources again, you can move your
 applications to the already upgraded node (here 'bob'), and then follow the
@@ -2081,9 +2093,11 @@ three-node replication:
 ----------------------------
 
 In order to automate stacked resource management, you may integrate
-stacked resources in your cluster manager configuration. See
-<<s-pacemaker-stacked-resources>> for information on doing this in a
+stacked resources in your cluster manager configuration.
+ifdef::drbd-only[]
+See <<s-pacemaker-stacked-resources>> for information on doing this in a
 cluster managed by the Pacemaker cluster management framework.
+endif::drbd-only[]
 
 [[s-permanently-diskless-nodes]]
 === Permanently diskless nodes

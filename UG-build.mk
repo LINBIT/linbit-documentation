@@ -51,18 +51,18 @@ $(OUTDIRHTML)/%.adoc: %.adoc
 	sed 's/\(^image::.*\)\.svg\(.*\)/\1.png\2/g' $< > $@
 
 $(OUTDIRHTML)/$(OUTHTML_UG): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGSSVGS) $(OUTPNGSPNGS) $(OUTADOCS)
-	asciidoctor $(ASCIIDOCTOR_ADD_OPTIONS) -n -d book -a toc=left -a linkcss -a sectanchors=yes -o ./$(OUTDIRHTML)/$(OUTHTML_UG) $(OUTDIRHTML)/$(IN_UG)
+	asciidoctor $(ASCIIDOCTOR_ADD_OPTIONS) -n -d book -a toc=left -a linkcss -a sectanchors=yes $(OPTS) -o ./$(OUTDIRHTML)/$(OUTHTML_UG) $(OUTDIRHTML)/$(IN_UG)
 
 $(OUTDIRHTML)/$(OUTHTML_LS): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGSSVGS) $(OUTPNGSPNGS) $(OUTADOCS)
 	if test -f $(OUTDIRHTML)/$(IN_LS); then \
-		asciidoctor $(ASCIIDOCTOR_ADD_OPTIONS) -n -d book -a toc=left -a linkcss -a sectanchors=yes -o ./$(OUTDIRHTML)/$(OUTHTML_LS) $(OUTDIRHTML)/$(IN_LS); \
+		asciidoctor $(ASCIIDOCTOR_ADD_OPTIONS) -n -d book -a toc=left -a linkcss -a sectanchors=yes $(OPTS) -o ./$(OUTDIRHTML)/$(OUTHTML_LS) $(OUTDIRHTML)/$(IN_LS); \
 	else \
 		echo "LINSTOR guide not found"; \
 	fi
 
 $(OUTDIRHTML)/$(OUTHTML_VSAN): $(OUTDIRHTMLIMAGES) $(SRC) $(OUTPNGSSVGS) $(OUTPNGSPNGS) $(OUTADOCS)
 	if test -f $(OUTDIRHTML)/$(IN_VSAN); then \
-		asciidoctor $(ASCIIDOCTOR_ADD_OPTIONS) -n -d book -a toc=left -a linkcss -a sectanchors=yes -o ./$(OUTDIRHTML)/$(OUTHTML_VSAN) $(OUTDIRHTML)/$(IN_VSAN); \
+		asciidoctor $(ASCIIDOCTOR_ADD_OPTIONS) -n -d book -a toc=left -a linkcss -a sectanchors=yes $(OPTS) -o ./$(OUTDIRHTML)/$(OUTHTML_VSAN) $(OUTDIRHTML)/$(IN_VSAN); \
 	else \
 		echo "VSAN guide not found"; \
 	fi
@@ -95,22 +95,25 @@ html-finalize: html
 	ln -s $(IMGDIR)
 
 $(OUTDIRPDF)/$(OUTPDF_UG): $(SRC) $(SVGSUSED)
-	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ]; then \
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
 		INTERN="-a pdf-style=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
-	asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN -o $@ $(IN_UG)
+	asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_UG)
 
 $(OUTDIRPDF)/$(OUTPDF_LS): $(SRC) $(SVGSUSED)
-	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ]; then \
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
 		INTERN="-a pdf-style=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
-		if test -f $(IN_LS); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN -o $@ $(IN_LS); fi
+		if test -f $(IN_LS); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_LS); fi
 
 $(OUTDIRPDF)/$(OUTPDF_VSAN): $(SRC) $(SVGSUSED)
-	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ]; then \
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
 		INTERN="-a pdf-style=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
-		if test -f $(IN_VSAN); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN -o $@ $(IN_VSAN); fi
+		if test -f $(IN_VSAN); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_VSAN); fi
 
 pdf: ./images $(OUTDIRPDF)/$(OUTPDF_UG) $(OUTDIRPDF)/$(OUTPDF_LS) $(OUTDIRPDF)/$(OUTPDF_VSAN)
 	@echo "Generated $$(pwd)/$(OUTDIRPDF)/{$(OUTPDF_UG),$(OUTPDF_LS),$(OUTPDF_VSAN)}"

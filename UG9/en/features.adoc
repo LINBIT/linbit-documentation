@@ -27,7 +27,9 @@ In dual-primary mode a resource can be in the
 primary role on two nodes at a time. Since concurrent access to the
 data is thus possible, this mode usually requires the use of a shared cluster
 file system that utilizes a distributed lock manager.
+ifndef::drbd-only[]
 Examples include <<ch-gfs,GFS>> and <<ch-ocfs2,OCFS2>>.
+endif::drbd-only[]
 
 Deploying DRBD in dual-primary mode is the preferred approach for
 load-balancing clusters which require concurrent data access from two
@@ -161,11 +163,15 @@ Solutions.
 
 [[s-rdma_transport]]
 ==== RDMA Transport
-Alternatively the `drbd_transport_rdma.ko` kernel module is available from LINBIT. This
-transport uses the verbs/RDMA API to move data over InfiniBand HCAs,
-iWARP capable NICs or RoCE capable NICs. In contrast to the BSD sockets
-API (used by TCP/IP) the verbs/RDMA API allows data movement with very
-little CPU involvement.
+Alternatively the `drbd_transport_rdma.ko` kernel module is available
+ifndef::de-brand[]
+from LINBIT
+endif::de-brand[]
+.
+This transport uses the verbs/RDMA API to move data over InfiniBand HCAs, iWARP
+capable NICs or RoCE capable NICs. In contrast to the BSD sockets API (used by
+TCP/IP) the verbs/RDMA API allows data movement with very little CPU
+involvement.
 
 [[s-conclusion]]
 ==== Conclusion
@@ -573,8 +579,10 @@ NOTE: Available in DRBD version 8.3.0 and above; deprecated in DRBD version
 
 When using three-way replication, DRBD adds a third node to an
 existing 2-node cluster and replicates data to that node, where it can
-be used for backup and disaster recovery purposes. This type of
-configuration generally involves <<s-drbd-proxy>>.
+be used for backup and disaster recovery purposes.
+ifndef::drbd-only,de-brand[]
+This type of configuration generally involves <<s-drbd-proxy>>.
+endif::[]
 
 Three-way replication works by adding another, _stacked_ DRBD resource
 on top of the existing resource holding your production data, as seen
@@ -594,6 +602,7 @@ production cluster is normally disconnected from the backup site, and
 site-to-site synchronization is performed on a regular basis, for
 example by running a nightly cron job.
 
+ifndef::drbd-only,de-brand[]
 [[s-drbd-proxy]]
 === Long-distance replication via DRBD Proxy
 
@@ -630,6 +639,7 @@ See <<s-using-drbd-proxy>> for information on configuring DRBD Proxy.
 NOTE: DRBD Proxy is one of the few parts of the DRBD product family that is
 not published under an open source license. Please contact
 sales@linbit.com or sales_us@linbit.com for an evaluation license.
+endif::[]
 
 [[s-truck-based-replication]]
 === Truck based replication
@@ -718,8 +728,11 @@ fencing. It turns out that in real world deployments node fencing is not popular
 because often mistakes happen in planning or deploying it.
 
 In the moment a data-set has 3 replicas one can rely on the quorum implementation
-within DRBD instead of Pacemaker level fencing. Pacemaker gets informed about
-quorum or loss-of-quorum via the master score of the resource.
+within DRBD instead of cluster manager level fencing.
+ifndef::drbd-only[]
+Pacemaker gets informed about quorum or loss-of-quorum via the master score of
+the resource.
+endif::drbd-only[]
 
 DRBD's quorum can be used with any kind of Linux based service. In case the
 service terminates in the moment it is exposed to an IO-error the on quorum
@@ -744,6 +757,7 @@ third, diskless node to the cluster which will then act as a quorum tiebreaker.
 
 See <<s-configuring-quorum-tiebreaker>> for more information.
 
+ifndef::drbd-only[]
 [[s-feature-VCS]]
 === DRBD integration for VCS
 
@@ -752,3 +766,4 @@ to the Pacemaker open source software. In case you need to integrate DRBD resour
 into a VCS setup please see the README in
 https://github.com/LINBIT/drbd-utils/tree/master/scripts/VCS[drbd-utils/scripts/VCS]
 on github.
+endif::drbd-only[]
