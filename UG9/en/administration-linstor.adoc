@@ -1125,7 +1125,7 @@ To make a resource which uses NVMe-oF/NVMe-TCP an additional parameter
 has to be given as you create the resource-definition:
 
 ------
-# linstor resource-definition create nvmedata  -l nvme,storage
+# linstor resource-definition create nvmedata -l nvme,storage
 ------
 
 NOTE: As default the -l (layer-stack) parameter is set to `drbd,
@@ -1133,7 +1133,17 @@ storage` when DRBD is used. If you want to create LINSTOR resources
 with neither NVMe nor DRBD you have to set the `-l` parameter to only
 `storage`.
 
-Create the volume-definition for our resource:
+In order to use NVMe-TCP instead of the default NVMe-oF the following
+property needs to be set:
+
+------
+# linstor resource-definition set-property nvmedata NVMe/TRType tcp
+------
+
+The property `NVMe/TRType` can alternatively be set on resource-group
+or controller level.
+
+Next, create the volume-definition for our resource:
 
 ------
 # linstor volume-definition create nvmedata 500G
@@ -1153,11 +1163,8 @@ On the nodes where the resource-data will be accessed over the
 network, the resource has to be defined as diskless:
 
 -----
-# linstor resource create beta nvmedata -d
+# linstor resource create beta nvmedata --nvme-initiator
 -----
-
-The `-d` parameter creates the resource on this node as diskless.
-
 
 Now you can  mount the resource `nvmedata` on one of your nodes.
 
