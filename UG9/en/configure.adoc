@@ -619,10 +619,17 @@ invocation.
 
 This must be done while the volume is not in use.
 
+You need to edit the first 4 lines to match your needs. V is the
+resource name with the volume number. NODE_FROM is the node ID of
+the node the data originates from. NOTE_TO is the node ID of the
+node where data will be replicated to. META_DATA_LOCATION is the
+location of the meta data which might be internal or flex-external.
+
 -----------
 V=r0/0
 NODE_FROM=2
 NODE_TO=1
+META_DATA_LOCATION=internal
 
 drbdadm -- --force dump-md $V > /tmp/md_orig.txt
 sed -e "s/node-id $NODE_FROM/node-id $NODE_TO/" \
@@ -631,7 +638,7 @@ sed -e "s/node-id $NODE_FROM/node-id $NODE_TO/" \
 	-e "s/^peer-NEW /peer[$NODE_TO] /" \
 	< /tmp/md_orig.txt > /tmp/md.txt
 
-drbdmeta --force $(drbdadm sh-minor $V) v09 $(drbdadm sh-ll-dev $V) internal restore-md /tmp/md.txt
+drbdmeta --force $(drbdadm sh-minor $V) v09 $(drbdadm sh-md-dev $V) $META_DATA_LOCATION restore-md /tmp/md.txt
 -----------
 
 .NOTE
