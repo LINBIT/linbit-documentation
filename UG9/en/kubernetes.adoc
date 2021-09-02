@@ -45,7 +45,7 @@ by default `drbdiocred`.
 for configuring the etcd instance for LINSTOR:
 ** Use an existing storage provisioner with a default `StorageClass`.
 ** <<s-kubernetes-etcd-hostpath-persistence,Use `hostPath` volumes>>.
-** Disable persistence for basic testing. This can be done by adding `--set
+** Disable persistence, **for basic testing only**. This can be done by adding `--set
 etcd.persistentVolume.enabled=false` to the `helm install` command below.
 
 * Read <<s-kubernetes-storage, the storage guide>> and configure a basic storage setup for LINSTOR
@@ -61,7 +61,7 @@ The drbd9-rhel8 image should also be used for RHCOS (OpenShift). For the SUSE Ca
 that matches the base system of the CaaS Platform you are using (e.g., `drbd9-sles15sp1`). For example:
 +
 ----
-operator.satelliteSet.kernelModuleInjectionImage=drbd.io/drbd9-rhel8:v9.0.24
+operator.satelliteSet.kernelModuleInjectionImage=drbd.io/drbd9-rhel8:v9.0.30
 ----
 
 ** Only inject modules that are already present on the host machine. If a module is not found, it will be skipped.
@@ -97,10 +97,11 @@ names accordingly in the `nodes=` option:
 
 ----
 helm repo add linstor https://charts.linstor.io
-helm install linstor-etcd linstor/pv-hostpath --set "nodes={<NODE0>,<NODE1>,<NODE2>}"
+helm install linstor-etcd linstor/pv-hostpath
 ----
 
-Persistence for etcd is enabled by default.
+By default, a PV is created on every `control-plane` node. You can manually select the storage nodes by
+passing `--set "nodes={<NODE0>,<NODE1>,<NODE2>}"` to the install command.
 
 [[s-kubernetes-existing-database]]
 ===== Using an existing database
@@ -525,14 +526,9 @@ etcd:
   image:
     repository: gcr.io/etcd-development/etcd
     tag: v3.4.15
-csi-snapshotter:
-  enabled: true # <- enable to add k8s snapshotting CRDs and controller. Needed for CSI snapshotting
-  image: k8s.gcr.io/sig-storage/snapshot-controller:v3.0.3
-  replicas: 1 <2>
-  resources: {} # resource requirements for the cluster snapshot controller. <3>
 stork:
-  enabled: true
-  storkImage: docker.io/openstorage/stork:2.6.2
+  enabled: false
+  storkImage: docker.io/openstorage/stork:2.6.5
   schedulerImage: k8s.gcr.io/kube-scheduler-amd64
   schedulerTag: ""
   replicas: 1 <2>
@@ -541,20 +537,21 @@ stork:
   podsecuritycontext: {}
 csi:
   enabled: true
-  pluginImage: "drbd.io/linstor-csi:v0.13.0"
-  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.1.0
-  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.2.0
-  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.1.0
-  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v2.1.1
-  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.3
-  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.1.0
+  pluginImage: "drbd.io/linstor-csi:v0.15.0"
+  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.3.0
+  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.4.0
+  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.3.0
+  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v2.2.2
+  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v4.2.1
+  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.3.0
   controllerReplicas: 1 <2>
   nodeAffinity: {} <4>
   nodeTolerations: [] <4>
   controllerAffinity: {} <4>
   controllerTolerations: [] <4>
-  enableTopology: false
+  enableTopology: true
   resources: {} <3>
+  kubeletPath: /var/lib/kubelet <7>
 priorityClassName: ""
 drbdRepoCred: drbdiocred
 linstorHttpsControllerSecret: "" # <- name of secret containing linstor server certificates+key.
@@ -565,14 +562,14 @@ psp:
   unprivilegedRole: ""
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
-  image: "drbd.io/linstor-operator:v1.5.0"
+  image: "drbd.io/linstor-operator:v1.6.0"
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
   podsecuritycontext: {}
   controller:
     enabled: true
-    controllerImage: "drbd.io/linstor-controller:v1.12.3"
+    controllerImage: "drbd.io/linstor-controller:v1.15.0"
     luksSecret: ""
     dbCertSecret: ""
     dbUseClientCert: false
@@ -588,21 +585,21 @@ operator:
     additionalProperties: {} <6>
   satelliteSet:
     enabled: true
-    satelliteImage: "drbd.io/linstor-satellite:v1.12.3"
+    satelliteImage: "drbd.io/linstor-satellite:v1.15.0"
     storagePools: {}
     sslSecret: ""
     automaticStorageType: None
     affinity: {} <4>
     tolerations: [] <4>
     resources: {} <3>
-    monitoringImage: "drbd.io/drbd-reactor:v0.3.0"
-    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.29"
+    monitoringImage: "drbd.io/drbd-reactor:v0.4.4"
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.30"
     kernelModuleInjectionMode: ShippedModules
     kernelModuleInjectionResources: {} <3>
     additionalEnv: [] <5>
 haController:
   enabled: true
-  image: drbd.io/linstor-k8s-ha-controller:v0.1.3
+  image: drbd.io/linstor-k8s-ha-controller:v0.2.0
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
@@ -623,6 +620,9 @@ a LINSTOR persistent volume, the node requires a running LINSTOR satellite and L
 <5> Sets additional environments variables to pass to the Linstor Controller and Satellites. Uses the same format as
 https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/[the `env` value of a container]
 <6> Sets additional properties on the Linstor Controller. Expects a simple mapping of `<property-key>: <value>`.
+<7> Kubelet expects every CSI plugin to mount volumes under a specific subdirectory of it's own state directory. By
+default, this state directory is `/var/lib/kubelet`. Some Kubernetes distributions use a different directory:
+* microk8s: `/var/snap/microk8s/common/var/lib/kubelet`
 
 [[s-kubernetes-ha-deployment]]
 ===== High Availability Deployment
@@ -760,7 +760,7 @@ Here below is the simplest practical _StorageClass_ that can be used to deploy v
 .linstor-basic-sc.yaml
 [source,yaml]
 ----
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   # The name used to identify this StorageClass.
@@ -768,6 +768,7 @@ metadata:
   # The name used to match this StorageClass with a provisioner.
   # linstor.csi.linbit.com is the name that the LINSTOR CSI plugin uses to identify itself
 provisioner: linstor.csi.linbit.com
+volumeBindingMode: WaitForFirstConsumer
 parameters:
   # LINSTOR will provision volumes from the drbdpool storage pool configured
   # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment
@@ -777,10 +778,6 @@ parameters:
   # Currently supported: xfs/ext4
   csi.storage.k8s.io/fstype: xfs
 ----
-
-DRBD options can be set as well in the parameters section. Valid keys are defined in the
-https://app.swaggerhub.com/apis-docs/Linstor/Linstor[LINSTOR REST-API]
-(e.g., `DrbdOptions/Net/allow-two-primaries: "yes"`).
 
 We can create the _StorageClass_ with the following command:
 
@@ -813,15 +810,13 @@ We can create the _PersistentVolumeClaim_ with the following command:
 kubectl create -f my-first-linstor-volume-pvc.yaml
 ----
 
-This will create a _PersistentVolumeClaim_ known to Kubernetes, which will have
-a _PersistentVolume_ bound to it, additionally LINSTOR will now create this
-volume according to the configuration defined in the `linstor-basic-storage-class`
-_StorageClass_. The LINSTOR volume's name will be a UUID prefixed with `csi-`
-This volume can be observed with the usual `linstor resource list`. Once that
-volume is created, we can attach it to a pod. The following _Pod_ spec will spawn
-a Fedora container with our volume attached that busy waits so it is not
-unscheduled before we can interact with it:
+This will create a _PersistentVolumeClaim_, but no volume will be created just yet.
+The storage class we used specified `volumeBindingMode: WaitForFirstConsumer`, which
+means that the volume is only created once a workload starts using it. This ensures
+that the volume is placed on the same node as the workload.
 
+For our example, we create a simple Pod, which mounts or volume by referencing the
+_PersistentVolumeClaim_.
 .my-first-linstor-volume-pod.yaml
 [source,yaml]
 ----
@@ -854,7 +849,8 @@ kubectl create -f my-first-linstor-volume-pod.yaml
 ----
 
 Running `kubectl describe pod fedora` can be used to confirm that _Pod_
-scheduling and volume attachment succeeded.
+scheduling and volume attachment succeeded. Taking a look at the _PersistentVolumeClaim_,
+we can see that it is now bound to a volume.
 
 To remove a volume, please ensure that no pod is using it and then delete the
 _PersistentVolumeClaim_ via `kubectl`. For example, to remove the volume that we
@@ -891,7 +887,7 @@ parameters:
   storagePool: "my-storage-pool"
   disklessStoragePool: "DfltDisklessStorPool"
   layerList: "drbd storage"
-  placementPolicy: "AutoPlace"
+  placementPolicy: "AutoPlaceTopology"
   allowRemoteVolumeAccess: "true"
   encryption: "true"
   nodeList: "diskful-a diskful-b"
@@ -971,7 +967,8 @@ towards the end of <<s-linstor-without-drbd, this section>>. Defaults to `drbd,s
 
 Select from one of the available volume schedulers:
 
-* `AutoPlace`, the default: Use LINSTOR autoplace, influenced by <<s-kubernetes-replicasonsame>> and <<s-kubernetes-replicasondifferent>>
+* `AutoPlaceTopology`, the default: Use topology information from Kubernetes together with user provided constraints (see <<s-kubernetes-replicasonsame>> and <<s-kubernetes-replicasondifferent>>).
+* `AutoPlace` Use LINSTOR autoplace, influenced by <<s-kubernetes-replicasonsame>> and <<s-kubernetes-replicasondifferent>>
 * `FollowTopology`: Use CSI Topology information to place at least one volume in each "preferred" zone. Only useable if CSI Topology is enabled.
 * `Manual`: Use only the nodes listed in `nodeList` and `clientList`.
 * `Balanced`: **EXPERIMENTAL** Place volumes across failure domains, using the least used storage pool on each selected node.
@@ -1015,8 +1012,8 @@ accessible.
 labels when <<s-kubernetes-autoplace,autoplace>> is used to determine where to
 provision storage. These labels correspond to LINSTOR node properties.
 
-IMPORTANT: LINSTOR node properties  are different from kubernetes node labels. You can see the properties of a node by
-running `linstor node list-properties <nodename>`. You can also set additional properties ("auxiliary properties"): `linstor node set-property <nodename> --aux <key> <value>`.
+NOTE: The operator periodically synchronizes all labels from Kubernetes Nodes, so you can use them as keys for
+scheduling constraints.
 
 Let's explore this behavior with examples assuming a LINSTOR cluster such that `node-a` is configured with the
 following auxiliary property `zone=z1` and `role=backups`, while `node-b` is configured with
@@ -1126,18 +1123,32 @@ and __PVC__s.
 [[s-kubernetes-add-snaphot-support]]
 ==== Adding snapshot support
 
-LINSTOR supports the volume snapshot feature, which is currently in beta. To use it, you need to install a cluster wide
-snapshot controller. This is done either by the cluster provider, or you can use the LINSTOR chart.
+LINSTOR supports the volume snapshot feature, which is configured in some, but not all Kubernetes distributions.
 
-By default, the LINSTOR chart will install its own snapshot controller. This can lead to conflict in some cases:
-
-* the cluster already has a snapshot controller
-* the cluster does not meet the minimal version requirements (>= 1.17)
-
-In such a case, installation of the snapshot controller can be disabled:
+To check if your Kubernetes distribution supports snapshots out of the box, run the following command:
 
 ----
---set csi-snapshotter.enabled=false
+$ kubectl get --raw /apis/snapshot.storage.k8s.io/v1
+{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"snapshot.storage.k8s.io/v1"...
+$ # If your distribution does NOT support snapshots out of the box, you will get a different response:
+$ kubectl get --raw /apis/snapshot.storage.k8s.io/v1
+Error from server (NotFound): the server could not find the requested resource
+----
+
+:snapshot-controller-link: https://github.com/kubernetes-csi/external-snapshotter/
+:piraeus-charts-link: https://artifacthub.io/packages/helm/piraeus-charts/snapshot-controller
+:piraeus-org: https://github.com/piraeusdatastore
+
+In case your Kubernetes distribution _does not_ support snapshots, you can manually add the
+{snapshot-controller-link}[required components] from the Kubernetes Storage SIG. For convenience, you can use
+{piraeus-charts-link}[Helm Charts] provided by the {piraeus-org}[Piraeus team] to add these components.
+
+.Adding snapshot support using the Piraeus Charts
+----
+$ kubectl create namespace snapshot-controller
+$ helm repo add piraeus-charts https://piraeus.io/helm-charts/
+$ helm install -n snapshot-controller snapshot-validation-webhook piraeus-charts/snapshot-validation-webhook
+$ helm install -n snapshot-controller snapshot-controller piraeus-charts/snapshot-controller --wait
 ----
 
 [[s-kubernetes-use-snapshot]]
@@ -1147,7 +1158,7 @@ Then we can create our _VolumeSnapshotClass_:
 .my-first-linstor-snapshot-class.yaml
 [source,yaml]
 ----
-apiVersion: snapshot.storage.k8s.io/v1beta1
+apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
 metadata:
   name: my-first-linstor-snapshot-class
@@ -1167,7 +1178,7 @@ is done with a _VolumeSnapshot_:
 .my-first-linstor-snapshot.yaml
 [source,yaml]
 ----
-apiVersion: snapshot.storage.k8s.io/v1beta1
+apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshot
 metadata:
   name: my-first-linstor-snapshot
