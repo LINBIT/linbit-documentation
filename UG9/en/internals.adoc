@@ -460,49 +460,6 @@ should, however, not do so light-heartedly -- interrupting
 re-synchronization leaves your secondary node's disk
 _Inconsistent_ longer than necessary.
 
-[[s-fence-peer]]
-=== The Peer-Fencing interface
-
-DRBD has an interface defined for fencingfootnote:[For a discussion about
-Fencing and STONITH, please see the corresponding Pacemaker page
-http://clusterlabs.org/doc/crm_fencing.html.] the peer
-node in case of the replication link being interrupted. The
-`drbd-peer-outdater` helper, bundled with Heartbeat, is the reference
-implementation for this interface. However, you may easily implement
-your own peer fencing helper program.
-
-The fencing helper is invoked only in case
-
-. a `fence-peer` handler has been defined in the resource's (or `common`)
-  `handlers` section, _and_
-
-. the `fencing` option for the resource is set to either
-  `resource-only` or `resource-and-stonith`, _and_
-
-. the replication link is interrupted long enough for DRBDfootnote:[That means
-  e.g. a TCP timeout, the `ping-timeout`, or the kernel
-  triggers a connection abort e.g. because the network link goes down.] to detect a
-  network failure.
-
-The program or script specified as the `fence-peer` handler, when it is
-invoked, has the `DRBD_RESOURCE` and `DRBD_PEER` environment variables
-available. They contain the name of the affected DRBD resource and the
-peer's hostname, respectively.
-
-Any peer fencing helper program (or script) must return one of the
-following exit codes:
-
-.`fence-peer` handler exit codes
-[format="csv",separator=";",options="header"]
-|=======================================
-Exit code;Implication
-3;Peer's disk state was already _Inconsistent_.
-4;Peer's disk state was successfully set to _Outdated_ (or was _Outdated_ to begin with).
-5;Connection to the peer node failed, peer could not be reached.
-6;Peer refused to be outdated because the affected resource was in the primary role.
-7;Peer node was successfully fenced off the cluster. This should never occur unless `fencing` is set to `resource-and-stonith` for the affected resource.
-|=======================================
-
 [[s-drbd-client-internals]]
 === The client mode
 

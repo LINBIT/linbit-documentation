@@ -19,11 +19,6 @@ system for this purpose. Typical examples include:
 
 * any other block device type found on your system.
 
-You may also use _resource stacking_, meaning you can use one DRBD
-device as a lower-level device for another. Some specific
-considerations apply to stacked resources; their configuration is
-covered in detail in <<s-three-nodes>>.
-
 NOTE: While it is possible to use loop devices as lower-level devices
 for DRBD, doing so is not recommended due to deadlock issues.
 
@@ -385,42 +380,13 @@ option uses the `tcp` transport.
 The `tcp` transport can be configured with the net options: `sndbuf-size`, `rcvbuf-size`,
 `connect-int`, `sock-check-timeo`, `ping-timeo`, `timeout`.
 
-[[s-rdma]]
-===== RDMA
----------------------
-resource <resource> {
-  net {
-    transport "rdma";
-  }
-  ...
-}
----------------------
-The `rdma` transport can be configured with the net options: `sndbuf-size`, `rcvbuf-size`,
-`max_buffers`, `connect-int`, `sock-check-timeo`, `ping-timeo`, `timeout`.
-
-The `rdma` transport is a zero-copy-receive transport. One implication of that is that
-the `max_buffers` configuration options must be set to a value big enough to hold all
-`rcvbuf-size`.
-
 NOTE: `rcvbuf-size` is configured in bytes, while `max_buffers` is configured in pages. For
 optimal performance `max_buffers` should be big enough to hold all of `rcvbuf-size` and
 the amount of data that might be in flight to the backend device at any point in time.
 
-TIP: In case you are using InfiniBand HCAs with the `rdma` transport, you need to
-configure IPoIB as well. The IP address is not used for data transfer, but it is used
-to find the right adapters and ports while establishing the connection.
-
 CAUTION: The configuration options `sndbuf-size`, `rcvbuf-size` are only considered at
 the time a connection is established. I.e. you can change them while the connection is
 established. They will take effect in the moment the connection is re-established.
-
-[[s-performance_considerations_for_rdma]]
-===== Performance considerations for RDMA
-
-By looking at the pseudo file _/sys/kernel/debug/drbd/<resource>/connections/<peer>/transport_,
-the counts of available receive descriptors (rx_desc) and transmit descriptors (tx_desc)
-can be monitored. In case one of the descriptor kinds becomes depleted you should increase
-`sndbuf-size` or `rcvbuf-size`.
 
 [[s-first-time-up]]
 ==== Enabling your resource for the first time
@@ -663,11 +629,6 @@ be a brief synchronization period due to areas covered by the
 <<s-activity-log,Activity Log>> being rolled back on the new
 Secondary. This may be mitigated by the use of
 <<p-checksum-sync,checksum-based synchronization>>.
-
-You may use this same procedure regardless of whether the resource is
-a regular DRBD resource, or a stacked resource. For stacked resources,
-simply add the `-S` or `--stacked` option to `drbdadm`.
-
 
 [[s-4node-example]]
 ==== Example configuration for four nodes

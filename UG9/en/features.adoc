@@ -20,26 +20,6 @@ ext4, XFS etc.).
 Deploying DRBD in single-primary mode is the canonical approach for
 High-Availability (fail-over capable) clusters.
 
-[[s-dual-primary-mode]]
-=== Dual-primary mode
-
-In dual-primary mode a resource can be in the
-primary role on two nodes at a time. Since concurrent access to the
-data is thus possible, this mode usually requires the use of a shared cluster
-file system that utilizes a distributed lock manager.
-ifndef::drbd-only[]
-Examples include <<ch-gfs,GFS>> and <<ch-ocfs2,OCFS2>>.
-endif::drbd-only[]
-
-Deploying DRBD in dual-primary mode is the preferred approach for
-load-balancing clusters which require concurrent data access from two
-nodes, e.g. virtualization environments with a need for live-migration.
-This mode is disabled by default, and must be enabled
-explicitly in DRBD's configuration file.
-
-See <<s-enable-dual-primary>> for information on enabling dual-primary
-mode for specific resources.
-
 [[s-replication-protocols]]
 === Replication modes
 
@@ -108,20 +88,6 @@ loss, because only one level of data replication is being used.
 // E.g. if availability for a single node is 99%, for two nodes it might
 // be 99.99%, for three nodes 99.999%
 
-[[s-automatic-promotion]]
-=== Automatic Promotion of Resources
-
-Prior to DRBD 9, promoting a resource would be done with the `drbdadm primary` command. With DRBD
-9, DRBD will automatically promote a resource to primary role when the `auto-promote`
-option is enabled, and one of its volumes is
-mounted or opened for writing. As soon as all volumes are unmounted or closed, the role
-of the resource changes back to secondary.
-
-Automatic promotion will only succeed if the cluster state allows it (that is, if an
-explicit `drbdadm primary` command would succeed). Otherwise, mounting or opening
-the device fails as it did prior to DRBD 9.
-
-
 [[s-replication-transports]]
 === Multiple replication transports
 DRBD supports multiple network transports. As of now two transport
@@ -154,37 +120,6 @@ transports such as InfiniBand. SDP was available as part of the OFED
 stack of most distributions but is now *considered deprecated*. SDP uses an IPv4-style
 addressing scheme. Employed over an InfiniBand interconnect, SDP
 provides a high-throughput, low-latency replication network to DRBD.
-
-.SuperSockets
-SuperSockets replace the TCP/IP portions of the stack with a single,
-monolithic, highly efficient and RDMA capable socket
-implementation. DRBD can use this socket type for very low latency
-replication. SuperSockets must run on specific hardware which is
-currently available from a single vendor, Dolphin Interconnect
-Solutions.
-
-[[s-rdma_transport]]
-==== RDMA Transport
-Alternatively the `drbd_transport_rdma.ko` kernel module is available
-ifndef::de-brand[]
-from LINBIT
-endif::de-brand[]
-.
-This transport uses the verbs/RDMA API to move data over InfiniBand HCAs, iWARP
-capable NICs or RoCE capable NICs. In contrast to the BSD sockets API (used by
-TCP/IP) the verbs/RDMA API allows data movement with very little CPU
-involvement.
-
-[[s-conclusion]]
-==== Conclusion
-
-At high transfer rates it might be possible that the CPU load/memory
-bandwidth of the tcp transport becomes the limiting factor. You can
-probably achieve higher transfer rates using the rdma transport with
-appropriate hardware.
-
-A transport implementation can be configured for each connection of a
-resource. See <<s-configuring-transports>> for more details.
 
 [[s-resync]]
 === Efficient synchronization
@@ -366,75 +301,6 @@ data corruption during the replication process:
 See <<s-configure-integrity-check>> for information on how to enable
 replication traffic integrity checking.
 
-[[s-split-brain-notification-and-recovery]]
-===  Split brain notification and automatic recovery
-
-Split brain is a situation where, due to temporary failure of all
-network links between cluster nodes, and possibly due to intervention
-by a cluster management software or human error, both nodes switched
-to the _Primary_ role while disconnected. This is a potentially harmful
-state, as it implies that modifications to the data might have been
-made on either node, without having been replicated to the peer. Thus,
-it is likely in this situation that two diverging sets of data have
-been created, which cannot be trivially merged.
-
-DRBD split brain is distinct from cluster split brain, which is the
-loss of all connectivity between hosts managed by a distributed
-cluster management application such as Pacemaker. To avoid confusion,
-this guide uses the following convention:
-
-* _Split brain_ refers to DRBD split brain as described in the
-  paragraph above.
-
-* Loss of all cluster connectivity is referred to as a _cluster
-  partition_, an alternative term for cluster split brain.
-
-DRBD allows for automatic operator notification (by email or other
-means) when it detects split brain. See <<s-split-brain-notification>>
-for details on how to configure this feature.
-
-While the recommended course of action in this scenario is to
-<<s-resolve-split-brain,manually resolve>> the split brain and then
-eliminate its root cause, it may be desirable, in some cases, to
-automate the process. DRBD has several resolution algorithms available
-for doing so:
-
-* *Discarding modifications made on the younger primary.* In this
-  mode, when the network connection is re-established and split brain
-  is discovered, DRBD will discard modifications made, in the
-  meantime, on the node which switched to the primary role _last_.
-
-* *Discarding modifications made on the older primary.* In this mode,
-  DRBD will discard modifications made, in the meantime, on the node
-  which switched to the primary role _first_.
-
-* *Discarding modifications on the primary with fewer changes.* In
-  this mode, DRBD will check which of the two nodes has recorded fewer
-  modifications, and will then discard _all_ modifications made on
-  that host.
-
-* *Graceful recovery from split brain if one host has had no
-  intermediate changes.* In this mode, if one of the hosts has made no
-  modifications at all during split brain, DRBD will simply recover
-  gracefully and declare the split brain resolved. Note that this is a
-  fairly unlikely scenario. Even if both hosts only mounted the file
-  system on the DRBD block device (even read-only), the device
-  contents typically would be modified (e.g. by filesystem journal
-  replay), ruling out the possibility of automatic
-  recovery.
-
-Whether or not automatic split brain recovery is acceptable depends
-largely on the individual application.  Consider the example of DRBD
-hosting a database. The discard modifications from host with fewer
-changes approach may be fine for a web application click-through
-database. By contrast, it may be totally unacceptable to automatically
-discard _any_ modifications made to a financial database, requiring
-manual recovery in any split brain event. Consider your application's
-requirements carefully before enabling automatic split brain recovery.
-
-Refer to <<s-automatic-split-brain-recovery-configuration>> for
-details on configuring DRBD's automatic split brain recovery policies.
-
 [[s-disk-flush-support]]
 === Support for disk flushes
 
@@ -575,38 +441,6 @@ Whenever an outdated resource has its replication link re-established,
 its outdated flag is automatically cleared. A <<s-resync,background
 synchronization>> then follows.
 
-[[s-three-way-repl]]
-=== Three-way replication via stacking
-
-NOTE: Available in DRBD version 8.3.0 and above; deprecated in DRBD version
-9.x, as more nodes can be implemented on a single level. See
-<<s-drbdconf-conns>> for details.
-
-When using three-way replication, DRBD adds a third node to an
-existing 2-node cluster and replicates data to that node, where it can
-be used for backup and disaster recovery purposes.
-ifndef::drbd-only,de-brand[]
-This type of configuration generally involves <<s-drbd-proxy>>.
-endif::[]
-
-Three-way replication works by adding another, _stacked_ DRBD resource
-on top of the existing resource holding your production data, as seen
-in this illustration:
-
-.DRBD resource stacking
-image::images/drbd-resource-stacking.svg[]
-
-The stacked resource is replicated using asynchronous replication
-(DRBD protocol A), whereas the production data would usually make use
-of synchronous replication (DRBD protocol C).
-
-Three-way replication can be used permanently, where the third node is
-continuously updated with data from the production
-cluster. Alternatively, it may also be employed on demand, where the
-production cluster is normally disconnected from the backup site, and
-site-to-site synchronization is performed on a regular basis, for
-example by running a nightly cron job.
-
 ifndef::drbd-only,de-brand[]
 [[s-drbd-proxy]]
 === Long-distance replication via DRBD Proxy
@@ -726,43 +560,6 @@ nodes. The _DRBD client_ will evenly distribute the read requests among all
 available server nodes.
 
 See <<s-permanently-diskless-nodes>> for more information.
-
-[[s-feature-quorum]]
-=== Quorum
-
-In order to avoid split brain or diverging data of replicas one has to configure
-fencing. It turns out that in real world deployments node fencing is not popular
-because often mistakes happen in planning or deploying it.
-
-In the moment a data-set has 3 replicas one can rely on the quorum implementation
-within DRBD instead of cluster manager level fencing.
-ifndef::drbd-only[]
-Pacemaker gets informed about quorum or loss-of-quorum via the master score of
-the resource.
-endif::drbd-only[]
-
-DRBD's quorum can be used with any kind of Linux based service. In case the
-service terminates in the moment it is exposed to an IO-error the on quorum
-loss behavior is very elegant.
-In case the service does not terminate upon IO-error the systems needs to
-be configured to reboot a primary node that looses quorum.
-
-See <<s-configuring-quorum>> for more information.
-
-[[s-feature-quorum-tiebreaker]]
-==== Tiebreaker
-
-[NOTE]
-====================
-The quorum tiebreaker feature is available in DRBD versions 9.0.18 and above.
-====================
-
-The fundamental problem with two node clusters is that in the moment they lose
-connectivity we have two partitions and none of them has quorum, which results
-in the cluster halting the service. This problem can be mitigated by adding a
-third, diskless node to the cluster which will then act as a quorum tiebreaker.
-
-See <<s-configuring-quorum-tiebreaker>> for more information.
 
 ifndef::drbd-only[]
 [[s-feature-VCS]]
