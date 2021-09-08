@@ -1,0 +1,66 @@
+=== Enabling dual-primary mode
+
+Dual-primary mode allows a resource to assume the primary role
+simultaneously on more than one node. Doing so is possible on either a
+permanent or a temporary basis.
+
+[NOTE]
+===============================
+Dual-primary mode requires that the resource is configured to
+replicate synchronously (protocol C). Because of this it is latency
+sensitive, and ill suited for WAN environments.
+
+Additionally, as both resources are always primary, any interruption in the
+network between nodes will result in a split-brain.
+===============================
+
+WARNING: In DRBD 9.0.x Dual-Primary mode is limited to exactly 2 Primaries for the use in live migration.
+
+[[s-enable-dual-primary-permanent]]
+==== Permanent dual-primary mode
+
+indexterm:[multiple primaries]indexterm:[dual-primary mode]To enable dual-primary mode, set the
+`allow-two-primaries` option to `yes` in the `net` section of your
+resource configuration:
+
+[source,drbd]
+----------------------------
+resource <resource>
+  net {
+    protocol C;
+    allow-two-primaries yes;
+    fencing resource-and-stonith;
+  }
+  handlers {
+    fence-peer "...";
+    unfence-peer "...";
+  }
+  ...
+}
+----------------------------
+
+After that, do not forget to synchronize the configuration between nodes. Run
+`drbdadm adjust _<resource>_` on both nodes.
+
+You can now change both nodes to role primary at the same time with
+`drbdadm primary _<resource>_`.
+
+CAUTION: You should always implement suitable fencing policies.
+Using 'allow-two-primaries' without fencing is a very bad idea,
+even worse than using single-primary without fencing.
+
+[[s-enable-dual-primary-temporary]]
+==== Temporary dual-primary mode
+
+To temporarily enable dual-primary mode for a resource normally
+running in a single-primary configuration, issue the following
+command:
+
+----------------------------
+# drbdadm net-options --protocol=C --allow-two-primaries <resource>
+----------------------------
+
+To end temporary dual-primary mode, run the same command as above but with
+`--allow-two-primaries=no` (and your desired replication protocol, if
+applicable).
+
