@@ -11,10 +11,6 @@ and behavior.
 
 With DRBD 9 data can be replicated across more than two nodes.
 
-This also means that stacking DRBD volumes is now deprecated (though still
-possible); and that using DRBD as a network-blockdevice (a
-<<s-drbd-client,__DRBD client__>>) now makes sense.
-
 Associated with this change are
 
 * Metadata size changes (one bitmap per peer)
@@ -26,17 +22,6 @@ Associated with this change are
 
 * The <<s-activity-log,activity log>> is used even when in
   <<s-resource-roles,Secondary>> role
-
-[[s-recent-changes-auto-promote]]
-=== Auto-Promote Feature
-
-DRBD 9 can be configured to do the _Primary_/_Secondary_ <<s-resource-roles,role switch>>
-automatically, on demand.
-
-This feature replaces both the `become-primary-on` configuration value, as well
-as the old Heartbeat v1 `drbddisk` script.
-
-Please see <<s-automatic-promotion>> for more details.
 
 [[s-recent-changes-performance]]
 === Increased Performance
@@ -153,115 +138,6 @@ resource test {
 }
 ----------------------------
 
-[[s-recent-changes-config-syncer]]
-==== `syncer` section no longer exists
-
-Prior to DRBD 8.4, the configuration syntax allowed for a `syncer`
-section which has become obsolete in 8.4. All previously existing
-`syncer` options have now moved into the `net` or `disk` sections of
-resources.
-
-.Pre-DRBD 8.4 configuration example with `syncer` section
-[source,drbd]
-----------------------------
-resource test {
-  syncer {
-    al-extents 3389;
-    verify-alg md5;
-  }
-  ...
-}
-----------------------------
-
-The above example is expressed, in DRBD 8.4 syntax, as follows:
-
-.DRBD 8.4 configuration example with `syncer` section replaced
-[source,drbd]
-----------------------------
-resource test {
-  disk {
-    al-extents 3389;
-  }
-  net {
-    verify-alg md5;
-  }
-  ...
-}
-----------------------------
-
-[[s-recent-changes-config-protocol]]
-==== `protocol` option is no longer special
-
-In prior DRBD releases, the `protocol` option was awkwardly (and
-counter-intuitively) required to be specified on its own, rather than
-as part of the `net` section. DRBD 8.4 removes this anomaly:
-
-.Pre-DRBD 8.4 configuration example with standalone `protocol` option
-[source,drbd]
-----------------------------
-resource test {
-  protocol C;
-  ...
-  net {
-    ...
-  }
-  ...
-}
-----------------------------
-
-The equivalent DRBD 8.4 configuration syntax is:
-
-.DRBD 8.4 configuration example with `protocol` option within `net` section
-[source,drbd]
-----------------------------
-resource test {
-  net {
-    protocol C;
-    ...
-  }
-  ...
-}
-----------------------------
-
-
-[[s-recent-changes-config-options]]
-==== New per-resource `options` section
-
-DRBD 8.4 introduces a new `options` section that may be specified
-either in a `resource` or in the `common` section. The `cpu-mask`
-option has moved into this section from the `syncer` section in which
-it was awkwardly configured before. The `on-no-data-accessible` option
-has also moved to this section, rather than being in `disk` where
-it had been in pre-8.4 releases.
-
-.Pre-DRBD 8.4 configuration example with `cpu-mask` and `on-no-data-accessible`
-[source,drbd]
-----------------------------
-resource test {
-  syncer {
-    cpu-mask ff;
-  }
-  disk {
-    on-no-data-accessible suspend-io;
-  }
-  ...
-}
-----------------------------
-
-The equivalent DRBD 8.4 configuration syntax is:
-
-.DRBD 8.4 configuration example with `options` section
-[source,drbd]
-----------------------------
-resource test {
-  options {
-    cpu-mask ff;
-    on-no-data-accessible suspend-io;
-  }
-  ...
-}
-----------------------------
-
 
 [[s-recent-changes-net]]
 === On-line changes to network communications
@@ -282,26 +158,6 @@ replication from its normal, synchronous replication mode.
 ----------------------------
 drbdadm net-options --protocol=A <resource>
 ----------------------------
-
-[[s-recent-changes-switch-dual-primary]]
-==== Changing from single-Primary to dual-Primary replication
-
-Prior to DRBD 8.4, it was impossible to switch between single-Primary
-to dual-Primary or back while the resource was on-line and active. You
-would have to change the `allow-two-primaries` option in your resource
-configuration file, then issue `drbdadm disconnect` and finally
-`drbdadm connect` on both nodes.
-
-In DRBD 8.4, it is possible to switch modes on-line.
-
-CAUTION: It is _required_ for an application using DRBD dual-Primary
-mode to use a clustered file system or some other distributed locking
-mechanism. This applies regardless of whether dual-Primary mode is
-enabled on a temporary or permanent basis.
-
-Refer to <<s-enable-dual-primary-temporary>> for switching to
-dual-Primary mode while the resource is on-line.
-
 
 [[s-recent-changes-drbdadm]]
 === Changes to the `drbdadm` command
