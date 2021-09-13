@@ -466,10 +466,10 @@ _Inconsistent_ longer than necessary.
 DRBD has an interface defined for fencingfootnote:[For a discussion about
 Fencing and STONITH, please see the corresponding Pacemaker page
 http://clusterlabs.org/doc/crm_fencing.html.] the peer
-node in case of the replication link being interrupted. The
-`drbd-peer-outdater` helper, bundled with Heartbeat, is the reference
-implementation for this interface. However, you may easily implement
-your own peer fencing helper program.
+node in case of the replication link being interrupted. The `fence-peer`
+should mark the disk(s) on the peer node as _Outdated_, or shut down
+the peer node. It has to fulfill these tasks under the assumption that
+the replication network is down.
 
 The fencing helper is invoked only in case
 
@@ -479,10 +479,14 @@ The fencing helper is invoked only in case
 . the `fencing` option for the resource is set to either
   `resource-only` or `resource-and-stonith`, _and_
 
-. the replication link is interrupted long enough for DRBDfootnote:[That means
-  e.g. a TCP timeout, the `ping-timeout`, or the kernel
-  triggers a connection abort e.g. because the network link goes down.] to detect a
-  network failure.
+. the node was primary _and_ the replication link is interrupted long enough
+  for DRBDfootnote:[That means e.g. a TCP timeout, the `ping-timeout`, or
+  the kernel triggers a connection abort e.g. because the network link goes down.]
+  to detect a network failure. _or_
+
+. the node should promote to primary _and_ is not connected to the peer _and_
+  the peer's disks are not already marked as _Outdated_.
+
 
 The program or script specified as the `fence-peer` handler, when it is
 invoked, has the `DRBD_RESOURCE` and `DRBD_PEER` environment variables
