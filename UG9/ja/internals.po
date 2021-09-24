@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-04-14 14:39+0900\n"
+"POT-Creation-Date: 2021-09-24 15:36+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1001,16 +1001,18 @@ msgid ""
 "DRBD has an interface defined for fencingfootnote:[For a discussion about "
 "Fencing and STONITH, please see the corresponding Pacemaker page http://"
 "clusterlabs.org/doc/crm_fencing.html.] the peer node in case of the "
-"replication link being interrupted. The `drbd-peer-outdater` helper, bundled "
-"with Heartbeat, is the reference implementation for this interface. However, "
-"you may easily implement your own peer fencing helper program."
+"replication link being interrupted. The `fence-peer` should mark the disk(s) "
+"on the peer node as _Outdated_, or shut down the peer node. It has to "
+"fulfill these tasks under the assumption that the replication network is "
+"down."
 msgstr ""
-"DRBDにはレプリケーションリンクが途切れたときに対向ノードをフェンシング"
-"footnote:[フェンシングとSTONITHについてはhttp://clusterlabs.org/doc/"
-"crm_fencing.htmlの対応するPacemakerのページをご参照ください]するよう定義され"
-"たインタフェースがあります。Heartbeatに同梱の `drbd-peer-outdater` ヘルパーは"
-"このインタフェースのリファレンス実装です。ただし、独自のpeer fencingヘルパー"
-"プログラムも簡単に実装できます。"
+"DRBDにはレプリケーションリンクが途切れたときに対向ノードをフェンシング "
+"footnote:[フェンシングとSTONITHについては http://clusterlabs.org/doc/"
+"crm_fencing.html の対応するPacemakerのページをご参照ください] するよう定義さ"
+"れたインタフェースがあります。 `fence-peer` は、対向ノード上のディスクを "
+"_Outdated_ としてマークするか、対向ノードをシャットダウンする必要があります。"
+"レプリケーションネットワークがダウンしていることを前提として、これらのタスク"
+"を実行する必要があります。"
 
 #. type: Plain text
 msgid "The fencing helper is invoked only in case"
@@ -1034,13 +1036,23 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"the replication link is interrupted long enough for DRBDfootnote:[That means "
-"e.g. a TCP timeout, the `ping-timeout`, or the kernel triggers a connection "
-"abort e.g. because the network link goes down.] to detect a network failure."
+"the node was primary _and_ the replication link is interrupted long enough "
+"for DRBDfootnote:[That means e.g. a TCP timeout, the `ping-timeout`, or the "
+"kernel triggers a connection abort e.g. because the network link goes down.] "
+"to detect a network failure. _or_"
 msgstr ""
-"レプリケーションリンクの中断時間が、DRBDがネットワーク障害を検出するために十"
-"分であるfootnote:[ネットワークリンク切断によるTCPタイムアウト、 `ping-"
-"timeout` 、またはカーネルによるコネクション中断など]"
+"ノードはプライマリであった。レプリケーションリンクは DRBD がネットワーク障害"
+"を検出 [つまり TCP タイムアウト、`ping-timeout`、またはカーネルがネットワーク"
+"障害を検出、例えばネットワークリンクがダウンしたときなど] するのに十分な時間"
+"中断され 、"
+
+#. type: Plain text
+msgid ""
+"the node should promote to primary _and_ is not connected to the peer _and_ "
+"the peer's disks are not already marked as _Outdated_."
+msgstr ""
+"ノードはプライマリにプロモートする必要があり、対向ノードに接続されておらず、"
+"対向ノードのディスクはまだ _Outdated_ としてマークされていない"
 
 #. type: Plain text
 msgid ""
@@ -1083,3 +1095,96 @@ msgstr ""
 "5;対向ノードへの接続に失敗。対向ノードに到達できなかった。\n"
 "6;影響を受けるリソースがプライマリロールになっていたため、対向ノードを無効にできなかった。\n"
 "7;対向ノードがクラスタから正常にフェンシングされた。影響を受けるリソースの `fencing` を `resource-and-stonith` に設定しておかなければ発生しない。\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "The client mode"
+msgstr "クライアントモード"
+
+#. type: Plain text
+msgid ""
+"Since version 9.0.13 DRBD supports clients. A client in DRBD speak is just a "
+"permanently diskless node. In the configuration, it is expressed by using "
+"the keyword `none` for the backing block device (the `disk` keyword). You "
+"will notice that in the `drbdsetup status` output you will see the "
+"`Diskless` disk status displayed in green color. (Usually, a disk state of "
+"`Diskless` is displayed in red)."
+msgstr ""
+"バージョン 9.0.13 以降、DRBD はクライアントモードをサポートします。 DRBD クラ"
+"イアントは、永続的にディスクレスノードです。下位ブロックデバイスにキーワード "
+"`none` ( `disk` キーワード) を使用して構成します。 `drbdsetup status` の出力"
+"に `Diskless` ディスクのステータスが緑色で表示されます（通常 `Diskless` の"
+"ディスク状態は赤で表示されます）。"
+
+#. type: Plain text
+msgid ""
+"Internally all the peers of an intentional diskless node are configured with "
+"the `peer-device-option` `--bitmap=no`. That means that they will not "
+"allocate a bitmap slot in the meta-data for the intentional diskless peer. "
+"On the intentional diskless node the device gets marked with the option `--"
+"diskless=yes` while it is created with the `new-minor` sub-command of "
+"`drbdsetup`."
+msgstr ""
+"内部的には、意図的なディスクレスノードのすべての対向ノードは `peer-device-"
+"option` `--bitmap=no` で構成されています。つまり、意図的なディスクレスでは、"
+"対向ノードのメタデータにビットマップスロットを割り当てないということです。意"
+"図的なディスクレスノードでは、デバイスは `drbdsetup` のサブコマンド `new-"
+"minor` で作成されている間、オプション `--diskless=yes` でマークされます。"
+
+#. type: Plain text
+msgid "These flags are visible through the `events2` status command:"
+msgstr "これらのフラグは `events2` ステータスコマンドで表示できます。"
+
+#. type: Plain text
+msgid ""
+"a `device` might have the `client:` field. If it reports `yes` the local "
+"device was marked to be permanently diskless."
+msgstr ""
+"`device` は `client:` フィールドを持つかもしれません。 `yes` で表示された場"
+"合、ローカルデバイスは永続的にディスクレスであるとマークされています。"
+
+#. type: Plain text
+msgid ""
+"a `peer-device` might have the `peer-client` filed. If it says `yes` then "
+"there is no change-tracking bitmap to that peer."
+msgstr ""
+"`peer-device` は `peer-client` フィールドを持つかもしれません。 `yes` で表示"
+"された場合、その対向ノードへの変更追跡ビットマップはありません。"
+
+#. type: Plain text
+msgid "Relevant commands and implications:"
+msgstr "関連するコマンドと影響"
+
+#. type: Plain text
+msgid ""
+"You can only run `drbdsetup peer-device-options --bitmap=yes ...` if bitmap "
+"slots are available in the meta-data, since a bitmap-slot gets allocated."
+msgstr ""
+"ビットマップスロットが割り当てられるため、メタデータでビットマップスロットが"
+"使用可能な場合にのみ `drbdsetup peer-device-options --bitmap=yes ...` を実行"
+"できます。"
+
+#. type: Plain text
+msgid ""
+"The command `drbdsetup peer-device-options --bitmap=no ...` is only possible "
+"if the peer is diskless, it does _not_ unallocate the bitmap-slot."
+msgstr ""
+"コマンド `drbdsetup peer-device-options --bitmap=no ...` は、対向ノードがディ"
+"スクレスの場合にのみ可能であり、ビットマップスロットの割り当てを解除しませ"
+"ん。"
+
+#. type: Plain text
+msgid ""
+"`drbdsetup forget-peer ...` is used to irrevocable free the bitmap-slot "
+"assigned to a certain peer."
+msgstr ""
+"`drbdsetup forget-peer ...` は、特定の対向ノードに割り当てられたビットマップ"
+"スロットを解放するために使用されます。"
+
+#. type: Plain text
+msgid ""
+"Connecting two peers with disk where one (or both) expect the peer to be "
+"permanently diskless fails."
+msgstr ""
+"1つ（または両方）が対向ノードが永続的にディスクレスであると予想する場合に、2"
+"つの対向ノードに接続すると失敗します。"
