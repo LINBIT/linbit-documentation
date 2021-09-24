@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-07-27 17:01+0900\n"
+"POT-Creation-Date: 2021-09-24 15:36+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1967,7 +1967,7 @@ msgstr ""
 msgid ""
 "# mv /var/lib/linstor{,.orig}\n"
 "# mkdir /var/lib/linstor\n"
-"# chattr +i /var/lib/linstor\n"
+"# chattr +i /var/lib/linstor  # only if on LINSTOR >= 1.14.0\n"
 "# drbdadm primary linstor_db\n"
 "# mkfs.ext4 /dev/drbd/by-res/linstor_db/0\n"
 "# systemctl start var-lib-linstor.mount\n"
@@ -1976,7 +1976,7 @@ msgid ""
 msgstr ""
 "# mv /var/lib/linstor{,.orig}\n"
 "# mkdir /var/lib/linstor\n"
-"# chattr +i /var/lib/linstor\n"
+"# chattr +i /var/lib/linstor  # only if on LINSTOR >= 1.14.0\n"
 "# drbdadm primary linstor_db\n"
 "# mkfs.ext4 /dev/drbd/by-res/linstor_db/0\n"
 "# systemctl start var-lib-linstor.mount\n"
@@ -2002,24 +2002,26 @@ msgstr "複数のLINSTORコントローラー"
 #. type: Plain text
 msgid ""
 "The next step is to install LINSTOR controllers on all nodes that have "
-"access to the \"linstor\" DRBD resource (as they need to mount the DRBD "
+"access to the `linstor_db` DRBD resource (as they need to mount the DRBD "
 "volume) and which you want to become a possible LINSTOR controller. It is "
 "important that the controllers are manged by `drbd-reactor`, so make sure "
 "the `linstor-controller.service` is disabled on all nodes! To be sure, "
 "execute `systemctl disable linstor-controller` on all cluster nodes and "
 "`systemctl stop linstor-controller` on all nodes except the one it is "
 "currently running from the previous step. Also make sure to set `chattr +i /"
-"var/lib/linstor` on all potential controller nodes."
+"var/lib/linstor` on all potential controller nodes if you use LINSTOR "
+"version equal or greater to 1.14.0."
 msgstr ""
-"次のステップは、\"linstor\" DRBD リソースにアクセスでき（DRBD ボリュームをマ"
-"ウントする必要があるため）、LINSTOR コントローラーになる可能性のあるすべての"
-"ノードに LINSTOR コントローラーをインストールすることです。コントローラが "
+"次のステップは、\"linstor_db\" DRBD リソースにアクセスでき（DRBD ボリュームを"
+"マウントする必要があるため）、LINSTOR コントローラーになる可能性のあるすべて"
+"のノードに LINSTOR コントローラーをインストールすることです。コントローラが "
 "`drbd-reactor` によって管理されていることが重要なので、すべてのノードで "
 "`linstor-controller.service` が無効になっていることを確認してください。すべて"
 "のクラスターノードで `systemctl disable linstor-controller` を実行し、前の手"
 "順で現在実行しているノードを除くすべてのノードで `systemctl stop linstor-"
-"controller` を実行します。また、すべての潜在的なコントローラーノードで "
-"`chattr +i /var/lib/linstor` を設定してください。"
+"controller` を実行します。また、LINSTOR バージョン 1.14.0 以上を使用している"
+"場合、すべての潜在的なコントローラーノードで `chattr +i /var/lib/linstor` を"
+"設定してください。"
 
 #. type: Title ====
 #, no-wrap
@@ -2536,8 +2538,8 @@ msgstr ""
 
 #. type: delimited block -
 #, no-wrap
-msgid "# linstor resource-definition create nvmedata  -l nvme,storage\n"
-msgstr "# linstor resource-definition create nvmedata  -l nvme,storage\n"
+msgid "# linstor resource-definition create nvmedata -l nvme,storage\n"
+msgstr "# linstor resource-definition create nvmedata -l nvme,storage\n"
 
 #. type: Plain text
 msgid ""
@@ -2550,8 +2552,29 @@ msgstr ""
 "い場合は、 `-l` パラメータを `storage` だけに設定する必要があります。"
 
 #. type: Plain text
-msgid "Create the volume-definition for our resource:"
-msgstr "リソース用の volume-definition を作成します。"
+msgid ""
+"In order to use NVMe-TCP instead of the default NVMe-oF the following "
+"property needs to be set:"
+msgstr ""
+"デフォルトの NVMe-oF の代わりに NVMe-TCP を使用するには、次のプロパティを設定"
+"する必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# linstor resource-definition set-property nvmedata NVMe/TRType tcp\n"
+msgstr "# linstor resource-definition set-property nvmedata NVMe/TRType tcp\n"
+
+#. type: Plain text
+msgid ""
+"The property `NVMe/TRType` can alternatively be set on resource-group or "
+"controller level."
+msgstr ""
+"プロパティ `NVMe/TRType` は、リソースグループまたはコントローラーレベルで設定"
+"することもできます。"
+
+#. type: Plain text
+msgid "Next, create the volume-definition for our resource:"
+msgstr "次に、リソース用の volume-definition を作成します。"
 
 #. type: delimited block -
 #, no-wrap
@@ -2585,13 +2608,8 @@ msgstr ""
 
 #. type: delimited block -
 #, no-wrap
-msgid "# linstor resource create beta nvmedata -d\n"
-msgstr "# linstor resource create beta nvmedata -d\n"
-
-#. type: Plain text
-msgid "The `-d` parameter creates the resource on this node as diskless."
-msgstr ""
-"`-d` パラメータはこのノード上にディスクレスとしてリソースを作成します。"
+msgid "# linstor resource create beta nvmedata --nvme-initiator\n"
+msgstr "# linstor resource create beta nvmedata --nvme-initiator\n"
 
 #. type: Plain text
 msgid "Now you can mount the resource `nvmedata` on one of your nodes."
@@ -2984,10 +3002,10 @@ msgstr ""
 #, no-wrap
 msgid ""
 "# linstor volume-definition set-property r1 0 Cache/CachePool pmempool\n"
-"# linstor volume-definition set-property r1 0 Cache/Size 1%\n"
+"# linstor volume-definition set-property r1 0 Cache/Cachesize 1%\n"
 msgstr ""
 "# linstor volume-definition set-property r1 0 Cache/CachePool pmempool\n"
-"# linstor volume-definition set-property r1 0 Cache/Size 1%\n"
+"# linstor volume-definition set-property r1 0 Cache/Cachesize 1%\n"
 
 #. type: delimited block -
 #, no-wrap
@@ -3167,6 +3185,14 @@ msgid ""
 msgstr ""
 "OpenFlex: この特別なストレージプロバイダーは現在、特別なサテライトで実行する"
 "必要があります。詳細は <<s-openflex, OpenFlex(TM) Layer>> を参照ください。"
+
+#. type: Plain text
+msgid ""
+"EXOS: This special storage provider currently requires to be run on a "
+"\"special satellite\".  Please see the <<ch-exos, EXOS Integration>> chapter"
+msgstr ""
+"EXOS: この特別なストレージプロバイダーは現在、特別なサテライトで実行する必要"
+"があります。詳細は <<ch-exos, EXOS Integration>> を参照ください。"
 
 #. type: Plain text
 msgid ""
