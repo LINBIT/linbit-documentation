@@ -1651,6 +1651,178 @@ An existing snapshot can be removed as follows:
 [[s-shipping_snapshots-linstor]]
 ==== Shipping a snapshot
 
+Snapshots can be shipped between LINSTOR nodes or between different LINSTOR clusters,
+as well as to an S3 storage such as https://aws.amazon.com/s3/[Amazon S3] or https://min.io/[min.io].
+
+[[s-shipping_snapshots-remotes]]
+===== Remotes
+
+In a LINSTOR cluster, the definition of a shipping target is called a remote.
+Currently, there are two different types of remotes: LINSTOR remotes and S3 remotes.
+LINSTOR remotes are used to ship snapshots to a different LINSTOR cluster, while
+S3 remotes are needed to ship snapshots to AWS S3, min.io or any other service using S3
+compatible object storage.
+
+INFO: Since a remote needs to store sensitive data, such as passwords, it is
+neccessary to have encryption enabled whenever you wish to use a remote in any way.
+How to set up LINSTOR's encryption is described <<s-encrypt_commands,here>>.
+
+To create an S3 remote, LINSTOR will need to know the endpoint
+(that is, the URL of the target S3 server), the name of the target bucket, the region the S3
+server is in, as well as the access-key and secret-key used to access the bucket. If the command
+is sent without adding the secret-key, a prompt will pop up to enter it in. The command
+should look like this:
+
+--------------------------
+# linstor remote create s3 myRemote s3.us-west-2.amazonaws.com my-bucket us-west-2 admin password
+--------------------------
+
+INFO: Usually, LINSTOR uses the endpoint and bucket to create an url using the virtual-hosted-style
+for its access to the given bucket (e.g. my-bucket.s3.us-west-2.amazonaws.com). Should your setup not
+allow access this way, change the remote to path-style access (e.g. s3.us-west-2.amazonaws.com/my-bucket)
+by adding the `--use-path-style` argument to make LINSTOR combine the parameters accordingly.
+
+To create a LINSTOR remote, only the URL or IP address of the controller of the target cluster
+is needed. The command goes as follows:
+
+----------------------------
+# linstor remote create linstor myRemote 192.168.0.15
+----------------------------
+
+Additionally, to ship LUKS-based (encrypted) backups, it is necessary to add the `--passphrase`
+and `--cluster-id` arguments to the command. This is used to save the passphrase and cluster-id of
+the target cluster to the remote respectively. For more details on shipping LUKS-based backups
+between two LINSTOR clusters, see <<s-shipping_snapshots-l2l,this chapter>>.
+
+To see all the remotes known to the local cluster, use `linstor remote list`. To delete a remote, use
+`linstor remote delete myRemoteName`. Should an existing remote need altering, use `linstor remote
+modify` to change it.
+
+[[s-shipping_snapshots-s3]]
+===== Shipping snapshots to S3
+
+All that is needed to ship a snapshot to S3 is to create an S3-remote that the current cluster can reach
+as well as the resource that should be shipped. Then, simply use the following command to ship it there:
+
+--------------------------
+# linstor backup create myRemote myRsc
+--------------------------
+
+This command will create a snapshot of your resource and ship it to the given remote. If this
+isn't the first time you shipped a backup of this resource (to that remote) and the snapshot
+of the previous backup hasn't been deleted yet, an incremental backup will be shipped.
+To force the creation of a full backup, add the `--full` argument to the command. Getting a
+specific node to ship the backup is also possible by using `--node myNode`, but if the specified
+node is not available or only has the resource diskless, a different node will be chosen.
+
+To see which backups exist in a specific remote, use `linstor backup list myRemote`. A resource-name
+can be added to the command as a filter to only show backups of that specific resource by using the
+argument `--resource myRsc`. If you use the `--other` argument, only entries in the bucket that LINSTOR
+does not recognize as a backup will be shown. LINSTOR always names backups in a certain way, and
+as long as an item in the remote is named according to this schema, it is assumed that it is a backup
+created by LINSTOR - so this list will show everything else.
+
+There are several options when it comes to deleting backups:
+
+* `linstor backup delete all myRemote`: This command deletes ALL S3-objects on the given
+remote, as long as they are recognized to be backups, that is, fit the expected naming schema.
+There is the option `--cluster` to only delete backups that were created by the current cluster.
+
+* `linstor backup delete id myRemote my-rsc_back_20210824_072543`: This command deletes
+a single backup from the given remote - namely the one with the given id, which consists
+of the resource-name, the automatically generated snapshot-name (back_timestamp) and, if
+set, the backup-suffix. The option `--prefix` lets you delete all backups starting with
+the given id. The option `--cascade` deletes not only the specified backup, but all other
+incremental backups depending on it.
+
+* `linstor backup delete filter myRemote ...`: This command has a few different arguments
+to specify a selection of backups to delete. `-t 20210914_120000` will delete all backups
+made before 12 o'clock on the 14th of September, 2021. `-n myNode` will delete all backups
+uploaded by the given node. `-r myRsc` will delete all backups with the given resource name.
+These filters can be combined as needed. Finally, `--cascade` deletes not only the selected
+backup(s), but all other incremental backups depending on any of the selected backups.
+
+* `linstor backup delete s3key myRemote randomPictureInWrongBucket`: This command will find
+the object with the given S3-key and delete it - without considering anything else. This should
+only be used to either delete non-backup items from the remote, or to clean up a broken backup
+that is no longer deleteable by other means. Using this command to delete a regular, working
+backup will break that backup, so beware!
+
+WARNING: All commands that have the `--cascade` option will NOT delete a backup that has
+incremental backups depending on it unless you explicitly add that option.
+
+INFO: All `linstor backup delete ...` commands have the `--dry-run` option, which will
+give you a list of all the S3-objects that will be deleted. This can be used to ensure
+nothing that should not be deleted is accidentally deleted.
+
+Maybe the most important task after creating a backup is restoring it. To do so, only the remote
+is needed - but it is also possible to restore into an existing resource definition with no existing
+snapshots nor resources. There are two options for the command:
+
+-----------------------
+# linstor backup restore myRemote myNode targetRsc --resource sourceRsc
+# linstor backup restore myRemote myNode targetRsc --id sourceRsc_back_20210824_072543
+-----------------------
+
+Either `--resource (-r)` or `--id` must be used, but you cannot use both of them together. `-r` is used to
+restore the latest backup of the resource specified with this option, while `--id` restores the
+exact backup specified by the given id, and can therefore be used to restore backups other than
+the most recent.
+
+If the backup to be restored includes a LUKS layer, the `--passphrase` argument is required. With
+it, the passphrase of the original cluster of the backup needs to be set so that LINSTOR can decrypt
+the volumes after download and re-encrypt them with the local passphrase.
+
+The backup restore will download all the snapshots from the last full backup up to the specified
+backup. Afterwards, it restores the snapshots into a new resource. If that last step should be skipped,
+the `--download-only` option needs to be added to the command.
+
+Backups can be downloaded from any cluster, not just the one that uploaded them, as long as the setup
+is correct. Specifically, the target resource cannot have any existing resources or snapshots, and the
+storage pool(s) used need to have the same storage providers. If the storage pool(s) on the target
+node have the exact same names as on the cluster the backup was created on, no extra action is
+necessary. Should they have different names, the option `--storpool-rename` needs to be used. It
+expects at least one `oldname=newname` pair. For every storage pool of the original backup that
+is not named in that list, it will be assumed that its name is exactly the same on the target node.
+
+To find out exactly which storage pools need to be renamed, as well as how big the download and the
+restored resource will be, the command `linstor backup info myRemote ...` can be used. Similar to the restore
+command, either `-r` or `--id` need to be given, which add the same restrictions as with that command.
+To see how much space will be left over in the local storage pools after a restore, the argument `-n myNode`
+needs to be added. Just like with a restore, it assumes the storage pool names are exactly the same
+on the given node as with the backup. Should that not be the case, again, just like with the restore
+command, `--storpool-rename` should be used.
+
+[[s-shipping_snapshots-l2l]]
+===== Shipping snapshots whithin LINSTOR
+
+Shipping a snapshot directly between two LINSTOR clusters can be done with a linstor-remote as well
+as a resource definition with at least one diskful resource on the source side (where the command
+is issued). On the target side, you only need a linstor-remote with the cluster-id of the source-cluster set.
+If you wish to ship a snapshot inside the same cluster just use a remote pointing to the local controller.
+The command looks like this:
+
+--------------------------
+# linstor backup ship myRemote localRsc targetRsc
+--------------------------
+
+Additionally, you can use `--source-node` and `--target-node` to specify which node should send and
+receive the backup respectively. In case those nodes are not available, a different one will be chosen
+automatically.
+
+If the target resource already has resources deployed or the `--download-only` option was specified,
+the snapshots will only be shipped to the target cluster, but not restored.
+
+When the snapshot you wish to ship contains a LUKS layer, the remote on the target cluster also needs
+the passphrase of the source cluster set.
+
+[[s-shipping_snapshots-old]]
+===== Shipping a snapshot in the same cluster
+
+WARNING: The `snapshot ship` command is considered deprecated and any bugs found
+with it will not be fixed. Instead, use the `backup ship` command with a remote pointing
+to your local controller. For more details, see <<s-shipping_snapshots-l2l,the previous section>>.
+
 Both, the source as well as the target node have to have the resource for
 snapshot shipping deployed. Additionally, the target resource has to be
 deactivated.
