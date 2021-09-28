@@ -64,6 +64,32 @@ volumes and volumes already in use by a pod will continue to work without interr
 
 Some versions require special steps, see below.
 
+===== Upgrade to v1.6
+
+This versions introduces a new option to support Kubernetes distributions which use different state directories than the
+default of `/var/lib/kubelet`. A notable example is microk8s, which uses `/var/snap/microk8s/common/var/lib/kubelet`.
+To support this, a small addition to the `LinstorCSIDriver` CRD was necessary. As Helm does not upgrade CRDs on chart
+upgrade, instead please run:
+
+----
+$ helm repo update
+$ helm pull linstor/linstor --untar
+$ kubectl replace -f linstor/crds/
+customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced
+customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced
+customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced
+----
+
+If you do not apply the new CRDs, you will get errors like the following:
+
+----
+Error: UPGRADE FAILED: error validating "": error validating data: ValidationError(LinstorCSIDriver.spec): unknown field "kubeletPath" in com.linbit.linstor.v1.LinstorCSIDriver.spec
+----
+
+If you previously used the included snapshot-controller to process `VolumeSnapshot` resources, you should replace it
+with the new charts provided by the Piraeus project. The <<s-kubernetes-add-snaphot-support,section on snapshots>> has
+been updated to include instructions on how you can add the snapshot-controller to your cluster.
+
 ===== Upgrade to v1.5
 
 This version introduces a <<s-kubernetes-monitoring,monitoring>> component for DRBD resources. This requires a new image
