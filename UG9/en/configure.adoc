@@ -364,6 +364,40 @@ The examples below will still be using two servers only; please see
 <<s-4node-example>> for a four-node example.
 
 
+[[s-configuring-multiple-paths]]
+==== Configuring transport implementations
+DRBD allows configuring multiple paths per connection, by introducing
+multiple path sections in a connection. Please see the following example:
+
+---------------------
+resource <resource> {
+  ...
+  connection {
+    path {
+      host alpha address 192.168.41.1:7900;
+      host bravo address 192.168.41.2:7900;
+    }
+    path {
+      host alpha address 192.168.42.1:7900;
+      host bravo address 192.168.42.2:7900;
+    }
+  }
+  ...
+}
+---------------------
+
+Obviously the two endpoint hostname need to be equal in all paths of
+a connection. Paths may be on different IPs (potential different NICs)
+or may only be on different ports.
+
+The TCP transport uses one path at a time. In case the backing TCP
+connections get dropped, or show timeouts, the TCP transport implementation
+tries to establish a connection over the next path. It goes over all paths
+in a round-robin fashion until a connection gets established.
+
+The RDMA transport uses all paths of a connection concurrently and it
+balances the network traffic between the paths evenly.
+
 [[s-configuring-transports]]
 ==== Configuring transport implementations
 DRBD supports multiple network transports. A transport implementation can be
