@@ -680,23 +680,41 @@ verification, you will be able to initiate a verification run using
 the following command:
 
 ----------------------------
-# drbdadm verify <resource>
+# drbdadm verify <resource>:<peer>/<volume>
 ----------------------------
 
 When you do so, DRBD starts an online verification run for
-_<resource>_, and if it detects any blocks that are not in sync, will mark
-those blocks as such and write a message to the kernel log. Any
-applications using the device at that time can continue to do so
-unimpeded, and you may also <<s-switch-resource-roles,switch resource
-roles>> at will.
+_<volume>_ to _<peer_> in _<resource>_, and if it detects any blocks
+that are not in sync, will mark those blocks as such and write a
+message to the kernel log. Any applications using the device at that
+time can continue to do so unimpeded, and you may also
+<<s-switch-resource-roles,switch resource roles>> at will.
+
+_<Volume>_ is optional, if ommited, it will verify all volumes
+in that resource.
 
 If out-of-sync blocks were detected during the verification run, you
 may resynchronize them using the following commands after verification
-has completed:
+has completed.
+
+Since drbd-9.0.29 the preferred way is one of these commands:
 
 ----------------------------
-# drbdadm disconnect <resource>
-# drbdadm connect <resource>
+# drbdadm invalidate <resource>:<peer>/volume --reset-bitmap=no
+# drbdadm invalidate-remote <resource>:<peer>/volume --reset-bitmap=no
+----------------------------
+
+The first command will cause the local differences to be overwritten
+by the remote version. The second command does it in the opposite direction.
+
+Before drbd-9.0.29 one needs to initiate a resync. A way to do that
+is disconnecting from a primary and ensuring that the primary changes
+at least one block while the peer is away.
+
+----------------------------
+# drbdadm disconnect <resource>:<peer>
+## write one block on the primary
+# drbdadm connect <resource>:<peer>
 ----------------------------
 
 
