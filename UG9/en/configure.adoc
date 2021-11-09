@@ -148,18 +148,20 @@ common {
 
 .Simple DRBD resource configuration (`/etc/drbd.d/r0.res`)
 -------------------------------------
-resource r0 {
-  on alice {
-    device    /dev/drbd1;
-    disk      /dev/sda7;
-    address   10.1.1.31:7789;
-    meta-disk internal;
+resource "r0" {
+  device minor 1;
+  disk "/dev/sda7";
+  meta-disk internal;
+
+  on "alice" {
+    node-id 0;
   }
-  on bob {
-    device    /dev/drbd1;
-    disk      /dev/sda7;
-    address   10.1.1.32:7789;
-    meta-disk internal;
+  on "bob" {
+    node-id 1;
+  }
+  connection {
+    host "alice" address 10.1.1.31:7789;
+    host "bob" address 10.1.1.32:7789;
   }
 }
 -------------------------------------
@@ -181,7 +183,6 @@ This example configures DRBD in the following fashion:
 
 * The resource uses TCP port 7789 for its network connections, and
   binds to the IP addresses 10.1.1.31 and 10.1.1.32, respectively.
-  (This implicitly defines the network connections that are used.)
 
 The configuration above implicitly creates one volume in the
 resource, numbered zero (`0`). For multiple volumes in one resource,
@@ -190,28 +191,69 @@ devices are used on both nodes):
 
 .Multi-volume DRBD resource configuration (`/etc/drbd.d/r0.res`)
 -------------------------------------
-resource r0 {
+resource "r0" {
   volume 0 {
-    device    /dev/drbd1;
-    disk      /dev/sda7;
+    device minor 1;
+    disk "/dev/sda7";
     meta-disk internal;
   }
   volume 1 {
-    device    /dev/drbd2;
-    disk      /dev/sda8;
+    device minor 2;
+    disk "/dev/sda7";
     meta-disk internal;
   }
-  on alice {
-    address   10.1.1.31:7789;
+  on "alice" {
+    node-id 0;
   }
-  on bob {
-    address   10.1.1.32:7789;
+  on "bob" {
+    node-id 1;
+    volume 1 {
+      disk "/dev/sda9";
+    }
+  }
+  connection {
+    host "alice" address 10.1.1.31:7789;
+    host "bob" address 10.1.1.32:7789;
   }
 }
 -------------------------------------
 
+* Host sections ('on' keyword) inherit _volume_ sections from the resource
+  level. They may contain _volume_ themselves, these values have precedence
+  over inherited values.
+
 NOTE: Volumes may also be added to existing resources on the fly. For
 an example see <<s-lvm-add-pv>>.
+
+For compatibility with older releases of DRBD it supports also drbd-8.4
+like configuration files.
+
+.An old(8.4) style configuration file
+-------------------------------------
+resource r0 {
+  on alice {
+    device    /dev/drbd1;
+    disk      /dev/sda7;
+    meta-disk internal;
+    address 10.1.1.31:7789;
+  }
+  on bob {
+    device    /dev/drbd1;
+    disk      /dev/sda7;
+    meta-disk internal;
+    address   10.1.1.32:7789;
+  }
+-------------------------------------
+
+* Strings that do not contain keywords, might be gives withouth
+  double quotes `"`.
+
+* The old version to specify the device, was to give a string
+  containing the name of the resulting device file.
+
+* Two node configurations get node numbers assigned by drbdadm.
+
+* A pure two node configuration gets an implicit connection.
 
 [[s-drbdconf-global]]
 ===== The `global` section
@@ -260,7 +302,7 @@ A per-resource configuration file is usually named
 named by specifying a resource name in the configuration. The convention
 is to use only letters, digits, and the underscore; while it is technically
 possible to use other characters as well, you won't like the result if you ever
-happen stumble to need the more specific `__peer__@__resource__/__volume__` syntax.
+happen stumble to need the more specific `__resource__:___peer__/__volume__` syntax.
 
 Every resource configuration must also have at least two `on _host_` sub-sections,
 one for every cluster node. All other configuration settings are
@@ -272,14 +314,14 @@ can be specified directly in the `resource` section. Thus, we can
 further condense our example configuration as follows:
 
 -------------------------------------
-resource r0 {
-  device    /dev/drbd1;
-  disk      /dev/sda7;
+resource "r0" {
+  device minor 1;
+  disk "/dev/sda7";
   meta-disk internal;
-  on alice {
+  on "alice" {
     address   10.1.1.31:7789;
   }
-  on bob {
+  on "bob" {
     address   10.1.1.32:7789;
   }
 }
@@ -310,8 +352,8 @@ An example configuration file for three hosts would be this:
 
 -------------------------------------
 resource r0 {
-  device    /dev/drbd1;
-  disk      /dev/sda7;
+  device    minor 1;
+  disk      "/dev/sda7";
   meta-disk internal;
   on alice {
     address   10.1.1.31:7000;
@@ -711,7 +753,7 @@ Here is an example for a four-node cluster.
 [[s-connection-mesh]]
 ----------------------
 resource r0 {
-  device      /dev/drbd0;
+  device      minor 0;
   disk        /dev/vg/r0;
   meta-disk   internal;
 
