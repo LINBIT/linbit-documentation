@@ -1,16 +1,43 @@
-image:
-  name: $CI_REGISTRY/linbit/linbit-documentation
-  entrypoint: [""]
-
-workflow:
-  rules:
-    - if: $CI_COMMIT_BRANCH == 'master'
-
 stages:
+  - build
+  - preview
   - deploy
+
+build:
+  stage: build
+  image:
+    name: $CI_REGISTRY/linbit/linbit-documentation
+    entrypoint: [""]
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  script:
+    - make UG9-html-finalize
+  artifacts:
+    paths:
+      - UG9/en/output-html-finalize/*.zip
+
+preview:
+  stage: preview
+  image: $LINBIT_DOCKER_REGISTRY/ug-preview:latest
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  script:
+    - zips=$(realpath ./UG9/en/output-html-finalize/*.zip)
+    - cd /build
+    - |
+      for zip in $zips; do
+        prefix=$(basename $zip .zip)
+        php linbit-drbd.php $zip /out
+        ./upload.sh $CI_COMMIT_SHA /out $prefix 
+      done
+  dependencies:
+    - build
 
 deploy:
   stage: deploy
+  image:
+    name: $CI_REGISTRY/linbit/linbit-documentation
+    entrypoint: [""]
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
   before_script:
