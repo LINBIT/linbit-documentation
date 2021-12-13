@@ -41,8 +41,9 @@ kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docke
 The name of this secret must match the one specified in the Helm values,
 by default `drbdiocred`.
 
-* Configure storage for the LINSTOR etcd instance. There are various options
-for configuring the etcd instance for LINSTOR:
+* Configure the LINSTOR database backend. By default, the chart configures Etcd as database backend. Starting with
+  1.7.0, the operator can also configure LINSTOR to use <<s-kubernetes-linstor-k8s-backend,Kubernetes as datastore>>
+  directly. If you go the Etcd route, you should configure persistent storage for it:
 ** Use an existing storage provisioner with a default `StorageClass`.
 ** <<s-kubernetes-etcd-hostpath-persistence,Use `hostPath` volumes>>.
 ** Disable persistence, **for basic testing only**. This can be done by adding `--set
@@ -84,6 +85,28 @@ helm repo add linstor https://charts.linstor.io
 helm install linstor-op linstor/linstor
 ----
 Further deployment customization is discussed in the <<s-kubernetes-advanced-deployments,advanced deployment section>>
+
+[[s-kubernetes-linstor-k8s-backend]]
+===== LINSTOR k8s backend
+
+WARNING: The Kubernetes backend for LINSTOR is still new, you might encounter issues, especially on LINSTOR version
+upgrade. Please read <<s-kubernetes-upgrade-k8s-backend, the upgrade guide>> for more information.
+
+Starting with LINSTOR 1.16.0, the Controller can use the Kubernetes API directly to persist its cluster state. To enable
+this backend, use the following override file during the chart installation:
+
+.k8s-backend.yaml
+[source,yaml]
+----
+etcd:
+  enabled: false
+operator:
+  controller:
+    dbConnectionURL: k8s
+----
+
+NOTE: It is currently **NOT** possible to migrate from an existing cluster with Etcd backend to the Kubernetes
+backend.
 
 [[s-kubernetes-etcd-hostpath-persistence]]
 ===== LINSTOR etcd `hostPath` persistence
@@ -389,10 +412,12 @@ The names of the secrets can be passed to `helm install` to configure all client
 --set linstorHttpsControllerSecret=http-controller  --set linstorHttpsClientSecret=http-client
 ----
 
-===== Automatically set the passphrase for encrypted volumes
+===== Automatically set the passphrase for LINSTOR
 
-Linstor can be used to create encrypted volumes using LUKS. The passphrase used when creating these volumes can
-be set via a secret:
+LINSTOR needs to store confidential data to support encrypted information. This data is protected by a master
+passphrase. A passphrase is automatically generated on the first chart install.
+
+If you want to use a custom passphrase, store it in a secret:
 
 ----
 kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<password>
@@ -518,6 +543,7 @@ global:
   setSecurityContext: true # Force non-privileged containers to run as non-root users
 # Dependency charts
 etcd:
+  enabled: true
   persistentVolume:
     enabled: true
     storage: 1Gi
@@ -537,11 +563,11 @@ stork:
   podsecuritycontext: {}
 csi:
   enabled: true
-  pluginImage: "drbd.io/linstor-csi:v0.15.0"
+  pluginImage: "drbd.io/linstor-csi:v0.17.0"
   csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.3.0
-  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.4.0
-  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.3.0
-  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v2.2.2
+  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.5.0
+  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.4.0
+  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.0.0
   csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v4.2.1
   csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.3.0
   controllerReplicas: 1 <2>
@@ -562,14 +588,15 @@ psp:
   unprivilegedRole: ""
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
-  image: "drbd.io/linstor-operator:v1.6.0"
+  image: "drbd.io/linstor-operator:v1.7.0"
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
   podsecuritycontext: {}
   controller:
     enabled: true
-    controllerImage: "drbd.io/linstor-controller:v1.15.0"
+    controllerImage: "drbd.io/linstor-controller:v1.17.0"
+    dbConnectionURL: ""
     luksSecret: ""
     dbCertSecret: ""
     dbUseClientCert: false
@@ -585,21 +612,21 @@ operator:
     additionalProperties: {} <6>
   satelliteSet:
     enabled: true
-    satelliteImage: "drbd.io/linstor-satellite:v1.15.0"
+    satelliteImage: "drbd.io/linstor-satellite:v1.17.0"
     storagePools: {}
     sslSecret: ""
     automaticStorageType: None
     affinity: {} <4>
     tolerations: [] <4>
     resources: {} <3>
-    monitoringImage: "drbd.io/drbd-reactor:v0.4.4"
-    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.0.30"
+    monitoringImage: "drbd.io/drbd-reactor:v0.5.1"
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.1.4"
     kernelModuleInjectionMode: ShippedModules
     kernelModuleInjectionResources: {} <3>
     additionalEnv: [] <5>
 haController:
   enabled: true
-  image: drbd.io/linstor-k8s-ha-controller:v0.2.0
+  image: drbd.io/linstor-k8s-ha-controller:v0.2.1
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
@@ -868,7 +895,9 @@ kubectl delete pvc my-first-linstor-volume # remove the PersistentVolumeClaim, t
 [[s-kubernetes-sc-parameters]]
 ==== Available parameters in a StorageClass
 
-The following storage class contains all currently available parameters to configure the provisioned storage
+The following storage class contains all currently available parameters to configure the provisioned storage.
+
+NOTE: `linstor.csi.linbit.com/` is an optional, but recommended prefix for LINSTOR CSI specific parameters.
 
 [source,yaml]
 ----
@@ -881,24 +910,24 @@ parameters:
   # CSI related parameters
   csi.storage.k8s.io/fstype: xfs
   # LINSTOR parameters
-  autoPlace: "2"
-  placementCount: "2"
-  resourceGroup: "full-example"
-  storagePool: "my-storage-pool"
-  disklessStoragePool: "DfltDisklessStorPool"
-  layerList: "drbd storage"
-  placementPolicy: "AutoPlaceTopology"
-  allowRemoteVolumeAccess: "true"
-  encryption: "true"
-  nodeList: "diskful-a diskful-b"
-  clientList: "diskless-a diskless-b"
-  replicasOnSame: "zone=a"
-  replicasOnDifferent: "rack"
-  disklessOnRemaining: "false"
-  doNotPlaceWithRegex: "tainted.*"
-  fsOpts: "nodiscard"
-  mountOpts: "noatime"
-  postMountXfsOpts: "extsize 2m"
+  linstor.csi.linbit.com/autoPlace: "2"
+  linstor.csi.linbit.com/placementCount: "2"
+  linstor.csi.linbit.com/resourceGroup: "full-example"
+  linstor.csi.linbit.com/storagePool: "my-storage-pool"
+  linstor.csi.linbit.com/disklessStoragePool: "DfltDisklessStorPool"
+  linstor.csi.linbit.com/layerList: "drbd storage"
+  linstor.csi.linbit.com/placementPolicy: "AutoPlaceTopology"
+  linstor.csi.linbit.com/allowRemoteVolumeAccess: "true"
+  linstor.csi.linbit.com/encryption: "true"
+  linstor.csi.linbit.com/nodeList: "diskful-a diskful-b"
+  linstor.csi.linbit.com/clientList: "diskless-a diskless-b"
+  linstor.csi.linbit.com/replicasOnSame: "zone=a"
+  linstor.csi.linbit.com/replicasOnDifferent: "rack"
+  linstor.csi.linbit.com/disklessOnRemaining: "false"
+  linstor.csi.linbit.com/doNotPlaceWithRegex: "tainted.*"
+  linstor.csi.linbit.com/fsOpts: "-E nodiscard"
+  linstor.csi.linbit.com/mountOpts: "noatime"
+  linstor.csi.linbit.com/postMountXfsOpts: "extsize 2m"
   # Linstor properties
   property.linstor.csi.linbit.com/*: <x>
   # DRBD parameters
@@ -973,10 +1002,28 @@ Select from one of the available volume schedulers:
 * `Manual`: Use only the nodes listed in `nodeList` and `clientList`.
 * `Balanced`: **EXPERIMENTAL** Place volumes across failure domains, using the least used storage pool on each selected node.
 
+[[s-kubernetes-params-allow-remote-volume-access]]
 ==== allowRemoteVolumeAccess
 
-Disable remote access to volumes. This implies that volumes can only be accessed from the initial set of nodes selected
-on creation. CSI Topology processing is required to place pods on the correct nodes.
+Control on which nodes a volume is accessible. The value for this option can take two different forms:
+
+- A simple `"true"` or `"false"` allows access from all nodes, or only those nodes with diskfull resources.
+
+- Advanced rules, which allow more granular rules on which nodes can access the volume.
++
+The current implementation can grant access to the volume for nodes that share the same labels. For example, if you want
+to allow access from all nodes in the same region and zone as a diskfull resource, you could use:
++
+[source,yaml]
+----
+parameters:
+  linstor.csi.linbit.com/allowRemoteVolumeAccess: |
+    - fromSame:
+      - topology.kubernetes.io/region
+      - topology.kubernetes.io/zone
+----
++
+You can specify multiple rules. The rules are additive, a node only need to match one rule to be assignable.
 
 [[s-kubernetes-encryption]]
 ==== encryption
@@ -1239,24 +1286,147 @@ kubectl create -f my-first-linstor-volume-from-snapshot.yaml
 ----
 
 
-[[s-kubernetes-volume-accessibility]]
-=== Volume Accessibility
+[[s-kubernetes-volume-accessibility-and-locality]]
+=== Volume Accessibility and Locality
 // This only covers DRBD volumes, section might change if linked docs are updated.
-LINSTOR volumes are typically accessible both locally and
-<<s-drbd_clients,over the network>>.
+LINSTOR volumes are typically accessible both locally and <<s-drbd_clients,over the network>>. The CSI driver will
+ensure that the volume is accessible on whatever node was selected for the consumer. The driver also provides options
+to ensure volume locality (the consumer is placed on the same node as the backing data) and restrict accessibility
+(only a subset of nodes can access the volume over the network).
 
-By default, the CSI plugin will attach volumes directly if the _Pod_ happens
-to be scheduled on a _kubelet_ where its underlying storage is present. However,
-_Pod_ scheduling does not currently take volume locality into account. The
-<<s-kubernetes-replicasonsame,replicasOnSame>> parameter can be used to restrict
-where the underlying storage may be provisioned, if locally attached volumes
-are desired.
+Volume locality is achieved by setting `volumeBindingMode: WaitForFirstConsumer` in the storage class. This tell
+Kubernetes and the CSI driver to wait until the first consumer (Pod) referencing the PVC is scheduled. The CSI driver
+then provisions the volume with backing data on the same node as the consumer. In case a node without appropriate
+storage pool was selected, a replacement node in the set of accessible nodes is chosen (see below).
 
-See <<s-kubernetes-placementpolicy>> to see how this
-default behavior can be modified.
+Volume accessibility is controlled by the
+<<s-kubernetes-params-allow-remote-volume-access,`allowRemoteVolumeAccess` parameter>>. Whenever the CSI plugin needs to
+place a volume, this parameter is consulted to get the set of "accessible" nodes. This means they can share volumes
+placed on them via the network. This information is also propagated to Kubernetes via label selectors on the PV.
+
+==== Volume Accessibility and Locality examples
+
+The following example show common scenarios where you want to optimize volume accessibility and locality. It also
+includes examples of how to spread volume replicas across zones in a cluster.
+
+===== Single-zone homogeneous cluster
+
+The cluster only spans a single zone, i.e. latency between nodes is low. The cluster is homogeneous, i.e. all nodes
+are configured similarly, all nodes have their own local storage pool.
+
+.example-storage-class.yaml
+[source,yaml]
+----
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: linstor-storage
+provisioner: linstor.csi.linbit.com
+volumeBindingMode: WaitForFirstConsumer <1>
+parameters:
+  linstor.csi.linbit.com/storagePool: linstor-pool <2>
+  linstor.csi.linbit.com/placementCount: "2" <3>
+  linstor.csi.linbit.com/allowRemoteVolumeAccess: "true" <4>
+----
+
+<1> Enable late volume binding. This places one replica on the same node as the first consuming pod, if possible.
+<2> Set the storage pool(s) to use.
+<3> Ensure that the data is replicated, so that at least 2 nodes store the data.
+<4> Allow using the volume even on nodes without replica. Since all nodes are connected equally, performance impact
+should be manageable.
+
+=== Multi-zone homogenous cluster
+
+As before, in our homogenous cluster all nodes are configured similarly with their own local storage pool. The cluster
+spans now multiple zones, with increased latency across nodes in different zones. To ensure low latency, we want
+to restrict access to the volume with a local replica to only those zones that do have a replica. At the same time,
+we want to spread our data across multiple zones.
+
+.example-storage-class.yaml
+[source,yaml]
+----
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: linstor-storage
+provisioner: linstor.csi.linbit.com
+volumeBindingMode: WaitForFirstConsumer <1>
+parameters:
+  linstor.csi.linbit.com/storagePool: linstor-pool <2>
+  linstor.csi.linbit.com/placementCount: "2" <3>
+  linstor.csi.linbit.com/allowRemoteVolumeAccess: | <4>
+    - fromSame:
+      - topology.kubernetes.io/zone
+  linstor.csi.linbit.com/replicasOnDifferent: topology.kubernetes.io/zone <5>
+----
+
+<1> Enable late volume binding. This places one replica on the same node as the first consuming pod, if possible.
+<2> Set the storage pool(s) to use.
+<3> Ensure that the data is replicated, so that at least 2 nodes store the data.
+<4> Allow using the volume on nodes in the same zone as a replica, under the assumption that zone internal networking
+is fast and low latency.
+<5> Spread the replicas across different zones.
+
+=== Multi-region cluster
+
+Our cluster now spans multiple regions. We don't want to incur the latency penalty to replica our data across regions,
+we just want to replica in the same zone.
+
+.example-storage-class.yaml
+[source,yaml]
+----
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: linstor-storage
+provisioner: linstor.csi.linbit.com
+volumeBindingMode: WaitForFirstConsumer <1>
+parameters:
+  linstor.csi.linbit.com/storagePool: linstor-pool <2>
+  linstor.csi.linbit.com/placementCount: "2" <3>
+  linstor.csi.linbit.com/allowRemoteVolumeAccess: | <4>
+    - fromSame:
+      - topology.kubernetes.io/zone
+  linstor.csi.linbit.com/replicasOnSame: topology.kubernetes.io/region <5>
+----
+
+<1> Enable late volume binding. This places one replica on the same node as the first consuming pod, if possible.
+<2> Set the storage pool(s) to use.
+<3> Ensure that the data is replicated, so that at least 2 nodes store the data.
+<4> Allow using the volume on nodes in the same zone as a replica, under the assumption that zone internal networking
+is fast and low latency.
+<5> Restrict replicas to only a single region.
+
+=== Cluster with external storage
+
+Our cluster is now only comprised of compute nodes without local storage. Any volume access has to occur via remote
+volume access.
+
+.example-storage-class.yaml
+[source,yaml]
+----
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: linstor-storage
+provisioner: linstor.csi.linbit.com
+parameters:
+  linstor.csi.linbit.com/storagePool: linstor-pool <1>
+  linstor.csi.linbit.com/placementCount: "1" <2>
+  linstor.csi.linbit.com/allowRemoteVolumeAccess: "true" <3>
+----
+
+<1> Set the storage pool(s) to use.
+<2> Assuming we only have one storage host, we can only place a single volume without additional replicas
+<3> Our worker nodes need to be allowed to connect to the external storage host
+
 
 [[s-kubernetes-stork]]
 === Volume Locality Optimization using Stork
+
+WARNING: The Stork integration is no longer actively maintained. Instead we recommend using
+`volumeBindingMode: WaitForFirstConsumer` in your storage class. For more details
+<<s-kubernetes-volume-accessibility-and-locality,see above>>.
 
 Stork is a scheduler extender plugin for Kubernetes which allows a storage
 driver to give the Kubernetes scheduler hints about where to place a new pod
@@ -1270,8 +1440,9 @@ https://hub.docker.com/repository/docker/linbit/stork[available on Docker Hub]
 [[s-kubernetes-using-stork]]
 ==== Using Stork
 
-By default, the operator will install the components required for Stork, and register a new scheduler called `stork`
-with Kubernetes. This new scheduler can be used to place pods near to their volumes.
+By default, the chart will not install Stork. To install it and register a new scheduler called `stork`
+with Kubernetes, pass `--set stork.enabled=false` to the install command.
+The new scheduler can be used to place pods near to their volumes.
 
 [source,yaml]
 ----
@@ -1298,12 +1469,6 @@ spec:
 ----
 
 <1> Add the name of the scheduler to your pod.
-
-Deployment of the scheduler can be disabled using
-
-----
---set stork.enabled=false
-----
 
 [[s-kubernetes-ha-controller]]
 === Fast workload fail over using the High Availability Controller

@@ -59,10 +59,43 @@ Check that no errors are listed in the status section of LinstorControllers, Lin
 IMPORTANT: During the upgrade process, provisioning of volumes and attach/detach operations might not work. Existing
 volumes and volumes already in use by a pod will continue to work without interruption.
 
+[[s-kubernetes-upgrade-k8s-backend]]
+==== Upgrading a LINSTOR Cluster with Kubernetes backend
+
+Using the Kubernetes API as LINSTOR backend is quite new: there might be situations in which LINSTOR fails to upgrade
+resources, leaving the LINSTOR cluster in an unusable state. For this reason, we strongly recommend doing a manual
+backup of all LINSTOR resources before upgrading the cluster. In a future release, this step will be managed by the
+operator.
+
+1. Stop the current controller:
++
+----
+$ kubectl patch linstorcontroller linstor-cs '{"spec":{"replicas": 0}}'
+$ kubectl rollout status --watch deployment/linstor-cs-controller
+----
+2. The following command will create a file `crds.yaml`, which stores the current state of all LINSTOR Custom Resource
+Definitions:
++
+----
+$ kubectl get crds | grep -o ".*.internal.linstor.linbit.com" | xargs kubectl get crds -oyaml > crds.yaml
+----
++
+3. In addition to the definitions, the actual resources must be be backed up as well:
++
+----
+$ kubectl get crds | grep -o ".*.internal.linstor.linbit.com" | xargs -i{} sh -c "kubectl get {} -oyaml > {}.yaml"
+----
+4. Run the chart upgrade using `--set IHaveBackedUpAllMyLinstorResources=true` to acknowledge you have executed the
+above steps.
+
 [[s-kubernetes-upgrade-version]]
 ==== Upgrade instructions for specific versions
 
 Some versions require special steps, see below.
+
+===== Upgrade to v1.7
+
+No additional steps necessary.
 
 ===== Upgrade to v1.6
 
