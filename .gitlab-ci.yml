@@ -21,15 +21,21 @@ preview:
   image: $LINBIT_DOCKER_REGISTRY/ug-preview:latest
   rules:
     - if: $CI_MERGE_REQUEST_ID
+  environment:
+    name: preview/$CI_COMMIT_REF_SLUG
+    url: $LINBIT_REGISTRY_URL/repository/pages/$CI_COMMIT_REF_SLUG/
   script:
     - zips=$(realpath ./UG9/en/output-html-finalize/*.zip)
+    - mkdir /index
     - cd /build
     - |
       for zip in $zips; do
         prefix=$(basename $zip .zip)
         php linbit-drbd.php $zip /out
-        ./upload.sh $CI_COMMIT_SHA /out $prefix 
+        ./upload.sh $CI_COMMIT_REF_SLUG /out $prefix
+        echo "<a href='./$prefix/'><h2>$prefix</h2></a>" >> /index/index.html
       done
+      ./upload.sh $CI_COMMIT_REF_SLUG /index .
   dependencies:
     - build
 
