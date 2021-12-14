@@ -46,20 +46,19 @@ by default `drbdiocred`.
   directly. If you go the Etcd route, you should configure persistent storage for it:
 ** Use an existing storage provisioner with a default `StorageClass`.
 ** <<s-kubernetes-etcd-hostpath-persistence,Use `hostPath` volumes>>.
-** Disable persistence, **for basic testing only**. This can be done by adding `--set
-etcd.persistentVolume.enabled=false` to the `helm install` command below.
+** Disable persistence, **for basic testing only**. This can be done by adding
+   `--set etcd.persistentVolume.enabled=false` to the `helm install` command below.
 
 * Read <<s-kubernetes-storage, the storage guide>> and configure a basic storage setup for LINSTOR
 
 * Read the <<s-kubernetes-securing-deployment,section on securing the deployment>> and configure as needed.
 
-* Select the appropriate kernel module injector using `--set` with the `helm
-install` command in the final step.
+* Select the appropriate kernel module injector using `--set` with the `helm install` command in the final step.
 
 ** Choose the injector according to the distribution you are using.
-Select the latest version from one of `drbd9-rhel7`, `drbd9-rhel8`,...  from http://drbd.io/ as appropriate.
-The drbd9-rhel8 image should also be used for RHCOS (OpenShift). For the SUSE CaaS Platform use the SLES injector
-that matches the base system of the CaaS Platform you are using (e.g., `drbd9-sles15sp1`). For example:
+   Select the latest version from one of `drbd9-rhel7`, `drbd9-rhel8`,...  from http://drbd.io/ as appropriate.
+   The drbd9-rhel8 image should also be used for RHCOS (OpenShift). For the SUSE CaaS Platform use the SLES injector
+   that matches the base system of the CaaS Platform you are using (e.g., `drbd9-sles15sp1`). For example:
 +
 ----
 operator.satelliteSet.kernelModuleInjectionImage=drbd.io/drbd9-rhel8:v9.0.30
@@ -77,8 +76,7 @@ operator.satelliteSet.kernelModuleInjectionMode=DepsOnly
 operator.satelliteSet.kernelModuleInjectionMode=None
 ----
 
-* Finally create a Helm deployment named `linstor-op` that will set up
-everything.
+* Finally create a Helm deployment named `linstor-op` that will set up everything.
 +
 ----
 helm repo add linstor https://charts.linstor.io
@@ -257,7 +255,7 @@ Currently, this method supports creation of LVM and LVMTHIN storage pools.
 ===== `lvmThinPools` configuration
 * `name` name of the LINSTOR storage pool. Required
 * `volumeGroup` VG to use for the thin pool. If you want to use `devicePaths`, you must set this to `""`.
-This is required because LINSTOR does not allow configuration of the VG name when preparing devices.
+  This is required because LINSTOR does not allow configuration of the VG name when preparing devices.
 * `thinVolume` name of the thinpool. Required
 * `devicePaths` devices to configure for this pool. Must be empty and >= 1GiB to be recognized. Optional
 * `raidLevel` LVM raid level. Optional
@@ -308,8 +306,10 @@ helm install:
 ----
 
 If this option is active, the secret specified in the above section must contain two additional keys:
+
 * `client.cert` PEM formatted certificate presented to `etcd` for authentication
 * `client.key` private key **in PKCS8 format**, matching the above client certificate.
+
 Keys can be converted into PKCS8 format using `openssl`:
 
 ----
@@ -528,8 +528,8 @@ helm uninstall linstor-op
 ----
 +
 NOTE: Due to the Helm's current policy, the Custom Resource Definitions named LinstorController and LinstorSatelliteSet will not be deleted by the command.
-More information regarding Helm's current position on CRDs can be found
-https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-1-let-helm-do-it-for-you[here].
+      More information regarding Helm's current position on CRDs can be found
+      https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-1-let-helm-do-it-for-you[here].
 
 [[s-kubernetes-advanced-deployments]]
 ==== Advanced deployment options
@@ -635,21 +635,21 @@ haController:
 <1> Sets the pull policy for all images.
 <2> Controls the number of replicas for each component.
 <3> Set container resource requests and limits. See https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/[the kubernetes docs].
-Most containers need a minimal amount of resources, except for:
-* `etcd.resources` See the https://etcd.io/docs/v3.4.0/op-guide/hardware/[etcd docs]
-* `operator.controller.resources` Around `700MiB` memory is required
-* `operater.satelliteSet.resources` Around `700MiB` memory is required
-* `operator.satelliteSet.kernelModuleInjectionResources` If kernel modules are compiled, 1GiB of memory is required.
+    Most containers need a minimal amount of resources, except for:
+    * `etcd.resources` See the https://etcd.io/docs/v3.4.0/op-guide/hardware/[etcd docs]
+    * `operator.controller.resources` Around `700MiB` memory is required
+    * `operater.satelliteSet.resources` Around `700MiB` memory is required
+    * `operator.satelliteSet.kernelModuleInjectionResources` If kernel modules are compiled, 1GiB of memory is required.
 <4> Affinity and toleration determine where pods are scheduled on the cluster. See the
-https://kubernetes.io/docs/concepts/scheduling-eviction/[kubernetes docs on affinity and toleration].
-This may be especially important for the `operator.satelliteSet` and `csi.node*` values. To schedule a pod using
-a LINSTOR persistent volume, the node requires a running LINSTOR satellite and LINSTOR CSI pod.
+    https://kubernetes.io/docs/concepts/scheduling-eviction/[kubernetes docs on affinity and toleration].
+    This may be especially important for the `operator.satelliteSet` and `csi.node*` values. To schedule a pod using
+    a LINSTOR persistent volume, the node requires a running LINSTOR satellite and LINSTOR CSI pod.
 <5> Sets additional environments variables to pass to the Linstor Controller and Satellites. Uses the same format as
-https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/[the `env` value of a container]
+    https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/[the `env` value of a container]
 <6> Sets additional properties on the Linstor Controller. Expects a simple mapping of `<property-key>: <value>`.
 <7> Kubelet expects every CSI plugin to mount volumes under a specific subdirectory of it's own state directory. By
-default, this state directory is `/var/lib/kubelet`. Some Kubernetes distributions use a different directory:
-* microk8s: `/var/snap/microk8s/common/var/lib/kubelet`
+    default, this state directory is `/var/lib/kubelet`. Some Kubernetes distributions use a different directory:
+    * microk8s: `/var/snap/microk8s/common/var/lib/kubelet`
 
 [[s-kubernetes-ha-deployment]]
 ===== High Availability Deployment
@@ -1333,7 +1333,7 @@ parameters:
 <2> Set the storage pool(s) to use.
 <3> Ensure that the data is replicated, so that at least 2 nodes store the data.
 <4> Allow using the volume even on nodes without replica. Since all nodes are connected equally, performance impact
-should be manageable.
+    should be manageable.
 
 === Multi-zone homogenous cluster
 
@@ -1364,7 +1364,7 @@ parameters:
 <2> Set the storage pool(s) to use.
 <3> Ensure that the data is replicated, so that at least 2 nodes store the data.
 <4> Allow using the volume on nodes in the same zone as a replica, under the assumption that zone internal networking
-is fast and low latency.
+    is fast and low latency.
 <5> Spread the replicas across different zones.
 
 === Multi-region cluster
@@ -1394,7 +1394,7 @@ parameters:
 <2> Set the storage pool(s) to use.
 <3> Ensure that the data is replicated, so that at least 2 nodes store the data.
 <4> Allow using the volume on nodes in the same zone as a replica, under the assumption that zone internal networking
-is fast and low latency.
+    is fast and low latency.
 <5> Restrict replicas to only a single region.
 
 === Cluster with external storage
@@ -1522,7 +1522,7 @@ spec:
 ----
 
 <1> The label is applied to Pod template, **not** the StatefulSet. The label was applied correctly, if your Pod appears
-in the output of `kubectl get pods -l linstor.csi.linbit.com/on-storage-lost=remove`.
+    in the output of `kubectl get pods -l linstor.csi.linbit.com/on-storage-lost=remove`.
 
 Deploy the set and wait for the pod to start
 
