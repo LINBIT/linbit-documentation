@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-05-24 08:25+0900\n"
+"POT-Creation-Date: 2022-01-06 13:52+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -174,6 +174,70 @@ msgstr ""
 
 #. type: Title ====
 #, no-wrap
+msgid "Upgrading a LINSTOR Cluster with Kubernetes backend"
+msgstr "Kubernetes バックエンドを使用した LINSTOR クラスターのアップグレード"
+
+#. type: Plain text
+msgid ""
+"Using the Kubernetes API as LINSTOR backend is quite new: there might be "
+"situations in which LINSTOR fails to upgrade resources, leaving the LINSTOR "
+"cluster in an unusable state. For this reason, we strongly recommend doing a "
+"manual backup of all LINSTOR resources before upgrading the cluster. In a "
+"future release, this step will be managed by the operator."
+msgstr ""
+"Kubernetes API を LINSTOR バックエンドとして使用するのは新しい試みです。"
+"LINSTOR がリソースのアップグレードに失敗し、LINSTOR クラスターが使用できない"
+"状態になる場合があります。このため、クラスターをアップグレードする前に、すべ"
+"ての LINSTOR リソースの手動バックアップを実行することを強くお勧めします。将来"
+"のリリースでは、このステップはオペレーターによって管理されます。"
+
+#. type: Plain text
+msgid "Stop the current controller:"
+msgstr "現在のコントローラーを停止します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl patch linstorcontroller linstor-cs '{\"spec\":{\"replicas\": 0}}'\n"
+"$ kubectl rollout status --watch deployment/linstor-cs-controller\n"
+msgstr ""
+"$ kubectl patch linstorcontroller linstor-cs '{\"spec\":{\"replicas\": 0}}'\n"
+"$ kubectl rollout status --watch deployment/linstor-cs-controller\n"
+
+#. type: Plain text
+msgid ""
+"The following command will create a file `crds.yaml`, which stores the "
+"current state of all LINSTOR Custom Resource Definitions:"
+msgstr ""
+"次のコマンドは、すべての LINSTOR カスタムリソース定義の現在の状態を保存する"
+"ファイル `crds.yaml` を作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | xargs kubectl get crds -oyaml > crds.yaml\n"
+msgstr "$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | xargs kubectl get crds -oyaml > crds.yaml\n"
+
+#. type: Plain text
+msgid ""
+"In addition to the definitions, the actual resources must be be backed up as "
+"well:"
+msgstr "定義に加えて、実際のリソースもバックアップする必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | xargs -i{} sh -c \"kubectl get {} -oyaml > {}.yaml\"\n"
+msgstr "$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | xargs -i{} sh -c \"kubectl get {} -oyaml > {}.yaml\"\n"
+
+#. type: Plain text
+msgid ""
+"Run the chart upgrade using `--set IHaveBackedUpAllMyLinstorResources=true` "
+"to acknowledge you have executed the above steps."
+msgstr ""
+"`--set IHaveBackedUpAllMyLinstorResources=true` を使用して chart のアップグ"
+"レードを実行し、上記の手順を実行したことを確認します。"
+
+#. type: Title ====
+#, no-wrap
 msgid "Upgrade instructions for specific versions"
 msgstr "特定のバージョンのアップグレード手順"
 
@@ -183,20 +247,33 @@ msgstr "一部のバージョンでは特別な手順が必要です。以下を
 
 #. type: Title =====
 #, no-wrap
-msgid "Upgrade to v1.5"
-msgstr "v1.5 へのアップグレード"
+msgid "Upgrade to v1.7"
+msgstr "v1.7 へのアップグレード"
+
+#. type: Plain text
+msgid "No additional steps necessary."
+msgstr "追加の手順は必要ありません。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrade to v1.6"
+msgstr "v1.6 へのアップグレード"
 
 #. type: Plain text
 msgid ""
-"This version introduces a <<s-kubernetes-monitoring,monitoring>> component "
-"for DRBD resources. This requires a new image and a replacement of the "
-"existing `LinstorSatelliteSet` CRD. Helm does not upgrade the CRDs on a "
-"chart upgrade, instead please run:"
+"This versions introduces a new option to support Kubernetes distributions "
+"which use different state directories than the default of `/var/lib/"
+"kubelet`. A notable example is microk8s, which uses `/var/snap/microk8s/"
+"common/var/lib/kubelet`.  To support this, a small addition to the "
+"`LinstorCSIDriver` CRD was necessary. As Helm does not upgrade CRDs on chart "
+"upgrade, instead please run:"
 msgstr ""
-"このバージョンでは DRBD リソースの <<s-kubernetes-monitoring,監視>> コンポー"
-"ネントが導入されます。これには、新しいイメージと既存の `LinstorSatelliteSet` "
-"CRD の置き換えが必要です。 Helm は chart upgrade で CRD をアップグレードしま"
-"せん。代わりに、以下を実行してください。"
+"このバージョンでは、デフォルトの `/var/lib/kubelet` とは異なる状態ディレクト"
+"リを使用する Kubernetes ディストリビューションをサポートするための新しいオプ"
+"ションが導入されています。注目すべきは `/var/snap/microk8s/common/var/lib/"
+"kubelet` を使用する microk8s です。これをサポートするには `LinstorCSIDriver` "
+"CRD に少し追加する必要がありました。Helm は chart のアップグレード時に CRD を"
+"アップグレードしないため、代わりに次を実行してください。"
 
 #. type: delimited block -
 #, no-wrap
@@ -214,6 +291,47 @@ msgstr ""
 "customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced\n"
 "customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced\n"
 "customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced\n"
+
+#. type: Plain text
+msgid ""
+"If you do not apply the new CRDs, you will get errors like the following:"
+msgstr "新しい CRD を適用しないと、次のようなエラーが発生します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "Error: UPGRADE FAILED: error validating \"\": error validating data: ValidationError(LinstorCSIDriver.spec): unknown field \"kubeletPath\" in com.linbit.linstor.v1.LinstorCSIDriver.spec\n"
+msgstr "Error: UPGRADE FAILED: error validating \"\": error validating data: ValidationError(LinstorCSIDriver.spec): unknown field \"kubeletPath\" in com.linbit.linstor.v1.LinstorCSIDriver.spec\n"
+
+#. type: Plain text
+msgid ""
+"If you previously used the included snapshot-controller to process "
+"`VolumeSnapshot` resources, you should replace it with the new charts "
+"provided by the Piraeus project. The <<s-kubernetes-add-snaphot-support,"
+"section on snapshots>> has been updated to include instructions on how you "
+"can add the snapshot-controller to your cluster."
+msgstr ""
+"以前に付属のスナップショットコントローラーを使用して `VolumeSnapshot` リソー"
+"スを処理したことがある場合は、それを Piraeus プロジェクトによって提供される新"
+"しい chart に置き換える必要があります。 <<s-kubernetes-add-snaphot-support, "
+"スナップショットセクション>> が更新され、スナップショットコントローラーをクラ"
+"スターに追加する方法e 含まれるようになりました。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrade to v1.5"
+msgstr "v1.5 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"This version introduces a <<s-kubernetes-monitoring,monitoring>> component "
+"for DRBD resources. This requires a new image and a replacement of the "
+"existing `LinstorSatelliteSet` CRD. Helm does not upgrade the CRDs on a "
+"chart upgrade, instead please run:"
+msgstr ""
+"このバージョンでは DRBD リソースの <<s-kubernetes-monitoring,監視>> コンポー"
+"ネントが導入されます。これには、新しいイメージと既存の `LinstorSatelliteSet` "
+"CRD の置き換えが必要です。 Helm は chart upgrade で CRD をアップグレードしま"
+"せん。代わりに、以下を実行してください。"
 
 #. type: Plain text
 msgid ""
@@ -298,10 +416,6 @@ msgstr ""
 #, no-wrap
 msgid "Upgrade to v1.3"
 msgstr "v1.3 へのアップグレード"
-
-#. type: Plain text
-msgid "No additional steps necessary."
-msgstr "追加の手順は必要ありません。"
 
 #. type: Title =====
 #, no-wrap
