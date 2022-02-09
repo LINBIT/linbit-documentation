@@ -70,7 +70,9 @@ Save the changes to the Satellite configuration and restart the satellite servic
 ==== DRBD Reactor
 
 DRBD Reactor is a daemon that will orchestrate the iSCSI, NFS or NVMe-oF resources in our cluster. It must be installed
-and the service must be enabled on all nodes in the cluster. DRBD Reactor's main function could be summarized as such:
+and the service must be enabled on all nodes in the cluster.
+
+DRBD Reactor's main function could be summarized as such:
 each DRBD Reactor daemon tries to take over DRBD Reactor managed services. The daemon that wins the race prevents other
 nodes from activating the services until the original winner is no longer able to. When that happens, a new winner will
 take over DRBD Reactor managed services, therefore achieving high availability.
@@ -78,11 +80,19 @@ take over DRBD Reactor managed services, therefore achieving high availability.
 For details regarding DRBD Reactor's installation and configuration options, refer to the
 https://github.com/LINBIT/drbd-reactor[DRBD Reactor GitHub page].
 
-NOTE: After installing DRBD Reactor and activating it as a service, LINSTOR Gateway will take care of all further
-configuration. You are not required to edit any file or service for DRBD Reactor.
+Start and enable the DRBD Reactor service on all nodes:
 
 ----
 # systemctl enable --now drbd-reactor
+----
+
+In addition to this, DRBD Reactor needs to be configured to automatically reload
+when its configuration changes. Run this snippet on all nodes, as described in
+the https://github.com/LINBIT/drbd-reactor#automatic-reload[DRBD Reactor README]:
+
+----
+# cp examples/drbd-reactor-reload.{path,service} /etc/systemd/system/
+# systemctl enable --now drbd-reactor-reload.path
 ----
 
 DRBD Reactor uses Pacemaker's resource agents when integrated with LINSTOR Gateway. You also need to install resource
@@ -242,9 +252,8 @@ The following command will create a new DRBD resource in the LINSTOR cluster wit
 This command also creates the DRBD Reactor configuration files to enable high availability of the iSCSI target.
 
 ----
-# linstor-gateway iscsi create --iqn=iqn.2019-08.com.linbit:example --lun=1 \
-                  --ip=192.168.122.181/24 --username=foo --password=bar \
-                  --resource-group=iscsi_group --size=1G
+# linstor-gateway iscsi create iqn.2019-08.com.linbit:example 192.168.122.181/24 1G \
+                        --username=foo --password=bar --resource-group=iscsi_group
 ----
 
 After running the command above, you will have a 1GiB iSCSI target with CHAP authentication enabled using the username and
@@ -293,11 +302,11 @@ the LINSTOR cluster using the specified name and resource-group. This command al
 files to enable high availability of the NFS export.
 
 ----
-# linstor-gateway nfs create --resource=nfstest --service-ip=172.16.16.102/32 \
-                  --allowed-ips=172.16.16.0/24 --resource-group=nfs_group --size=1G
+# linstor-gateway nfs create nfstest 172.16.16.102/32 1G \
+                  --allowed-ips=172.16.16.0/24 --resource-group=nfs_group
 ----
 
-After running the command above, you will have a 1GiB NFS export with the specified allowed-ips able to mount the export
+After running the command above, you will have a 1GiB NFS export with the specified `allowed-ips` able to mount the export
 using the IP address specified as the `--service-ip`. The exports will be backed by a DRBD device managed by LINSTOR.
 The DRBD resource was created by LINSTOR in the `nfs_group` resource-group. The DRBD Reactor configuration files created
 by the above command can be found in `/etc/drbd-reactor.d/`.
