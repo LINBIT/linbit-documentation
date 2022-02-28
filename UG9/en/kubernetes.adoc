@@ -544,7 +544,7 @@ etcd:
     tag: v3.4.15
 stork:
   enabled: false
-  storkImage: docker.io/openstorage/stork:2.6.5
+  storkImage: docker.io/openstorage/stork:2.8.2
   schedulerImage: k8s.gcr.io/kube-scheduler-amd64
   schedulerTag: ""
   replicas: 1 <2>
@@ -553,13 +553,17 @@ stork:
   podsecuritycontext: {}
 csi:
   enabled: true
-  pluginImage: "drbd.io/linstor-csi:v0.17.0"
-  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.3.0
+  pluginImage: "drbd.io/linstor-csi:v0.18.0"
+  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.4.0
   csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.5.0
   csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.4.0
-  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.0.0
-  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v4.2.1
-  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.3.0
+  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
+  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v5.0.1
+  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.4.0
+  csiAttacherWorkerThreads: 10 <9>
+  csiProvisionerWorkerThreads: 10 <9>
+  csiSnapshotterWorkerThreads: 10 <9>
+  csiResizerWorkerThreads: 10 <9>
   controllerReplicas: 1 <2>
   nodeAffinity: {} <4>
   nodeTolerations: [] <4>
@@ -570,22 +574,24 @@ csi:
   kubeletPath: /var/lib/kubelet <7>
 priorityClassName: ""
 drbdRepoCred: drbdiocred
-linstorHttpsControllerSecret: "" # <- name of secret containing linstor server certificates+key.
-linstorHttpsClientSecret: "" # <- name of secret containing linstor client certificates+key.
+linstorSslMethod: "manual" # <- If set to 'helm' or 'cert-manager' the certificates will be generated automatically
+linstorHttpsMethod: "manual" # <- If set to 'helm' or 'cert-manager' the certificates will be generated automatically
+linstorHttpsControllerSecret: "" # <- name of secret containing linstor server certificates+key. See docs/security.md
+linstorHttpsClientSecret: "" # <- name of secret containing linstor client certificates+key. See docs/security.md
 controllerEndpoint: "" # <- override to the generated controller endpoint. use if controller is not deployed via operator
 psp:
   privilegedRole: ""
   unprivilegedRole: ""
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
-  image: "drbd.io/linstor-operator:v1.7.0"
+  image: "drbd.io/linstor-operator:v1.8.0"
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
   podsecuritycontext: {}
   controller:
     enabled: true
-    controllerImage: "drbd.io/linstor-controller:v1.17.0"
+    controllerImage: "drbd.io/linstor-controller:v1.18.0"
     dbConnectionURL: ""
     luksSecret: ""
     dbCertSecret: ""
@@ -602,21 +608,22 @@ operator:
     additionalProperties: {} <6>
   satelliteSet:
     enabled: true
-    satelliteImage: "drbd.io/linstor-satellite:v1.17.0"
+    satelliteImage: "drbd.io/linstor-satellite:v1.18.0"
     storagePools: {}
     sslSecret: ""
     automaticStorageType: None
     affinity: {} <4>
     tolerations: [] <4>
     resources: {} <3>
-    monitoringImage: "drbd.io/drbd-reactor:v0.5.1"
-    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.1.4"
+    monitoringImage: "drbd.io/drbd-reactor:v0.5.3"
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.1.6"
     kernelModuleInjectionMode: ShippedModules
+    kernelModuleInjectionAdditionalSourceDirectory: "" <8>
     kernelModuleInjectionResources: {} <3>
     additionalEnv: [] <5>
 haController:
   enabled: true
-  image: drbd.io/linstor-k8s-ha-controller:v0.2.1
+  image: drbd.io/linstor-k8s-ha-controller:v0.3.0
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
@@ -640,6 +647,11 @@ haController:
 <7> Kubelet expects every CSI plugin to mount volumes under a specific subdirectory of it's own state directory. By
     default, this state directory is `/var/lib/kubelet`. Some Kubernetes distributions use a different directory:
     * microk8s: `/var/snap/microk8s/common/var/lib/kubelet`
+<8> Directory on the host that is required for building kernel modules. Only needed if using the `Compile` injection
+    method. Defaults to `/usr/src`, which is where the actual kernel sources are stored on most distributions. Use
+    `"none"` to not mount any additional directories.
+<9> Set the number of worker threads used by the CSI driver. Higher values put more load on the LINSTOR Controller,
+    which may lead to instability when creating many volumes at once.
 
 [[s-kubernetes-ha-deployment]]
 ===== High Availability Deployment
@@ -649,7 +661,7 @@ that a single node failures will not interrupt the service.
 
 [[s-kubernetes-monitoring]]
 ===== Monitoring with Prometheus
-Starting with Linstor Operator v1.5.0, you can use https://prometheus.io/[Prometheus] to monitor Linstor components.
+You can use https://prometheus.io/[Prometheus] to monitor Linstor components.
 The operator will set up monitoring containers along the existing components and make them available as a `Service`.
 
 If you use the https://prometheus-operator.dev/[Prometheus Operator], the Linstor Operator will also set up the `ServiceMonitor`
