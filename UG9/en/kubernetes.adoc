@@ -41,8 +41,8 @@ kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docke
 The name of this secret must match the one specified in the Helm values,
 by default `drbdiocred`.
 
-* Configure the LINSTOR database backend. By default, the chart configures Etcd as database backend. Starting with
-  1.7.0, the operator can also configure LINSTOR to use <<s-kubernetes-linstor-k8s-backend,Kubernetes as datastore>>
+* Configure the LINSTOR database backend. By default, the chart configures Etcd as database backend. The operator can
+  also configure LINSTOR to use <<s-kubernetes-linstor-k8s-backend,Kubernetes as datastore>>
   directly. If you go the Etcd route, you should configure persistent storage for it:
 ** Use an existing storage provisioner with a default `StorageClass`.
 ** <<s-kubernetes-etcd-hostpath-persistence,Use `hostPath` volumes>>.
@@ -61,7 +61,7 @@ by default `drbdiocred`.
    that matches the base system of the CaaS Platform you are using (e.g., `drbd9-sles15sp1`). For example:
 +
 ----
-operator.satelliteSet.kernelModuleInjectionImage=drbd.io/drbd9-rhel8:v9.0.30
+operator.satelliteSet.kernelModuleInjectionImage=drbd.io/drbd9-rhel8:v9.1.6
 ----
 
 ** Only inject modules that are already present on the host machine. If a module is not found, it will be skipped.
@@ -90,7 +90,7 @@ Further deployment customization is discussed in the <<s-kubernetes-advanced-dep
 WARNING: The Kubernetes backend for LINSTOR is still new, you might encounter issues, especially on LINSTOR version
 upgrade. Please read <<s-kubernetes-upgrade-k8s-backend, the upgrade guide>> for more information.
 
-Starting with LINSTOR 1.16.0, the Controller can use the Kubernetes API directly to persist its cluster state. To enable
+The Controller can use the Kubernetes API directly to persist its cluster state. To enable
 this backend, use the following override file during the chart installation:
 
 .k8s-backend.yaml
@@ -103,7 +103,7 @@ operator:
     dbConnectionURL: k8s
 ----
 
-NOTE: It is currently **NOT** possible to migrate from an existing cluster with Etcd backend to the Kubernetes
+NOTE: It is **NOT** possible to migrate from an existing cluster with Etcd backend to the Kubernetes
 backend.
 
 [[s-kubernetes-etcd-hostpath-persistence]]
@@ -123,6 +123,9 @@ helm install linstor-etcd linstor/pv-hostpath
 
 By default, a PV is created on every `control-plane` node. You can manually select the storage nodes by
 passing `--set "nodes={<NODE0>,<NODE1>,<NODE2>}"` to the install command.
+
+NOTE: The correct value to reference the node is the value of the `kubernetes.io/hostname` label. You can list the
+value for all nodes by running `kubectl get nodes -o custom-columns="Name:{.metadata.name},NodeName:{.metadata.labels['kubernetes\.io/hostname']}"`
 
 [[s-kubernetes-existing-database]]
 ===== Using an existing database
@@ -319,97 +322,84 @@ openssl pkcs8 -topk8 -nocrypt -in client-key.pem -out client-key.pkcs8
 ===== Configuring secure communication between LINSTOR components
 
 The default communication between LINSTOR components is not secured by TLS. If this is needed for your setup,
-follow these steps:
+choose one of three methods:
 
-* Create private keys in the java keystore format, one for the controller, one for all satellites:
+====== Generate keys and certificates using cert-manager
+
+Requires https://cert-manager.io/docs/[cert-manager] to be installed in your cluster.
+
+Set the following options in your helm override file:
+
+[source,yaml]
 ----
-keytool -keyalg rsa -keysize 2048 -genkey -keystore satellite-keys.jks -storepass linstor -alias satellite -dname "CN=XX, OU=satellite, O=Example, L=XX, ST=XX, C=X"
-keytool -keyalg rsa -keysize 2048 -genkey -keystore control-keys.jks -storepass linstor -alias control -dname "CN=XX, OU=control, O=Example, L=XX, ST=XX, C=XX"
-----
-* Create a trust store with the public keys that each component needs to trust:
-* Controller needs to trust the satellites
-* Nodes need to trust the controller
-+
-----
-keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore control-keys.jks -destkeystore satellite-trust.jks
-keytool -importkeystore -srcstorepass linstor -deststorepass linstor -srckeystore satellite-keys.jks -destkeystore control-trust.jks
+linstorSslMethod: cert-manager
+linstorHttpsMethod: cert-manager
 ----
 
-* Create kubernetes secrets that can be passed to the controller and satellite pods
-+
+======= Generate keys and certificates using helm
+
+Set the following options in your helm override file:
+
+[source,yaml]
 ----
-kubectl create secret generic control-secret --from-file=keystore.jks=control-keys.jks --from-file=certificates.jks=control-trust.jks
-kubectl create secret generic satellite-secret --from-file=keystore.jks=satellite-keys.jks --from-file=certificates.jks=satellite-trust.jks
-----
-* Pass the names of the created secrets to `helm install`
-+
-----
---set operator.satelliteSet.sslSecret=satellite-secret --set operator.controller.sslSecret=control-secret
+linstorSslMethod: helm
+linstorHttpsMethod: helm
 ----
 
-IMPORTANT: It is currently **NOT** possible to change the keystore password. LINSTOR expects the passwords to be
-`linstor`. This is a current limitation of LINSTOR.
+======= Generate keys and certificates manually
 
-===== Configuring secure communications for the LINSTOR API
-
-Various components need to talk to the LINSTOR controller via its REST interface. This interface can be
-secured via HTTPS, which automatically includes authentication. For HTTPS+authentication to work, each component
-needs access to:
-
-* A private key
-* A certificate based on the key
-* A trusted certificate, used to verify that other components are trustworthy
-
-The next sections will guide you through creating all required components.
-
-====== Creating the private keys
-
-Private keys can be created using java's keytool
+Create private key and self-signed certificate for your certificate authorities:
 
 ----
-keytool -keyalg rsa -keysize 2048 -genkey -keystore controller.pkcs12 -storetype pkcs12 -storepass linstor -ext san=dns:linstor-op-cs.default.svc -dname "CN=XX, OU=controller, O=Example, L=XX, ST=XX, C=X" -validity 5000
-keytool -keyalg rsa -keysize 2048 -genkey -keystore client.pkcs12 -storetype pkcs12 -storepass linstor -dname "CN=XX, OU=client, O=Example, L=XX, ST=XX, C=XX" -validity 5000
+openssl req -new -newkey rsa:2048 -days 5000 -nodes -x509 -keyout ca.key -out ca.crt -subj "/CN=linstor-system"
+openssl req -new -newkey rsa:2048 -days 5000 -nodes -x509 -keyout client-ca.key -out client-ca.crt -subj "/CN=linstor-client-ca"
 ----
 
-The clients need private keys and certificate in a different format, so we need to convert it
+Create private keys, two for the controller, one for all nodes and one for all clients:
 
 ----
-openssl pkcs12 -in client.pkcs12 -passin pass:linstor -out client.cert -clcerts -nokeys
-openssl pkcs12 -in client.pkcs12 -passin pass:linstor -out client.key -nocerts -nodes
+openssl genrsa -out linstor-control.key 2048
+openssl genrsa -out linstor-satellite.key 2048
+openssl genrsa -out linstor-client.key 2048
+openssl genrsa -out linstor-api.key 2048
 ----
 
-NOTE: The alias specified for the controller key (i.e. `-ext san=dns:linstor-op-cs.default.svc`) has to exactly match the
-service name created by the operator. When using `helm`, this is always of the form `<release-name>-cs.<release-namespace>.svc`.
-
-IMPORTANT: It is currently NOT possible to change the keystore password. LINSTOR expects the passwords to be linstor. This is a current limitation of LINSTOR
-
-====== Create the trusted certificates
-
-For the controller to trust the clients, we can use the following command to create a truststore, importing the client certificate
+Create trusted certificates for controller and nodes:
 
 ----
-keytool -importkeystore -srcstorepass linstor -srckeystore client.pkcs12 -deststorepass linstor -deststoretype pkcs12 -destkeystore controller-trust.pkcs12
+openssl req -new -sha256 -key linstor-control.key -subj "/CN=system:control" -out linstor-control.csr
+openssl req -new -sha256 -key linstor-satellite.key -subj "/CN=system:node" -out linstor-satellite.csr
+openssl req -new -sha256 -key linstor-client.key -subj "/CN=linstor-client" -out linstor-client.csr
+openssl req -new -sha256 -key linstor-api.key -subj "/CN=linstor-controller" -out  linstor-api.csr
+openssl x509 -req -in linstor-control.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out linstor-control.crt -days 5000 -sha256
+openssl x509 -req -in linstor-satellite.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out linstor-satellite.crt -days 5000 -sha256
+openssl x509 -req -in linstor-client.csr -CA client-ca.crt -CAkey client-ca.key -CAcreateserial -out linstor-client.crt -days 5000 -sha256
+openssl x509 -req -in linstor-api.csr -CA client-ca.crt -CAkey client-ca.key -CAcreateserial -out linstor-api.crt -days 5000 -sha256 -extensions 'v3_req' -extfile <(printf '%s\n' '[v3_req]' extendedKeyUsage=serverAuth subjectAltName=DNS:linstor-op-cs.default.svc)
 ----
 
-For the client, we have to convert the controller certificate into a different format
+NOTE: `linstor-op-cs.default.svc` in the last command needs to match create service name. With helm, this is always
+`<release-name>-cs.<namespace>.svc`.
+
+Create kubernetes secrets that can be passed to the controller and node pods:
 
 ----
-openssl pkcs12 -in controller.pkcs12 -passin pass:linstor -out ca.pem -clcerts -nokeys
+kubectl create secret generic linstor-control --type=kubernetes.io/tls --from-file=ca.crt=ca.crt --from-file=tls.crt=linstor-control.crt --from-file=tls.key=linstor-control.key
+kubectl create secret generic linstor-satellite --type=kubernetes.io/tls --from-file=ca.crt=ca.crt --from-file=tls.crt=linstor-satellite.crt --from-file=tls.key=linstor-satellite.key
+kubectl create secret generic linstor-api --type=kubernetes.io/tls --from-file=ca.crt=client-ca.crt --from-file=tls.crt=linstor-api.crt --from-file=tls.key=linstor-api.key
+kubectl create secret generic linstor-client --type=kubernetes.io/tls --from-file=ca.crt=client-ca.crt --from-file=tls.crt=linstor-client.crt --from-file=tls.key=linstor-client.key
 ----
 
-====== Create Kubernetes secrets
+Pass the names of the created secrets to `helm install`:
 
-Now you can create secrets for the controller and for clients:
-
+[source,yaml]
 ----
-kubectl create secret generic http-controller --from-file=keystore.jks=controller.pkcs12 --from-file=truststore.jks=controller-trust.pkcs12
-kubectl create secret generic http-client --from-file=ca.pem=ca.pem --from-file=client.cert=client.cert --from-file=client.key=client.key
-----
-
-The names of the secrets can be passed to `helm install` to configure all clients to use https.
-
-----
---set linstorHttpsControllerSecret=http-controller  --set linstorHttpsClientSecret=http-client
+linstorHttpsControllerSecret: linstor-api
+linstorHttpsClientSecret: linstor-client
+operator:
+  controller:
+    sslSecret: linstor-control
+  satelliteSet:
+    sslSecret: linstor-satellite
 ----
 
 ===== Automatically set the passphrase for LINSTOR
