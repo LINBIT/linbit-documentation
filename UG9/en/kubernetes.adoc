@@ -1287,6 +1287,100 @@ Create the _PVC_ with `kubectl`:
 kubectl create -f my-first-linstor-volume-from-snapshot.yaml
 ----
 
+===== Storing snapshots on S3 storage
+
+LINSTOR can store snapshots on S3 compatible storage for disaster recovery. This is integrated in Kubernetes using
+special a special VolumeSnapshotClass:
+
+[source,yaml]
+----
+---
+kind: VolumeSnapshotClass
+apiVersion: snapshot.storage.k8s.io/v1
+metadata:
+  name: linstor-csi-snapshot-class-s3
+driver: linstor.csi.linbit.com
+deletionPolicy: Retain
+parameters:
+  snap.linstor.csi.linbit.com/type: S3
+  snap.linstor.csi.linbit.com/remote-name: backup-remote
+  snap.linstor.csi.linbit.com/allow-incremental: "false"
+  snap.linstor.csi.linbit.com/s3-bucket: snapshot-bucket
+  snap.linstor.csi.linbit.com/s3-endpoint: s3.us-west-1.amazonaws.com
+  snap.linstor.csi.linbit.com/s3-signing-region: us-west-1
+  snap.linstor.csi.linbit.com/s3-use-path-style: "false"
+  # Refer here to the secret that holds access and secret key for the S3 endpoint. See below for an example.
+  csi.storage.k8s.io/snapshotter-secret-name: linstor-csi-s3-access
+  csi.storage.k8s.io/snapshotter-secret-namespace: storage
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: linstor-csi-s3-access
+  namespace: storage
+immutable: true
+type: linstor.csi.linbit.com/s3-credentials.v1
+stringData:
+  access-key: access-key
+  secret-key: secret-key
+----
+
+Check <<s-shipping_snapshots-linstor, the LINSTOR snapshot guide>> on the exact meaning of the
+`snap.linstor.csi.linbit.com/` parameters. The credentials used to log in are stored in a separate secret, as show in
+the example above.
+
+Referencing the above storage class when creating snapshots causes the snapshots to be automatically uploaded to the
+configured S3 storage.
+
+===== Restoring from pre-existing snapshots
+
+Restoring from pre-existing snapshots is an important step in disaster recovery. A snapshot needs to be registered with
+Kubernetes before it can be used to restore.
+
+If the snapshot that should be restored is part of a backup to S3, the LINSTOR "remote" needs to be configured first.
+
+----
+linstor remote create s3 backup-remote s3.us-west-1.amazonaws.com snapshot-bucket us-west-1 access-key secret-key
+linstor backup list backup-remote
+----
+
+The snapshot you want to register needs to be one of the listed snapshots.
+
+To register the snapshot with Kubernetes, you need to create two resources, one VolumeSnapshotContent referencing the
+ID of the snapshot and one VolumeSnapshot, referencing the content.
+
+[source,yaml]
+----
+---
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: example-backup-from-s3
+  namespace: project
+spec:
+  source:
+    volumeSnapshotContentName: restored-snap-content-from-s3
+  volumeSnapshotClassName: linstor-csi-snapshot-class-s3
+---
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotContent
+metadata:
+  name: restored-snap-content-from-s3
+spec:
+  deletionPolicy: Delete
+  driver: linstor.csi.linbit.com
+  source:
+    snapshotHandle: snapshot-id
+  volumeSnapshotClassName: linstor-csi-snapshot-class-s3
+  volumeSnapshotRef:
+    apiVersion: snapshot.storage.k8s.io/v1
+    kind: VolumeSnapshot
+    name: example-backup-from-s3
+    namespace: project
+----
+
+Once applied, the VolumeSnapshot should be shown as `ready`, at which point you can reference it as a `dataSource` in a
+PVC.
 
 [[s-kubernetes-volume-accessibility-and-locality]]
 === Volume Accessibility and Locality
