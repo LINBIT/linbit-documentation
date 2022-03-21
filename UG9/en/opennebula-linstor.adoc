@@ -100,20 +100,20 @@ DS_MAD_CONF = [
     MARKETPLACE_ACTIONS = "export"
 ]
 ----------------------------
-After making these changes, restart the opennebula service.
+After making these changes, restart the OpenNebula service.
 
 [[s-opennebula-configuring-nodes]]
 ==== Configuring the Nodes
 
-The Front-End node issues commands to the Storage and Host nodes via Linstor
+The Front-End node issues commands to the Storage and Host nodes via LINSTOR.
 
 Storage nodes hold disk images of VMs locally.
 
 Host nodes are responsible for running instantiated VMs and typically have the
-storage for the images they need attached across the network via Linstor
+storage for the images they need attached across the network via LINSTOR
 diskless mode.
 
-All nodes must have DRBD9 and Linstor installed. This process is detailed in the
+All nodes must have DRBD9 and LINSTOR installed. This process is detailed in the
 http://docs.linbit.com/doc/users-guide-90/ch-admin-linstor/[User's Guide for DRBD9]
 
 It is possible to have Front-End and Host nodes act as storage nodes in
@@ -125,13 +125,13 @@ for both roles.
 
 Please verify that the control node(s) that you hope to communicate with are
 reachable from the Front-End node. `linstor node list` for locally running
-Linstor controllers and `linstor --controllers "<IP:PORT>" node list` for
-remotely running Linstor Controllers is a handy way to test this.
+LINSTOR controllers and `linstor --controllers "<IP:PORT>" node list` for
+remotely running LINSTOR Controllers is a handy way to test this.
 
 ===== Host Configuration
 
-Host nodes must have Linstor satellite processes running on them and be members
-of the same Linstor cluster as the Front-End and Storage nodes, and may optionally
+Host nodes must have LINSTOR satellite processes running on them and be members
+of the same LINSTOR cluster as the Front-End and Storage nodes, and may optionally
 have storage locally. If the `oneadmin` user is able to passwordlessly ssh between
 hosts then live migration may be used with the even with the ssh system datastore.
 
@@ -145,7 +145,7 @@ configure the oneadmin user account.
 The Storage nodes must use storage pools created with a driver that's capable
 of making snapshots, such as the thin LVM plugin.
 
-In this example preparation of thinly-provisioned storage using LVM for Linstor,
+In this example preparation of thinly-provisioned storage using LVM for LINSTOR,
 you must create a volume group and thinLV using LVM on each storage node.
 
 Example of this process using two physical volumes (/dev/sdX and /dev/sdY) and
@@ -158,7 +158,7 @@ vgcreate drbdpool /dev/sdX /dev/sdY
 lvcreate -l 95%VG --poolmetadatasize 8g -T /dev/drbdpool/drbdthinpool
 ----------------------------
 
-Then you'll create storage pool(s) on Linstor using this as the backing storage.
+Then you'll create storage pool(s) on LINSTOR using this as the backing storage.
 
 NOTE: If you are using ZFS storage pools or thick-LVM, please use <<s-clone-mode>> `copy`
 otherwise you will have problems deleting linstor resources, because of ZFS parent-child snapshot
@@ -184,14 +184,14 @@ group on all nodes in order to access the DRBD devices where images are held.
 usermod -a -G disk oneadmin
 ----------------------------
 
-==== Creating a New Linstor Datastore
+==== Creating a New LINSTOR Datastore
 
 Create a datastore configuration file named ds.conf and use the `onedatastore`
 tool to create a new datastore based on that configuration. There are two
 mutually exclusive deployment options: LINSTOR_AUTO_PLACE and
 LINSTOR_DEPLOYMENT_NODES. If both are configured, LINSTOR_AUTO_PLACE is ignored.
 For both of these options, BRIDGE_LIST must be a space
-separated list of all storage nodes in the Linstor cluster.
+separated list of all storage nodes in the LINSTOR cluster.
 
 [[s-opennebula-resource-group]]
 ==== OpenNebula resource group
@@ -201,7 +201,7 @@ centralized point for settings that all resources linked to that resource group
 share.
 
 Create a resource group and volume group for your datastore, it is mandatory to specify a storage-pool
-within the resource group, otherwise monitoring space for opennebula will not work.
+within the resource group, otherwise monitoring space for OpenNebula will not work.
 Here we create one with 2 node redundancy and use a created `opennebula-storagepool`:
 
 ----------------------------
@@ -231,14 +231,14 @@ onedatastore create ds.conf
 ===== LINSTOR_CONTROLLERS
 
 `LINSTOR_CONTROLLERS` can be used to pass a comma separated list of controller
-ips and ports to the Linstor client in the case where a Linstor controller
+ips and ports to the LINSTOR client in the case where a LINSTOR controller
 process is not running locally on the Front-End, e.g.:
 
 `LINSTOR_CONTROLLERS = "192.168.1.10:8080,192.168.1.11:6000"`
 
 ===== LINSTOR_RESOURCE_GROUP
 
-`LINSTOR_RESOURCE_GROUP` attribute is used to associate an OpenNebula datastore with a Linstor resource group.
+`LINSTOR_RESOURCE_GROUP` attribute is used to associate an OpenNebula datastore with a LINSTOR resource group.
 
 
 ==== Deprecated attributes
@@ -248,9 +248,9 @@ The following attributes are deprecated and were removed in version 2.0.
 [[s-clone-mode]]
 ===== LINSTOR_CLONE_MODE
 
-Linstor now automatically decides which clone mode it should use.
+LINSTOR now automatically decides which clone mode it should use.
 
-Linstor supports 2 different clone modes and are set via the `LINSTOR_CLONE_MODE` attribute:
+LINSTOR supports 2 different clone modes and are set via the `LINSTOR_CLONE_MODE` attribute:
 
 * `snapshot`
 
@@ -283,11 +283,11 @@ nodes automatically based on the level of redundancy.
 
 Using `LINSTOR_DEPLOYMENT_NODES` allows you to select a group of nodes that
 resources will always be assigned to. Please note that the
-bridge list still contains all of the storage nodes in the Linstor cluster.
+bridge list still contains all of the storage nodes in the LINSTOR cluster.
 
 ==== LINSTOR as system datastore
 
-Linstor driver can also be used as a system datastore,
+LINSTOR driver can also be used as a system datastore,
 configuration is pretty similar to normal datastores, with a few changes:
 
 ----------------------------

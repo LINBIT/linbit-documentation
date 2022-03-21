@@ -1,24 +1,24 @@
 // vim: :set ft=asciidoc tw=70 fo-=a sw=8 ts=8 noet spell
 [[ch-exos]]
-== LINSTOR EXOS Integration
+== LINSTOR Exos Integration
 
-The https://www.seagate.com/support/raid-storage-systems/all-flash-and-disk-arrays/[EXOS]
+The https://www.seagate.com/support/raid-storage-systems/all-flash-and-disk-arrays/[Exos]
 storage manager from Seagate could be configured as one large block device managed by LINSTOR
 like a local drive, but this would prevent concurrent sharing of LINSTOR resources between
 multiple servers out of the same pool.
 
-LINSTOR integration with EXOS enables multiple server nodes to allocate and connect to
-LINSTOR resources serviced by the same EXOS pool.
-Thus all of the EXOS storage management features such as SSD/HDD tiering, SSD caching,
+LINSTOR integration with Exos enables multiple server nodes to allocate and connect to
+LINSTOR resources serviced by the same Exos pool.
+Thus all of the Exos storage management features such as SSD/HDD tiering, SSD caching,
 snapshots, and thin provisioning are available for LINSTOR resources and Kubernetes
 Storage Classes.
 
 After configuration, LINSTOR will dynamically map Resource replicas as LUNs
-presented to server nodes through one of the two EXOS controllers.
+presented to server nodes through one of the two Exos controllers.
 
-Since the EXOS controllers are managed by a secure network API, LINSTOR must be configured
+Since the Exos controllers are managed by a secure network API, LINSTOR must be configured
 with proper networking and username/password combination.  The diagram below is
-showing the relationship between LINSTOR cluster and EXOS Enclosures.
+showing the relationship between LINSTOR cluster and Exos Enclosures.
 
 image::images/linstor-exos-integration.png[ExosIntegeration]
 
@@ -26,45 +26,45 @@ IMPORTANT: Multi-host setup allows up to 8 LINSTOR nodes to be directly
 connected with 48Gbit SAS links for low latency and high throughput.
 
 Load balancing and server failover are managed & enabled by LINSTOR while
-volume creation is handled by the EXOS hardware RAID engine.
+volume creation is handled by the Exos hardware RAID engine.
 
-The EXOS storage provider in LINSTOR offers native integration with EXOS' REST-API.
+The Exos storage provider in LINSTOR offers native integration with Exos' REST-API.
 
-This section will describe how to enable EXOS integration and configure
-LINSTOR to manage storage backed by an EXOS enclosure.
+This section will describe how to enable Exos integration and configure
+LINSTOR to manage storage backed by an Exos enclosure.
 
-EXOS storage systems offer a feature rich set of configuration options to match
+Exos storage systems offer a feature rich set of configuration options to match
 any enterprise storage demand.  To maximize ease of use, this guide
 is based on the following defaults and assumptions:
 
-. Dual Controllers - EXOS systems controllers are Active/Active with automatic failover.
+. Dual Controllers - Exos systems controllers are Active/Active with automatic failover.
 Both controllers IP address must be configured also in the LINSTOR properties for full support.
 
-. Dual EXOS Pools - Optimal performance is achieved when data from pool A is
+. Dual Exos Pools - Optimal performance is achieved when data from pool A is
 accessed through Controller A.  If a node is connected to both Controller A and B of
 same controller, LINSTOR will configure Linux multipath which will detect best route.
 
-. EXOS Pool Serial Numbers - When a EXOS pool is created, it receives a unique serial number.
-Each one has to be configured as a backing storage in LINSTOR to create a link between EXOS
+. Exos Pool Serial Numbers - When a Exos pool is created, it receives a unique serial number.
+Each one has to be configured as a backing storage in LINSTOR to create a link between Exos
 enclosure & LINSTOR. With that information, LINSTOR can understand if you are referring to
-EXOS Pool A or Pool B.
+Exos Pool A or Pool B.
 
-. Creating EXOS Pools - The administrator is required to create EXOS Pools A and B prior to
-configuring LINSTOR.  EXOS features such as thin provisioning, auto tiering, and snapshot options
+. Creating Exos Pools - The administrator is required to create Exos Pools A and B prior to
+configuring LINSTOR.  Exos features such as thin provisioning, auto tiering, and snapshot options
 are selected at this time.
 
-. Replicas Within Enclosures - EXOS system have redundant controllers, power supplies and
+. Replicas Within Enclosures - Exos system have redundant controllers, power supplies and
 communication paths to the drives. Some administrators may desire that resource replicas
 are not stored in the same enclosure. In this case the administrator must create multiple
-LINSTOR Pools configured with only one EXOS pool member from each enclosure.
+LINSTOR Pools configured with only one Exos pool member from each enclosure.
 
-=== EXOS Properties as a LINSTOR Storage Provider
+=== Exos Properties as a LINSTOR Storage Provider
 
-LINSTOR's native integration with EXOS is configured by setting a few properties on the
-LINSTOR Controller and creating the appropriate LINSTOR objects specific to your EXOS
+LINSTOR's native integration with Exos is configured by setting a few properties on the
+LINSTOR Controller and creating the appropriate LINSTOR objects specific to your Exos
 enclosures, as described in the sections below.
 
-The information in the table below is needed from your EXOS
+The information in the table below is needed from your Exos
 enclosures. This information will be used to populate the
 appropriate LINSTOR Controller properties and LINSTOR objects in the
 sub-sections that follow.
@@ -72,34 +72,34 @@ sub-sections that follow.
 .Required Information
 [cols="2,5,2",opts="header,100%"]
 |===
-|*EXOS Information*|*Description*|*Placeholder in Command Examples*
-|EXOS Enclosure Name|Uniquely selected by the Admin for a given EXOS enclosure|`<exos_encl_name>`
+|*Exos Information*|*Description*|*Placeholder in Command Examples*
+|Exos Enclosure Name|Uniquely selected by the Admin for a given Exos enclosure|`<exos_encl_name>`
 |Controller Hostname|The DNS resolvable hostname for one of the Controllers |`<exos_ctrlr_name>`
 |Controller IP|IP address of controller |`<exos_ctrlr_ip>`
-|REST-API Username|Username for REST-API of all EXOS controllers under the given enclosure|`<exos_rest_user>`
-|REST-API Password|Password for REST-API of all EXOS controllers under the given enclosure|`<exos_rest_pass>`
-|EXOS Pool Serial Number|The serial number of an EXOS pool to become a member of a LINSTOR Pool|`<exos_pool_sn>`
+|REST-API Username|Username for REST-API of all Exos controllers under the given enclosure|`<exos_rest_user>`
+|REST-API Password|Password for REST-API of all Exos controllers under the given enclosure|`<exos_rest_pass>`
+|Exos Pool Serial Number|The serial number of an Exos pool to become a member of a LINSTOR Pool|`<exos_pool_sn>`
 |===
 
 === Configuration Steps
 
-Configuring a topology of LINSTOR server nodes and multiple EXOS Storage systems is described by these steps:
+Configuring a topology of LINSTOR server nodes and multiple Exos Storage systems is described by these steps:
 
-. Set global or unique EXOS Controller usernames and passwords.
+. Set global or unique Exos Controller usernames and passwords.
 
-. Define EXOS enclosures and Controller network identities.
+. Define Exos enclosures and Controller network identities.
 
 . Create node to enclosure to pool mapping matching physical SAS cabling.
 
 
 
-==== Step 1: EXOS Usernames and Passwords
+==== Step 1: Exos Usernames and Passwords
 
-Usernames and passwords can be unique for each EXOS enclosure or
+Usernames and passwords can be unique for each Exos enclosure or
 be common for all enclosures depending on how the system administrator
-has deployed the EXOS systems.
-The default EXOS username and password will be used if not set for a given
-EXOS controller.
+has deployed the Exos systems.
+The default Exos username and password will be used if not set for a given
+Exos controller.
 The defaults are set as follows:
 
 [bash]
@@ -108,7 +108,7 @@ The defaults are set as follows:
 # linstor exos set-defaults --password <exos_rest_pass>
 ----
 
-Unique usernames and passwords For EXOS controllers are set by:
+Unique usernames and passwords For Exos controllers are set by:
 
 [bash]
 ----
@@ -147,9 +147,9 @@ set, the satellite needs to be restarted in order to see the new
 environment variable
 
 
-==== Step 2: Define EXOS enclosures and controller identities.
+==== Step 2: Define Exos enclosures and controller identities.
 
-Registering an EXOS enclosure in LINSTOR can be done with the `create`
+Registering an Exos enclosure in LINSTOR can be done with the `create`
 command:
 
 [bash]
@@ -163,7 +163,7 @@ defaults are used.
 The Controller's DNS name and IP address may be used interchangeably.
 
 TIP: If you wish to use a hostname that is not DNS resolvable to
-reference your EXOS enclosure within LINSTOR, you may use any name in
+reference your Exos enclosure within LINSTOR, you may use any name in
 place of `<exos_hostname>`, but you will also have to supply the
 enclosure's IP address: `linstor node create <desired_name> <enclosure_ip>`
 
@@ -201,8 +201,8 @@ A LINSTOR Satellite node can be created as usual.
 ----
 
 The storage pool can also be created as usual in LINSTOR. Only
-the name of the previously registered EXOS enclosure as well as the
-serial number of the EXOS pool needs to be specified:
+the name of the previously registered Exos enclosure as well as the
+serial number of the Exos pool needs to be specified:
 
 [bash]
 ----
@@ -213,7 +213,7 @@ serial number of the EXOS pool needs to be specified:
 the linstor_pool_name can be set to (almost) any unique string for
 the LINSTOR deployment.
 
-Here is an example of mapping an EXOS Pool in EXOS enclosure Alpha to two Satellite nodes:
+Here is an example of mapping an Exos Pool in Exos enclosure Alpha to two Satellite nodes:
 
 [bash]
 ----
@@ -224,7 +224,7 @@ Here is an example of mapping an EXOS Pool in EXOS enclosure Alpha to two Satell
 ----
 
 After creating an `exos` storage pool the LINSTOR Satellite will scan
-the given EXOS enclosure for connected ports. If cabled, these ports will be
+the given Exos enclosure for connected ports. If cabled, these ports will be
 listed in the following command:
 
 [bash]
@@ -251,7 +251,7 @@ hr01u09:~ # linstor sp list -s poolA -p
 +----------------------------------------------------------------------------------------------+
 ----
 
-Detailed description of all the available EXOS commands is found with built in help.
+Detailed description of all the available Exos commands is found with built in help.
 
 
 [bash]
@@ -260,9 +260,9 @@ Detailed description of all the available EXOS commands is found with built in h
 ----
 
 
-=== Creating Resources Backed by EXOS Storage Pools
+=== Creating Resources Backed by Exos Storage Pools
 
-Creating LINSTOR resources from EXOS backed storage-pools follows
+Creating LINSTOR resources from Exos backed storage-pools follows
 normal LINSTOR usage patterns as described in other sections of the
 LINSTOR User's Guide such as the sections describing
 <<s-linstor-resource-groups,LINSTOR resource groups>> or the more
