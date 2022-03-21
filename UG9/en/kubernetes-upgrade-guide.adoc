@@ -93,6 +93,25 @@ $ kubectl get crds | grep -o ".*.internal.linstor.linbit.com" | xargs -i{} sh -c
 
 Some versions require special steps, see below.
 
+===== Upgrade to v1.8
+
+1.8 introduces new options to centrally set the log level and number of worker threads for the CSI driver. If you need
+these options, you have to update the CRDs. As Helm does not upgrade CRDs on chart upgrade, instead please run:
+
+----
+$ helm repo update
+$ helm pull linstor/linstor --untar
+$ kubectl replace -f linstor/crds/
+customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced
+customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced
+customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced
+----
+
+In addition, 1.8 reworks the way SSL setups work. Please revisit the
+<<s-kubernetes-securing-deployment,secure deployment section>> and work through these steps again.
+
+NOTE: LINSTOR 1.18.0 requires a complete rebuild of the K8s database, so upgrades might take longer than normal.
+
 ===== Upgrade to v1.7
 
 No additional steps necessary.
