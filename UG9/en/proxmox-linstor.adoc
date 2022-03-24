@@ -5,28 +5,29 @@ indexterm:[Proxmox]This chapter describes DRBD in Proxmox Virtual Environment (V
 the http://git.linbit.com/linstor-proxmox.git[LINSTOR Proxmox Plugin].
 
 [[s-proxmox-ls-overview]]
-=== Proxmox VE Overview
+=== Introduction to Proxmox VE
 
 http://www.proxmox.com/en/[Proxmox VE] is an easy to use, complete server
 virtualization environment with KVM, Linux Containers and HA.
 
-'linstor-proxmox' is a Perl plugin for Proxmox that, in combination with LINSTOR, allows to replicate VM
+'linstor-proxmox' is a Perl plug-in for Proxmox that, in combination with LINSTOR, allows to replicate VM
 //(LVM volumes on DRBD)
 disks  on several Proxmox VE nodes. This allows to live-migrate
 active VMs within a few seconds and with no downtime without needing a central SAN, as the data is already
 replicated to multiple nodes.
 
 [[s-proxmox-ls-upgrades]]
-=== Upgrades
+=== Upgrading Proxmox
 If this is a fresh installation, skip this section and continue with <<s-proxmox-ls-install>>.
 
 [[s-proxmox-ls-upgrades-4-5]]
-==== From 4.x to 5.x
-Version 5 of the plugin drops compatibility with the legacy configuration options "storagepool" and
+==== Upgrading From 4.x to 5.x
+Version 5 of the plug-in drops compatibility with the legacy configuration options "storagepool" and
 "redundancy". Version 5 *requires* a "resourcegroup" option, and obviously a LINSTOR resource group. The old
 options should be removed from the config.
 
 Configuring LINSTOR is described in Section <<s-proxmox-ls-ls-configuration>>, a typical example follows:
+
 Let's assume the pool was set to "mypool", and redundancy to 3.
 ----------------------------
 # linstor resource-group create --storage-pool=mypool --place-count=3 drbdMypoolThree
@@ -39,23 +40,22 @@ drbd: drbdstorage
 ----------------------------
 
 [[s-proxmox-ls-upgrades-5-6]]
-==== From 5.x to 6.x
+==== Upgrading From 5.x to 6.x
 With version 6 PVE added additional parameters to some functions and rightfully reset their "APIAGE". This
-means that old plugins, while actually usable as they don't use any of these changed functions do not work
-anymore. Please upgrade to plugin version 5.2.1 at least.
+means that old plug-ins, while actually usable as they don't use any of these changed functions do not work
+anymore. Please upgrade to plug-in version 5.2.1 at least.
 
 [[s-proxmox-ls-install]]
-=== Proxmox Plugin Installation
+=== Installing the Proxmox Plug-in
 
 LINBIT provides a dedicated public repository for Proxmox VE users. This repository not only contains the
-Proxmox plugin, but the whole DRBD SDS stack including a DRBD SDS kernel
+Proxmox plug-in, but the whole DRBD SDS stack including a DRBD SDS kernel
 module and user space utilities.
 
 The DRBD9 kernel module is installed as a `dkms` package (i.e., `drbd-dkms`), therefore you'll have to install
 `pve-headers` package, before you set up/install the software packages from LINBIT's repositories. Following
 that order, ensures that the kernel module will build properly for your kernel. If you don't plan to install
-the latest Proxmox kernel, you have to install kernel headers matching your current running kernel (e.g.,
-		`pve-headers-$(uname -r)`). If you missed this step, then still you can rebuild the dkms package against
+the latest Proxmox kernel, you have to install kernel headers matching your current running kernel (e.g., `pve-headers-$(uname -r)`). If you missed this step, then still you can rebuild the dkms package against
 your current kernel, (kernel headers have to be installed in advance), by issuing `apt install --reinstall
 drbd-dkms` command.
 
@@ -70,16 +70,17 @@ LINBIT's repository can be enabled as follows, where "$PVERS" should be set to y
 ----------------------------
 
 [[s-proxmox-ls-ls-configuration]]
-=== LINSTOR Configuration
-For the  rest of this guide we assume that you have a LINSTOR cluster configured as described in
+=== Configuring LINSTOR
+
+For the rest of this guide we assume that you have a LINSTOR cluster configured as described in
 <<s-linstor-init-cluster>>. Start the "linstor-controller" on one node, and the "linstor-satellite" on all
-nodes. The preferred way to use the plugin, starting from version 4.1.0, is via LINSTOR resource groups and a
+nodes. The preferred way to use the plug-in, starting from version 4.1.0, is via LINSTOR resource groups and a
 single volume group within every resource group. LINSTOR resource groups are described in
 <<s-linstor-resource-groups>>. All the required LINSTOR configuration (e.g., redundancy count) has to be set
 on the resource group.
 
 [[s-proxmox-ls-configuration]]
-=== Proxmox Plugin Configuration
+=== Configuring the Proxmox Plug-in
 The final step is to provide a configuration for Proxmox itself. This can be done by adding an entry in the
 `/etc/pve/storage.cfg` file, with a content similar to the following.
 
@@ -123,7 +124,7 @@ drbd: slowdrbd
 By now, you should be able to create VMs via Proxmox's web GUI by selecting "__drbdstorage__", or any other of
 the defined pools as storage location.
 
-Starting from version 5 of the plugin one can set the option "preferlocal yes". If it is set, the plugin tries
+Starting from version 5 of the plug-in one can set the option "preferlocal yes". If it is set, the plug-in tries
 to create a diskful assignment on the node that issued the storage create command. With this option one can
 make sure the VM gets local storage if possible. Without that option LINSTOR might place the storage on nodes
 'B' and 'C', while the VM is initially started on node 'A'. This would still work as node 'A' then would get a
@@ -133,7 +134,7 @@ diskless assignment, but having local storage might be preferred.
 
 At this point you can try to live migrate the VM - as all data is accessible on all nodes (even on Diskless
 nodes) - it will take just a few seconds. The overall process might take a bit longer if the VM is under
-load and if there is a lot of RAM being dirtied all the time.  But in any case, the downtime should be minimal
+load and if there is a lot of RAM being dirtied all the time. But in any case, the downtime should be minimal
 and you will see no interruption at all.
 
 .Table Configuration Options
@@ -150,14 +151,14 @@ and you will see no interruption at all.
 |===
 
 [[s-proxmox-ls-HA]]
-=== Making the Controller Highly-Available (optional)
-Making LINSTOR highly-available is a matter of making the LINSTOR controller
+=== Making the Controller Highly Available (Optional Configuration)
+Making LINSTOR highly available is a matter of making the LINSTOR controller
 highly-available. This step is described in Section <<s-linstor_ha>>.
 
-The last -- but crucial -- step is to configure the Proxmox plugin to be
+The last -- but crucial -- step is to configure the Proxmox plug-in to be
 able to connect to multiple LINSTOR controllers. It will use the first one it
 receives an answer from. This is done by adding a comma-separated list of
-controllers in the `controller` section of the plugin like this:
+controllers in the `controller` section of the plug-in like this:
 
 ----------------------------
 drbd: drbdstorage
