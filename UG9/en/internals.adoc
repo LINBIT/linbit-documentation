@@ -10,9 +10,9 @@ papers listed in <<s-publications>>, and of course to the comments in
 the DRBD source code.
 
 [[s-metadata]]
-=== DRBD meta data
+=== DRBD Metadata
 
-indexterm:[meta data]DRBD stores various pieces of information about
+indexterm:[metadata]DRBD stores various pieces of information about
 the data it keeps in a dedicated area. This metadata includes:
 
 * the size of the DRBD device,
@@ -24,35 +24,35 @@ This metadata may be stored _internally_ or _externally_. Which method
 is used is configurable on a per-resource basis.
 
 [[s-internal-meta-data]]
-==== Internal meta data
+==== Internal Metadata
 
-indexterm:[meta data]Configuring a resource to use internal meta data
-means that DRBD stores its meta data on the same physical lower-level
+indexterm:[metadata]Configuring a resource to use internal metadata
+means that DRBD stores its metadata on the same physical lower-level
 device as the actual production data. It does so by setting aside an
 area at the _end_ of the device for the specific purpose of storing
 metadata.
 
 .Advantage
-Since the meta data are inextricably linked with the actual data, no
+Since the metadata are inextricably linked with the actual data, no
 special action is required from the administrator in case of a hard
-disk failure. The meta data are lost together with the actual data and
+disk failure. The metadata are lost together with the actual data and
 are also restored together.
 
 .Disadvantage
 In case of the lower-level device being a single physical hard disk
-(as opposed to a RAID set), internal meta data may negatively affect
+(as opposed to a RAID set), internal metadata may negatively affect
 write throughput. The performance of write requests by the application
-may trigger an update of the meta data in DRBD. If the meta data are
+may trigger an update of the metadata in DRBD. If the metadata are
 stored on the same magnetic disk of a hard disk, the write operation
 may result in two additional movements of the write/read head of the
 hard disk.
 
 [CAUTION]
 ============
-If you are planning to use internal meta data in conjunction
+If you are planning to use internal metadata in conjunction
 with an existing lower-level device that already has data which you
 wish to preserve, you _must_ account for the space required by DRBD's
-meta data.
+metadata.
 
 Otherwise, upon DRBD resource creation, the newly created metadata
 would overwrite data at the end of the lower-level device, potentially
@@ -70,30 +70,30 @@ To avoid that, you must do one of the following things:
   may or may not be supported by your file system.
 
 * If neither of the two are possible, use
-  <<s-external-meta-data,external meta data>> instead.
+  <<s-external-meta-data,external metadata>> instead.
 
 To estimate the amount by which you must enlarge your lower-level
 device or shrink your file system, see <<s-meta-data-size>>.
 
 [[s-external-meta-data]]
-==== External meta data
+==== External Metadata
 
-indexterm:[meta data]External meta data is simply stored on a
+indexterm:[metadata]External metadata is simply stored on a
 separate, dedicated block device distinct from that which holds your
 production data.
 
 .Advantage
-For some write operations, using external meta data produces a
+For some write operations, using external metadata produces a
 somewhat improved latency behavior.
 
 .Disadvantage
 Meta data are not inextricably linked with the actual production
 data. This means that manual intervention is required in the case of a
 hardware failure destroying just the production data (but not DRBD
-meta data), to effect a full data sync from the surviving node onto
+metadata), to effect a full data sync from the surviving node onto
 the subsequently replaced disk.
 
-Use of external meta data is also the only viable option if _all_ of
+Use of external metadata is also the only viable option if _all_ of
 the following apply:
 
 * You are using DRBD to duplicate an existing device that already
@@ -104,18 +104,18 @@ the following apply:
 * the existing file system on the device does not support shrinking.
 
 To estimate the required size of the block device dedicated to hold
-your device meta data, see <<s-meta-data-size>>.
+your device metadata, see <<s-meta-data-size>>.
 
-NOTE: External meta data requires a minimum of a 1MB device size.
+NOTE: External metadata requires a minimum of a 1MB device size.
 
 [[s-meta-data-size]]
-==== Estimating meta data size
+==== Estimating Metadata Size
 
-indexterm:[meta data]You may calculate the exact space requirements
-for DRBD's meta data using the following formula:
+indexterm:[metadata]You may calculate the exact space requirements
+for DRBD's metadata using the following formula:
 
 [[eq-metadata-size-exact]]
-.Calculating DRBD meta data size (exactly)
+.Calculating DRBD metadata size (exactly)
 image::images/metadata-size-exact.svg[]
 
 *_C~s~_* is the data device size in sectors, and *_N_* is the number of peers.
@@ -133,7 +133,7 @@ In practice, you may use a reasonably good approximation, given
 below. Note that in this formula, the unit is megabytes, not sectors:
 
 [[eq-metadata-size-approx]]
-.Estimating DRBD meta data size (approximately)
+.Estimating DRBD metadata size (approximately)
 image::images/metadata-size-approx.svg[]
 
 [[s-gi]]
@@ -156,7 +156,7 @@ This is DRBD's internal mechanism used for
 * indexterm:[split brain]identifying split brain.
 
 [[s-data-generations]]
-==== Data generations
+==== Data Generations
 
 DRBD marks the start of a new _data generation_ at each of the
 following occurrences:
@@ -181,10 +181,10 @@ Every new data generation is identified by an 8-byte, universally
 unique identifier (UUID).
 
 [[s-gi-tuple]]
-==== The generation identifier tuple
+==== The Generation Identifier Tuple
 
 DRBD keeps some pieces of information about current and historical
-data generations in the local resource meta data:
+data generations in the local resource metadata:
 
 .Current UUID
 This is the generation identifier for the current data generation, as
@@ -207,10 +207,10 @@ Collectively, these items are referred to as the _generation
 identifier tuple_, or "__GI tuple__" for short.
 
 [[s-gi-changes]]
-==== How generation identifiers change
+==== How Generation Identifiers Change
 
 [[s-gi-changes-newgen]]
-===== Start of a new data generation
+===== Start of a New Data Generation
 
 When a node in _Primary_ role loses connection to its peer (either by network failure or
 manual intervention), DRBD modifies its local generation identifiers
@@ -231,16 +231,15 @@ image::images/gi-changes-newgen.svg[]
 
 
 [[s-gi-changes-synccomplete]]
-===== Completion of re-synchronization
+===== Completion of Resynchronization
 
-When re-synchronization concludes, the synchronization target adopts the entire
+When resynchronization concludes, the synchronization target adopts the entire
 GI tuple from the synchronization source.
 
 The synchronization source keeps the same set, and doesn't generate new UUIDs.
 
-
 [[s-gi-use]]
-==== How DRBD uses generation identifiers
+==== How DRBD Uses Generation Identifiers
 
 When a connection between nodes is established, the two nodes exchange
 their currently available generation identifiers, and proceed
@@ -352,7 +351,7 @@ failure of the active node the data must be fully synchronized after
 its recovery.
 
 DRBD's approach, since version 0.7, is a different one. The _activity
-log_ (AL), stored in the meta data area, keeps track of those blocks
+log_ (AL), stored in the metadata area, keeps track of those blocks
 that have "recently" been written to. Colloquially, these areas are
 referred to as _hot extents_.
 
@@ -363,7 +362,7 @@ rather than the full device. This drastically
 reduces synchronization time after an active node crash.
 
 [[s-active-extents]]
-==== Active extents
+==== Active Extents
 
 indexterm:[Activity Log]The activity log has a configurable parameter,
 the number of active extents. Every active extent adds 4MiB to the
@@ -374,9 +373,9 @@ opposites:
 .Many active extents
 Keeping a large activity log improves write throughput. Every time a
 new extent is activated, an old extent is reset to inactive. This
-transition requires a write operation to the meta data area. If the
+transition requires a write operation to the metadata area. If the
 number of active extents is high, old active extents are swapped out
-fairly rarely, reducing meta data write operations and thereby
+fairly rarely, reducing metadata write operations and thereby
 improving performance.
 
 .Few active extents
@@ -385,7 +384,7 @@ node failure and subsequent recovery.
 
 
 [[s-suitable-al-size]]
-==== Selecting a suitable Activity Log size
+==== Selecting a Suitable Activity Log Size
 
 indexterm:[Activity Log]Consideration of the number of extents should
 be based on the desired synchronization time at a given
@@ -414,7 +413,7 @@ their data might be used to synchronize other Secondary nodes.
 
 
 [[s-quick-sync-bitmap]]
-=== The quick-sync bitmap
+=== The Quick-sync Bitmap
 
 indexterm:[quick-sync bitmap]indexterm:[bitmap (DRBD-specific
 concept)]The quick-sync bitmap is the internal data structure which
@@ -461,7 +460,7 @@ re-synchronization leaves your secondary node's disk
 _Inconsistent_ longer than necessary.
 
 [[s-fence-peer]]
-=== The Peer-Fencing interface
+=== The Peer-fencing Interface
 
 DRBD has an interface defined for fencingfootnote:[For a discussion about
 Fencing and STONITH, please see the corresponding Pacemaker page
@@ -508,7 +507,7 @@ Exit code;Implication
 |=======================================
 
 [[s-drbd-client-internals]]
-=== The client mode
+=== The Client Mode
 
 Since version 9.0.13 DRBD supports clients. A client in DRBD speak is
 just a permanently diskless node. In the configuration, it is

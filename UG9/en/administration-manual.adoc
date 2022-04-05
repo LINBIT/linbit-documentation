@@ -6,9 +6,8 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
-
 [[ch-admin-manual]]
-== Common administrative tasks
+== Common Administrative Tasks
 
 This chapter outlines typical administrative tasks encountered during
 day-to-day operations. It does not cover troubleshooting tasks, these
@@ -17,16 +16,16 @@ are covered in detail in <<ch-troubleshooting>>.
 include::configure.adoc[]
 
 [[s-check-status]]
-=== Checking DRBD status
+=== Checking DRBD Status
 
 [[s-drbd-drbdmon]]
-==== Retrieving status with drbdmon
+==== Monitoring DRBD Resources in Real-time
 
 One convenient way to look at DRBD's status is the
-`drbdmon` utility. It updates the state of DRBD resources in real time.
+`drbdmon` utility. It updates the state of DRBD resources in real-time.
 
 [[s-proc-drbd]]
-==== Status information in `/proc/drbd`
+==== Retrieving Status Information Through the DRBD Process File
 
 NOTE: `/proc/drbd` is deprecated. While it won't be removed in the 8.4
 series, we recommend to switch to other means, like <<s-drbdadm-status>>; or,
@@ -49,7 +48,7 @@ specific build.
 
 
 [[s-drbdadm-status]]
-==== Status information via `drbdadm`
+==== Retrieving Status Information Using the DRBD Administration Tool
 
 indexterm:[drbdadm, status]In its simplest invocation, we just ask for the
 status of a single resource.
@@ -137,13 +136,15 @@ The Replication protocol used by the resource. Either `A`, `B`, or `C`. See
 ///////
 
 [[s-drbdsetup-events2]]
-==== One-shot or real time monitoring via `drbdsetup events2`
+==== Retrieving Status Information Using the DRBD Setup Command 
 
 NOTE: This is available only with userspace versions 8.9.3 and up.
 // and 8.4.6
 
-This is a low-level mechanism to get information out of DRBD, suitable for use
+Using the command `drbdsetup events2` with additional options and arguments is a low-level mechanism to get information out of DRBD, suitable for use
 in automated tools, like monitoring.
+
+===== One-shot Monitoring
 
 In its simplest invocation, showing only the current status, the output looks
 like this (but, when running on a terminal, will include colors):
@@ -160,6 +161,8 @@ exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:1
     replication:Established peer-disk:UpToDate resync-suspended:no
 exists -
 ---------------
+
+===== Real-time Monitoring
 
 Without the ''--now'', the process will keep running, and send continuous updates like this:
 
@@ -200,7 +203,7 @@ You might also like the ''--timestamp'' parameter.
 
 
 [[s-connection-states]]
-==== Connection states
+==== Connection States
 
 indexterm:[drbdadm, cstate]indexterm:[connection state, via drbdadm]A resource's connection state can be
 observed either by issuing the `drbdadm cstate` command:
@@ -266,7 +269,7 @@ indexterm:[connection state, Connected]A DRBD connection has been established,
 data mirroring is now active. This is the normal state.
 
 [[s-replication-states]]
-==== Replication states
+==== Replication States
 
 Each volume has over each connection a replication state. The possible replication
 states are:
@@ -341,7 +344,7 @@ since the link can not cope with the load. This state is enabled by the configur
 `on-congestion` option on the peer node (see <<s-configure-congestion-policy>>).
 
 [[s-roles]]
-==== Resource roles
+==== Resource Roles
 
 indexterm:[resource]A resource's role can be observed by issuing the
 indexterm:[drbdadm, role]`drbdadm role` command:
@@ -371,7 +374,7 @@ role, and only in disconnected mode.
 
 
 [[s-disk-states]]
-==== Disk states
+==== Disk States
 
 A resource's disk state can be observed either by
 issuing the `drbdadm dstate` command:
@@ -430,7 +433,7 @@ is the normal state.
 
 
 [[s-conn-info]]
-==== Connection information data
+==== Connection Information Data
 
 ._local_
 Shows the network family, the local address and port that is used to
@@ -445,7 +448,7 @@ This flag tells whether the TCP send buffer of the data connection is more than 
 
 
 [[s-performance-indicators]]
-==== Performance indicators
+==== Performance Indicators
 
 indexterm:[performance indicators]
 The command ``drbdsetup status --verbose --statistics`` can be used to show performance statistics.
@@ -527,10 +530,10 @@ Comma separated.
 
 
 [[s-enable-disable]]
-=== Enabling and disabling resources
+=== Enabling and Disabling Resources
 
 [[s-enable-resource]]
-==== Enabling resources
+==== Enabling Resources
 
 indexterm:[resource]Normally, all configured DRBD resources are
 automatically enabled
@@ -552,7 +555,7 @@ resource name if you want to enable all resources configured in
 `/etc/drbd.conf` at once.
 
 [[s-disable-resource]]
-==== Disabling resources
+==== Disabling Resources
 
 indexterm:[resource]You may temporarily disable specific resources by
 issuing the command
@@ -566,7 +569,7 @@ you wish to temporarily disable all resources listed in
 `/etc/drbd.conf` at once.
 
 [[s-reconfigure]]
-=== Reconfiguring resources
+=== Reconfiguring Resources
 
 indexterm:[resource]DRBD allows you to reconfigure resources while
 they are operational. To that end,
@@ -589,7 +592,7 @@ you can adjust the configuration for all resources in one run, by
 issuing `drbdadm adjust all`.
 
 [[s-switch-resource-roles]]
-=== Promoting and demoting resources
+=== Promoting and Demoting Resources
 
 indexterm:[resource]Manually switching a <<s-resource-roles,resource's
 role>> from secondary to primary (promotion) or vice versa (demotion)
@@ -613,9 +616,9 @@ online migration of virtual machines.
 
 
 [[s-manual-fail-over]]
-=== Basic manual fail-over
+=== Basic Manual Failover
 
-If not using a cluster manager and looking to handle fail-overs manually in a
+If not using a cluster manager and looking to handle failovers manually in a
 passive/active configuration, the process is as follows.
 
 On the current primary node stop any applications or services using the DRBD device,
@@ -644,12 +647,12 @@ include::upgrading.adoc[]
 include::dualprimary.adoc[]
 
 [[s-use-online-verify]]
-=== Using on-line device verification
+=== Using Online Device Verification
 
 [[s-online-verify-enable]]
-==== Enabling on-line verification
+==== Enabling Online Verification
 
-indexterm:[on-line device verification]<<s-online-verify,On-line
+indexterm:[online device verification]<<s-online-verify,Online
 device verification>> for resources is not enabled by default. To
 enable it, add the following lines to your resource configuration in
 `/etc/drbd.conf`:
@@ -673,9 +676,9 @@ synchronize your `drbd.conf` to the peer, and run `drbdadm adjust
 _<resource>_` on both nodes.
 
 [[s-online-verify-invoke]]
-==== Invoking on-line verification
+==== Invoking Online Verification
 
-indexterm:[on-line device verification]After you have enabled on-line
+indexterm:[online device verification]After you have enabled online
 verification, you will be able to initiate a verification run using
 the following command:
 
@@ -719,10 +722,10 @@ at least one block while the peer is away.
 
 
 [[s-online-verify-automate]]
-==== Automating on-line verification
+==== Automating Online Verification
 
-indexterm:[on-line device verification]Most users will want to
-automate on-line device verification. This can be easily
+indexterm:[online device verification]Most users will want to
+automate online device verification. This can be easily
 accomplished. Create a file with the following contents, named
 `/etc/cron.d/drbd-verify` on *one* of your nodes:
 
@@ -737,7 +740,7 @@ a quick look at the resource's status would show the result. If your devices
 are very big, and the \~32 hours were not enough, then you'll notice _VerifyS_ or
 _VerifyT_ as connection state, meaning that the `verify` is still in progress.
 
-If you have enabled on-line verification for all your resources (for
+If you have enabled online verification for all your resources (for
 example, by adding `verify-alg _<algorithm>_` to the `common` section
 in `/etc/drbd.d/global_common.conf`), you may also use:
 
@@ -748,7 +751,7 @@ in `/etc/drbd.d/global_common.conf`), you may also use:
 
 
 [[s-configure-sync-rate]]
-=== Configuring the rate of synchronization
+=== Configuring the Rate of Synchronization
 
 indexterm:[synchronization]Normally, one tries to ensure that
 background synchronization (which makes the data on the
@@ -772,7 +775,7 @@ the replication network.
 
 
 [[s-estimating_a_synchronization_speed]]
-==== Estimating a synchronization speed
+==== Estimating a Synchronization Speed
 
 TIP: A good rule of thumb for this value is to use about 30% of the
 available replication bandwidth. Thus, if you had an I/O subsystem
@@ -801,7 +804,7 @@ Similarly, for a storage speed of 800MB/s and a 10Gbe network connection, you
 would shoot for \~240MB/s synchronization rate.
 
 [[s-configure-sync-rate-variable]]
-==== Variable sync rate configuration
+==== Variable Synchronization Rate Configuration
 
 When multiple DRBD resources share a
 single replication/synchronization network, synchronization with a fixed rate
@@ -854,7 +857,7 @@ configuration items.
 
 
 [[s-configure-sync-rate-permanent]]
-==== Permanent fixed sync rate configuration
+==== Permanent Fixed Synchronization Rate Configuration
 
 In a few, very restricted situationsfootnote:[Like benchmarking.], it might
 make sense to just use some fixed synchronization rate. In this case, first
@@ -884,9 +887,8 @@ NOTE: This just defines a rate that DRBD tries to achieve. If there is a
 bottleneck with lower throughput (network, storage speed), the defined speed
 (aka the "wished-for" performance ;) won't be reached.
 
-
 [[s-some_more_hints_about_synchronization]]
-==== Some more hints about synchronization
+==== Further Synchronization Hints
 
 When some amount of the to-be-synchronized data isn't really in use anymore
 (e.g. because files got deleted while one node wasn't connected), you
@@ -901,7 +903,7 @@ links), and application IO (which not might be able to do anything about).
 
 
 [[s-configure-checksum-sync]]
-=== Configuring checksum-based synchronization
+=== Configuring Checksum-based Synchronization
 
 indexterm:[checksum-based
 synchronization]<<p-checksum-sync,Checksum-based synchronization>> is
@@ -927,7 +929,7 @@ synchronize your `drbd.conf` to the peer, and run `drbdadm adjust
 _<resource>_` on both nodes.
 
 [[s-configure-congestion-policy]]
-=== Configuring congestion policies and suspended replication
+=== Configuring Congestion Policies and Suspended Replication
 
 In an environment where the replication bandwidth is highly variable
 (as would be typical in WAN replication setups), the replication link
@@ -970,7 +972,7 @@ A good value for `congestion-extents` is 90% of your configured
 
 
 [[s-configure-io-error-behavior]]
-=== Configuring I/O error handling strategies
+=== Configuring I/O Error Handling Strategies
 
 indexterm:[I/O errors]indexterm:[drbd.conf]DRBD's
 <<s-handling-disk-errors,strategy for handling lower-level I/O
@@ -1030,7 +1032,7 @@ by following this process:
 
 
 [[s-configure-integrity-check]]
-=== Configuring replication traffic integrity checking
+=== Configuring Replication Traffic Integrity Checking
 
 indexterm:[replication traffic integrity
 checking]<<s-integrity-check,Replication traffic integrity checking>>
@@ -1060,7 +1062,7 @@ diagnose data corruption problems, and want to see whether the transport path
 (network hardware, drivers, switches) might be at fault!
 
 [[s-resizing]]
-=== Resizing resources
+=== Resizing Resources
 
 
 When growing (extending) DRBD volumes, you need to grow from bottom to top.
@@ -1127,7 +1129,7 @@ See also <<s-shrinking-online>>, <<s-shrinking-offline>>.
 
 
 [[s-growing-online]]
-==== Growing on-line
+==== Growing Online
 
 indexterm:[resource]If the backing block devices can be grown while in
 operation (online), it is also possible to increase the size of a DRBD
@@ -1157,7 +1159,7 @@ space by using the --assume-clean option.
 ----------------------------
 
 [[s-growing-offline]]
-==== Growing off-line
+==== Growing Offline
 
 indexterm:[resource]When the backing block devices on both nodes are
 grown while DRBD is inactive, and the DRBD resource is using
@@ -1235,7 +1237,7 @@ you are unsure which shell you are currently using.
 
 
 [[s-shrinking-online]]
-==== Shrinking on-line
+==== Shrinking Online
 
 
 WARNING: Online shrinking is only supported with external metadata.
@@ -1245,11 +1247,11 @@ the layers above DRBD, i.e. usually the file system. Since DRBD cannot
 ask the file system how much space it actually uses, you have to be
 careful in order not to cause data loss.
 
-NOTE: Whether or not the _filesystem_ can be shrunk on-line depends on
-the filesystem being used. Most filesystems do not support on-line
+NOTE: Whether or not the _filesystem_ can be shrunk online depends on
+the filesystem being used. Most filesystems do not support online
 shrinking. XFS does not support shrinking at all.
 
-To shrink DRBD on-line, issue the following command _after_ you have
+To shrink DRBD online, issue the following command _after_ you have
 shrunk the file system residing on top of it:
 
 [source,drbd]
@@ -1266,7 +1268,7 @@ resizing the lower level device, so that the DRBD metadata *really* gets
 written into the expected space at the end of the volume.
 
 [[s-shrinking-offline]]
-==== Shrinking off-line
+==== Shrinking Offline
 
 indexterm:[resource]If you were to shrink a backing block device while
 DRBD is inactive, DRBD would refuse to attach to this block device
@@ -1274,7 +1276,7 @@ during the next attach attempt, since it is now too small (in case
 external meta data is used), or it would be unable to find its meta
 data (in case internal meta data is used). To work around these
 issues, use this procedure (if you cannot use
-<<s-shrinking-online,on-line shrinking>>):
+<<s-shrinking-online,online shrinking>>):
 
 
 WARNING: This is an advanced procedure. Use at your own discretion.
@@ -1334,7 +1336,7 @@ are unsure which shell you are currently using.
 
 
 [[s-disable-flushes]]
-=== Disabling backing device flushes
+=== Disabling Backing Device Flushes
 
 CAUTION: You should only disable device flushes when running DRBD on
 devices with a battery-backed write cache (BBWC). Most storage
@@ -1412,10 +1414,10 @@ resource <resource> {
 
 
 [[s-configure-split-brain-behavior]]
-=== Configuring split brain behavior
+=== Configuring Split Brain Behavior
 
 [[s-split-brain-notification]]
-==== Split brain notification
+==== Split Brain Notification
 
 DRBD invokes the `split-brain` handler, if configured, at any time
 split brain is _detected_. To configure this handler, add the
@@ -1456,7 +1458,7 @@ intervention is needed to enable the handler. DRBD will simply invoke
 the newly-configured handler on the next occurrence of split brain.
 
 [[s-automatic-split-brain-recovery-configuration]]
-==== Automatic split brain recovery policies
+==== Automatic Split Brain Recovery Policies
 
 CAUTION: Configuring DRBD to automatically resolve data divergence
 situations resulting from split-brain (or other) scenarios
@@ -1550,7 +1552,7 @@ resource <resource> {
 
 
 [[s-three-nodes]]
-=== Creating a stacked three-node setup
+=== Creating a Stacked Three-node Setup
 
 A three-node setup involves one DRBD device _stacked_ atop another.
 
@@ -1559,7 +1561,7 @@ NOTE: Stacking is deprecated in DRBD version
 <<s-drbdconf-conns>> for details.
 
 [[s-stacking-considerations]]
-==== Device stacking considerations
+==== Device Stacking Considerations
 
 The following considerations apply to this type of setup:
 
@@ -1582,7 +1584,7 @@ The following considerations apply to this type of setup:
 
 
 [[s-three-node-config]]
-==== Configuring a stacked resource
+==== Configuring a Stacked Resource
 
 In the following example, nodes are named 'alice', 'bob', and
 'charlie', with 'alice' and 'bob' forming a two-node cluster, and
@@ -1644,7 +1646,7 @@ image::images/single-stacked.svg[]
 
 
 [[s-three-node-enable]]
-==== Enabling stacked resources
+==== Enabling Stacked Resources
 
 To enable a stacked resource, you first enable its lower-level
 resource and promote it:
@@ -1683,7 +1685,7 @@ cluster managed by the Pacemaker cluster management framework.
 endif::drbd-only[]
 
 [[s-permanently-diskless-nodes]]
-=== Permanently diskless nodes
+=== Permanently Diskless Nodes
 
 A node might be permanently diskless in DRBD. Here is a configuration example
 showing a resource with 3 diskful nodes (servers) and one permanently diskless
@@ -1729,7 +1731,7 @@ diskless status is displayed in green color since it is not an error or unexpect
 state. See <<s-drbd-client-internals>> for internal details.
 
 [[s-rebalance-workflow]]
-=== Data rebalancing
+=== Data Rebalancing
 
 indexterm:[rebalance]Given the (example) policy that data needs to be available on 3 nodes,
 you need at least 3 servers for your setup.
@@ -1755,7 +1757,7 @@ choose a node in _Secondary_ role. (Of course, that might not always be possible
 
 
 [[s-prepare_a_bitmap_slot]]
-==== Prepare a bitmap slot
+==== Prepare a Bitmap Slot
 
 You will need to have a free <<s-quick-sync-bitmap,bitmap slot>> for
 temporary use, on each of the nodes that have the resource that is to be moved.
@@ -1791,7 +1793,7 @@ kernel rewrite the metadata for you.
 
 
 [[s-preparing_and_activating_the_new_node]]
-==== Preparing and activating the new node
+==== Preparing and Activating the New Node
 
 First of all you have to
 create the underlying storage volume on the new node (using e.g. `lvcreate`).
@@ -1813,7 +1815,7 @@ New drbd meta data block successfully created.
 
 
 [[s-starting_the_initial_sync]]
-==== Starting the initial sync
+==== Starting the Initial Synchronization
 
 Now the new node needs to get the data.
 
@@ -1831,7 +1833,7 @@ and starting the DRBD device on the new node via
 
 
 [[s-check_connectivity]]
-==== Check connectivity
+==== Check Connectivity
 
 At this time please do a
 ------------
@@ -1841,7 +1843,7 @@ At this time please do a
 on the new node, and check that _all_ other nodes are connected.
 
 [[s-after_the_initial_sync]]
-==== After the initial sync
+==== After the Initial Synchronization
 
 As soon as the new host is _UpToDate_, one of the
 other nodes in the configuration can be renamed to `for-later-rebalancing`, and
@@ -1862,7 +1864,7 @@ on all nodes.
 
 
 [[s-cleaning_up]]
-==== Cleaning up
+==== Cleaning Up
 
 On the one node that had the data up to now, but isn't used anymore for this
 resource, you can now take the DRBD device down by starting
@@ -1876,7 +1878,7 @@ re-used for other purposes or, if it is a logical volume, its space can be
 returned to the volume group via `lvremove`.
 
 [[s-conclusion_and_further_steps]]
-==== Conclusion and further steps
+==== Conclusion and Further Steps
 
 One of the resources has been migrated to the new node. The same could be done
 for one or more other resources, to free space on two or three nodes in the
@@ -1886,7 +1888,7 @@ Then new resources can be configured, as there are enough nodes with free space
 to achieve 3-way redundancy again.
 
 [[s-configuring-quorum]]
-=== Configuring quorum
+=== Configuring Quorum
 
 In order to avoid split brain or diverging data of replicas one has to configure
 fencing. All the options for fencing rely on redundant communication in the end.
@@ -1907,7 +1909,7 @@ option to `majority`, `all` or a numeric value. Where `majority` selects the
 behavior that was described in the previous paragraph.
 
 [[s-guaranteed_minimal_redundancy]]
-==== Guaranteed minimal redundancy
+==== Guaranteed Minimal Redundancy
 
 By default every node with a disk gets a vote in the quorum election. In other words
 only diskless nodes do not count. So a partition with two _Inconsistent_ disks gets
@@ -1935,7 +1937,7 @@ resource quorum-demo {
 -------------------------------------
 
 [[s-actions_on_loss_of_quorum]]
-==== Actions on loss of quorum
+==== Actions on Loss of Quorum
 
 When a node that is running the service loses quorum it needs to cease write-operations
 on the data set immediately. That means that IO immediately starts to complete all IO
@@ -1977,7 +1979,7 @@ resource quorum-demo {
 -------------------------------------
 
 [[s-configuring-quorum-tiebreaker]]
-==== Using a diskless node as a tiebreaker
+==== Using a Diskless Node as a Tiebreaker
 
 A diskless node with connections to all nodes in a cluster can be utilized to break ties
 in the quorum negotiation process.
@@ -2046,7 +2048,7 @@ It is important to note here that *a node that has lost quorum cannot regain quo
 to a diskless node*. Thus, in this case, no node has quorum and the cluster halts.
 
 [[s-quorum_last_man_standing]]
-==== Last man standing
+==== Last Man Standing
 
 It needs to be mentioned that nodes that leave a cluster gracefully are counted
 different than failed nodes. In this context _leaving gracefully_ means that the leaving
