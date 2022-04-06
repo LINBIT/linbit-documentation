@@ -3,7 +3,7 @@
 
 indexterm:[Kubernetes]This chapter describes the usage of LINSTOR in Kubernetes (K8s)
 as managed by the operator and with volumes provisioned using the
-https://github.com/LINBIT/linstor-csi[LINSTOR CSI plugin].
+https://github.com/LINBIT/linstor-csi[LINSTOR CSI plug-in].
 
 This Chapter goes into great detail regarding all the install time
 options and various configurations possible with LINSTOR and
@@ -16,8 +16,8 @@ of the chapter.
 === Kubernetes Introduction
 
 _Kubernetes_ is a container orchestrator. Kubernetes defines the behavior of
-containers and related services via declarative specifications. In this guide,
-we'll focus on using `kubectl` to manipulate `.yaml` files that define the
+containers and related services, using declarative specifications. In this guide,
+we will focus on using `kubectl` to manipulate YAML files that define the
 specifications of Kubernetes objects.
 
 [[s-kubernetes-deploy]]
@@ -32,7 +32,7 @@ managing Satellite and Controller pods, and other related functions.
 
 The Operator itself is installed using a Helm v3 chart as follows:
 
-* Create a kubernetes secret containing your my.linbit.com credentials:
+* Create a Kubernetes secret containing your my.linbit.com credentials:
 +
 ----
 kubectl create secret docker-registry drbdiocred --docker-server=drbd.io \
@@ -137,8 +137,8 @@ POSTGRES_USER: postgresadmin
 POSTGRES_PASSWORD: admin123
 ----
 
-The Helm chart can be configured to use this database instead of deploying an
-etcd cluster by adding the following to the Helm install command:
+The Helm chart can be configured to use this database rather than deploying an
+etcd cluster, by adding the following to the Helm install command:
 
 ----
 --set etcd.enabled=false --set "operator.controller.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123"
@@ -192,7 +192,7 @@ operator:
         volumeGroup: drbdpool
 ----
 
-This file can be passed to the helm installation like this:
+This file can be passed to the Helm installation like this:
 
 [source]
 ----
@@ -201,7 +201,7 @@ helm install -f <file> linstor-op linstor/linstor
 
 ===== Creating Storage Pools After Installation
 
-On a cluster with the operator already configured (i.e. after `helm install`),
+On a cluster with the operator already configured (that is, after `helm install`),
 you can edit the LinstorSatelliteSet configuration like this:
 
 [source]
@@ -250,7 +250,7 @@ The available keys for `lvmPools` entries are:
 
 * `volumeGroup` name of the VG to create. [Required]
 
-* `devicePaths` devices to configure for this pool.Must be empty and >= 1GiB to be recognized. [Optional]
+* `devicePaths` devices to configure for this pool. Must be empty and >= 1GiB to be recognized. [Optional]
 
 * `raidLevel` LVM raid level. [Optional]
 
@@ -284,7 +284,7 @@ NOTE: The volume group created by LINSTOR for LVM thin pools will always follow 
 
 _ALL_ eligible devices will be prepared according to the value of `operator.satelliteSet.automaticStorageType`, unless
 they are already prepared using the `storagePools` section. Devices are added to a storage pool based on the device
-name (i.e. all `/dev/nvme1` devices will be part of the pool `autopool-nvme1`)
+name (that is, all `/dev/nvme1` devices will be part of the pool `autopool-nvme1`)
 
 The possible values for `operator.satelliteSet.automaticStorageType`:
 
@@ -313,7 +313,7 @@ The secret can then be passed to the controller by passing the following argumen
 ===== Authentication with `etcd` Using Certificates
 
 If you want to use TLS certificates to authenticate with an `etcd` database, you need to set the following option on
-helm install:
+Helm install:
 
 ----
 --set operator.controller.dbUseClientCert=true
@@ -401,7 +401,7 @@ openssl x509 -req -in linstor-api.csr -CA client-ca.crt -CAkey client-ca.key \
   subjectAltName=DNS:linstor-op-cs.default.svc)
 ----
 
-NOTE: `linstor-op-cs.default.svc` in the last command needs to match create service name. With helm, this is always
+NOTE: `linstor-op-cs.default.svc` in the last command needs to match create service name. With Helm, this is always
 `<release-name>-cs.<namespace>.svc`.
 
 Create kubernetes secrets that can be passed to the controller and node pods:
@@ -445,7 +445,7 @@ If you want to use a custom passphrase, store it in a secret:
 kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<password>
 ----
 
-On install, add the following arguments to the helm command:
+On install, add the following arguments to the Helm command:
 
 ----
 --set operator.controller.luksSecret=linstor-pass
@@ -482,7 +482,7 @@ helm repo add linstor https://charts.linstor.io
 helm install linstor-op linstor/linstor
 -----
 
-Install with LINSTOR storage-pools defined at install via
+Install with LINSTOR storage-pools defined at install through 
 `sp-values.yaml`, persistent hostPath volumes, 3 etcd replicas, and by
 compiling the DRBD kernel modules for the host kernels.
 
@@ -501,12 +501,12 @@ helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.replicas=3 
   --set operator.satelliteSet.kernelModuleInjectionMode=Compile
 -----
 
-Install with LINSTOR storage-pools defined at install via
+Install with LINSTOR storage-pools defined at install through
 `sp-values.yaml`, use an already created PostgreSQL DB (preferably
-clustered), instead of etcd, and use already compiled kernel modules for
-DRBD. Additionally, we'll disable the Stork scheduler in this example.
+clustered), rather than etcd, and use already compiled kernel modules for
+DRBD. Additionally, we will disable the Stork scheduler in this example.
 
-The PostgreSQL database in this particular example is reachable via a
+The PostgreSQL database in this particular example is reachable through a
 service endpoint named `postgres`. PostgreSQL itself is configured with
 `POSTGRES_DB=postgresdb`, `POSTGRES_USER=postgresadmin`, and
 `POSTGRES_PASSWORD=admin123`
@@ -545,11 +545,11 @@ kubectl delete linstorcontroller <helm-deploy-name>-cs
 kubectl delete linstorsatelliteset <helm-deploy-name>-ns
 ----
 +
-After a short wait, the controller and satellite pods should terminate. If they continue to run, you can check the above resources for errors (they are only removed after all associated pods terminate)
+After a short wait, the controller and satellite pods should terminate. If they continue to run, you can check the above resources for errors (they are only removed after all associated pods have terminated).
 
 3. Delete the Helm deployment.
 +
-If you removed all PVCs and all LINSTOR pods have terminated, you can uninstall the helm deployment
+If you removed all PVCs and all LINSTOR pods have terminated, you can uninstall the Helm deployment
 +
 ----
 helm uninstall linstor-op
@@ -561,7 +561,7 @@ NOTE: Due to the Helm's current policy, the Custom Resource Definitions named Li
 [[s-kubernetes-advanced-deployments]]
 ==== Advanced Deployment Options
 
-The helm charts provide a set of further customization options for advanced use cases.
+The Helm charts provide a set of further customization options for advanced use cases.
 
 [source,yaml]
 ----
@@ -585,7 +585,7 @@ stork:
   schedulerImage: k8s.gcr.io/kube-scheduler-amd64
   schedulerTag: ""
   replicas: 1 <2>
-  storkResources: {} # resources requirements for the stork plugin containers <3>
+  storkResources: {} # resources requirements for the stork plug-in containers <3>
   schedulerResources: {} # resource requirements for the kube-scheduler containers <3>
   podsecuritycontext: {}
 csi:
@@ -690,7 +690,7 @@ haController:
 
 <6> Sets additional properties on the LINSTOR Controller. Expects a simple mapping of `<property-key>: <value>`.
 
-<7> Kubelet expects every CSI plugin to mount volumes under a specific subdirectory of its own state directory. By default, this state directory is `/var/lib/kubelet`. Some Kubernetes distributions use a different directory: 
+<7> Kubelet expects every CSI plug-in to mount volumes under a specific subdirectory of its own state directory. By default, this state directory is `/var/lib/kubelet`. Some Kubernetes distributions use a different directory: 
 
 * microk8s: `/var/snap/microk8s/common/var/lib/kubelet`
 
@@ -700,7 +700,7 @@ haController:
 
 [[s-kubernetes-ha-deployment]]
 ===== High-Availability Deployment
-To create a high-availability deployment of all components, take a look at the https://github.com/piraeusdatastore/piraeus-operator/blob/b00fd34/doc/scheduling.md[upstream guide]
+To create a high-availability deployment of all components, consult the https://github.com/piraeusdatastore/piraeus-operator/blob/b00fd34/doc/scheduling.md[upstream guide]
 The default values are chosen so that scaling the components to multiple replicas ensures that the replicas are placed on different nodes. This ensures
 that a single node failures will not interrupt the service.
 
@@ -731,7 +731,7 @@ If you want to disable the monitoring container, set `monitoringImage` to `""` i
 [[s-kubernetes-deploy-external-controller]]
 ==== Deploying with an External LINSTOR Controller
 
-The operator can configure the satellites and CSI plugin to use an existing LINSTOR setup. This can be useful in cases
+The operator can configure the satellites and CSI plug-in to use an existing LINSTOR setup. This can be useful in cases
 where the storage infrastructure is separate from the Kubernetes cluster. Volumes can be provisioned in diskless mode
 on the Kubernetes nodes while the storage nodes will provide the backing disk storage.
 
@@ -765,7 +765,7 @@ parameters:
 ----
 
 You can provision new volumes by creating PVCs using your storage class. The volumes will first be placed only on nodes
-with the given storage pool, i.e. your storage infrastructure. Once you want to use the volume in a pod, LINSTOR CSI
+with the given storage pool, that is, your storage infrastructure. Once you want to use the volume in a pod, LINSTOR CSI
 will create a diskless resource on the Kubernetes node and attach over the network to the diskful resource.
 
 [[s-kubernetes-deploy-piraeus-operator]]
@@ -819,7 +819,7 @@ pvc:my-namespace/demo-pvc-1 -> pvc-2f982fb4-bc05-4ee5-b15b-688b696c8526
 It also expands references of the form `pod:[<namespace>/]<podname>` into a list resources in use by the pod.
 
 This should only be necessary for investigating problems and accessing advanced functionality.
-Regular operation such as creating volumes should be achieved via the
+Regular operation such as creating volumes should be achieved through the
 <<s-kubernetes-basic-configuration-and-deployment,Kubernetes integration>>.
 
 [[s-kubernetes-basic-configuration-and-deployment]]
@@ -828,8 +828,8 @@ Regular operation such as creating volumes should be achieved via the
 Once all linstor-csi __Pod__s are up and running, we can provision volumes
 using the usual Kubernetes workflows.
 
-Configuring the behavior and properties of LINSTOR volumes deployed via Kubernetes
-is accomplished via the use of __StorageClass__es.
+Configuring the behavior and properties of LINSTOR volumes deployed through Kubernetes
+is accomplished using __StorageClass__es.
 
 IMPORTANT: the "resourceGroup" parameter is mandatory. Usually you want it to be unique and the same as the storage class name.
 
@@ -844,12 +844,12 @@ metadata:
   # The name used to identify this StorageClass.
   name: linstor-basic-storage-class
   # The name used to match this StorageClass with a provisioner.
-  # linstor.csi.linbit.com is the name that the LINSTOR CSI plugin uses to identify itself
+  # linstor.csi.linbit.com is the name that the LINSTOR CSI plug-in uses to identify itself
 provisioner: linstor.csi.linbit.com
 volumeBindingMode: WaitForFirstConsumer
 parameters:
   # LINSTOR will provision volumes from the drbdpool storage pool configured
-  # On the satellite nodes in the LINSTOR cluster specified in the plugin's deployment
+  # On the satellite nodes in the LINSTOR cluster specified in the plug-in's deployment
   storagePool: "drbdpool"
   resourceGroup: "linstor-basic-storage-class"
   # Setting a fstype is required for "fsGroup" permissions to work correctly.
@@ -927,11 +927,11 @@ kubectl create -f my-first-linstor-volume-pod.yaml
 ----
 
 Running `kubectl describe pod fedora` can be used to confirm that _Pod_
-scheduling and volume attachment succeeded. Taking a look at the _PersistentVolumeClaim_,
+scheduling and volume attachment succeeded. Examining the _PersistentVolumeClaim_,
 we can see that it is now bound to a volume.
 
 To remove a volume, please ensure that no pod is using it and then delete the
-_PersistentVolumeClaim_ via `kubectl`. For example, to remove the volume that we
+_PersistentVolumeClaim_ using the `kubectl` command. For example, to remove the volume that we
 just made, run the following two commands, noting that the _Pod_ must be
 unscheduled before the _PersistentVolumeClaim_ will be removed:
 
@@ -997,7 +997,7 @@ The `csi.storage.k8s.io/fstype` parameter sets the file system type to create fo
 ==== autoPlace
 
 `autoPlace` is an integer that determines the amount of replicas a volume of
-this _StorageClass_ will have.  For instance, `autoPlace: "3"` will produce
+this _StorageClass_ will have. For instance, `autoPlace: "3"` will produce
 volumes with three-way replication. If neither `autoPlace` nor `nodeList` are
 set, volumes will be <<s-autoplace-linstor,automatically placed>> on one node.
 
@@ -1221,7 +1221,7 @@ Advanced DRBD options to pass to LINSTOR. For example, to change the replication
 === Snapshots
 
 Creating <<s-linstor-snapshots, snapshots>> and creating new volumes from
-snapshots is done via the use of __VolumeSnapshot__s, __VolumeSnapshotClass__es,
+snapshots is done using __VolumeSnapshot__s, __VolumeSnapshotClass__es,
 and __PVC__s.
 
 [[s-kubernetes-add-snaphot-support]]
@@ -1455,9 +1455,9 @@ then provisions the volume with backing data on the same node as the consumer. I
 storage pool was selected, a replacement node in the set of accessible nodes is chosen (see below).
 
 Volume accessibility is controlled by the
-<<s-kubernetes-params-allow-remote-volume-access,`allowRemoteVolumeAccess` parameter>>. Whenever the CSI plugin needs to
+<<s-kubernetes-params-allow-remote-volume-access,`allowRemoteVolumeAccess` parameter>>. Whenever the CSI plug-in needs to
 place a volume, this parameter is consulted to get the set of "accessible" nodes. This means they can share volumes
-placed on them via the network. This information is also propagated to Kubernetes via label selectors on the PV.
+placed on them through the network. This information is also propagated to Kubernetes using label selectors on the PV.
 
 ==== Volume Accessibility and Locality Examples
 
@@ -1466,8 +1466,8 @@ includes examples of how to spread volume replicas across zones in a cluster.
 
 ===== Single-zone Homogeneous Clusters
 
-The cluster only spans a single zone, i.e. latency between nodes is low. The cluster is homogeneous, i.e. all nodes
-are configured similarly, all nodes have their own local storage pool.
+The cluster only spans a single zone, so latency between nodes is low. The cluster is homogeneous, that is, all nodes
+are configured similarly. All nodes have their own local storage pool.
 
 .example-storage-class.yaml
 [source,yaml]
@@ -1567,7 +1567,7 @@ parameters:
 
 ===== Cluster with External Storage
 
-Our cluster is now only comprised of compute nodes without local storage. Any volume access has to occur via remote
+Our cluster now only consists of compute nodes without local storage. Any volume access has to occur through remote
 volume access.
 
 .example-storage-class.yaml
@@ -1599,7 +1599,7 @@ WARNING: The Stork integration is no longer actively maintained. Instead we reco
 `volumeBindingMode: WaitForFirstConsumer` in your storage class. For more details
 <<s-kubernetes-volume-accessibility-and-locality,see above>>.
 
-Stork is a scheduler extender plugin for Kubernetes which allows a storage
+Stork is a scheduler extender plug-in for Kubernetes which allows a storage
 driver to give the Kubernetes scheduler hints about where to place a new pod
 so that it is optimally located for storage performance. You can learn more
 about the project on its https://portworx.com/stork-storage-orchestration-kubernetes/[GitHub page].
@@ -1656,7 +1656,7 @@ linstor-op-ha-controller-f496c5f77-jnqtc   1/1     Running   0          89s
 linstor-op-ha-controller-f496c5f77-zcrqg   1/1     Running   0          89s
 ----
 
-In the event of node failures, Kubernetes is very conservative in rescheduling stateful workloads. This means it can
+When node failures occur, Kubernetes is very conservative in rescheduling stateful workloads. This means it can
 take more than 15 minutes for Pods to be moved from unreachable nodes. With the information available to DRBD and
 LINSTOR, this process can be sped up significantly.
 
