@@ -13,10 +13,10 @@ This chapter describes using LINSTOR and DRBD to provision volumes in Nomad.
 https://www.nomadproject.io/[Nomad] is a simple and flexible workload orchestrator to deploy and manage containers
 and non-containerized applications across on-prem and clouds.
 
-Nomad supports provisioning storage volumes via https://www.nomadproject.io/docs/internals/plugins/csi[plugins]
+Nomad supports provisioning storage volumes using https://www.nomadproject.io/docs/internals/plugins/csi[plug-ins]
 conforming to the https://github.com/container-storage-interface/spec[Container Storage Interface (CSI)].
 
-LINBIT distributes a CSI plugin in the form of container images from http://drbd.io[drbd.io]. The plugin can be
+LINBIT distributes a CSI plug-in in the form of container images from http://drbd.io[drbd.io]. The plug-in can be
 configured to work with a LINSTOR cluster that is deployed along or inside a Nomad cluster.
 
 [[s-nomad-linstor-deployment]]
@@ -31,7 +31,7 @@ NOTE: If you want to install LINSTOR directly on your nodes, check out the
 [[s-nomad-prepare]]
 ==== Preparing Nomad
 
-In order to run LINSTOR, every Nomad agent needs to be configured to:
+To run LINSTOR, every Nomad agent needs to be configured to:
 
 - Support the https://www.nomadproject.io/docs/drivers/docker[docker driver] and allow executing
   privileged containers
@@ -49,10 +49,10 @@ plugin "docker" {
 ----
 
 - Support for container networking. If you don't have the https://www.cni.dev/[Container Network
-  Interface] plugins installed, you will only be able to use `mode = "host"` in your job
-  networks. For most production setups, we recommend installing the default plugins:
+  Interface] plug-ins installed, you will only be able to use `mode = "host"` in your job
+  networks. For most production setups, we recommend installing the default plug-ins:
 +
-Head to the https://github.com/containernetworking/plugins/releases/[plugin release page], select the release archive
+Head to the https://github.com/containernetworking/plugins/releases/[plug-in release page], select the release archive
 appropriate for your distribution and unpack them in `/opt/cni/bin`. You might need to create the directory before
 unpacking.
 - Provide a host volume, allowing a container access to the hosts `/dev` directory
@@ -149,14 +149,14 @@ job "linstor-controller" {
 }
 ----
 
-<1> Replace `dc1` with your own datacenter name
+<1> Replace `dc1` with your own data center name
 
 <2> This exposes the LINSTOR API on the host on port `3370`.
 +
 NOTE: Uncomment this section if your cluster is not configured with {consul-connect}[Consul
  Connect].
 
-<3> The `service` block is used to expose the LINSTOR API to other jobs via the service mesh.
+<3> The `service` block is used to expose the LINSTOR API to other jobs through the service mesh.
 +
 NOTE: If your cluster is not configured for {consul-connect}[Consul Connect] you can remove this section.
 
@@ -255,7 +255,7 @@ template {
 In Nomad, the LINSTOR satellites are deployed as a system job that runs in a privileged container. In addition to the
 satellites, the job will also load the DRBD module along with other kernel modules used by LINSTOR.
 
-The following example will create a Nomad job starting a LINSTOR satellite on every node in datacenter `dc1`.
+The following example will create a Nomad job starting a LINSTOR satellite on every node in data center `dc1`.
 
 .linstor-satellite.hcl
 [source,hcl]
@@ -347,7 +347,7 @@ job "linstor-satellite" {
 }
 ----
 
-<1> Replace `dc1` with your own datacenter name.
+<1> Replace `dc1` with your own data center name.
 
 <2> The `dev` host volume is the volume created in <<s-nomad-prepare>>, which allows the
 satellite to manage the hosts block devices.
@@ -363,7 +363,7 @@ unintended upgrades.
 to use your LINBIT customer login here. Read more about pulling from a private repo
 https://www.nomadproject.io/docs/drivers/docker#authentication[here].
 
-<5> In order to configure storage devices, DRBD and load kernel modules, the containers need to
+<5> To configure storage devices, DRBD and load kernel modules, the containers need to
 be running in privileged mode.
 
 <6> The satellite needs to communicate with DRBD, which requires access to the netlink interface
@@ -378,7 +378,7 @@ other useful kernel modules.
 * `drbd.io/drbd9-rhel8` for RHEL 8
 * `drbd.io/drbd9-rhel7` for RHEL 7
 
-<9> The `drbd-loader` container can be configured via environment variables. `LB_HOW` tells the
+<9> The `drbd-loader` container can be configured using environment variables. `LB_HOW` tells the
 container how to insert the DRBD kernel module. Available options are:
 
 `shipped_modules`:: Uses the prepackaged RPMs or DEBs delivered with the container.
@@ -456,7 +456,7 @@ needs to match Nomads `attr.unique.hostname` attribute on the node.
 
 The CSI driver is deployed as a system job, meaning it runs on every node in the cluster.
 
-The following example will create a Nomad job starting a LINSTOR CSI Driver on every node in datacenter `dc1`.
+The following example will create a Nomad job starting a LINSTOR CSI Driver on every node in data center `dc1`.
 
 .linstor-csi.hcl
 [source,hcl]
@@ -519,7 +519,7 @@ job "linstor-csi" {
 }
 ----
 
-<1> Replace `dc1` with your own datacenter name
+<1> Replace `dc1` with your own data center name
 
 <2> The `sidecar_service` stanza enables use of the service mesh generated by using
 {consul-connect}[Consul Connect].  If you have not configured this feature in Nomad, or you are
@@ -543,7 +543,7 @@ be reachable from every node this is deployed on.
 
 <7> The CSI driver needs to execute mount commands, requiring privileged containers.
 
-<8> The `csi_plugin` stanza informs Nomad that this task is a CSI plugin. The Nomad agent will
+<8> The `csi_plugin` stanza informs Nomad that this task is a CSI plug-in. The Nomad agent will
 forward requests for volumes to one of the jobs containers.
 
 Apply the job by running:
@@ -595,7 +595,7 @@ parameters { <6>
 <1> The `id` is used to reference this volume in Nomad. Used in the `volume.source` field of a
 job specification.
 
-<2> The `name` is used when creating the volume in the backend (i.e. LINSTOR). Ideally this
+<2> The `name` is used when creating the volume in the back end (that is, LINSTOR). Ideally this
 matches the `id` and is a valid LINSTOR resource name. If the name would not be valid, LINSTOR
 CSI will generate a random compatible name.
 
@@ -616,7 +616,7 @@ part of the `default-resource` <<s-linstor-resource-groups,resource group>> and 
 replicas.
 +
 For a complete list of available parameters, you can check out the
-<<s-kubernetes-sc-parameters,guide on Kubernetes storage classes>>. Kubernetes, like Nomad, makes use of the CSI plugin.
+<<s-kubernetes-sc-parameters,guide on Kubernetes storage classes>>. Kubernetes, like Nomad, makes use of the CSI plug-in.
 
 To create the volume, run the following command:
 

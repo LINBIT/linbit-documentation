@@ -1,8 +1,8 @@
 [[ch-proxmox-linstor]]
 == LINSTOR Volumes in Proxmox VE
 
-indexterm:[Proxmox]This chapter describes DRBD in Proxmox Virtual Environment (VE) via
-the http://git.linbit.com/linstor-proxmox.git[LINSTOR Proxmox Plugin].
+indexterm:[Proxmox]This chapter describes DRBD in Proxmox Virtual Environment (VE) using
+the http://git.linbit.com/linstor-proxmox.git[LINSTOR Proxmox Plug-in].
 
 [[s-proxmox-ls-overview]]
 === Introduction to Proxmox VE
@@ -24,7 +24,7 @@ If this is a fresh installation, skip this section and continue with <<s-proxmox
 ==== Upgrading From 4.x to 5.x
 Version 5 of the plug-in drops compatibility with the legacy configuration options "storagepool" and
 "redundancy". Version 5 *requires* a "resourcegroup" option, and obviously a LINSTOR resource group. The old
-options should be removed from the config.
+options should be removed from the configuration.
 
 Configuring LINSTOR is described in Section <<s-proxmox-ls-ls-configuration>>, a typical example follows:
 
@@ -54,7 +54,7 @@ module and user space utilities.
 
 The DRBD9 kernel module is installed as a `dkms` package (i.e., `drbd-dkms`), therefore you'll have to install
 `pve-headers` package, before you set up/install the software packages from LINBIT's repositories. Following
-that order, ensures that the kernel module will build properly for your kernel. If you don't plan to install
+that order ensures that the kernel module will build properly for your kernel. If you don't plan to install
 the latest Proxmox kernel, you have to install kernel headers matching your current running kernel (e.g., `pve-headers-$(uname -r)`). If you missed this step, then still you can rebuild the dkms package against
 your current kernel, (kernel headers have to be installed in advance), by issuing `apt install --reinstall
 drbd-dkms` command.
@@ -74,7 +74,7 @@ LINBIT's repository can be enabled as follows, where "$PVERS" should be set to y
 
 For the rest of this guide we assume that you have a LINSTOR cluster configured as described in
 <<s-linstor-init-cluster>>. Start the "linstor-controller" on one node, and the "linstor-satellite" on all
-nodes. The preferred way to use the plug-in, starting from version 4.1.0, is via LINSTOR resource groups and a
+nodes. The preferred way to use the plug-in, starting from version 4.1.0, is through LINSTOR resource groups and a
 single volume group within every resource group. LINSTOR resource groups are described in
 <<s-linstor-resource-groups>>. All the required LINSTOR configuration (e.g., redundancy count) has to be set
 on the resource group.
@@ -92,14 +92,14 @@ drbd: drbdstorage
 ----------------------------
 
 The "drbd" entry is fixed and you are not allowed to modify it, as it tells to Proxmox to use DRBD as storage
-backend.  The "drbdstorage" entry can be modified and is used as a friendly name that will be shown in the PVE
-web GUI to locate the DRBD storage.  The "content" entry is also fixed, so do not change it. The redundancy
+back end. The "drbdstorage" entry can be modified and is used as a friendly name that will be shown in the PVE
+web GUI to locate the DRBD storage. The "content" entry is also fixed, so do not change it. The redundancy
 (specified in the resource group) specifies how many replicas of the data will be stored in the cluster. The recommendation is to set it
-to 2 or 3 depending on your setup.  The data is accessible from all nodes, even
-if some of them do not have local copies of the data.  For example, in a 5 node cluster, all nodes will be
+to 2 or 3 depending on your setup. The data is accessible from all nodes, even
+if some of them do not have local copies of the data. For example, in a 5 node cluster, all nodes will be
 able to access 3 copies of the data, no matter where they are stored in. The "controller" parameter must be
 set to the IP of the node that runs the LINSTOR controller service. Only one node can be set to run as LINSTOR
-controller at the same time.  If that node fails, start the LINSTOR controller on another node and change that
+controller at the same time. If that node fails, start the LINSTOR controller on another node and change that
 value to its IP address.
 
 A configuration using different storage pools in different resource groups would look like this:
@@ -121,12 +121,12 @@ drbd: slowdrbd
    resourcegroup backup
 ----------------------------
 
-By now, you should be able to create VMs via Proxmox's web GUI by selecting "__drbdstorage__", or any other of
+By now, you should be able to create VMs using Proxmox's web GUI by selecting "__drbdstorage__", or any other of
 the defined pools as storage location.
 
-Starting from version 5 of the plug-in one can set the option "preferlocal yes". If it is set, the plug-in tries
-to create a diskful assignment on the node that issued the storage create command. With this option one can
-make sure the VM gets local storage if possible. Without that option LINSTOR might place the storage on nodes
+Starting from version 5 of the plug-in, you can set the option "preferlocal yes". If it is set, the plug-in tries
+to create a diskful assignment on the node that issued the storage create command. With this option you can
+ensure that the VM gets local storage if possible. Without that option LINSTOR might place the storage on nodes
 'B' and 'C', while the VM is initially started on node 'A'. This would still work as node 'A' then would get a
 diskless assignment, but having local storage might be preferred.
 
@@ -134,7 +134,7 @@ diskless assignment, but having local storage might be preferred.
 
 At this point you can try to live migrate the VM - as all data is accessible on all nodes (even on Diskless
 nodes) - it will take just a few seconds. The overall process might take a bit longer if the VM is under
-load and if there is a lot of RAM being dirtied all the time. But in any case, the downtime should be minimal
+load and if there is a significant amount of RAM being dirtied all the time. But in any case, the downtime should be minimal
 and you will see no interruption at all.
 
 .Table Configuration Options
