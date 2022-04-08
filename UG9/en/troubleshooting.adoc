@@ -1,35 +1,35 @@
 [[ch-troubleshooting]]
 == Troubleshooting and Error Recovery
 
-This chapter describes tasks to be performed in the event of hardware
+This chapter describes tasks to be performed in case of hardware
 or system failures.
 
 [[s-hard-drive-failure]]
 
-=== Dealing with Hard Drive Failure
+=== Dealing with Hard Disk Failure
 
-indexterm:[drive failure]indexterm:[disk failure]How to deal with hard
-drive failure depends on the way DRBD is configured to handle disk I/O
+indexterm:[hard disk failure]indexterm:[disk failure]How to deal with hard
+disk failure depends on the way DRBD is configured to handle disk I/O
 errors (see <<s-handling-disk-errors>>), and on the type of metadata
 configured (see <<s-metadata>>).
 
 [NOTE]
 ==================
 For the most part, the steps described here apply only if you
-run DRBD directly on top of physical hard drives. They generally do
+run DRBD directly on top of physical hard disks. They generally do
 not apply in case you are running DRBD layered on top of
 
-* an MD software RAID set (in this case, use `mdadm` to manage drive
+* an MD software RAID set (in this case, use `mdadm` to manage disk
   replacement),
 * device-mapper RAID (use `dmraid`),
 * a hardware RAID appliance (follow the vendor's instructions on how
-  to deal with failed drives),
+  to deal with failed disks),
 * some non-standard device-mapper virtual block devices (see the
   device mapper documentation).
 ==================
 
 [[s-detach-hard-drive-manual]]
-==== Manually Detaching DRBD from Your Hard Drive
+==== Manually Detaching DRBD from Your Hard Disk
 
 indexterm:[drbdadm, detach]If DRBD is <<fp-io-error-pass-on,configured to pass
 on I/O errors>> (not recommended), you must first detach the DRBD
@@ -91,14 +91,14 @@ New drbd meta data block successfully created.
 
 Full synchronization of the new hard disk starts instantaneously and
 automatically. You will be able to monitor the synchronization's
-progress via `drbdadm status --verbose`, as with any background synchronization.
+progress using the `drbdadm status --verbose` command, as with any background synchronization.
 
 [[s-replace-disk-external-metadata]]
 ==== Replacing a Failed Disk When Using External Metadata
 
 When using <<s-external-meta-data,external metadata>>, the procedure
 is basically the same. However, DRBD is not able to recognize
-independently that the hard drive was swapped, thus an additional step
+independently that the hard disk was swapped, therefore an additional step
 is required.
 
 ----------------------------
@@ -113,12 +113,12 @@ New drbd meta data block successfully created.
 # drbdadm invalidate <resource>
 ----------------------------
 
-WARNING: Make sure to run `drbdadm invalidate` on the node __*without*__ good data;
+WARNING: Be sure to run `drbdadm invalidate` on the node __*without*__ good data;
 this command will cause the local contents to be overwritten with data from the
 peers, so running this command on the wrong node might lose data!
 
 Here, the `drbdadm invalidate` command triggers synchronization. Again,
-sync progress may be observed via `drbdadm status --verbose`.
+sync progress may be observed using the `drbdadm status --verbose` command.
 
 [[s-node-failure]]
 === Dealing with Node Failure
@@ -148,13 +148,13 @@ primary node in the meantime to the secondary node.
 IMPORTANT: At this point, due to the nature of DRBD's
 re-synchronization algorithm, the resource is briefly inconsistent on
 the secondary node. During that short time window, the secondary node
-can not switch to the Primary role if the peer is unavailable. Thus,
+can not switch to the Primary role if the peer is unavailable. Therefore,
 the period in which your cluster is not redundant consists of the
 actual secondary node down time, plus the subsequent
 re-synchronization.
 
 Please note that with DRBD 9 more than two nodes can be connected for each
-resource, so for e.g. 4 nodes a single failing secondary still leaves two other
+resource. So, for example, in the case of four nodes, a single failing secondary still leaves two other
 secondaries available for failover.
 
 [[s-temp-node-failure-primary]]
@@ -168,7 +168,7 @@ primary role; it is the cluster management application's
 responsibility to do so.
 
 When the failed node is repaired and returns to the cluster, it does
-so in the secondary role, thus, as outlined in the previous section,
+so in the secondary role, therefore, as outlined in the previous section,
 no further manual intervention is necessary. Again, DRBD does not
 change the resource role back, it is up to the cluster manager to do
 so (if so configured).
@@ -199,8 +199,8 @@ the data, anyway!].
  of <<s-initial-full-sync>>.
 
 Manually starting a full device synchronization is not necessary at
-this point, it will commence automatically upon connection to the
-surviving primary and/or secondary node(s).
+this point. The synchronization will commence automatically upon connection to the
+surviving primary or secondary node(s), or both.
 
 [[s-resolve-split-brain]]
 === Manual Split Brain Recovery

@@ -21,7 +21,7 @@ include::configure.adoc[]
 [[s-drbd-drbdmon]]
 ==== Monitoring DRBD Resources in Real-time
 
-One convenient way to look at DRBD's status is the
+One convenient way to examine DRBD's status is the
 `drbdmon` utility. It updates the state of DRBD resources in real-time.
 
 [[s-proc-drbd]]
@@ -75,7 +75,7 @@ _Connecting_; please see <<s-connection-states>> below for more details.
 You can get more information by passing the `--verbose` and/or
 `--statistics` arguments to `drbdsetup` (lines broken for readability):
 
-----------------------------
+----
 # drbdsetup status home --verbose --statistics
 home node-id:1 role:Secondary suspended:no
     write-ordering:none
@@ -94,8 +94,7 @@ home node-id:1 role:Secondary suspended:no
         received:0 sent:0 out-of-sync:0 pending:0 unacked:0
   nono local:ipv4:10.9.9.111:7013 peer:ipv4:10.9.9.138:7031 node-id:3
                                                            connection:Connecting
-----------------------------
-
+----
 
 Every few lines in this example form a block that is repeated
 for every node used in this resource, with small format exceptions
@@ -112,7 +111,7 @@ connection state in the
 `replication` item (see <<s-connection-states>> for details) and the
 remote indexterm:[disk state] disk state in `disk` (see <<s-disk-states>>).
 Then there's a line for this volume giving a bit of statistics -
-data `received`, `sent`, `out-of-sync`, etc; please see
+data `received`, `sent`, `out-of-sync`, and so on. Please see
 <<s-performance-indicators>> and <<s-conn-info>> for more information.
 
 For the local node the first line shows the resource name, _home_, in our
@@ -205,7 +204,7 @@ You might also like the ''--timestamp'' parameter.
 [[s-connection-states]]
 ==== Connection States
 
-indexterm:[drbdadm, cstate]indexterm:[connection state, via drbdadm]A resource's connection state can be
+indexterm:[drbdadm, cstate]indexterm:[connection state, using drbdadm]A resource's connection state can be
 observed either by issuing the `drbdadm cstate` command:
 
 ----------------------------
@@ -398,7 +397,7 @@ indexterm:[disk state, Attaching]Transient state while reading meta data.
 
 ._Detaching_
 indexterm:[disk state, Detaching]Transient state while detaching and waiting
-for ongoing IOs to complete.
+for ongoing I/O operations to complete.
 
 ._Failed_
 indexterm:[disk state, Failed]Transient state following an I/O failure report
@@ -482,11 +481,11 @@ indexterm:[blocked]Shows local I/O congestion.
 --
 
   * _no_: No congestion.
-  * _upper_: I/O _above_ the DRBD device is blocked, i.e. to the filesystem. Typical causes are
+  * _upper_: I/O _above_ the DRBD device is blocked, that is, to the filesystem. Typical causes are
     ** I/O suspension by the administrator, see the `suspend-io` command in `drbdadm`.
-    ** transient blocks, e.g. during attach/detach
-    ** buffers depleted, see <<p-performance>>
-    ** Waiting for bitmap IO
+    ** Transient blocks, for example, during attach/detach.
+    ** Buffers depleted, see <<p-performance>>.
+    ** Waiting for bitmap I/O.
   * _lower_: Backing device is congested.
   * _upper,lower_: Both _upper_ and _lower_ are blocked.
 --
@@ -565,7 +564,7 @@ issuing the command
 ----------------------------
 
 Here, too, you may use the keyword `all` in place of a resource name if
-you wish to temporarily disable all resources listed in
+you want to temporarily disable all resources listed in
 `/etc/drbd.conf` at once.
 
 [[s-reconfigure]]
@@ -606,14 +605,13 @@ is done using one of the following commands:
 In <<s-single-primary-mode,single-primary mode>> (DRBD's default), any
 resource can be in the primary role on only one node at any given time
 while the <<s-connection-states,connection state>> is
-_Connected_. Thus, issuing `drbdadm primary <resource>` on one node
+_Connected_. Therefore, issuing `drbdadm primary <resource>` on one node
 while the specified resource is still in the primary role on another node will
 result in an error.
 
 A resource configured to allow <<s-dual-primary-mode,dual-primary
-mode>> can be switched to the primary role on two nodes; this is e.g. needed for
+mode>> can be switched to the primary role on two nodes; this is, for example, needed for
 online migration of virtual machines.
-
 
 [[s-manual-fail-over]]
 === Basic Manual Failover
@@ -629,7 +627,7 @@ unmount the DRBD device, and demote the resource to secondary.
 # drbdadm secondary <resource>
 ----------------------------
 
-Now on the node we wish to make primary promote the resource and mount the device.
+Now on the node you want to make primary promote the resource and mount the device.
 
 ----------------------------
 # drbdadm primary <resource>
@@ -736,7 +734,7 @@ accomplished. Create a file with the following contents, named
 
 This will have `cron` invoke a device verification every Sunday at 42
 minutes past midnight; so, if you come into the office on Monday morning,
-a quick look at the resource's status would show the result. If your devices
+a quick examination of the resource's status would show the result. If your devices
 are very big, and the \~32 hours were not enough, then you'll notice _VerifyS_ or
 _VerifyT_ as connection state, meaning that the `verify` is still in progress.
 
@@ -759,7 +757,7 @@ synchronization target temporarily inconsistent) completes as quickly
 as possible. However, it is also necessary to keep background
 synchronization from hogging all bandwidth otherwise available for
 foreground replication, which would be detrimental to application
-performance. Thus, you must configure the synchronization bandwidth to
+performance. Therefore, you must configure the synchronization bandwidth to
 match your hardware -- which you may do in a permanent fashion or
 on-the-fly.
 
@@ -777,8 +775,8 @@ the replication network.
 [[s-estimating_a_synchronization_speed]]
 ==== Estimating a Synchronization Speed
 
-TIP: A good rule of thumb for this value is to use about 30% of the
-available replication bandwidth. Thus, if you had an I/O subsystem
+TIP: A good rule for this value is to use about 30% of the
+available replication bandwidth. Therefore, if you had an I/O subsystem
 capable of sustaining write throughput of 400MB/s, and a Gigabit
 Ethernet network capable of sustaining 110 MB/s network throughput
 (the network being the bottleneck), you would calculate:
@@ -787,7 +785,7 @@ Ethernet network capable of sustaining 110 MB/s network throughput
 .Syncer rate example, 110MB/s effective available bandwidth
 image::images/sync-rate-example1.svg[]
 
-Thus, the recommended value for the `rate` option would be `33M`.
+Therefore, the recommended value for the `rate` option would be `33M`.
 
 By contrast, if you had an I/O subsystem with a maximum throughput of
 80MB/s and a Gigabit Ethernet connection (the I/O subsystem being the
@@ -823,7 +821,7 @@ ifndef::drbd-only,de-brand[]
 Ideal configuration settings also depend
 on whether <<s-drbd-proxy,DRBD Proxy>> is in use or not.
 It may be
-wise to engage professional consultancy in order to optimally
+wise to engage professional consultancy to optimally
 configure this DRBD feature. An _example_ configuration (which assumes
 a deployment in conjunction with DRBD Proxy) is provided below:
 
@@ -891,7 +889,7 @@ bottleneck with lower throughput (network, storage speed), the defined speed
 ==== Further Synchronization Hints
 
 When some amount of the to-be-synchronized data isn't really in use anymore
-(e.g. because files got deleted while one node wasn't connected), you
+(for example, because files got deleted while one node wasn't connected), you
 might benefit from the <<s-trim-discard>>.
 
 Furthermore, `c-min-rate` is easy to misunderstand - it doesn't define
@@ -899,7 +897,7 @@ a *minimum* synchronization speed, but rather a limit below which DRBD will not
 slow down further *on purpose*. +
 Whether you manage to *reach* that synchronization rate depends on your network
 and storage speed, network latency (which might be highly variable for shared
-links), and application IO (which not might be able to do anything about).
+links), and application I/O (which not might be able to do anything about).
 
 
 [[s-configure-checksum-sync]]
@@ -1016,10 +1014,9 @@ the command (or script) invoked by `local-io-error`.
 NOTE: Early DRBD versions (prior to 8.0) included another option,
 `panic`, which would forcibly remove the node from the cluster by way
 of a kernel panic, whenever a local I/O error occurred. While that
-option is no longer available, the same behavior may be mimicked via
+option is no longer available, the same behavior may be mimicked through 
 the `local-io-error`/`call-local-io-error` interface. You should do so
 only if you fully understand the implications of such behavior.
-
 
 You may reconfigure a running resource's I/O error handling strategy
 by following this process:
@@ -1029,7 +1026,6 @@ by following this process:
   * Copy the configuration to the peer node.
 
   * Issue `drbdadm adjust _<resource>_` on both nodes.
-
 
 [[s-configure-integrity-check]]
 === Configuring Replication Traffic Integrity Checking
@@ -1096,12 +1092,12 @@ you would point the tool not to the mount point, but to the (mounted)
 block device: `resize2fs /dev/drbd#`
 
 Obviously use the correct DRBD (as displayed by `mount` or `df -T`, while mounted),
-and *not* the backing block device.  As long as DRBD is up, that's not supposed
+and *not* the backing block device. If DRBD is up, that's not supposed
 to work anyways (`resize2fs: Device or resource busy while trying to open
 /dev/mapper/VG-LV Couldn't find valid filesystem superblock.`).
 If you tried to do that offline (with DRBD stopped), you may corrupt DRBD
 meta data if you ran the file system tools directly against the backing LV or
-partition.  So don't.
+partition. So don't.
 
 You do the file system resize only *once* on the Primary, against the active
 DRBD device.  DRBD replicates the changes to the file system structure.
@@ -1116,7 +1112,7 @@ and you should try an other tool instead. Maybe `xfs_growfs`? But as mentioned,
 that does not take the block device, but the mount point as argument.
 
 When shrinking (reducing) DRBD volumes, you need to shrink from top to bottom.
-So first make sure no one is using the space you want to cut off.
+So first verify that no one is using the space you want to cut off.
 Next, shrink the file system (if your file system supports that).
 Then tell DRBD to stop using that space, which is not so easy with DRBD
 internal meta data, because they are by design "at the end"
@@ -1243,9 +1239,9 @@ you are unsure which shell you are currently using.
 WARNING: Online shrinking is only supported with external metadata.
 
 indexterm:[resource]Before shrinking a DRBD device, you _must_ shrink
-the layers above DRBD, i.e. usually the file system. Since DRBD cannot
+the layers above DRBD (usually the file system). Since DRBD cannot
 ask the file system how much space it actually uses, you have to be
-careful in order not to cause data loss.
+careful to not cause data loss.
 
 NOTE: Whether or not the _filesystem_ can be shrunk online depends on
 the filesystem being used. Most filesystems do not support online
@@ -1259,8 +1255,8 @@ shrunk the file system residing on top of it:
 # drbdadm resize --size=<new-size> <resource>
 ----------------------------
 
-You may use the usual multiplier suffixes for _<new-size>_ (K, M, G
-etc.). After you have shrunk DRBD, you may also shrink the containing
+You may use the usual multiplier suffixes for _<new-size>_ (K, M, G,
+and so on). After you have shrunk DRBD, you may also shrink the containing
 block device (if it supports shrinking).
 
 NOTE: It might be a good idea to issue `drbdadm resize _<resource>_` after
@@ -1350,7 +1346,7 @@ attempted.
 
 DRBD allows you to enable and disable <<s-disk-flush-support,backing
 device flushes>> separately for the replicated data set and DRBD's own
-meta data. Both of these options are enabled by default. If you wish
+metadata. Both of these options are enabled by default. If you want
 to disable either (or both), you would set this in the `disk` section
 for the DRBD configuration file, `/etc/drbd.conf`.
 
@@ -1442,7 +1438,7 @@ handler to send a message to `root@localhost` (which is expected to be
 an email address that forwards the notification to a real system
 administrator), configure the `split-brain handler` as follows:
 
-----------------------------
+----
 resource <resource>
   handlers {
     split-brain "/usr/lib/drbd/notify-split-brain.sh root";
@@ -1450,7 +1446,7 @@ resource <resource>
   }
   ...
 }
-----------------------------
+----
 
 After you have made this modification on a running resource (and
 synchronized the configuration file between nodes), no additional
@@ -1469,7 +1465,7 @@ TIP: You rather want to look into fencing policies, quorum settings,
 cluster manager integration, and redundant cluster manager communication links
 to *avoid* data divergence in the first place.
 
-In order to be able to enable and configure DRBD's automatic split
+To be able to enable and configure DRBD's automatic split
 brain recovery policies, you must understand that DRBD offers several
 configuration options for this purpose. DRBD applies its split brain
 recovery procedures based on the number of nodes in the Primary role
@@ -1677,7 +1673,7 @@ three-node replication:
 # drbdadm up r0-U
 ----------------------------
 
-In order to automate stacked resource management, you may integrate
+To automate stacked resource management, you may integrate
 stacked resources in your cluster manager configuration.
 ifdef::drbd-only[]
 See <<s-pacemaker-stacked-resources>> for information on doing this in a
@@ -1750,7 +1746,7 @@ with net 100TiB.
 
 To redistribute the data across your cluster you have to choose a _new_ node,
 and one where you want to remove this DRBD resource. +
-Please note that removing the resource from a currently _active_ node (i.e.
+Please note that removing the resource from a currently _active_ node (that is,
 where DRBD is _Primary_) will involve either migrating the service or running
 this resource on this node as a <<s-drbd-client,DRBD client>>; it's easier to
 choose a node in _Secondary_ role. (Of course, that might not always be possible.)
@@ -1819,13 +1815,13 @@ New drbd meta data block successfully created.
 
 Now the new node needs to get the data.
 
-This is done by defining the network connection on the existing nodes via
+This is done by defining the network connection on the existing nodes using the command:
 
 -------------------------------------
 # drbdadm adjust <resource>
 -------------------------------------
 
-and starting the DRBD device on the new node via
+and starting the DRBD device on the new node using the command: 
 
 -------------------------------------
 # drbdadm up <resource>
@@ -1875,7 +1871,7 @@ resource, you can now take the DRBD device down by starting
 
 Now the lower level storage device isn't used anymore, and can either be
 re-used for other purposes or, if it is a logical volume, its space can be
-returned to the volume group via `lvremove`.
+returned to the volume group using the `lvremove` command.
 
 [[s-conclusion_and_further_steps]]
 ==== Conclusion and Further Steps
@@ -1890,18 +1886,18 @@ to achieve 3-way redundancy again.
 [[s-configuring-quorum]]
 === Configuring Quorum
 
-In order to avoid split brain or diverging data of replicas one has to configure
+To avoid split brain or diverging data of replicas one has to configure
 fencing. All the options for fencing rely on redundant communication in the end.
 That might be in the form of a management network that connects the nodes to the IPMI
 network interfaces of the peer machines. In case of the crm-fence-peer script it
 is necessary that Pacemakers communication stays available when DRBD's network
 link breaks.
 
-The quorum mechanism on the other hand takes a completely difference approach. The basic
+The quorum mechanism, however, takes a completely difference approach. The basic
 idea is that a cluster partition may only modify the replicated data set if the
-number of nodes that can communicate is greater than the half of the overall number
+number of nodes that can communicate is greater than half of the overall number
 of nodes. A node of such a partition _has quorum_.
-On the other hand a node does not have quorum needs to guarantee that the replicated
+However, a node that does not have quorum needs to guarantee that the replicated
 data set it not touched, that it does not create a diverging data set.
 
 The quorum implementation in DRBD gets enabled by setting the `quorum` resource
@@ -1911,7 +1907,7 @@ behavior that was described in the previous paragraph.
 [[s-guaranteed_minimal_redundancy]]
 ==== Guaranteed Minimal Redundancy
 
-By default every node with a disk gets a vote in the quorum election. In other words
+By default every node with a disk gets a vote in the quorum election. That is, 
 only diskless nodes do not count. So a partition with two _Inconsistent_ disks gets
 quorum, while a partition with one _UpToDate_ node will have quorum in a 3 node
 cluster. By configuring `quorum-minimum-redundancy` this behavior can be changed so that
@@ -1940,12 +1936,12 @@ resource quorum-demo {
 ==== Actions on Loss of Quorum
 
 When a node that is running the service loses quorum it needs to cease write-operations
-on the data set immediately. That means that IO immediately starts to complete all IO
+on the data set immediately. That means that I/O immediately starts to complete all I/O
 requests with errors. Usually that means that a graceful shutdown is not possible, since
-that would require more modifications to the data set. The IO errors propagate from
+that would require more modifications to the data set. The I/O errors propagate from
 the block level to the file system and from the file system to the user space application(s).
 
-Ideally the application simply terminates in case of IO errors. This allows then Pacemaker
+Ideally the application simply terminates in case of I/O errors. This allows then Pacemaker
 to unmount the filesystem and to demote the DRBD resource to secondary role.
 If that is true you should set the `on-no-quorum` resource option to `io-error`.
 Here is an example:
@@ -1960,7 +1956,7 @@ resource quorum-demo {
 }
 -------------------------------------
 
-If you application does not terminate on the first IO error, you can choose to freeze IO
+If your application does not terminate on the first I/O error, you can choose to freeze I/O
 instead and to reboot the node. Here is a configuration example:
 
 -------------------------------------
@@ -1981,7 +1977,7 @@ resource quorum-demo {
 [[s-configuring-quorum-tiebreaker]]
 ==== Using a Diskless Node as a Tiebreaker
 
-A diskless node with connections to all nodes in a cluster can be utilized to break ties
+A diskless node with connections to all nodes in a cluster can be used to break ties
 in the quorum negotiation process.
 
 Consider the following two-node cluster, where node A is the primary and node B is a secondary:
@@ -2038,20 +2034,20 @@ In this case, no node can be promoted to primary and the cluster cannot continue
 Protecting from data divergence always takes priority over ensuring service availability.
 ====================
 
-Let's look at another scenario:
+Examining another scenario:
 
 image::images/quorum-tiebreaker-disconnect-case2a.svg[]
 
 Here, the application is running on the primary, while the secondary is unavailable. Then,
 the tiebreaker first loses connection to the primary, and then reconnects to the secondary.
 It is important to note here that *a node that has lost quorum cannot regain quorum by connecting
-to a diskless node*. Thus, in this case, no node has quorum and the cluster halts.
+to a diskless node*. Therefore, in this case, no node has quorum and the cluster halts.
 
 [[s-quorum_last_man_standing]]
 ==== Last Man Standing
 
 It needs to be mentioned that nodes that leave a cluster gracefully are counted
-different than failed nodes. In this context _leaving gracefully_ means that the leaving
+differently from failed nodes. In this context _leaving gracefully_ means that the leaving
 node marked it's data as Outdated, and that it was able to tell the remaining nodes
 that it's data is Outdated.
 
@@ -2071,7 +2067,7 @@ looses quorum.
 For the unlikely case that you want to remove DRBD, here are the necessary steps.
 
 . Stop the services and unmount the filesystems on top of the DRBD volumes. In case you are
-  using a cluster manager, make sure it ceases to control the services fist.
+  using a cluster manager, verify that it ceases to control the services first.
 . Stop the DRBD resource(s) by using `drbdadm down <res>` or `drbdadm down all`
 .. In case the DRBD resource was using internal meta-data you might choose to
    resize the filesystem to cover all of the backing device's space. This step
@@ -2080,7 +2076,7 @@ For the unlikely case that you want to remove DRBD, here are the necessary steps
    It supports resizing of unmounted filesystem and under certain conditions also online
    grow. XFS can be grown online only with the `xfs_growfs` command.
 . Mount the backing device(s) directly, start the services on top of them
-. Unload the drbd kernel driver modules with `rmmod drbd_transport_tcp` and `rmmod drbd`.
-. Uninstall the drbd software packages.
+. Unload the DRBD kernel driver modules with `rmmod drbd_transport_tcp` and `rmmod drbd`.
+. Uninstall the DRBD software packages.
 
 //- list divider. Keep it otherwise next included section is interpreted as list element

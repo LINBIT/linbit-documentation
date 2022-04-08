@@ -50,8 +50,8 @@ hard disk.
 [CAUTION]
 ============
 If you are planning to use internal metadata in conjunction
-with an existing lower-level device that already has data which you
-wish to preserve, you _must_ account for the space required by DRBD's
+with an existing lower-level device that already has data that you
+want to preserve, you _must_ account for the space required by DRBD's
 metadata.
 
 Otherwise, upon DRBD resource creation, the newly created metadata
@@ -62,7 +62,7 @@ destroying existing files in the process.
 To avoid that, you must do one of the following things:
 
 * Enlarge your lower-level device. This is possible with any logical
-  volume management facility (such as indexterm:[LVM]LVM) as long as
+  volume management facility (such as indexterm:[LVM]LVM) provided that
   you have free space available in the corresponding volume group. It
   may also be supported by hardware storage solutions.
 
@@ -97,7 +97,7 @@ Use of external metadata is also the only viable option if _all_ of
 the following apply:
 
 * You are using DRBD to duplicate an existing device that already
-  contains data you wish to preserve, _and_
+  contains data you want to preserve, _and_
 
 * that existing device does not support enlargement, _and_
 
@@ -169,7 +169,7 @@ following occurrences:
 
 * a resource in the primary role disconnecting.
 
-Thus, we can summarize that whenever a resource is in the _Connected_
+Therefore, we can summarize that whenever a resource is in the _Connected_
 connection state, and both nodes' disk state is _UpToDate_, the
 current data generation on both nodes is the same. The inverse is also
 true. Note that the current implementation uses the lowest bit to encode the
@@ -243,7 +243,7 @@ The synchronization source keeps the same set, and doesn't generate new UUIDs.
 
 When a connection between nodes is established, the two nodes exchange
 their currently available generation identifiers, and proceed
-accordingly. A number of possible outcomes exist:
+accordingly. Several possible outcomes exist:
 
 .Current UUIDs empty on both nodes
 The local node detects that both its current UUID and the peer's
@@ -290,7 +290,7 @@ The local node detects that its current UUID matches one of the peer's
 historical UUIDs. This implies that while the two data sets share a
 common ancestor, and the peer node has the up-to-date data, the
 information kept in the peer node's bitmap is outdated and not
-usable. Thus, a normal synchronization would be insufficient. DRBD
+usable. Therefore, a normal synchronization would be insufficient. DRBD
 now marks the entire device as out-of-sync and initiates a full
 background re-synchronization, with the local node becoming the
 synchronization target. In the opposite case (one of the local node's
@@ -311,7 +311,7 @@ and waits for manual split brain resolution.
 .Neither current nor bitmap UUIDs match
 The local node detects that its current UUID differs from the peer's
 current UUID, and that the bitmap UUIDs _do not_ match. This is split
-brain with unrelated ancestor generations, thus auto-recovery
+brain with unrelated ancestor generations, therefore auto-recovery
 strategies, even if configured, are moot. DRBD disconnects and waits
 for manual split brain resolution.
 
@@ -334,19 +334,19 @@ write operation to the local backing block device, but also sends the
 data block over the network. These two actions occur, for all
 practical purposes, simultaneously. Random timing behavior may cause a
 situation where the write operation has been completed, but the
-transmission via the network has not yet taken place, or vice versa.
+transmission over the network has not yet taken place, or vice versa.
 
-If, at this moment, the active node fails and fail-over is being
+If, at this moment, the active node fails and failover is being
 initiated, then this data block is out of sync between nodes -- it has
-been written on the failed node prior to the crash, but replication
-has not yet completed. Thus, when the node eventually recovers, this
+been written on the failed node prior to the failure, but replication
+has not yet completed. Therefore, when the node eventually recovers, this
 block must be removed from the data set during subsequent
-synchronization. Otherwise, the crashed node would be "one write
+synchronization. Otherwise, the failed node would be "one write
 ahead" of the surviving node, which would violate the "all or
 nothing" principle of replicated storage. This is an issue that is not
 limited to DRBD, in fact, this issue exists in practically all
 replicated storage configurations. Many other storage solutions (just
-as DRBD itself, prior to version 0.7) thus require that after a
+as DRBD itself, prior to version 0.7) therefore require that after a
 failure of the active node the data must be fully synchronized after
 its recovery.
 
@@ -359,21 +359,21 @@ If a temporarily failed node that was in active mode at the time of
 failure is synchronized, only those hot extents highlighted in the AL
 need to be synchronized (plus any blocks marked in the bitmap on the now-active peer),
 rather than the full device. This drastically
-reduces synchronization time after an active node crash.
+reduces synchronization time after an active node failure.
 
 [[s-active-extents]]
 ==== Active Extents
 
 indexterm:[Activity Log]The activity log has a configurable parameter,
 the number of active extents. Every active extent adds 4MiB to the
-amount of data being retransmitted after a Primary crash. This
+amount of data being retransmitted after a Primary failure. This
 parameter must be understood as a compromise between the following
 opposites:
 
 .Many active extents
 Keeping a large activity log improves write throughput. Every time a
 new extent is activated, an old extent is reset to inactive. This
-transition requires a write operation to the metadata area. If the
+change requires a write operation to the metadata area. If the
 number of active extents is high, old active extents are swapped out
 fairly rarely, reducing metadata write operations and thereby
 improving performance.
@@ -428,8 +428,8 @@ been written to since the time of disconnection. Conversely, if the
 bit is set, it means that the block has been modified and needs to be
 re-synchronized whenever the connection becomes available again.
 
-As DRBD detects write I/O on a disconnected device, and hence starts
-setting bits in the quick-sync bitmap, it does so in RAM -- thus
+As DRBD detects write I/O on a disconnected device, and therefore starts
+setting bits in the quick-sync bitmap, it does so in RAM -- therefore 
 avoiding expensive synchronous metadata I/O operations. Only when the
 corresponding blocks turn cold (that is, expire from the
 <<s-activity-log,Activity Log>>), DRBD makes the appropriate
@@ -479,8 +479,8 @@ The fencing helper is invoked only in case
   `resource-only` or `resource-and-stonith`, _and_
 
 . the node was primary _and_ the replication link is interrupted long enough
-  for DRBDfootnote:[That means e.g. a TCP timeout, the `ping-timeout`, or
-  the kernel triggers a connection abort e.g. because the network link goes down.]
+  for DRBDfootnote:[That means, for example, a TCP timeout, the `ping-timeout`, or
+  the kernel triggers a connection abort, perhaps as a result of the network link going down.]
   to detect a network failure. _or_
 
 . the node should promote to primary _and_ is not connected to the peer _and_
