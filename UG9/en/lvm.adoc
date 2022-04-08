@@ -1,13 +1,3 @@
-[[ch-lvm]]
-== Using LVM with DRBD
-
-indexterm:[LVM]indexterm:[Logical Volume Management]This chapter deals
-with managing DRBD in conjunction with LVM2. In particular, it covers
-
-* using LVM Logical Volumes as backing devices for DRBD;
-
-* using DRBD devices as Physical Volumes for LVM;
-
 * combining these to concepts to implement a layered LVM approach
   using DRBD.
 
@@ -52,7 +42,7 @@ during runtime within VGs and are available to the other parts of the
 kernel as regular block devices. As such, they may be used to hold a
 file system, or for any other purpose block devices may be used
 for. LVs may be resized while they are online, and they may also be
-moved from one PV to another (as long as the PVs are part of the same
+moved from one PV to another (provided that the PVs are part of the same
 VG).
 
 .Snapshot Logical Volume (SLV)
@@ -77,7 +67,7 @@ you simply create them, and then initialize them for DRBD as you
 normally would.
 
 This example assumes that a Volume Group named `foo` already exists on
-both nodes of on your LVM-enabled system, and that you wish to create
+both nodes of on your LVM-enabled system, and that you want to create
 a DRBD resource named `r0` using a Logical Volume in that Volume
 Group.
 
@@ -92,7 +82,7 @@ Of course, you must complete this command on both nodes of your DRBD
 cluster. After this, you should have a block device named
 `/dev/foo/bar` on either node.
 
-Then, you can simply enter the newly-created volumes in your resource
+Then, you can simply enter the newly created volumes in your resource
 configuration:
 
 [source,drbd]
@@ -129,7 +119,7 @@ problem by creating an automated snapshot when synchronization starts,
 and automatically removing that same snapshot once synchronization has
 completed successfully.
 
-In order to enable automated snapshotting during resynchronization,
+To enable automated snapshotting during resynchronization,
 add the following lines to your resource configuration:
 
 .Automating snapshots before DRBD synchronization
@@ -164,9 +154,9 @@ issuing the `lvconvert -M` command.
 [[s-lvm-drbd-as-pv]]
 === Configuring a DRBD Resource as a Physical Volume
 
-indexterm:[LVM]indexterm:[Physical Volume (LVM)]In order to prepare a
+indexterm:[LVM]indexterm:[Physical Volume (LVM)]To prepare a
 DRBD resource for use as a Physical Volume, it is necessary to create
-a PV signature on the DRBD device. In order to do so, issue one of the
+a PV signature on the DRBD device. To do this, issue one of the
 following commands on the node where the resource is currently in the
 primary role: indexterm:[LVM]indexterm:[pvcreate (LVM command)]
 
@@ -183,7 +173,7 @@ or
 NOTE: This example assumes a single-volume resource.
 
 Now, it is necessary to include this device in the list of devices LVM
-scans for PV signatures. In order to do this, you must edit the LVM
+scans for PV signatures. To do this, you must edit the LVM
 configuration file, normally named
 indexterm:[LVM]`/etc/lvm/lvm.conf`. Find the line in the
 `devices` section that contains the `filter` keyword and edit it
@@ -203,7 +193,7 @@ NOTE: By default, LVM scans all block devices found in `/dev` for PV
 signatures. This is equivalent to `filter = [ "a|.*|" ]`.
 
 If you want to use stacked resources as LVM PVs, then you will need a
-more explicit filter configuration. You need to make sure that LVM
+more explicit filter configuration. You need to verify that LVM
 detects PV signatures on stacked resources, while ignoring them on the
 corresponding lower-level resources and backing devices. This example
 assumes that your lower-level DRBD resources use device minors 0
@@ -228,7 +218,7 @@ You may of course use a different `filter` configuration to match your
 particular system configuration. What is important to remember,
 however, is that you need to
 
-* Accept (include) the DRBD devices you wish to use as PVs;
+* Accept (include) the DRBD devices you want to use as PVs;
 * Reject (exclude) the corresponding lower-level devices, so as to
   avoid LVM finding duplicate PV signatures.
 
@@ -239,18 +229,18 @@ In addition, you should disable the LVM cache by setting:
 write_cache_state = 0
 ----------------------------
 
-After disabling the LVM cache, make sure you remove any stale cache
+After disabling the LVM cache, remove any stale cache
 entries by deleting `/etc/lvm/cache/.cache`.
 
 You must repeat the above steps on the peer nodes, too.
 
 IMPORTANT: If your system has its root filesystem on LVM, Volume
-Groups will be activated from your initial ramdisk (initrd) during
+Groups will be activated from your initial RAM disk (initrd) during
 boot. In doing so, the LVM tools will evaluate an `lvm.conf` file
-included in the initrd image. Thus, after you make any changes to your
+included in the initrd image. Therefore, after you make any changes to your
 `lvm.conf`, you should be certain to update your initrd with the
 utility appropriate for your distribution (`mkinitrd`,
-`update-initramfs` etc.).
+`update-initramfs`, and so on).
 
 When you have configured your new PV, you may proceed to add it to a
 Volume Group, or create a new Volume Group from it. The DRBD resource
@@ -308,7 +298,7 @@ resource r0 {
 }
 -------------------------------------
 
-Make sure your DRBD configuration is identical across nodes, then
+Verify that your DRBD configuration is identical across nodes, then
 issue:
 
 -------------------------------------
@@ -354,7 +344,7 @@ Volume. To provide an example, consider the following configuration:
 * This VG is to contain two more logical volumes named `foo`(4 GiB)
   and `bar`(6 GiB).
 
-In order to enable this configuration, follow these steps:
+To enable this configuration, follow these steps:
 
 * Set an appropriate `filter` option in your `/etc/lvm/lvm.conf`:
 +
@@ -383,7 +373,7 @@ signatures.
 write_cache_state = 0
 ----------------------------
 
-After disabling the LVM cache, make sure you remove any stale cache
+After disabling the LVM cache, remove any stale cache
 entries by deleting `/etc/lvm/cache/.cache`.
 --
 
@@ -448,11 +438,9 @@ copy your `drbd.conf` contents to the peer node.
 ----------------------------
 
 * Now, on the node where you just promoted your resource, initialize
-your DRBD device as a new Physical Volume:
+your DRBD device as a new Physical Volume: indexterm:[LVM]indexterm:[pvcreate (LVM command)]
 +
 --
-indexterm:[LVM]indexterm:[pvcreate (LVM command)]
-
 ----------------------------
 # pvcreate /dev/drbd0
 Physical volume "/dev/drbd0" successfully created
@@ -470,7 +458,7 @@ Volume group "replicated" successfully created
 ----------------------------
 --
 
-* Finally, create your new Logical Volumes within this newly-created VG via indexterm:[LVM]indexterm:[lvcreate (LVM command)]
+* Finally, create your new Logical Volumes within this newly created VG using the `lvcreate` command: indexterm:[LVM]indexterm:[lvcreate (LVM command)]
 +
 --
 ----------------------------
@@ -519,7 +507,7 @@ The process of transferring volume groups between peers and making the
 corresponding logical volumes available can be automated. The
 Pacemaker LVM resource agent is designed for exactly that purpose.
 
-In order to put an existing, DRBD-backed volume group under Pacemaker
+To put an existing, DRBD-backed volume group under Pacemaker
 management, run the following commands in the `crm` shell:
 
 .Pacemaker configuration for DRBD-backed LVM Volume Group
