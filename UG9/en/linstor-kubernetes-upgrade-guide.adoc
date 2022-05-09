@@ -61,15 +61,31 @@ volumes and volumes already in use by a pod will continue to work without interr
 [[s-kubernetes-upgrade-k8s-backend]]
 ==== Upgrading a LINSTOR Cluster with Kubernetes Back End
 
-Using the Kubernetes API as a LINSTOR back end is quite new. There might be situations in which LINSTOR fails to upgrade
-resources, leaving the LINSTOR cluster in an unusable state. For this reason, we strongly recommend doing a manual
-backup of all LINSTOR resources before upgrading the cluster. In a future release, this step will be managed by the Operator.
+The LINSTOR Operator will create a backup of the database before upgrading. This makes it possible to roll back to a
+known state should something go wrong during the upgrade.
+
+There are situations in which the Operator can't create the backup automatically. This might be because:
+
+* The base version of the chart or operator is too old. Automatic backups are available starting with version 1.8.0
+  If upgrading from a version before 1.8.0, please follow the manual steps in the next section.
+* The backup is too large to fit into a Kubernetes secret. In this case an error is reported in the status field
+  of the `LinstorController` resources. Follow the instructions by copying the created backup to a safe location and
+  creating the necessary secret.
++
+----
+kubectl cp <linstor-operator-pod>:/run/linstor-backups/linstor-backup-<some-hash>.tar.gz <destination-path>
+kubectl create secret linstor-backup-<same-hash>
+----
+
+===== Creating a backup of the LINSTOR Database
+
+Follow these instructions if you need to manually create a backup of the LINSTOR k8s database.
 
 1. Stop the current controller:
 +
 ----
-$ kubectl patch linstorcontroller linstor-cs '{"spec":{"replicas": 0}}'
-$ kubectl rollout status --watch deployment/linstor-cs-controller
+$ kubectl patch linstorcontroller linstor-op-cs '{"spec":{"replicas": 0}}'
+$ kubectl rollout status --watch deployment/linstor-op-cs-controller
 ----
 2. The following command will create a file `crds.yaml`, which stores the current state of all LINSTOR Custom Resource Definitions:
 +
@@ -78,13 +94,58 @@ $ kubectl get crds | grep -o ".*.internal.linstor.linbit.com" | \
   xargs kubectl get crds -oyaml > crds.yaml
 ----
 +
-3. In addition to the definitions, the actual resources must be be backed up as well:
+3. In addition to the definitions, the actual resources must be backed up as well:
 +
 ----
 $ kubectl get crds | grep -o ".*.internal.linstor.linbit.com" | \
   xargs -i{} sh -c "kubectl get {} -oyaml > {}.yaml"
 ----
-4. Run the chart upgrade using `--set IHaveBackedUpAllMyLinstorResources=true` to acknowledge you have executed the above steps.
+4. If upgrading the chart, use `--set IHaveBackedUpAllMyLinstorResources=true` to acknowledge you have executed the above steps.
+
+===== Restoring from a LINSTOR Database backup
+
+Follow these instructions if you need to recover from an failure during a LINSTOR upgrade.
+
+1. Fetch the backup (skip if the backup is already available on your local machine):
++
+----
+$ # List the available backups
+$ kubectl get secret '-ocustom-columns=NAME:.metadata.name,FROM:metadata.annotations.linstor\.linbit\.com/backup-previous-version,CREATED-AT:.metadata.creationTimestamp'
+$ kubectl get secret linstor-backup-<backup-specific-hash> '-ogo-template=go-template={{index .data ".binaryData.backup.tar.gz" | base64decode}}' > linstor-backup.tar.gz
+----
+2. Unpack the backup
++
+----
+$ tar xvf linstor-backup.tar.gz
+crds.yaml
+....
+----
+3. Stop the current controller:
++
+----
+$ kubectl patch linstorcontroller linstor-op-cs "{"spec":{"replicas": 0}}"
+$ kubectl rollout status --watch deployment/piraeus-op-cs-controller
+----
+4. Delete existing resources
++
+----
+$ kubectl get crds | grep -o ".*.internal.linstor.linbit.com" | xargs --no-run-if-empty kubectl delete crds
+----
+5. Apply the old LINSTOR CRDs
++
+----
+$ kubectl apply -f crds.yaml
+----
+6. Apply the old LINSTOR resource state
++
+----
+$ kubectl apply -f *.internal.linstor.linbit.com.yaml
+----
+7. Re-apply the helm chart using the old LINSTOR version
++
+----
+$ helm upgrade linstor-op charts/piraeus --set operator.controller.controllerImage=... --set operator.satelliteSet.satelliteImage=...
+----
 
 [[s-kubernetes-upgrade-version]]
 ==== Upgrading Instructions for Specific Versions
