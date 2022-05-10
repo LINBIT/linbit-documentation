@@ -502,7 +502,7 @@ helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.replicas=3 
 Install with LINSTOR storage-pools defined at install through
 `sp-values.yaml`, use an already created PostgreSQL DB (preferably
 clustered), rather than etcd, and use already compiled kernel modules for
-DRBD. Additionally, we will disable the Stork scheduler in this example.
+DRBD.
 
 The PostgreSQL database in this particular example is reachable through a
 service endpoint named `postgres`. PostgreSQL itself is configured with
@@ -514,8 +514,7 @@ kubectl create secret docker-registry drbdiocred --docker-server=drbd.io \
   --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>
 helm repo add linstor https://charts.linstor.io
 helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.enabled=false \
-  --set "operator.controller.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123" \
-  --set stork.enabled=false
+  --set "operator.controller.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123"
 -----
 
 [[s-kubernetes-helm-terminate]]
@@ -1592,28 +1591,15 @@ additional replicas.
 <3> Our worker nodes need to be allowed to connect to the external storage host.
 
 
-[[s-kubernetes-stork]]
-=== Volume Locality Optimization Using Stork
+[[s-kubernetes-scheduler]]
+=== Volume Locality Optimization Using LINSTOR Scheduler
 
-WARNING: The Stork integration is no longer actively maintained. Instead we recommend using
-`volumeBindingMode: WaitForFirstConsumer` in your storage class. For more details
-<<s-kubernetes-volume-accessibility-and-locality,see above>>.
+We maintain an open source plug-in for the Kubernetes scheduler. The scheduler will take the current placement of volumes
+into account and optimize for data locality. If possible, the pod will be assigned to a node that also hosts replicas of
+attached volumes, reducing latency for read operations.
 
-Stork is a scheduler extender plug-in for Kubernetes which allows a storage
-driver to give the Kubernetes scheduler hints about where to place a new pod
-so that it is optimally located for storage performance. You can learn more
-about the project on its https://portworx.com/stork-storage-orchestration-kubernetes/[GitHub page].
-
-The next Stork release will include the LINSTOR driver by default.
-In the meantime, you can use a custom-built Stork container by LINBIT which includes a LINSTOR driver,
-https://hub.docker.com/repository/docker/linbit/stork[available on Docker Hub]
-
-[[s-kubernetes-using-stork]]
-==== Installing and Configuring Stork
-
-By default, the chart will not install Stork. To install it and register a new scheduler called `stork`
-with Kubernetes, pass `--set stork.enabled=true` to the install command.
-The new scheduler can be used to place pods near to their volumes.
+The scheduler is available as a separate chart https://artifacthub.io/packages/helm/piraeus-charts/linstor-scheduler[from artifacthub.io].
+The chart will deploy a new scheduler, which you can later use when creating pod resources:
 
 [source,yaml]
 ----
@@ -1621,9 +1607,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: busybox
-  namespace: default
 spec:
-  schedulerName: stork <1>
+  schedulerName: linstor-scheduler <1>
   containers:
   - name: busybox
     image: busybox
