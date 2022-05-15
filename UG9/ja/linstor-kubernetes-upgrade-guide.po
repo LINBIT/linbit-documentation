@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-04-17 10:08+0900\n"
+"POT-Creation-Date: 2022-05-13 14:52+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -179,17 +179,65 @@ msgstr "Kubernetes バックエンドを使用した LINSTOR クラスターの�
 
 #. type: Plain text
 msgid ""
-"Using the Kubernetes API as a LINSTOR back end is quite new. There might be "
-"situations in which LINSTOR fails to upgrade resources, leaving the LINSTOR "
-"cluster in an unusable state. For this reason, we strongly recommend doing a "
-"manual backup of all LINSTOR resources before upgrading the cluster. In a "
-"future release, this step will be managed by the Operator."
+"The LINSTOR Operator will create a backup of the database before upgrading. "
+"This makes it possible to roll back to a known state should something go "
+"wrong during the upgrade."
 msgstr ""
-"Kubernetes API を LINSTOR バックエンドとして使用するのは新しい試みです。"
-"LINSTOR がリソースのアップグレードに失敗し、LINSTOR クラスターが使用できない"
-"状態になる場合があります。このため、クラスターをアップグレードする前に、すべ"
-"ての LINSTOR リソースの手動バックアップを実行することを強くお勧めします。将来"
-"のリリースでは、このステップはオペレーターによって管理されます。"
+"LINSTOR オペレーターは、アップグレードする前にデータベースのバックアップを作"
+"成します。これにより、アップグレード中に問題が発生した場合に、以前の状態に"
+"ロールバックできます。"
+
+#. type: Plain text
+msgid ""
+"There are situations in which the Operator can't create the backup "
+"automatically. This might be because:"
+msgstr ""
+"オペレーターがバックアップを自動的に作成できない状況があります。これは、次の"
+"理由が考えられます。"
+
+#. type: Plain text
+msgid ""
+"The base version of the chart or operator is too old. Automatic backups are "
+"available starting with version 1.8.0 If upgrading from a version before "
+"1.8.0, please follow the manual steps in the next section."
+msgstr ""
+"チャートまたはオペレーターのバージョンが古すぎます。自動バックアップは、バー"
+"ジョン 1.8.0 以降で使用できます。1.8.0 より前のバージョンからアップグレードす"
+"る場合は、次のセクションの手動の手順に従ってください。"
+
+#. type: Plain text
+msgid ""
+"The backup is too large to fit into a Kubernetes secret. In this case an "
+"error is reported in the status field of the `LinstorController` resources. "
+"Follow the instructions by copying the created backup to a safe location and "
+"creating the necessary secret."
+msgstr ""
+"バックアップが大きすぎて、Kubernetes のシークレットに収まりません。この場合、"
+"`LinstorController` リソースのステータスフィールドにエラーが報告されます。作"
+"成したバックアップを安全な場所にコピーし、必要なシークレットを作成して、指示"
+"に従います。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kubectl cp <linstor-operator-pod>:/run/linstor-backups/linstor-backup-<some-hash>.tar.gz <destination-path>\n"
+"kubectl create secret linstor-backup-<same-hash>\n"
+msgstr ""
+"kubectl cp <linstor-operator-pod>:/run/linstor-backups/linstor-backup-<some-hash>.tar.gz <destination-path>\n"
+"kubectl create secret linstor-backup-<same-hash>\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Creating a backup of the LINSTOR Database"
+msgstr "LINSTOR データベースのバックアップを作成"
+
+#. type: Plain text
+msgid ""
+"Follow these instructions if you need to manually create a backup of the "
+"LINSTOR k8s database."
+msgstr ""
+"LINSTOR k8s データベースのバックアップを手動で作成する必要がある場合は、次の"
+"手順に従ってください。"
 
 #. type: Plain text
 msgid "Stop the current controller:"
@@ -198,11 +246,11 @@ msgstr "現在のコントローラーを停止します。"
 #. type: delimited block -
 #, no-wrap
 msgid ""
-"$ kubectl patch linstorcontroller linstor-cs '{\"spec\":{\"replicas\": 0}}'\n"
-"$ kubectl rollout status --watch deployment/linstor-cs-controller\n"
+"$ kubectl patch linstorcontroller linstor-op-cs '{\"spec\":{\"replicas\": 0}}'\n"
+"$ kubectl rollout status --watch deployment/linstor-op-cs-controller\n"
 msgstr ""
-"$ kubectl patch linstorcontroller linstor-cs '{\"spec\":{\"replicas\": 0}}'\n"
-"$ kubectl rollout status --watch deployment/linstor-cs-controller\n"
+"$ kubectl patch linstorcontroller linstor-op-cs '{\"spec\":{\"replicas\": 0}}'\n"
+"$ kubectl rollout status --watch deployment/linstor-op-cs-controller\n"
 
 #. type: Plain text
 msgid ""
@@ -223,7 +271,7 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"In addition to the definitions, the actual resources must be be backed up as "
+"In addition to the definitions, the actual resources must be backed up as "
 "well:"
 msgstr "定義に加えて、実際のリソースもバックアップする必要があります。"
 
@@ -238,11 +286,103 @@ msgstr ""
 
 #. type: Plain text
 msgid ""
-"Run the chart upgrade using `--set IHaveBackedUpAllMyLinstorResources=true` "
+"If upgrading the chart, use `--set IHaveBackedUpAllMyLinstorResources=true` "
 "to acknowledge you have executed the above steps."
 msgstr ""
 "`--set IHaveBackedUpAllMyLinstorResources=true` を使用して chart のアップグ"
 "レードを実行し、上記の手順を実行したことを確認します。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Restoring from a LINSTOR Database backup"
+msgstr "LINSTOR データベースのバックアップからの復元"
+
+#. type: Plain text
+msgid ""
+"Follow these instructions if you need to recover from an failure during a "
+"LINSTOR upgrade."
+msgstr ""
+"LINSTOR のアップグレード中に障害から回復する必要がある場合は、次の手順に従っ"
+"てください。"
+
+#. type: Plain text
+msgid ""
+"Fetch the backup (skip if the backup is already available on your local "
+"machine):"
+msgstr ""
+"バックアップを準備します（バックアップがローカルマシンですでに利用可能な場合"
+"はスキップ）。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ # List the available backups\n"
+"$ kubectl get secret '-ocustom-columns=NAME:.metadata.name,FROM:metadata.annotations.linstor\\.linbit\\.com/backup-previous-version,CREATED-AT:.metadata.creationTimestamp'\n"
+"$ kubectl get secret linstor-backup-<backup-specific-hash> '-ogo-template=go-template={{index .data \".binaryData.backup.tar.gz\" | base64decode}}' > linstor-backup.tar.gz\n"
+msgstr ""
+"$ # List the available backups\n"
+"$ kubectl get secret '-ocustom-columns=NAME:.metadata.name,FROM:metadata.annotations.linstor\\.linbit\\.com/backup-previous-version,CREATED-AT:.metadata.creationTimestamp'\n"
+"$ kubectl get secret linstor-backup-<backup-specific-hash> '-ogo-template=go-template={{index .data \".binaryData.backup.tar.gz\" | base64decode}}' > linstor-backup.tar.gz\n"
+
+#. type: Plain text
+msgid "Unpack the backup"
+msgstr "バックアップを解凍します"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ tar xvf linstor-backup.tar.gz\n"
+"crds.yaml\n"
+"....\n"
+msgstr ""
+"$ tar xvf linstor-backup.tar.gz\n"
+"crds.yaml\n"
+"....\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl patch linstorcontroller linstor-op-cs \"{\"spec\":{\"replicas\": 0}}\"\n"
+"$ kubectl rollout status --watch deployment/piraeus-op-cs-controller\n"
+msgstr ""
+"$ kubectl patch linstorcontroller linstor-op-cs \"{\"spec\":{\"replicas\": 0}}\"\n"
+"$ kubectl rollout status --watch deployment/piraeus-op-cs-controller\n"
+
+#. type: Plain text
+msgid "Delete existing resources"
+msgstr "既存のリソースを削除します"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | xargs --no-run-if-empty kubectl delete crds\n"
+msgstr "$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | xargs --no-run-if-empty kubectl delete crds\n"
+
+#. type: Plain text
+msgid "Apply the old LINSTOR CRDs"
+msgstr "古い LINSTOR CRD を適用します"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl apply -f crds.yaml\n"
+msgstr "$ kubectl apply -f crds.yaml\n"
+
+#. type: Plain text
+msgid "Apply the old LINSTOR resource state"
+msgstr "古い LINSTOR リソースの状態を適用します"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl apply -f *.internal.linstor.linbit.com.yaml\n"
+msgstr "$ kubectl apply -f *.internal.linstor.linbit.com.yaml\n"
+
+#. type: Plain text
+msgid "Re-apply the helm chart using the old LINSTOR version"
+msgstr "古い LINSTOR バージョンを使用してヘルムチャートを再適用します"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ helm upgrade linstor-op charts/piraeus --set operator.controller.controllerImage=... --set operator.satelliteSet.satelliteImage=...\n"
+msgstr "$ helm upgrade linstor-op charts/piraeus --set operator.controller.controllerImage=... --set operator.satelliteSet.satelliteImage=...\n"
 
 #. type: Title ====
 #, no-wrap
