@@ -1502,6 +1502,51 @@ While this method routes DRBD traffic through a specified NIC, it is not possibl
 . Specify a LINSTOR controller using methods outlined in <<s-using_the_linstor_client>> *and* have the only route to the controller as specified be through the NIC you would like to use for controller-client traffic.
 . Use Linux tools such as `ip route` and `iptables` to filter LINSTOR client-controller traffic, port number 3370, and route it through a specific NIC.
 
+[[s-creating-multiple-drbd-paths]]
+==== Creating Multiple DRBD Paths with LINSTOR
+
+To use https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-configuring-multiple-paths[multiple network paths]
+for DRBD setups, the `PrefNic` property is not sufficient. Instead the
+`linstor node interface` and `linstor resource-connection path` commands
+should be used, as shown below:
+
+----------------------------
+# linstor node interface create alpha nic1 192.168.43.221
+# linstor node interface create alpha nic2 192.168.44.221
+# linstor node interface create bravo nic1 192.168.43.222
+# linstor node interface create bravo nic2 192.168.44.222
+
+# linstor resource-connection path create alpha bravo myResource path1 nic1 nic1
+# linstor resource-connection path create alpha bravo myResource path2 nic2 nic2
+----------------------------
+
+In the example above we define two network interfaces (`nic1` and `nic2`) for each node.
+The last two commands create network path entries in the generated the DRBD `.res` file.
+This is the relevant part of the resulting `.res` file:
+
+----------------------------
+resource myResource {
+  ...
+  connection {
+    path {
+      host alpha address 192.168.43.221:7000;
+      host bravo address 192.168.43.222:7000;
+    }
+    path {
+      host alpha address 192.168.44.221:7000;
+      host bravo address 192.168.44.222:7000;
+    }
+  }
+}
+----------------------------
+
+NOTE: While it is possible to specify a port number to be used for LINSTOR satellite
+traffic when creating a node interface, this port number is ignored when creating a
+DRBD resource connection path. Instead, the command will assign a port number
+dynamically, starting from port number 7000 and incrementing up.
+
+// if customers request, we should be able to also extend this to `node-connection` level
+
 [[s-linstor-encrypted-volumes]]
 === Encrypted Volumes
 
