@@ -282,3 +282,55 @@ the victim.
 After re-synchronization has completed, the split brain is considered
 resolved and the nodes form a fully consistent, redundant
 replicated storage system again.
+
+[[s-force-secondary]]                                                                        
+                                                                                                
+=== Recovering a Primary Node that Lost Quorum
+
+IMPORTANT: The following instructions apply to cases where the DRBD on-loss-of-quorum action has
+been set to suspend I/O operations. In cases where the action has been set to generate I/O
+errors, the instructions are unnecessary.
+
+The DRBD administration tool, `drbdadm`, includes a force secondary option, `secondary --force`.
+If DRBD quorum was configured to suspend DRBD resource I/O operations upon loss of quorum, the
+force secondary option will allow you to gracefully recover the node that lost quorum and
+reintegrate it with the other nodes. 
+
+Requirements:
+
+- DRBD version 9.1.7 or newer
+
+- `drbd-utils` version 9.21 or newer
+
+You can use the command `drbdadm secondary --force <all|resource_name>` to demote a primary node to secondary, in cases where you are trying to recover a primary node that lost quorum. The argument to this command can be either a single DRBD resource name or `all` to demote the node to a secondary role for all its DRBD resources.
+
+By using this command on the primary node that lost quorum with suspended I/O operations, all
+the suspended I/O requests and newly submitted I/O requests will terminate with I/O errors. You
+can then unmount the file system and reconnect the node to the other nodes in your cluster. 
+
+Along with the DRBD administration tool's force secondary option, you can also add the
+`on-suspended-primary-outdated` option to a DRBD resource configuration file and set it to the
+keyword value `force-secondary`. This enables DRBD to automatically recover a primary node that
+loses quorum with suspended I/O operations. With this option configured, when such a node
+connects to a cluster partition that has a more recent data set, DRBD automatically demotes the
+primary node that lost quorum and has suspended I/O operations. Additional configurations, for
+example in a `handlers` section of the resource configuration file, as well as additional
+configurations within a cluster manager, may also be necessary to complete a fully automatic
+recovery setup.
+
+Settings within a DRBD resource configuration file's `options` section that cover this scenario
+could look like this:
+
+----
+resource <resource_name> {
+...
+options {
+	quorum majority; # or explicit value
+	on-no-quorum suspend-io;
+	on-no-data-accessible suspend-io;
+	on-suspended-primary-outdated force-secondary;
+}
+...
+}
+----
+
