@@ -22,7 +22,7 @@ ADD /GNUmakefile /linbit-documentation/GNUmakefile
 RUN groupadd --gid $(shell id -g) makedoc
 RUN useradd -m -u $(shell id -u) -g $(shell id -g) makedoc
 RUN apt-get update && apt-get install -y make inkscape ruby po4a patch openssh-client lftp curl unzip
-RUN gem install --pre asciidoctor-pdf
+RUN gem install --pre asciidoctor-pdf -v '< 1.7.0'
 RUN gem install --pre asciidoctor-pdf-cjk
 RUN gem install asciidoctor-pdf-cjk-kai_gen_gothic && asciidoctor-pdf-cjk-kai_gen_gothic-install
 RUN curl https://packages.linbit.com/public/genshingothic-20150607.zip > /tmp/ja.zip && (mkdir /linbit-documentation/genshingothic-fonts && cd /linbit-documentation/genshingothic-fonts && unzip /tmp/ja.zip); rm /tmp/ja.zip
