@@ -2474,6 +2474,89 @@ echo '[netcom]
 
 Now just start controller and satellites and add the nodes with `--communication-type SSL`.
 
+[[s-linstor-ldap-authentication]]
+=== Configuring LDAP Authentication 
+
+You can configure LINSTOR to use LDAP authentication to limit access to the LINSTOR Controller.
+This feature is disabled by default but you can enable and configure it by editing the
+LINSTOR configuration TOML file. After editing the configuration file, you will need to restart
+the `linstor-controller.service`. An example LDAP section within the configuration file looks
+like this:
+
+----
+[ldap]
+  enabled = true <1>
+
+  # allow_public_access: if no authorization fields are given allow
+  # users to work with the public context
+  allow_public_access = false <2>
+
+  # uniform resource identifier: LDAP URI to use
+  # for example, "ldaps://hostname" (LDAPS) or "ldap://hostname" (LDAP)
+  uri = "ldaps://ldap.example.com"
+
+  # distinguished name: {user} can be used as template for the user name
+  dn = "uid={user}" <3>
+
+  # search base for the search_filter field
+  search_base = "dc=example,dc=com" <4>
+
+  # search_filter: ldap filter to restrict users on memberships
+  search_filter = "(&(uid={user})(memberof=ou=storage-services,dc=example,dc=com))" <5>
+----
+
+<1> `enabled` is a Boolean value. Authentication is disabled by default.
+
+<2> `allow_public_access` is a Boolean value. If set to true, and LDAP authentication is
+enabled, then users will be allowed to work with the LINSTOR Controller's public context. If
+set to false and LDAP authentication is enabled, then users without LDAP authenticating
+credentials will be unable to access the LINSTOR Controller for all but the most trivial tasks,
+such as displaying version or help information.
+
+<3> `dn` is a string value where you can specify the LDAP distiguished name to query the LDAP
+directory. Besides the user ID (`uid`), the string may consist of other distinguished name
+attributes, for example:
++
+----
+dn = "uid={user},ou=storage-services,o=ha,dc=example"
+----
+
+<4> `search_base` is a string value where you can specify the starting point in the LDAP
+directory tree for the authentication query, for example:
++
+----
+search_base = "ou=storage-services"
+----
+
+<5> `search_filter` is a string value where you can specify an LDAP object restriction for
+authentication, such as user and group membership, for example:
++
+----
+search_filter = "(&(uid={user})(memberof=ou=storage-services,dc=example,dc=com))"
+----
+
+WARNING: It is highly recommended that you configure <<s-linstor-rest-api-https,LINSTOR REST API
+HTTPS>> and LDAPS to protect potentially sensitive traffic passing between the LINSTOR
+Controller and an LDAP server.
+
+==== Running LINSTOR Commands as an Authenticated User
+
+After configuring the LINSTOR Controller to authenticate users through LDAP (or LDAPS), and the LINSTOR REST API HTTPS, you will need to enter LINSTOR commands as follows:
+
+----
+$ linstor --user <LDAP_user_name> <command> 
+----
+
+If you have configured LDAP authentication without also configuring <<s-linstor-rest-api-https,LINSTOR REST API
+HTTPS>>, you will need to explicitly enable password authentication over HTTP, by using the `--allow-insecure-path` flag with your `linstor` commands. This is not recommended outside of a secured and isolated LAN, as you will be sending credentials in plain text.
+
+----
+$ linstor --allow-insecure-auth --user <LDAP_user_name> <command> 
+----
+
+The LINSTOR Controller will prompt you for the user's password, in each of the above examples. You may optionally use the `--password` argument to supply the user's password on the command line, with all the warnings of caution that would go along with doing so.
+
+
 [[s-linstor-drbd-automatisms]]
 === Automatisms for DRBD-Resources
 
