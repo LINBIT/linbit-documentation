@@ -778,11 +778,50 @@ third, diskless node to the cluster which will then act as a quorum tiebreaker.
 
 See <<s-configuring-quorum-tiebreaker>> for more information.
 
+[[s-feature-resync-after]]
+=== Resync-after
+
+DRBD runs all its necessary resync operations in parallel so that nodes are reintegrated with up-to-date data as soon as possible. This works well when there is one DRBD resource per backing disk.
+
+However, when DRBD resources share a physical disk (or when a single resource spans multiple volumes), resyncing these resources (or volumes) in parallel results in a nonlinear access pattern. Hard disks perform much better with a linear access pattern. For such cases you can serialize resyncs using the `resync-after` keyword within a `disk` section of a DRBD resource configuration file.
+
+See https://github.com/LINBIT/drbd-utils/blob/master/scripts/drbd.conf.example#L30[here] for an example.
+
+[[s-feature-failover-clusters]]
+=== Failover Clusters
+
+In many scenarios it is useful to combine DRBD with a failover cluster resource manager. DRBD
+can integrate with a cluster resource manager (CRM) such as DRBD Reactor and its promoter
+plug-in, or Pacemaker, to create failover clusters.
+
+DRBD Reactor is an open source tool that monitors DRBD events and reacts to them. Its promoter
+plug-in manages services using systemd unit files or OCF resource agents. Since DRBD Reactor
+solely relies on DRBD's cluster communication, no configuration for its own communication is
+needed.
+
+DRBD Reactor requires that quorum is enabled on the DRBD resources it is monitoring, so a
+failover cluster must have a minimum of three nodes. A limitation is that it supports ordering
+of services only for collocated services. One of its advantages is that it makes possible fully
+automatic recovery of clusters after a temporary network failure. This, together with its
+simplicity, make it the recommended failover cluster manager. Furthermore, DRBD Reactor is
+perfectly suitable for deployments on clouds as it needs no STONITH or redundant networks in
+deployments with three or more nodes (for quorum).
+
+Pacemaker is the longest available open source cluster resource manager for high-availability
+clusters. It requires its own communication layer (Corosync) and it requires STONITH to deal
+with various scenarios. STONITH might require dedicated hardware and it can increase the impact
+radius of a service failure. Pacemaker has probably the most flexible system to express
+resources location and ordering constraints. However, with this flexibility, setups can become
+complex.
+
+Finally, there are also proprietary solutions for failover clusters that work with DRBD, such as
+SIOS LifeKeeper for Linux, HPE Serviceguard for Linux, and Veritas Cluster Server.
+
 ifndef::drbd-only[]
 [[s-feature-VCS]]
 === DRBD Integration for VCS
 
-Veritas Cluster Server (or Veritas Infoscale Availability) is a commercial alternative
+Veritas Cluster Server (or Veritas InfoScale Availability) is a commercial alternative
 to the Pacemaker open source software. In case you need to integrate DRBD resources
 into a VCS setup please see the README in
 https://github.com/LINBIT/drbd-utils/tree/master/scripts/VCS[drbd-utils/scripts/VCS]
