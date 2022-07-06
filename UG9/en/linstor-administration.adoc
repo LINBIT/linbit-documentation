@@ -2685,31 +2685,77 @@ itself, away, you need to use the `node lost` command instead.
 [[s-linstor-qos]]
 === QoS Settings
 
-==== sysfs
+LINSTOR implements QoS for managed resources by using sysfs properties that correspond to
+kernel variables related to block I/O operations. These sysfs properties can be limits on
+either bandwidth (bytes per second), or IOPS, or both.
 
-LINSTOR is able to set the following sysfs settings:
+The sysfs files and their corresponding LINSTOR properties are as follows:
 
 [cols="3,2"]
 |===
-| sysfs | Linstor property
+| sysfs (`/sys/fs/`) | LINSTOR Property
 
-| `/sys/fs/cgroup/blkio/blkio.throttle.read_bps_device` | `sys/fs/blkio_throttle_read`
-| `/sys/fs/cgroup/blkio/blkio.throttle.write_bps_device` | `sys/fs/blkio_throttle_write`
-| `/sys/fs/cgroup/blkio/blkio.throttle.read_iops_device` | `sys/fs/blkio_throttle_read_iops`
-| `/sys/fs/cgroup/blkio/blkio.throttle.write_iops_device` | `sys/fs/blkio_throttle_write_iops`
+| `cgroup/blkio/blkio.throttle.read_bps_device` | `sys/fs/blkio_throttle_read`
+| `cgroup/blkio/blkio.throttle.write_bps_device` | `sys/fs/blkio_throttle_write`
+| `cgroup/blkio/blkio.throttle.read_iops_device` | `sys/fs/blkio_throttle_read_iops`
+| `cgroup/blkio/blkio.throttle.write_iops_device` | `sys/fs/blkio_throttle_write_iops`
 |===
 
-If a LINSTOR volume is composed of multiple "stacked" volume (for example DRBD with external
-metadata will have 3 devices: backing (storage) device, metadata device and the resulting
-DRBD device), setting a `sys/fs/\*` property for a Volume, only the bottom-most local
-"data"-device will receive the corresponding `/sys/fs/cgroup/...` setting.
-That means, in case of the example above only the backing device will receive the setting.
-In case a resource-definition has an nvme-target as well as an nvme-initiator resource,
-both bottom-most devices of each node will receive the setting. In case of the target the
-bottom-most device will be the volume of LVM or ZFS, whereas in case of the initiator the
-bottom-most device will be the connected nvme-device, regardless which other layers
-are stacked on top of that.
+==== Setting QoS Using LINSTOR sysfs Properties
 
+These LINSTOR properties may be set using the `set-property` command and may be set on the
+following objects: volume, storage pool, resource, controller, or node. You can also set these
+QoS properties on resource groups, volume groups, resource definitions, or volume definitions.
+When you set a QoS property on a group or definition, resources created from the group or
+definition will inherit the QoS settings.
+
+IMPORTANT: Settings made to a group or definition will affect both existing and new resources
+created from the group or definition.
+
+The following example shows creating a resource group, then creating a volume group, then
+applying QoS settings to the volume group, and then spawning resources from the resource
+group. A verification command will show that the spawned resources inherit the QoS settings.
+The example uses an assumed previously created LINSTOR storage pool named _pool1_. You will
+need to replace this name with a storage pool name that exists in your environment.
+
+----
+# linstor resource-group create qos_limited --storage-pool pool1 --place-count 3
+# linstor volume-group create qos_limited
+# linstor volume-group set-property qos_limited 0 sys/fs/blkio_throttle_write 1048576
+# linstor resource-group spawn-resources qos_limited qos_limited_res 200M
+----
+
+To verify that the spawned resources inherited the QoS setting, you can show the contents of
+the corresponding sysfs file, on a node that contributes storage to the storage pool.
+
+----
+# cat /sys/fs/cgroup/blkio/blkio.throttle.write_bps_device
+252:4 1048576
+----
+
+NOTE: As the QoS properties are inherited and not copied, you will not see the property listed
+in any "child" objects that have been spawned from the "parent" group or definition.
+
+==== QoS Settings for a LINSTOR Volume Having Multiple DRBD Devices
+
+A single LINSTOR volume can be composed of multiple DRBD devices. For example, DRBD with
+external metadata will have three backing devices: a data (storage) device, a metadata device,
+and the composite DRBD device (volume) provided to LINSTOR. If the data and metadata devices
+correspond to different backing disks, then if you set a sysfs property for such a LINSTOR
+volume, only the local data (storage) backing device will receive the property value in the
+corresponding `/sys/fs/cgroup/blkio/` file. Neither the device backing DRBD's metadata, nor
+the composite backing device provided to LINSTOR would receive the value. However, when DRBD's
+data and its metadata share the same backing disk, QoS settings will affect the performance of
+both data and metadata operations.
+
+==== QoS Settings for NVMe
+
+In case a LINSTOR resource definition has an `nvme-target` as well as an `nvme-initiator`
+resource, both data (storage) backing devices of each node will receive the sysfs property
+value. In case of the target, the data backing device will be the volume of either LVM or ZFS,
+whereas in case of the initiator, the data backing device will be the connected `nvme-device`,
+regardless of which other LINSTOR layers, such as LUKS, NVMe, DRBD, and others (see
+<<s-linstor-without-drbd>>), are above that.
 
 [[s-linstor-getting-help]]
 === Getting Help
