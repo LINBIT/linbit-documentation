@@ -1953,6 +1953,359 @@ will keep the last 10 shipped snapshots by default.
 # linstor resource-definition set-property resource1 SnapshotShipping/Keep 5
 ----------------------------
 
+[[s-linstor-scheduled-backup-shipping]]
+=== Scheduled Backup Shipping
+
+Starting with LINSTOR Controller version 1.19.0 and working with LINSTOR client version 1.14.0
+or above, you can configure scheduled backup shipping for deployed LINSTOR resources.
+
+Scheduled backup shipping consists of three parts:
+
+- A data set that consists of one or more deployed LINSTOR resources that you want to backup and
+  ship
+
+- A remote destination to ship backups to (another LINSTOR cluster or an S3 instance)
+
+- A schedule that defines when the backups should ship
+
+IMPORTANT: LINSTOR backup shipping only works for deployed LINSTOR resources that are backed by
+LVM and ZFS storage pools, because these are the storage pool types with snapshot support in
+LINSTOR.
+
+[[s-linstor-creating-backup-shipping-schedule]]
+==== Creating a Backup Shipping Schedule
+
+You create a backup shipping schedule by using the LINSTOR client `schedule create` command and
+defining the frequency of backup shipping using `cron` syntax. You also need to set options
+that name the schedule and define various aspects of the backup shipping, such as on-failure
+actions, the number of local and remote backup copies to keep, and whether to also schedule
+incremental backup shipping.
+
+At a minimum, the command needs a schedule name and a full backup cron schema to create a backup
+shipping schedule. An example command would look like this:
+
+[subs="verbatim, quotes"]
+----
+# linstor schedule create \
+  --incremental-cron '* * * * *' \ <1>
+  --keep-local 5 \ <2>
+  --keep-remote 4 \ <3>
+  --on-failure RETRY \ <4>
+  --max-retries 10 \ <5>
+  __schedule_name__ \ <6>
+  '* * * * *' # full backup cron schema <7>
+----
+
+IMPORTANT: Enclose cron schemas within single or double quotation marks.
+
+<1> If specified, the incremental cron schema describes how frequently to create and ship
+incremental backups. New incremental backups are based on the most recent full backup.
+[OPTIONAL]
+
+<2> The `--keep-local` option allows you to specify how many snapshots that a full backup is
+based upon should be kept at the local backup source. If unspecified, all snapshots will be
+kept. [OPTIONAL]
+
+<3> The `--keep-remote` option allows you to specify how many full backups should be kept at the
+remote destination. This option only works with S3 remote backup destinations, because you would
+not want to allow a cluster node to delete backups from a node in another cluster. All
+incremental backups based on a deleted full backup will also be deleted at the remote
+destination. If unspecified, the `--keep-remote` option defaults to "all". [OPTIONAL]
+
+<4> Specifies whether to "RETRY" or "SKIP" the scheduled backup shipping if it fails. If "SKIP"
+is specified, LINSTOR will ignore the failure and continue with the next scheduled backup
+shipping. If "RETRY" is specified, LINSTOR will wait 60 seconds and then try the backup shipping
+again. The LINSTOR `schedule create` command defaults to "SKIP" if no `--on-failure` option is
+given. [OPTIONAL]
+
+<5> The number of times to retry the backup shipping if a scheduled backup shipping fails and
+the `--on-failure RETRY` option has been given. Without this option, the LINSTOR controller will
+retry the scheduled backup shipping indefinitely, until it is successful. [OPTIONAL]
+
+<6> The name that you give the backup schedule so that you can reference it later with the
+schedule list, modify, delete, enable, or disable commands. [REQUIRED]
+
+<7> This cron schema describes how frequently LINSTOR creates snapshots and ships full backups.
+[REQUIRED]
+
+IMPORTANT: If you specify an incremental cron schema that has overlap with the full cron schema
+that you specify, at the times when both types of backup shipping would occur simultaneously,
+LINSTOR will only make and ship a full backup. For example, if you specify that a full backup be
+made every three hours, and an incremental backup be made every hour, then every third hour,
+LINSTOR will only make and ship a full backup. For this reason, specifying the same cron schema
+for both your incremental and full backup shipping schedules would be useless, because
+incremental backups will never be made.
+
+[[s-linstor-modifying-backup-shipping-schedule]]
+==== Modifying a Backup Shipping Schedule
+
+You can modify a backup shipping schedule by using the LINSTOR client `schedule modify` command.
+The syntax for the command is the same as that for the `schedule create` command. The name that
+you specify with the `schedule modify` command must be an already existing backup schedule. Any
+options to the command that you do not specify will retain their existing values. If you want to
+set the `keep-local` or `keep-remote` options back to their default values, you can set them to
+"all". If you want to set the `max-retries` option to its default value, you can set it to
+"forever".
+
+==== Configuring the Number of Local Snapshots and Remote Backups to Keep
+
+Your physical storage is not infinite and your remote storage has a cost, so you will likely
+want to set limits on the number of snapshots and backups you keep.
+
+Both the `--keep-remote` and `--keep-local` options deserve special mention as they have
+implications beyond what may be obvious. Using these options, you specify how many snapshots or
+full backups should be kept, either on the local source or the remote destination.
+
+[[s-linstor-configuring-backup-shipping-schedule-keep-local]]
+===== Configuring the Keep-local Option
+
+For example, if a `--keep-local=2` option is set, then the backup shipping schedule, on first
+run, will make a snapshot for a full backup. On the next scheduled full backup shipping, it will
+make a second snapshot for a full backup. On the next scheduled full backup shipping, it makes a
+third snapshot for a full backup. This time, however, after successful completion, LINSTOR
+deletes the first (oldest) full backup shipping snapshot. If snapshots were made for any
+incremental backups based on this full snapshot, they will also be deleted from the local source
+node. On the next successful full backup shipping, LINSTOR will delete the second full backup
+snapshot and any incremental snapshots based upon it, and so on, with each successive backup
+shipping.
+
+NOTE: If there are local snapshots remaining from failed shipments, these will be deleted first,
+even if they were created later.
+
+If you have enabled a backup shipping schedule and then later manually delete a LINSTOR
+snapshot, LINSTOR may not be able to delete everything it was supposed to. For example, if you
+delete a full backup snapshot definition, on a later full backup scheduled shipping, there may
+be incremental snapshots based on the manually deleted full backup snapshot that will not be
+deleted.
+
+[[s-linstor-configuring-backup-shipping-schedule-keep-remote]]
+===== Configuring the Keep-remote Option
+
+As mentioned in the callouts for the example `linstor schedule create` command above, the
+`keep-remote` option only works for S3 remote destinations. Here is an example of how the
+option works. If a `--keep-remote=2` option is set, then the backup shipping schedule, on first
+run, will make a snapshot for a full backup and ship it to the remote destination. On the next
+scheduled full backup shipping, a second snapshot is made and a full backup shipped to the
+remote destination. On the next scheduled full backup shipping, a third snapshot is made and a
+full backup shipped to the remote destination. This time, additionally, after the third snapshot
+successfully ships, the first full backup is deleted from the remote destination. If any
+incremental backups were scheduled and made between the full backups, any that were made from
+the first full backup would be deleted along with the full backup.
+
+NOTE: This option only deletes backups at the remote destination. It does not delete snapshots
+that the full backups were based upon at the local source node.
+
+[[s-linstor-listing-backup-shipping-schedule]]
+==== Listing a Backup Shipping Schedule
+
+You can list your backup shipping schedules by using the `linstor schedule list` command.
+
+For example:
+
+----
+# linstor schedule list
+╭──────────────────────────────────────────────────────────────────────────────────────╮
+┊ Name                ┊ Full        ┊ Incremental ┊ KeepLocal ┊ KeepRemote ┊ OnFailure ┊
+╞══════════════════════════════════════════════════════════════════════════════════════╡
+┊ my-bu-schedule      ┊ 2 * * * *   ┊             ┊ 3         ┊ 2          ┊ SKIP      ┊
+╰──────────────────────────────────────────────────────────────────────────────────────╯
+----
+
+[[s-linstor-deleting-backup-shipping-schedule]]
+==== Deleting a Backup Shipping Schedule
+
+The LINSTOR client `schedule delete` command completely deletes a backup shipping schedule
+LINSTOR object. The command's only argument is the schedule name that you want to delete. If the
+deleted schedule is currently creating or shipping a backup, the scheduled shipping process is
+stopped. Depending on at which point the process stops, a snapshot, or a backup, or both, might
+not be created and shipped.
+
+This command does not affect previously created snapshots or successfully shipped backups. These
+will be retained until they are manually deleted.
+
+[[s-linstor-enabling-backup-shipping-schedule]]
+==== Enabling Scheduled Backup Shipping
+
+You can use the LINSTOR client `backup schedule enable` command to enable a previously created
+backup shipping schedule. The command has the following syntax:
+
+[subs="verbatim, quotes"]
+----
+# linstor backup schedule enable \
+  [--node __source_node__] \ <1>
+  [--rg __resource_group_name__ | --rd __resource_definition_name__] \ <2>
+  __remote_name__ \ <3>
+  __schedule_name__ <4>
+----
+
+<1> This is a special option that allows you to specify the controller node that will be used as
+a source for scheduled backup shipments, if possible. If you omit this option from the command,
+then LINSTOR will choose a source node at the time a scheduled shipping is made. [OPTIONAL]
+
+<2> You can set here either the resource group or the resource definition (but not both) that
+you want to enable the backup shipping schedule for. If you omit this option from the command,
+then the command enables scheduled backup shipping for all deployed LINSTOR resources that can
+make snapshots. [OPTIONAL]
+
+<3> The name of the remote destination that you want to ship backups to. [REQUIRED]
+
+<4> The name of a previously created backup shipping schedule. [REQUIRED]
+
+[[s-linstor-disabling-backup-shipping-schedule]]
+==== Disabling a Backup Shipping Schedule
+
+To disable a previously enabled backup shipping schedule, you use the LINSTOR client `backup
+schedule disable` command. The command has the following syntax:
+
+[subs="verbatim, quotes"]
+----
+# linstor backup schedule disable \
+  [--rg __resource_group_name__ | --rd __resource_definition_name__] \
+  __remote_name__ \ <3>
+  __schedule_name__ <4>
+----
+
+If you include the option specifying either a resource group or resource definition, as
+described in the `backup schedule enable` command example above, then you disable the schedule
+only for that resource group or resource definition.
+
+For example, if you omitted specifying a resource group or resource definition in an earlier
+`backup schedule enable` command, LINSTOR would schedule backup shipping for all its deployed
+resources that can make snapshots. Your disable command would then only affect the resource
+group or resource definition that you specify with the command. The backup shipping schedule
+would still apply to any deployed LINSTOR resources besides the specified resource group or
+resource definition.
+
+The same as for the `backup schedule enable` command, if you specify neither a resource group
+nor a resource definition, then LINSTOR disables the backup shipping schedule at the controller
+level for all deployed LINSTOR resources.
+
+[[s-linstor-backup-schedule-delete-command]]
+==== Deleting Aspects of a Backup Shipping Schedule
+
+You can use the `linstor backup schedule delete` command to granularly delete either a specified
+resource definition or a resource group from a backup shipping schedule, without deleting the
+schedule itself. This command has the same syntax and arguments as the `backup schedule disable`
+command. If you specify neither a resource group nor a resource definition, the backup shipping
+schedule you specify will be deleted at the controller level.
+
+It may be helpful to think about the `backup schedule delete` command as a way that you can
+*remove* a backup shipping schedule-remote pair from a specified LINSTOR object level, either a
+resource definition, a resource group, or at the controller level if neither is specified.
+
+The `backup schedule delete` command does not affect previously created snapshots or
+successfully shipped backups. These will be retained until they are manually deleted, or until
+they are removed by the effects of a still applicable keep-local or keep-remote option.
+
+You might want to use this command when you have disabled a backup schedule for multiple LINSTOR
+object levels and later want to affect a granular change, where a `backup schedule enable`
+command might have unintended consequences.
+
+For example, consider a scenario where you have a backup schedule-remote pair that you enabled
+at a controller level. This controller has a resource group, _myresgroup_ that has several
+resource definitions, _resdef1_ through _resdef9_, under it. For maintenance reasons perhaps,
+you disable the schedule for two resource definitions, _resdef1_ and _resdef2_. You then realize
+that further maintenance requires that you disable the backup shipping schedule at the resource
+group level, for your _myresgroup_ resource group.
+
+After completing some maintenance, you are able to enable the backup shipping schedule for
+_resdef3_ through _resdef9_, but you are not yet ready to resume (enable) backup shipping for
+_resdef1_ and _resdef2_. You can enable backup shipping for each resource definition
+individually, _resdef3_ through _resdef9_, or you can use the `backup schedule delete` command
+to delete the backup shipping schedule from the resource group, _myresgroup_. If you use the
+`backup schedule delete` command, backups of _resdef3_ through _resdef9_ will ship again because
+the backup shipping schedule is enabled at the controller level, but _resdef1_ and _resdef2_
+will not ship because the backup shipping schedule is still disabled for them at the resource
+definition level.
+
+When you complete your maintenance and are again ready to ship backups for _resdef1_ and
+_resdef2_, you can delete the backup shipping schedule for those two resource definitions to
+return to your starting state: backup shipping scheduled for all LINSTOR deployed resources at
+the controller level. To visualize this it may be helpful to refer to the decision tree diagram
+for how LINSTOR decides whether or not to ship a backup in the
+<<s-linstor-how-controller-determines-backup-shipping>> subsection.
+
+NOTE: In the example scenario above, you might have enabled backup shipping on the resource
+group, after completing some maintenance. In this case, backup shipping would resume for
+resource definitions _resdef3_ through _resdef9_ but continue not to ship for resource
+definitions _resdef1_ and _resdef2_ because backup shipping was still disabled for those
+resource definitions. After you completed all maintenance, you could delete the backup shipping
+schedule on _resdef1_ and _resdef2_. Then all of your resource definitions would be shipping
+backups, as they were prior to your maintenance, because the schedule-remote pair was enabled at
+the resource group level. However, this would remove your option to globally stop all scheduled
+shipping at some later point in time at the controller level because the enabled schedule at the
+resource group level would override any `schedule disable` command applied at the controller
+level.
+
+[[s-linstor-listing-backup-shipping-schedule-by-resource]]
+==== Listing Backup Shipping Schedules by Resource
+
+You can list backup schedules by resource, using the LINSTOR client `schedule list-by-resource`
+command. This command will show LINSTOR resources and how any backup shipping schedules apply
+and to which remotes they are being shipped. If resources are not being shipped then the command
+will show:
+
+- Whether resources have no schedule-remote-pair entries (empty cells)
+
+- Whether they have schedule-remote-pair entries but they are disabled ("disabled")
+
+- Whether they have no resources, so no backup shipments can be made, regardless of whether any
+  schedule-remote-pair entries are enabled or not ("undeployed")
+
+If resources have schedule-remote-pairs and are being shipped, the command output will show when
+the last backup was shipped and when the next backup is scheduled to ship. It will also show
+whether the next and last backup shipments were full or incremental backups. Finally, the
+command will show when the next planned incremental (if any) and full backup shipping will
+occur.
+
+You can use the `--active-only` flag with the `schedule list-by-resource` command to filter out all resources that are not being shipped.
+
+[[s-linstor-how-controller-determines-backup-shipping]]
+==== How the LINSTOR Controller Determines Scheduled Backup Shipping
+
+To determine if the LINSTOR Controller will ship a deployed LINSTOR resource with a certain
+backup schedule for a given remote destination, the LINSTOR Controller uses the following logic:
+
+image::images/linstor-controller-backup-schedule-decision-flowchart.svg[]
+
+As the diagram shows, enabled or disabled backup shipping schedules have effect in the following order:
+
+. Resource definition level
+
+. Resource group level
+
+. Controller level
+
+A backup shipping schedule-remote pair that is enabled or disabled at a preceding level will override the enabled or disabled status for the same schedule-remote pair at a later level.
+
+[[s-linstor-how-backup-shippping-affects-resource-definitions]]
+==== Determining How Scheduled Backup Shipping Affects a Resource
+
+To determine how a LINSTOR resource will be affected by scheduled backup shipping, you can use
+the LINSTOR client `schedule list-by-resource-details` command for a specified LINSTOR resource.
+
+The command will output a table that shows on what LINSTOR object level a backup shipping
+schedule is either not set (empty cell), enabled, or disabled.
+
+By using this command, you can determine on which level you need to make a change to enable,
+disable, or delete scheduled backup shipping for a resource.
+
+Example output could look like this:
+
+[subs="verbatim, quotes"]
+----
+# linstor schedule list-by-resource-details __my_linstor_resource_name__
+╭───────────────────────────────────────────────────────────────────────────╮
+┊ Remote   ┊ Schedule   ┊ Resource-Definition ┊ Resource-Group ┊ Controller ┊
+╞═══════════════════════════════════════════════════════════════════════════╡
+┊ rem1     ┊ sch1       ┊ Disabled            ┊                ┊ Enabled    ┊
+┊ rem1     ┊ sch2       ┊                     ┊ Enabled        ┊            ┊
+┊ rem2     ┊ sch1       ┊ Enabled             ┊                ┊            ┊
+┊ rem2     ┊ sch5       ┊                     ┊ Enabled        ┊            ┊
+┊ rem3     ┊ sch4       ┊                     ┊ Disabled       ┊ Enabled    ┊
+╰───────────────────────────────────────────────────────────────────────────╯
+----
+
 [[s-linstor-setupopts]]
 === Setting Options for Resources
 
@@ -1968,8 +2321,7 @@ The following commands show the usage and available options:
 # linstor resource drbd-peer-options -h
 ----------------------------
 
-For instance, it is easy to set the DRBD protocol for a resource named
-`backups`:
+For instance, it is easy to set the DRBD protocol for a resource named `backups`:
 
 ----------------------------
 # linstor resource-definition drbd-options --protocol C backups
