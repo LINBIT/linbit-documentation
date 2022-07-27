@@ -60,7 +60,7 @@ route, you should configure persistent storage for it:
 ** Choose the injector according to the distribution you are using. Select the latest version from one of `drbd9-rhel7`, `drbd9-rhel8`,...  from http://drbd.io/ as appropriate. The drbd9-rhel8 image should also be used for RHCOS (OpenShift). For the SUSE CaaS Platform use the SLES injector that matches the base system of the CaaS Platform you are using (e.g., `drbd9-sles15sp1`). For example:
 +
 ----
-operator.satelliteSet.kernelModuleInjectionImage=drbd.io/drbd9-rhel8:v9.1.6
+operator.satelliteSet.kernelModuleInjectionImage=drbd.io/drbd9-rhel8:v9.1.8
 ----
 
 ** Only inject modules that are already present on the host machine. If a module is not found, it will be skipped.
@@ -587,13 +587,13 @@ stork:
   podsecuritycontext: {}
 csi:
   enabled: true
-  pluginImage: "drbd.io/linstor-csi:v0.18.0"
-  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.4.0
-  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.5.0
-  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.4.0
-  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
-  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v5.0.1
-  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.4.0
+  pluginImage: "drbd.io/linstor-csi:v0.20.0"
+  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
+  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.7.0
+  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
+  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.2.1
+  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1
+  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
   csiAttacherWorkerThreads: 10 <9>
   csiProvisionerWorkerThreads: 10 <9>
   csiSnapshotterWorkerThreads: 10 <9>
@@ -605,7 +605,13 @@ csi:
   controllerTolerations: [] <4>
   enableTopology: true
   resources: {} <3>
+  customLabels: {}
+  customAnnotations: {}
   kubeletPath: /var/lib/kubelet <7>
+  controllerSidecars: []
+  controllerExtraVolumes: []
+  nodeSidecars: []
+  nodeExtraVolumes: []
 priorityClassName: ""
 drbdRepoCred: drbdiocred
 linstorSslMethod: "manual" # <- If set to 'helm' or 'cert-manager' the certificates will be generated automatically
@@ -618,50 +624,74 @@ psp:
   unprivilegedRole: ""
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
-  image: "drbd.io/linstor-operator:v1.8.0"
+  image: "drbd.io/linstor-operator:v1.9.1"
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
+  customLabels: {}
+  customAnnotations: {}
   podsecuritycontext: {}
+  args:
+    createBackups: true
+    createMonitoring: true
+  sidecars: []
+  extraVolumes: []
   controller:
     enabled: true
-    controllerImage: "drbd.io/linstor-controller:v1.18.0"
+    controllerImage: "drbd.io/linstor-controller:v1.19.1"
     dbConnectionURL: ""
     luksSecret: ""
     dbCertSecret: ""
     dbUseClientCert: false
     sslSecret: ""
     affinity: {} <4>
+    httpBindAddress: ""
+    httpsBindAddress: ""
     tolerations: <4>
       - key: node-role.kubernetes.io/master
-        operator: "Exists"
-        effect: "NoSchedule"
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
     resources: {} <3>
     replicas: 1 <2>
     additionalEnv: [] <5>
     additionalProperties: {} <6>
+    sidecars: []
+    extraVolumes: []
+    customLabels: {}
+    customAnnotations: {}
   satelliteSet:
     enabled: true
-    satelliteImage: "drbd.io/linstor-satellite:v1.18.0"
+    satelliteImage: "drbd.io/linstor-satellite:v1.19.1"
     storagePools: {}
     sslSecret: ""
     automaticStorageType: None
     affinity: {} <4>
     tolerations: [] <4>
     resources: {} <3>
-    monitoringImage: "drbd.io/drbd-reactor:v0.5.3"
-    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.1.6"
+    monitoringImage: "drbd.io/drbd-reactor:v0.8.0"
+    monitoringBindAddress: ""
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.1.8"
     kernelModuleInjectionMode: ShippedModules
     kernelModuleInjectionAdditionalSourceDirectory: "" <8>
     kernelModuleInjectionResources: {} <3>
+    kernelModuleInjectionExtraVolumeMounts: []
     additionalEnv: [] <5>
+    sidecars: []
+    extraVolumes: []
+    customLabels: {}
+    customAnnotations: {}
 haController:
-  enabled: true
+  enabled: false
   image: drbd.io/linstor-k8s-ha-controller:v0.3.0
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
   replicas: 1 <2>
+  customLabels: {}
+  customAnnotations: {}
 ----
 <1> Sets the pull policy for all images.
 
@@ -1590,6 +1620,28 @@ additional replicas.
 
 <3> Our worker nodes need to be allowed to connect to the external storage host.
 
+[[s-kubernetes-affinity-controller]]
+=== LINSTOR Affinity Controller
+
+Volume Accessibility is controlled by the https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity[node affinity]
+of the PersistentVolume (PV). This affinity is static, that is once defined it cannot be changed.
+
+This can be an issue if you would like to use a strict affinity: Your PV is pinned to specific nodes, but you might want
+to remove or add nodes. While LINSTOR can move the volume (for example: this happens automatically if you remove a node
+in kubernetes), the PV affinity is not updated to reflect this.
+
+This is where the LINSTOR Affinity Controller comes in: it watches PVs and compares their affinity with the volumes' states
+in LINSTOR. If they go out of sync, the PV is replaced with an updated version.
+
+The LINSTOR Affinity Controller is packaged in a Helm chart. If you install it in the same namespace as the Operator, simply
+run:
+
+----
+$ helm repo update
+$ helm install linstor-affinity-controller linstor/linstor-affinity-controller
+----
+
+Additional options for the chart are available at the https://github.com/piraeusdatastore/linstor-affinity-controller[upstream project].
 
 [[s-kubernetes-scheduler]]
 === Volume Locality Optimization Using LINSTOR Scheduler
@@ -1629,94 +1681,37 @@ spec:
 [[s-kubernetes-ha-controller]]
 === Fast Workload Failover Using the High Availability Controller
 
-The LINSTOR High Availability Controller (HA Controller) will speed up the failover process for stateful workloads using LINSTOR for storage.
-It is deployed by default, and can be scaled to multiple replicas:
-
-[source]
-----
-$ kubectl get pods -l app.kubernetes.io/name=linstor-op-ha-controller
-NAME                                       READY   STATUS    RESTARTS   AGE
-linstor-op-ha-controller-f496c5f77-fr76m   1/1     Running   0          89s
-linstor-op-ha-controller-f496c5f77-jnqtc   1/1     Running   0          89s
-linstor-op-ha-controller-f496c5f77-zcrqg   1/1     Running   0          89s
-----
-
 When node failures occur, Kubernetes is very conservative in rescheduling stateful workloads. This means it can
 take more than 15 minutes for Pods to be moved from unreachable nodes. With the information available to DRBD and
 LINSTOR, this process can be sped up significantly.
 
-The HA Controller enables fast failover for:
+The LINSTOR High Availability Controller (HA Controller) speeds up the failover process for stateful workloads using
+LINSTOR for storage. It monitors and manages any Pod that is attached to at least one DRBD resource.
 
-* Pods using DRBD backed PersistentVolumes. The DRBD resources must make use of the quorum
-functionality LINSTOR will configure this automatically for volumes with 2 or more replicas
-in clusters with at least 3 nodes.
+For the HA Controller to work properly, you need quorum, that is at least three replicas (or two replicas + one diskless
+tiebreaker). If using lower replica counts, attached Pods will be ignored and are not eligible for faster failover.
 
-* The workload does not use any external resources in a way that could lead to a conflicting
-state if two instances try to use the external resource at the same time. While DRBD can
-ensure that only one instance can have write access to the storage, it cannot provide the
-same guarantee for external resources.
+The HA Controller is packaged as a Helm chart, and can be deployed using:
 
-* The Pod is marked with the `linstor.csi.linbit.com/on-storage-lost: remove` label.
+----
+$ helm repo update
+$ helm install linstor-ha-controller linstor/linstor-ha-controller
+----
 
-==== Example Failover
-
-The following StatefulSet uses the HA Controller to manage failover of a pod.
+If you are using the HA Controller in your cluster you can set additional parameters in all StorageClasses. These
+parameters ensure that the volume is not accidentally remounted as read-only, leading to degraded Pods.
 
 [source,yaml]
 ----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: my-stateful-app
-spec:
-  serviceName: my-stateful-app
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: my-stateful-app
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: my-stateful-app
-        linstor.csi.linbit.com/on-storage-lost: remove <1>
-    ...
+parameters:
+  property.linstor.csi.linbit.com/DrbdOptions/auto-quorum: suspend-io
+  property.linstor.csi.linbit.com/DrbdOptions/Resource/on-no-data-accessible: suspend-io
+  property.linstor.csi.linbit.com/DrbdOptions/Resource/on-suspended-primary-outdated: force-secondary
+  property.linstor.csi.linbit.com/DrbdOptions/Net/rr-conflict: retry-connect
 ----
 
-<1> The label is applied to Pod template, **not** the StatefulSet. The label was applied
-correctly, if your Pod appears in the output of `kubectl get pods -l
-linstor.csi.linbit.com/on-storage-lost=remove`.
-
-Deploy the set and wait for the pod to start
-
-[source]
-----
-$ kubectl get pod -o wide
-NAME                                        READY   STATUS              RESTARTS   AGE     IP                NODE                    NOMINATED NODE   READINESS GATES
-my-stateful-app-0                           1/1     Running             0          5m      172.31.0.1        node01.ha.cluster       <none>           <none>
-----
-
-Then one of the nodes becomes unreachable. Shortly after, Kubernetes will mark the node as `NotReady`
-
-[source]
-----
-$ kubectl get nodes
-NAME                    STATUS     ROLES     AGE    VERSION
-master01.ha.cluster     Ready      master    12d    v1.19.4
-master02.ha.cluster     Ready      master    12d    v1.19.4
-master03.ha.cluster     Ready      master    12d    v1.19.4
-node01.ha.cluster       NotReady   compute   12d    v1.19.4
-node02.ha.cluster       Ready      compute   12d    v1.19.4
-node03.ha.cluster       Ready      compute   12d    v1.19.4
-----
-
-After about 45 seconds, the Pod will be removed by the HA Controller and re-created by the StatefulSet
+To exempt a Pod from management by the HA Controller, add the following annotation to the Pod:
 
 ----
-$ kubectl get pod -o wide
-NAME                                        READY   STATUS              RESTARTS   AGE     IP                NODE                    NOMINATED NODE   READINESS GATES
-my-stateful-app-0                           0/1     ContainerCreating   0          3s      172.31.0.1        node02.ha.cluster       <none>           <none>
-$ kubectl get events --sort-by=.metadata.creationTimestamp -w
-...
-0s          Warning   ForceDeleted              pod/my-stateful-app-0                                                                   pod deleted because a used volume is marked as failing
-0s          Warning   ForceDetached             volumeattachment/csi-d2b994ff19d526ace7059a2d8dea45146552ed078d00ed843ac8a8433c1b5f6f   volume detached because it is marked as failing
-...
+$ kubectl annotate pod <podname> drbd.linbit.com/ignore-fail-over=""
 ----
