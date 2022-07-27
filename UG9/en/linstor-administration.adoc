@@ -753,14 +753,28 @@ to named nodes explicitly.
 [[s-autoplace-linstor]]
 ==== Automatically Placing Resources
 
-Using the `--auto-place` option, it is possible to have LINSTOR select nodes or storage pools
-to assign a resource definition to.
-The value after the `--auto-place` option tells LINSTOR how many replicas you want to have.
-The storage-pool option should be obvious.
+It is possible to have LINSTOR select nodes and storage pools to deploy a resource to, by using
+the `linstor resource create --auto-place` or `linstor resource-definition auto-place`
+commmands. This section will use the `resource create --auto-place` command in examples.
+However, you can use either command to produce the same results.
 
-----------------------------
+NOTE: LINSTOR's `resource-group create` command does not have an `--auto-place` option, because
+the command does not deploy resources; it only creates a template from which you can later
+deploy (spawn) resources. However, you can use the arguments described in this section that
+accompany the `--auto-place` option with the `resource-group create` command. When used this
+way, when you spawn a resource from a resource group, LINSTOR will deploy the resource as if you
+had used the `resource create --auto-place` command.
+
+WARNING: If the nodes (or storage pools) in your cluster cannot fulfill the constraints of
+your `--auto-place` command arguments, then LINSTOR will reject your command with an error
+message.
+
+In the following example, the value after the `--auto-place` option tells LINSTOR how many
+replicas you want to have. The storage-pool option should be obvious.
+
+----
 # linstor resource create backups --auto-place 3 --storage-pool pool_hdd
-----------------------------
+----
 
 Maybe not so obvious is that you may omit the `--storage-pool` option, then
 LINSTOR may select a storage pool on its own. The selection follows these rules:
@@ -792,54 +806,155 @@ The scores of the strategies will be normalized, weighted and summed up, where
 the scores of minimizing strategies will be converted first to allow an overall
 maximization of the resulting score.
 
-The weights of the strategies can be configured with
+The weights of the strategies can be configured with the following command:
 
 ----
 linstor controller set-property Autoplacer/Weights/$name_of_the_strategy $weight
 ----
-Whereas the strategy-names are listed above and the weight can be an arbitrary
-decimal.
 
-NOTE: To keep the behaviour of the autoplacer similar to the old one (due to
-compatibility), all strategies have a default-weight of 0, except the `MaxFreeSpace`
-which has a weight of 1.
+The strategy names are listed above and the weight can be an arbitrary decimal.
+
+NOTE: To keep the behavior of the Autoplacer compatible with previous LINSTOR versions, all
+strategies have a default-weight of 0, except the `MaxFreeSpace` which has a weight of 1.
 
 NOTE: Neither 0 nor a negative score will prevent a storage pool from getting
-selected, just making them to be considered later.
+selected. A storage pool with these scores will just be considered later.
 
-Finally, LINSTOR tries to find the best matching group of storage pools meeting
-all requirements. This step also considers other auto-placement restrictions
-such as `--replicas-on-same`, `--replicas-on-different` and others.
+Finally, LINSTOR tries to find the best matching group of storage pools meeting all
+requirements. This step also considers other auto-placement restrictions such as
+`--replicas-on-same`, `--replicas-on-different`, `--do-not-place-with`,
+`--do-not-place-with-regex`, `--layer-list`, and `--providers`.
 
-These two arguments, `--replicas-on-same` and `--replicas-on-different` expect the
-name of a property within the `Aux/` namespace. The following example shows that the
-client automatically prefixes the `testProperty` with the `Aux/` namespace.
+===== Avoiding Colocating Resources When Automatically Placing a Resource
+
+The `--do-not-place-with <resource_name_to_avoid>` argument specifies that LINSTOR should try to
+avoid deploying the resource on nodes that already have the specified, `resource_name_to_avoid`
+resource deployed.
+
+By using the `--do-not-place-with-regex <regular_expression>` argument, you can specify that
+LINSTOR should try to avoid placing the resource on nodes that already have a resource deployed
+whose name matches the regular expression that you provide with the argument. In this way, you
+can specify multiple resources to try to avoid placing your resource with.
+
+===== Constraining Automatic Resource Placement by Using Auxiliary Node Properties
+
+You can constrain automatic resource placement to place (or avoid placing) a resource with nodes
+having a specified auxiliary node property.
+
+NOTE: This ability can be particularly useful if you are trying to constrain resource placement
+within Kubernetes environments that use LINSTOR managed storage. For example, you might set an
+auxiliary node property that corresponds to a Kubernetes label. See the
+<<linstor-kubernetes.adoc#s-kubernetes-replicasonsame,"replicasOnSame" section>> within the
+"LINSTOR Volumes in Kubernetes" _LINSTOR User's Guide_ chapter for more details about this use
+case.
+
+The arguments, `--replicas-on-same` and `--replicas-on-different` expect the
+name of a property within the `Aux/` namespace.
+
+The following example shows setting an auxiliary node property, `testProperty`, on three LINSTOR
+satellite nodes. Next, you create a resource group, `testRscGrp`, with a place count of two and
+a constraint to place spawned resources on nodes that have a `testProperty` value of `1`. After
+creating a volume group, you can spawn a resource from the resource group. For simplicity,
+output from the following commands is not shown.
 
 ----
-linstor resource-group create testRscGrp --replicas-on-same testProperty
-SUCCESS:
-Description:
-    New resource group 'testRscGrp' created.
-Details:
-    Resource group 'testRscGrp' UUID is: 35e043cb-65ab-49ac-9920-ccbf48f7e27d
-
-linstor resource-group list
-+-----------------------------------------------------------------------------+
-| ResourceGroup | SelectFilter                         | VlmNrs | Description |
-|-============================================================================|
-| DfltRscGrp    | PlaceCount: 2                        |        |             |
-|-----------------------------------------------------------------------------|
-| testRscGrp    | PlaceCount: 2                        |        |             |
-|               | ReplicasOnSame: ['Aux/testProperty'] |        |             |
-+-----------------------------------------------------------------------------+
+# for i in {0,2}; do linstor node set-property --aux node-$i testProperty 1; done
+# linstor node set-property --aux node-1 testProperty 0
+# linstor resource-group create testRscGrp --place-count 2 --replicas-on-same testProperty=1
+# linstor volume-group create testRscGrp
+# linstor resource-group spawn-resources testRscGrp testResource 100M
 ----
 
-NOTE: If everything was successful, the DRBD resource has now been created by LINSTOR.
-This can be checked by looking for the DRBD block device with the `lsblk`
-command which should look like `drbd0000` or similar.
+You can verify the placement of the spawned resource by using the following command:
 
-Now we should be able to mount the block device of our resource and start using
-LINSTOR.
+----
+# linstor resource list
++-------------------------------------------------------------------------------------+
+| ResourceName      | Node   | Port | Usage  | Conns |    State | CreatedOn           |
+|=====================================================================================|
+| testResource      | node-0 | 7000 | Unused | Ok    | UpToDate | 2022-07-27 16:14:16 |
+| testResource      | node-2 | 7000 | Unused | Ok    | UpToDate | 2022-07-27 16:14:16 |
++-------------------------------------------------------------------------------------+
+----
+
+Because of the `--replicas-on-same` constraint, LINSTOR did not place the spawned resource on
+satellite node `node-1`, because the value of its auxiliary node property, `testProperty` was
+`0` and not `1`.
+
+You can verify the node properties of `node-1`, by using the `list-properties` command:
+
+----
+# linstor node list-properties node-1
++----------------------------+
+| Key              | Value   |
+|============================|
+| Aux/testProperty | 0       |
+| CurStltConnName  | default |
+| NodeUname        | node-1  |
++----------------------------+
+----
+
+===== Using Auto-place to Extend Existing Resource Deployments
+
+Besides specifying a positive integer for the `--auto-place` value for the number of replicas of
+your resource to place, you can also specify a value of `+1`, should you want to extend existing
+resource deployments. By using this value, LINSTOR will create an additional replica, no matter
+what the `--place-count` is configured for on the corresponding resource group that the resource
+was created from.
+
+For example, you can use the `+1` auto-place value to deploy an additional replica of the
+`testResource` resource used in the previous example. You will first need to set the auxiliary
+node property, `testProperty` to `1` on `node-1`. Otherwise, LINSTOR will not be able to deploy
+the replica because of the previously configured `--replicas-on-same` constraint. For
+simplicity, not all output from the commands below is shown.
+
+----
+# linstor node set-property --aux node-1 testProperty 1
+# linstor resource create --auto-place +1 testResource
+# linstor resource list
++-------------------------------------------------------------------------------------+
+| ResourceName      | Node   | Port | Usage  | Conns |    State | CreatedOn           |
+|=====================================================================================|
+| testResource      | node-0 | 7000 | Unused | Ok    | UpToDate | 2022-07-27 16:14:16 |
+| testResource      | node-1 | 7000 | Unused | Ok    | UpToDate | 2022-07-28 19:27:30 |
+| testResource      | node-2 | 7000 | Unused | Ok    | UpToDate | 2022-07-27 16:14:16 |
++-------------------------------------------------------------------------------------+
+----
+
+WARNING: The `+1` value is not valid for the `resource-group create --place-count` command. This
+is because the command does not deploy resources, it only creates templates from which to deploy
+them later.
+
+===== Constraining Automatic Resource Placement by LINSTOR Layers or Storage Pool Providers
+
+You can specify the `--layer-list` or `--providers` arguments, followed by a comma-separated
+values (CSV) list of LINSTOR layers or storage pool providers, to influence where LINSTOR places
+your resource. The possible layers and storage pool providers that you can specify in your CSV
+list can be shown by using the `--help` option with the `--auto-place` option. A CSV list of
+layers would constrain automatic resource placement for your specified resource to nodes that
+have storage that conformed with your list. For example, given an existing resource definition
+named `my_luks_resource`, consider the following command:
+
+----
+# linstor resource create my_luks_resource --auto-place 3 --layer-list drbd,luks
+----
+
+This command would create a resource deployed across three nodes having storage pools backed by
+a DRBD layer backed by a LUKS layer (and implicitly backed by a "storage" layer). The order of
+layers that you specify in your CSV list is "top-down", where a layer on the left in the list is
+above a layer on its right.
+
+The `--providers` argument can be used to constrain automatic resource placement to only storage
+pools that match those in a specified CSV list. You can use this argument to have explicit
+control over which storage pools will back your deployed resource. If for example, you had a
+mixed environment of `ZFS`, `LVM`, and `LVM_THIN` storage pools in your cluster, by using the
+`--providers LVM,LVM_THIN` argument, you can specify that a resource only gets backed by either
+an `LVM` or `LVM_THIN` storage pool, when using the `--auto-place` option.
+
+NOTE: The `--providers` argument's CSV list does not specify an order of priority for the list
+elements. Instead, LINSTOR will use factors like additional `--auto-place` constraints,
+available free space, and LINSTOR's storage pool selection strategies that were previously
+described, when placing a resource.
 
 [[s-more-about-linstor]]
 == Further LINSTOR Tasks
