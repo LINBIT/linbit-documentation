@@ -1,0 +1,53 @@
+[[ch-cloudstack]]
+== LINSTOR Volumes in Apache CloudStack
+This chapter describes using LINSTOR and DRBD to provision volumes in Apache CloudStack.
+There is a step-by-step video tutorial shows you how to configure visually - https://www.youtube.com/watch?v=hI_kTlsbNeU
+
+=== Installing LINSTOR for Apache CloudStack
+Apache CloudStack community merged LINSTOR plug-in into its own code base, released since CloudStack v4.16.1, which means you don't have to install anything else to support LINSTOR at all.
+`Warning: one of pull requests didn't merge properly in CloudStack v4.17.0 - details here https://github.com/apache/cloudstack/pull/6481, which caused a CloudStack UI bug in the CloudStack initiation wizzard.`
+On the other hand, LINSTOR doesn't support CloudStack v4.16.0 and earlier versions at this moment.
+
+=== Configuring Apache CloudStack
+Please make sure that you have up and running CloudStack cluster and LINSTOR cluster in hand, then add the below configurations to every CloudStack hypervisor node.
+[source,bash]
+----
+cat >> /etc/libvirt/libvirtd.conf <<EOL
+listen_tls = 0
+listen_tcp = 1
+tcp_port = "16509"
+auth_tcp = "none"
+mdns_adv = 0
+EOL
+----
+
+
+Restart the `libvirtd` service on all hypervisor nodes.
+[source,bash]
+----
+systemctl restart libvirtd
+----
+
+
+More configurations for AppArmor (normally enabled on Ubuntu)
+[source,bash]
+----
+ln -s /etc/apparmor.d/usr.sbin.libvirtd /etc/apparmor.d/disable/
+ln -s /etc/apparmor.d/usr.lib.libvirt.virt-aa-helper /etc/apparmor.d/disable/
+apparmor_parser -R /etc/apparmor.d/usr.sbin.libvirtd
+apparmor_parser -R /etc/apparmor.d/usr.lib.libvirt.virt-aa-helper
+----
+
+
+
+Restart the `cloudstack-management` service
+[source,bash]
+----
+systemctl restart cloudstack-management
+----
+
+
+
+=== Initializing Apache CloudStack with LINSTOR
+Open your web browser and navigate to `http://CloudStack_Management_IP:8080/`` to initiate the CloudStack cluster with LINSTOR.
+In Step 4 - Add Resources, there is a sub-section called `Primary Storage`, set `Protocol` to `Linstor`, set `Server` to `LINSTOR_Controller_IP`, and fill you pre-defined resource group name in LINSTOR cluster to `Resource Group`.
