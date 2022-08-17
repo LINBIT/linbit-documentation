@@ -1890,7 +1890,7 @@ is needed. The command goes as follows:
 ----------------------------
 
 Additionally, to ship LUKS-based (encrypted) backups, it is necessary to add the `--passphrase`
-and `--cluster-id` arguments to the command. This is used to save the passphrase and cluster-id of
+and `--cluster-id` arguments to the command. This is used to save the passphrase and cluster ID of
 the target cluster to the remote respectively. For more details on shipping LUKS-based backups
 between two LINSTOR clusters, see <<s-shipping_snapshots-l2l,this chapter>>.
 
@@ -1998,10 +1998,20 @@ command, `--storpool-rename` should be used.
 
 Shipping a snapshot directly between two LINSTOR clusters can be done with a linstor-remote as well
 as a resource definition with at least one diskful resource on the source side (where the command
-is issued). On the target side, you only need a linstor-remote with the cluster-id of the source-cluster set.
+is issued). On the target side, you only need to create a linstor-remote with the cluster ID of the source cluster:
+
+----
+# linstor remote create linstor --cluster-id <SOURCE_CLUSTER_ID>
+----
+
+NOTE: To get the cluster ID of your source cluster, you can enter the command `linstor controller list-properties|grep -i cluster` from the source cluster.
+
 If you want to ship a snapshot inside the same cluster just use a remote pointing to the local controller.
 
-The command looks like this:
+IMPORTANT: If you do not specify a linstor-remote (cluster ID of source cluster) on your target
+cluster, you will receive an "Unknown Cluster" error when you try to ship a backup.
+
+The command to ship a backup is:
 
 --------------------------
 # linstor backup ship myRemote localRsc targetRsc
