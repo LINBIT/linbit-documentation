@@ -956,6 +956,102 @@ elements. Instead, LINSTOR will use factors like additional `--auto-place` const
 available free space, and LINSTOR's storage pool selection strategies that were previously
 described, when placing a resource.
 
+[[s-linstor-deleting-resource-tasks]]
+=== Deleting Resources, Resource Definitions, and Resource Groups
+
+You can delete LINSTOR resources, resource definitions, and resource groups by using the
+`delete` command after the LINSTOR object that you want to delete. Depending on which object you
+delete, there will be different implications for your LINSTOR cluster and other associated
+LINSTOR objects.
+
+[[s-linstor-deleting-resource-definitions]]
+==== Deleting a Resource Definition
+
+You can delete a resource definition by using the command:
+
+----
+# linstor resource-definition delete <resource_definition_name>
+----
+
+This will remove the named resource definition from the entire LINSTOR cluster. The resource is
+removed from all nodes and the resource entry is marked for removal from LINSTOR's database
+tables. After LINSTOR has removed the resource from all the nodes, the resource entry is
+removed from LINSTOR's database tables.
+
+WARNING: If your resource definition has existing snapshots, you will not be able to delete the
+resource definition until you delete its snapshots. See the
+<<#s-removing_a_snapshot-linstor,_Removing a Snapshot_>> section in this guide.
+
+[[s-linstor-deleting-resources]]
+==== Deleting a Resource
+
+You can delete a resource using the command:
+
+----
+# linstor resource delete <node_name> <resource_name>
+----
+
+Unlike deleting a resource definition, this command will only delete a LINSTOR resource from the
+node (or nodes) that you specify. The resource is removed from the node and the resource entry
+is marked for removal from LINSTOR's database tables. After LINSTOR has removed the resource
+from the node, the resource entry is removed from LINSTOR's database tables.
+
+Deleting a LINSTOR resource may have implications for a cluster, beyond just removing the
+resource. For example, if the resource is backed by a DRBD layer, removing a resource from one
+node in a three node cluster could also remove certain quorum related DRBD options, if any
+existed for the resource. After removing such a resource from a node in a three node cluster,
+the resource would no longer have quorum as it would now only be deployed on two nodes in the
+three node cluster.
+
+After running a `linstor resource delete` command to remove a resource from a single node, you
+might see informational messages such as:
+
+----
+INFO:
+    Resource-definition property 'DrbdOptions/Resource/quorum' was removed as there are not enough resources for quorum
+INFO:
+    Resource-definition property 'DrbdOptions/Resource/on-no-quorum' was removed as there are not enough resources for quorum
+----
+
+Also unlike deleting a resource definition, you can delete a resource while there are existing
+snapshots of the resource's storage pool. Any existing snapshots for the resource's storage pool
+will persist.
+
+[[s-linstor-deleting-resource-groups]]
+==== Deleting a Resource Group
+
+You can delete a resource group by using the command:
+
+----
+# linstor resource-group delete <resource_group_name>
+----
+
+As you might expect, this command deletes the named resource group. You can only delete a
+resource group if it has no associated resource definitions, otherwise LINSTOR will present an
+error message, such as:
+
+----
+ERROR:
+Description:
+    Cannot delete resource group 'my_rg' because it has existing resource definitions.
+----
+
+To resolve this error so that you can delete the resource group, you can either delete the
+associated resource definitions, or your can move the resource definitions to another (existing)
+resource group:
+
+----
+# linstor resource-definition modify <resource_definition_name> \
+--resource-group <another_resource_group_name>
+----
+
+You can find which resource definitions are associated with your resource group by entering
+the following command:
+
+----
+# linstor resource-definition list
+----
+
 [[s-more-about-linstor]]
 == Further LINSTOR Tasks
 
