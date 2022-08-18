@@ -9,25 +9,42 @@ To use GFS on top of DRBD, you must configure DRBD in
 indexterm:[dual-primary mode]<<s-dual-primary-mode,dual-primary
 mode>>.
 
+IMPORTANT: DRBD 9 supports exactly two nodes with its
+indexterm:[dual-primary mode]<<s-dual-primary-mode,dual-primary mode>>.
+Attempting to use more than three nodes in the Primary state is _not_
+supported and may lead to data loss.
+
 [IMPORTANT]
-===============================
+====
 All cluster file systems _require_ fencing - not only through the DRBD
 resource, but STONITH! A faulty member _must_ be killed.
 
-You'll want these settings:
+You will want these settings:
 
+----
 	net {
 		fencing resource-and-stonith;
 	}
 	handlers {
 		# Make sure the other node is confirmed
 		# dead after this!
-		outdate-peer "/sbin/kill-other-node.sh";
+        fence-peer "/usr/lib/drbd/crm-fence-peer.9.sh";
+        after-resync-target "/usr/lib/drbd/crm-unfence-peer.9.sh";
 	}
+----
+====
 
-There must be _no_ volatile caches!
-Please see https://fedorahosted.org/cluster/wiki/DRBD_Cookbook for some more information.
-===============================
+If a node becomes a disconnected primary, the `resource-and-stonith` 
+network fencing setting will:
+
+- Freeze all the node's I/O operations.
+
+- Call the node's fence-peer handler.
+
+If the fence-peer handler cannot reach the peer node, for example over
+an alternate network, then the fence-peer handler should STONITH the
+disconnected primary node. I/O operations will resume as soon as the
+situation is resolved.
 
 [[s-gfs-primer]]
 === Introduction to GFS
@@ -78,24 +95,28 @@ do all this, include the following lines in the resource
 configuration: indexterm:[drbd.conf]
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   net {
     allow-two-primaries yes;
     after-sb-0pri discard-zero-changes;
     after-sb-1pri discard-secondary;
     after-sb-2pri disconnect;
-    ...
+    [...]
   }
-  ...
+  [...]
 }
-----------------------------
+----
 
 [WARNING]
-===============================
-By configuring auto-recovery policies, you are configuring effectively configuring automatic data-loss! Be sure you understand the implications.
-===============================
-
+====
+By configuring auto-recovery policies, with the exception of the `disconnect` option, you are
+effectively configuring automatic data loss on one of your nodes after a split-brain scenario.
+In a properly configured Pacemaker cluster with STONITH enabled, the 
+settings above are considered safe. Be sure you understand the implications
+of the options you set should you choose different options. 
+See the `drbdsetup-9.0` man page for more details.
+====
 
 Once you have added these options to <<ch-configure,your
 freshly-configured resource>>, you may <<s-first-time-up,initialize
@@ -115,9 +136,9 @@ your LVM configuration
   `/etc/lvm/lvm.conf`:
 +
 [source,drbd]
-----------------------------
+----
 locking_type = 3
-----------------------------
+----
 
 * scans your DRBD devices to recognize DRBD-based Physical Volumes
   (PVs). This applies as to conventional (non-clustered) LVM; see
@@ -150,14 +171,14 @@ cluster-aware nature of CLVM: indexterm:[LVM]indexterm:[pvcreate (LVM
 command)]indexterm:[LVM]indexterm:[vgcreate (LVM
 command)]indexterm:[LVM]indexterm:[lvcreate (LVM command)]
 
-----------------------------
+----
 # pvcreate /dev/drbd/by-res/<resource>/0
 Physical volume "/dev/drbd<num>" successfully created
 # vgcreate <vg-name> /dev/drbd/by-res/<resource>/0
 Volume group "<vg-name>" successfully created
 # lvcreate --size <size> --name <lv-name> <vg-name>
 Logical volume "<lv-name>" created
-----------------------------
+----
 
 NOTE: This example assumes a single-volume resource.
 
@@ -168,16 +189,17 @@ command)]indexterm:[LVM]indexterm:[lvs (LVM command)] issuing `lvs`
 volume.
 
 indexterm:[GFS]Now, you may proceed by creating the actual filesystem:
-----------------------------
+
+----
 # mkfs -t gfs -p lock_dlm -j 2 /dev/<vg-name>/<lv-name>
-----------------------------
+----
 
 Or, for a GFS2 filesystem:
 
-----------------------------
+----
 # mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name>
 	/dev/<vg-name>/<lv-name>
-----------------------------
+----
 
 The `-j` option in this command refers to the number of journals to
 keep for GFS. This must be identical to the number of nodes with concurrent _Primary_ role in the GFS
@@ -198,27 +220,27 @@ After you have created your filesystem, you may add it to
 `/etc/fstab`:
 
 [source,fstab]
-----------------------------
+----
 /dev/<vg-name>/<lv-name> <mountpoint> gfs defaults 0 0
-----------------------------
+----
 
 For a GFS2 filesystem, simply change the filesystem type:
 
 [source,fstab]
-----------------------------
+----
 /dev/<vg-name>/<lv-name> <mountpoint> gfs2 defaults 0 0
-----------------------------
+----
 
 Do not forget to make this change on both cluster nodes.
 
 After this, you may mount your new filesystem by starting the
 `gfs` service (on both nodes): indexterm:[GFS]
 
-----------------------------
+----
 # service gfs start
-----------------------------
+----
 
-From then onwards, if you have DRBD configured to start
+From then on, if you have DRBD configured to start
 automatically on system startup, before the RHCS services and the
 `gfs` service, you will be able to use this GFS file system as you
 would use one that is configured on traditional shared storage.
