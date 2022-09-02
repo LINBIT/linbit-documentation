@@ -210,13 +210,40 @@ for illustrative purposes.
 
 <7> If set, resources are started on the preferred nodes, in the specified order, if possible.
 
+[[s-drbd-reactor-promoter-plug-in-configuring-multiple-start-list-items]]
+==== Configuring Multiple Start List Items and Items Spanning Multiple Lines
+
+A promoter plug-in snippet file can have a start list that contains multiple start items. You
+can also specify start list items that span multiple lines, perhaps for clarity reasons. An
+example start list that shows both of these cases is:
+
+----
+start = [
+"foo.service",
+"""
+ocf:vendor:resource_agent1 instance_ID
+key1=value
+key2=value
+key3=value
+""",
+"""
+ocf:vendor:resource_agent2 instance_ID
+key1=value
+key2=value
+key3=value
+""",
+"bar.service"
+]
+----
+
 ===== Using OCF Resource Agents with the Promoter Plug-in
 
 You can also configure the promoter plug-in to use OCF resource agents in the `start` list of
 services.
 
 ifndef::de-brand[]
-Please make sure to install the `resource-agents` package provided in LINBIT's customer repositories.
+You can install the `resource-agents` package provided in LINBIT's customer repositories to
+install a suite of resource agents.
 endif::de-brand[]
 
 The syntax for specifying an OCF resource agent as a service within a `start` list is
@@ -226,15 +253,21 @@ unit file. For example:
 
 ----
 start = [
-	"ocf:linbit:drbd drbd_backed_mysql \
-		drbd_resource="mysql" \
-	"ocf:heartbeat:IPaddr2 ip_mysql \
-		ip=10.43.7.223 \
-		cidr_netmask=16",
-	"ocf:heartbeat:Filesystem mysql_data_mount \
-		device=/dev/drbd/by-res/mysql/0 \
-		directory=/var/lib/mysql \
-		fstype=ext4",
+"""
+ocf:linbit:drbd drbd_backed_mysql
+drbd_resource=mysql
+""",
+"""
+ocf:heartbeat:IPaddr2 ip_mysql
+ip=10.43.7.223
+cidr_netmask=16
+""",
+"""
+ocf:heartbeat:Filesystem mysql_data_mount
+device=/dev/drbd/by-res/mysql/0
+directory=/var/lib/mysql
+fstype=ext4
+"""
 ]
 ----
 
@@ -270,7 +303,7 @@ based upon both the old and the new (current) DRBD state, that are reported to t
 because your want the plug-in to react to changes. This is only possible if two states, old
 and new, are filtered for, otherwise the plug-in might trigger randomly. For example, if you
 only specified a new (current) DRBD role as a DRBD state to filter for, the plug-in might
-trigger even when the new role is the same as as the old DRBD role.
+trigger even when the new role is the same as the old DRBD role.
 
 Here is an example UMH plug-in configuration snippet for a `resource` rule:
 
@@ -402,11 +435,18 @@ Prerequisites:
 
 - A DRBD configured resource named _ha-mount_ that is backed by a DRBD device, `/dev/drbd1000`,
   on all nodes
++
+IMPORTANT: Change the DRBD device's minor number (`1000`) in the configuration files and
+commands that follow if yours is different.
 
 - The Cluster Labs "Filesystem" OCF resource agent, available through
   https://github.com/ClusterLabs/resource-agents/blob/main/heartbeat/Filesystem[Cluster Lab's
   `resource-agents` GitHub] repository, should be present in the `/usr/lib/ocf/resource.d/`
-  directory
+  directory, on all nodes
+ifndef::de-brand[]
++
+If you already installed the `resource-agents` package provided in LINBIT's customer repositories, then the Filesystem OCF resource should already be on your system.
+endif::de-brand[]
 
 The DRBD resource, _ha-mount_, should have the following settings configured in its DRBD
 resource configuration file:
@@ -417,9 +457,9 @@ resource ha-mount {
     auto-promote no;
     quorum majority;
     on-no-quorum suspend-io;
-    ...
+    [...]
   }
-...
+[...]
 }
 ----
 
@@ -470,15 +510,26 @@ promoter plug-in:
 [[promoter]]
 id = "ha-mount"
 [promoter.resources.ha-mount]
-start = '''
-["ocf:heartbeat:Filesystem fs_test device=/dev/drbd1000 directory=/mnt/test fstype=ext4 run_fsck=no"]
-'''
+start = [
+"""
+ocf:heartbeat:Filesystem fs_test
+device=/dev/drbd1000
+directory=/mnt/test
+fstype=ext4
+run_fsck=no
+"""
+]
 on-drbd-demote-failure = "reboot"
 EOF
 ----
 
+In the example configuration above, `fs_test` is the optional instance ID name that you give the
+`Filesystem` resource agent. If you omit the name, The `drbd-reactorctl status` command will
+show an instance ID name based on the `device` parameter specified in the TOML configuration
+file.
+
 This promoter plug-in configuration uses a start list of services that specifies an OCF resource
-agent, for the file system found at our HA mount point. By using this particular resource agent,
+agent, for the file system found at your HA mount point. By using this particular resource agent,
 you can circumvent situations where systemd might not know about certain users and processes
 that might hold the mount point open and prevent it from unmounting. Otherwise, if only the
 systemd unit file for the mount point was specified in the promoter plug-in's start list of
