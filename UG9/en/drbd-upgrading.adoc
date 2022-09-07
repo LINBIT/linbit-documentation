@@ -1,8 +1,8 @@
 === Upgrading DRBD
 
 Upgrading DRBD is a fairly simple process. This section will cover
-the process of upgrading from 8.4.x to 9.0.x in great detail; for within-9
-upgrades it gets to be much easier, see the short version <<s-upgrade-within-9,below>>.
+the process of upgrading from 8.4.x to 9.x in great detail. Upgrades within version 9
+are much easier, see the short version <<s-upgrade-within-9,below>>.
 
 ==== Compatibility
 DRBD is _wire protocol_ compatible over minor versions. Its _wire protocol_ is
@@ -16,164 +16,177 @@ In particular, all DRBD 9.a.b releases other than DRBD 9.1.0 to 9.1.7 inclusive
 are compatible with DRBD 8.c.d.
 
 [[s-upgrade-overview]]
-==== General overview
+==== General Overview
 
-The general process for upgrading 8.4 to 9.0 is as follows:
+The general process for upgrading 8.4 to 9.x is as follows:
 
   * Configure the <<s-updating-your-repo,new repositories>> (if using packages from LINBIT).
-  * Make sure that the current situation <<s-upgrade-check,is okay>>.
+  * Verify that the current situation <<s-upgrade-check,is okay>>.
   * <<s-upgrade-pausing-the-cluster,Pause>> any cluster manager.
   * Get <<s-Upgrading-the-packages,new versions>> installed.
-  * If you want to move to more than two nodes, then you'll need to resize the lower-level storage to provide room for the additional metadata. This topic is discussed in the <<ch-lvm,LVM Chapter>>.
-  * Deconfigure resources, unload DRBD 8.4, and <<s-upgrade-reload-kernel-mod,load the v9 kernel module>>.
+  * If you want to move to more than two nodes, you will need to resize the lower-level storage to provide room for the additional metadata. This topic is discussed in the <<ch-lvm,LVM Chapter>>.
+  * Unconfigure resources, unload DRBD 8.4, and <<s-upgrade-reload-kernel-mod,load the v9 kernel module>>.
   * <<s-upgrade-convert,Convert DRBD metadata>> to format `v09`, perhaps changing the number of bitmaps in the same step.
   * Take the DRBD <<s-upgrade-start-drbd,resources up>>, and be happy.
 
-
+ifndef::de-brand[]
 [[s-updating-your-repo]]
-==== Updating your repository
+==== Updating Your Repository
 
-Due to the number of changes between the 8.4 and 9.0 branches, LINBIT
-has created separate repositories for each. Perform this repository
-update on both servers.
+Due to the number of changes between the 8.4 and 9.x branches, LINBIT has created separate
+repositories for each. The best way to get LINBIT's software installed on your machines, if you
+have a LINBIT customer or evaluation account, is to download a small
+https://my.linbit.com/linbit-manage-node.py[Python helper script] and run it on your target
+machines.
+
+Running the script will allow you to enable certain LINBIT package repositories. When upgrading
+from DRBD 8.4, it is recommended that you enable the `drbd-9` package repository.
+
+NOTE: While the helper script does give you the option of enabling a `drbd-9.0` package
+repository, this is not recommended as a way to upgrade from DRBD 8.4, as that branch will
+likely be discontinued in the future and DRBD versions 9.1+ are protocol compatible with version
+8.4.
 
 [[s-RHEL-systems]]
-===== RHEL/CentOS systems
+===== RHEL/CentOS Systems
 
-ifndef::de-brand[]
-Edit your `/etc/yum.repos.d/linbit.repo` file to reflect the following
-changes.
+Download LINBIT's Python helper script, add execute user permissions, and then run it. The
+script will prompt you to enter your LINBIT customer portal user name and password.
 
-----------------------------
-[drbd-9.0]
-name=DRBD 9.0
-baseurl=http://packages.linbit.com/<hash>/yum/rhel7/drbd-9.0/<arch>
-gpgcheck=0
-----------------------------
+----
+# cd /tmp
+# curl -O 'https://my.linbit.com/linbit-manage-node.py'
+# chmod u+x linbit-manage-node.py
+# ./linbit-manage-node.py
+----
 
-NOTE: You will have to populate the <hash> and <arch> variables. The
-<hash> is provided by LINBIT support services.
-endif::de-brand[]
-ifdef::de-brand[]
-Edit your `*.repo` file to reflect the necessary changes.
-endif::de-brand[]
+IMPORTANT: Script must be run as superuser.
+
+After enabling the `drbd-9` LINBIT repository through the helper script's menu choices, allow
+the script to write the new repository configuration to the appropriate file. Let the script add
+the LINBIT signing key to your keyring. Follow the script's instructions to exclude certain
+packages from other repositories that would otherwise overlap with LINBIT's repositories.
 
 [[s-Debian-Systems]]
-===== Debian/Ubuntu systems
+===== Debian/Ubuntu Systems
 
-ifndef::de-brand[]
-Edit `/etc/apt/sources.list` (or a file in `/etc/apt/sources.d/`) to reflect the
-following changes.
+When using LINBIT package repositories to update DRBD 8.4 to 9.1+, note that LINBIT currently
+only keeps two LTS Ubuntu versions up-to-date: Focal (20.04) and Jammy (22.04). If you are
+running DRBD v8.4, you are likely on an older version of Ubuntu Linux than these. Before using
+the helper script to add LINBIT package repositories to update DRBD, you would first need to
+update your system to a LINBIT supported LTS version.
 
-----------------------------
-deb http://packages.linbit.com/<hash>/ bullseye drbd-9.0
-----------------------------
+Download LINBIT's Python helper script, add execute user permissions, and then run it. The
+script will prompt you to enter your LINBIT customer portal user name and password.
 
-In case you're not using the `bullseye` release, but some other, you'll need to
-change that line.
+----
+# cd /tmp
+# wget 'https://my.linbit.com/linbit-manage-node.py'
+# chmod u+x linbit-manage-node.py
+# ./linbit-manage-node.py
+----
 
-NOTE: You will have to populate the `<hash>` variable. The
-`<hash>` is provided by LINBIT support services.
+IMPORTANT: Script must be run as superuser.
 
-
-Next you will want to add the DRBD signing key to your trusted keys.
-
-----------------------------
-# gpg --keyserver subkeys.pgp.net --recv-keys  0x282B6E23
-# gpg --export -a 282B6E23 | apt-key add -
-----------------------------
+After enabling the `drbd-9` LINBIT repository through the helper script's menu choices, allow
+the script to write the new repository configuration to the appropriate file. Let the script add
+the LINBIT signing key to your keyring.
 endif::de-brand[]
-ifdef::de-brand[]
-Edit `/etc/apt/sources.list` (or a file in `/etc/apt/sources.d/`) to reflect the
-the necessary changes.
-endif::de-brand[]
-
-Lastly perform an `apt update` so Debian recognizes the updated repository.
-
-----------------------------
-# apt update
-----------------------------
 
 [[s-upgrade-check]]
-==== Checking the DRBD state
+==== Checking the DRBD State
 
-Before you begin make sure your resources are in sync. The output of
-`cat /proc/drbd` (which is only available _before_ 9.0) should show _UpToDate/UpToDate_.
+Before you update DRBD, verify that your resources are in sync. The output of `cat /proc/drbd`
+should show an _UpToDate/UpToDate_ status for your resources.
 
-----------------------------
-bob# cat /proc/drbd
+----
+node-2# cat /proc/drbd
 
 version: 8.4.9-1 (api:1/proto:86-101)
-GIT-hash: e081fb0570183db40caa29b26cb8ee907e9a7db3 build by linbit@buildsystem, 2016-11-18 14:49:21
+GIT-hash: [...] build by linbit@buildsystem, 2016-11-18 14:49:21
+GIT-hash: [...] build by linbit@buildsystem, 2016-11-18 14:49:21
 
  0: cs:Connected ro:Secondary/Secondary ds:UpToDate/UpToDate C r-----
-    ns:0 nr:211852 dw:211852 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:d oos:0
-----------------------------
+     ns:0 nr:211852 dw:211852 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:d oos:0
+----
 
+NOTE: The `cat /proc/drbd` command is deprecated in DRBD versions 9.x for getting resource
+status information. After upgrading DRBD, use the `drbdadm status` command to get resource
+status information.
 
 [[s-upgrade-pausing-the-cluster]]
-==== Pausing the services
+==== Pausing the Services
 
 Now that you know the resources are in sync, start by upgrading the
 secondary node.
 This can be done manually or according to your cluster manager's documentation.
 ifndef::drbd-only[]
 Both processes are covered
-below.  If you're running Pacemaker do not use the manual method.
+below. If you are running Pacemaker as your cluster manager do not use the manual method.
 endif::drbd-only[]
 
-* Manual Method
-----------------------------
-bob# systemctl stop drbd@resourcename.target
-----------------------------
+===== Manual Method
+
+----
+node-2# systemctl stop drbd@<resource>.target
+----
+
+IMPORTANT: To use the `systemctl stop` command with a DRBD resource target, you would have
+needed to have enabled the `drbd.service` previously. You can verify this by using the
+`systemctl is-enabled drbd.service` command.
 
 ifndef::drbd-only[]
-* Pacemaker
+===== Pacemaker
 
-Put the secondary node into standby mode. In this example 'bob' is secondary.
+Put the secondary node into standby mode. In this example `node-2` is secondary.
 
-----------------------------
-bob# crm node standby bob
-----------------------------
+----
+node-2# crm node standby node-2
+----
 
 NOTE: You can watch the status of your cluster using `crm_mon -rf` or watch
 `cat /proc/drbd` until it shows _Unconfigured_ for your resources.
 endif::drbd-only[]
 
-
 [[s-Upgrading-the-packages]]
-==== Upgrading the packages
+==== Upgrading the Packages
 
-Now update your packages with either yum or apt.
+Now update your packages.
 
-----------------------------
-bob# yum upgrade
-----------------------------
+RHEL/CentOS:
 
-----------------------------
-bob# apt upgrade
-----------------------------
+----
+node-2# dnf -y upgrade
+----
 
-Once the upgrade is finished, you will have the latest DRBD 9.0 kernel
-module and `drbd-utils` installed on your secondary node, 'bob'.
+Debian/Ubuntu:
+
+----
+node-2# apt-get update && apt-get upgrade
+----
+
+Once the upgrade is finished you will have the latest DRBD 9.x kernel
+module and `drbd-utils` installed on your secondary node, `node-2`.
 
 But the kernel module is not active yet.
 
 [[s-upgrade-reload-kernel-mod]]
-==== Loading the new Kernel module
+==== Loading the New Kernel Module
 
-By now the DRBD module should not be in use anymore, so we unload it via
+By now the DRBD module should not be in use anymore, so unload it by entering the following
+command:
 
--------------
-bob# rmmod drbd_transport_tcp; rmmod drbd
--------------
+----
+node-2# rmmod drbd_transport_tcp; rmmod drbd
+----
 
-If there's a message like `ERROR: Module drbd is in use`, then not all
-resources have been correctly stopped yet. +
-Retry <<s-upgrading-drbd>>, and/or run the command `drbdadm down all` to find
+If there is a message like `ERROR: Module drbd is in use`, then not all
+resources have been correctly stopped.
+
+Retry <<s-upgrading-drbd>>, or run the command `drbdadm down all` to find
 out which resources are still active.
 
-Typical issues that might prevent unloading are these:
+Some typical issues that might prevent you from unloading the kernel module are:
 
   * NFS export on a DRBD-backed filesystem (see `exportfs -v` output)
   * Filesystem still mounted - check `grep drbd /proc/mounts`
@@ -181,134 +194,139 @@ Typical issues that might prevent unloading are these:
   * Device mapper using DRBD, directly or indirectly (`dmsetup ls --tree`)
   * LVM with a DRBD-PV (`pvs`)
 
-Please note that this list isn't complete - these are just the most common
-examples.
+NOTE: This list is not complete. These are just the most common examples.
 
-Now we can load the new DRBD module:
+Now you can load the new DRBD module.
 
--------
-bob# modprobe drbd
--------
+----
+node-2# modprobe drbd
+----
 
-Now you should check the contents of `/proc/drbd` and verify that the correct
-(new) version is loaded; if the installed package is for the wrong kernel
-version, the `modprobe` would be successful, but you'd be left with the old
-version being active again.
+Next, you can verify that the version of the DRBD kernel module that is loaded is the updated
+9.x version. If the installed package is for the wrong kernel version, the `modprobe` would be
+successful, but output from a `drbdadm --version` command would show that the DRBD kernel
+version (`DRBD_KERNEL_VERSION_CODE`) was still at the older 8.4 (`0x08040` in hexadecimal)
+version.
 
-The output of `cat /proc/drbd` should now show 9.0.x and look similar
-to this.
+The output of `drbdadm --version` should show 9.x.y and look similar
+to this:
 
-----------------------------
-version: 9.0.0 (api:2/proto:86-110)
-GIT-hash: 768965a7f158d966bd3bd4ff1014af7b3d9ff10c build by root@bob, 2015-09-03 13:58:02
-Transports (api:10): tcp (1.0.0)
-----------------------------
+----
+DRBDADM_BUILDTAG=GIT-hash:\ [...]\ build\ by\ @buildsystem\,\ 2022-09-19\ 12:15:10
+DRBDADM_API_VERSION=2
+DRBD_KERNEL_VERSION_CODE=0x09010b
+DRBD_KERNEL_VERSION=9.1.11
+DRBDADM_VERSION_CODE=0x091600
+DRBDADM_VERSION=9.22.0
+----
 
-NOTE: On the primary node, alice, 'cat /proc/drbd' will still show the
-prior version, until you upgrade it.
+NOTE: On the primary node, `node-1`, `drbdadm --version` will still show the
+prior kernel version, until you upgrade it.
 
 ////////////////////////
 At this point the cluster is running two different versions of DRBD. While this
 is not recommended to be used for longer time spans, it is inevitable for the (short) upgrade period.
 
  Stop
-any service using DRBD and then DRBD on the primary node, alice, and promote
-'bob'. Again this can be done either manually or via the Pacemaker shell.
+any service using DRBD and then DRBD on the primary node, `node-1`, and promote
+`node-2`. Again this can be done either manually or by using the Pacemaker shell.
 
 * Manually
-----------------------------
-alice # umount /dev/drbd/by-res/r0
-alice # /etc/init.d/drbd stop
-bob # drbdadm primary r0
-bob # mount /dev/drbd/by-res/r0/0 /mnt/drbd
-----------------------------
-Please note that the mount command now references '/0' which defines
-the volume number of a resource. See <<s-recent-changes-volumes>> for
-more information on the new volumes feature.
+----
+node-1 # umount /dev/drbd/by-res/r0
+node-1 # systemctl stop drbd <1>
+node-1 # rmmod drbd_transport_tcp; rmmod drbd
+node-2 # drbdadm primary r0
+node-2 # mount /dev/drbd/by-res/r0/0 /mnt/drbd <2>
+----
+
+<1> To use the `systemctl stop` command with a DRBD resource target, you would have
+needed to have enabled the `drbd.service` previously. You can verify this by using the
+`systemctl is-enabled drbd.service` command.
+
+<2> The mount command now references `/0` which defines the volume number of a resource. See
+<<s-recent-changes-volumes>> for more information on the new volumes feature.
 
 * Pacemaker
-----------------------------
-# crm node standby alice
-----------------------------
+----
+# crm node standby node-1
+----
 
 WARNING: This will interrupt running services by stopping them and
-migrating them to the secondary server, bob.
+migrating them to the secondary server, `node-2`.
 
-At this point you can safely upgrade DRBD by using yum or apt.
+At this point you can safely upgrade DRBD by using `dnf` or `apt` commands.
 
-----------------------------
-alice# yum upgrade
-----------------------------
+----
+node-1# dnf -y upgrade
+----
 
-----------------------------
-alice# apt upgrade
-----------------------------
+----
+node-1# apt update && apt upgrade
+----
 
 Once the upgrade is complete you will now have the latest version
-of DRBD on alice and can start DRBD.
+of DRBD on `node-1` and can start DRBD.
 
 * Manually
-----------------------------
-alice# /etc/init.d/drbd start
-----------------------------
++
+----
+node-1# systemctl start drbd@<resource>.service
+----
 
 * Pacemaker
-----------------------------
-alice# crm node online alice
-----------------------------
++
+----
+node-1# crm node online node-1
+----
 
-NOTE: Services will still be located on bob and will remain there
+NOTE: Services will still be located on `node-2` and will remain there
 until you migrate them back.
 
 Both servers should now show the latest version of DRBD in a connected
 state.
 
-----------------------------
+----
 # cat /proc/drbd
 version: 9.0.0 (api:2/proto:86-110)
-GIT-hash: 768965a7f158d966bd3bd4ff1014af7b3d9ff10c build by root@bob, 2015-09-03 13:58:02
+GIT-hash: 768965a7f158d966bd3bd4ff1014af7b3d9ff10c build by root@node-2, 2015-09-03 13:58:02
 Transports (api:10): tcp (1.0.0)
 
 # drbdsetup status
 r0 role:Secondary
   disk:UpToDate
-  bob role:Secondary
+  node-2 role:Secondary
     peer-disk:UpToDate
-----------------------------
+----
 
 ////////////////////////
 
 [[s-migrating_your_configuration_files]]
-==== Migrating your configuration files
+==== Migrating Your Configuration Files
 
-DRBD 9.0 is backward compatible with the 8.4 configuration files;
+DRBD 9.x is backward compatible with the 8.4 configuration files;
 however, some
 syntax has changed. See <<s-recent-changes-config>> for
 a full list of changes. In the meantime you can port your old
-configs fairly easily by using 'drbdadm dump all' command. This
-will output both a new global config followed by the
-new resource config files. Take this output and make changes
+configs fairly easily by using `drbdadm dump all` command. This
+will output both a new global configuration followed by the
+new resource configuration files. Take this output and make changes
 accordingly.
 
 [[s-upgrade-convert]]
 
-==== Changing the metadata
+==== Changing the Metadata
 
-Now you need to convert the on-disk metadata to the new version; this is really
-easy, it's just running one command and
-acknowledging two questions.
-
+Now you need to convert the on-disk metadata to the new version. You can do this by using the
+`drbdadm create-md` command and answering two questions.
 
 If you want to change the number of nodes, you should already have increased
 the size of the lower level device, so that there is enough space to store the
-additional bitmaps; in that case, you'd run the command below with an
+additional bitmaps; in that case, you would run the command below with an
 additional argument `--max-peers=__<N>__`. When determining the number of
 (possible) peers please take setups like the <<s-drbd-client>> into account.
 
-Upgrading the DRBD metadata is as easy as running one command, and
-acknowledging the two questions:
-
------------------
+----
 # drbdadm create-md <resource>
 You want me to create a v09 style flexible-size internal meta data block.
 There appears to be a v08 flexible-size internal meta data block
@@ -331,55 +349,57 @@ Do you want to proceed?
 Writing meta data...
 New drbd meta data block successfully created.
 success
------------------
+----
 
-Of course, you can pass `all` for the resource names, too; and if you feel
-really lucky, you can avoid the questions via a command line like this here,
-too. (Yes, the order is important.)
+Of course, you can pass `all` for the resource names, too. And if you feel
+lucky, brave, or both you can avoid the questions by using the `--force` flag like this:
 
---------
+----
 drbdadm -v --max-peers=<N>  -- --force create-md <resources>
---------
+----
 
+IMPORTANT: The order of these arguments is important. Make sure you understand the potential
+data loss implications of this command before you enter it.
 
 [[s-upgrade-start-drbd]]
-==== Starting DRBD again
+==== Starting DRBD Again
 
-Now, the only thing left to do is to get the DRBD devices up and running again - a simple `drbdadm up all` should do the trick.
+Now, the only thing left to do is to get the DRBD devices up and running again. You can do this by using the `drbdadm up all` command.
 
-Now, depending on whether you've got a cluster manager or keep track of your
-resources manually, there are two different ways again. If you are using a cluster manager follow its documentation.
+Next, depending on whether you are using a cluster manager or if you keep track of your
+DRBD resources manually, there are two different ways to bring up your resources. If you are
+using a cluster manager follow its documentation.
 
 * Manually
-
-----------------------------
-bob# systemctl start drbd@resourcename.target
-----------------------------
++
+----
+node-2# systemctl start drbd@<resource>.target
+----
 
 ifndef::drbd-only[]
 * Pacemaker
-----------------------------
-# crm node online bob
-----------------------------
++
+----
+# crm node online node-2
+----
 endif::drbd-only[]
 
 This should make DRBD connect to the other node, and the resynchronization
 process will start.
 
 When the two nodes are _UpToDate_ on all resources again, you can move your
-applications to the already upgraded node (here 'bob'), and then follow the
-same steps on the cluster node still running 8.4.
+applications to the already upgraded node (here `node-2`), and then follow the
+same steps on the cluster node still running version 8.4.
 
 
 [[s-upgrade-within-9]]
-==== From DRBD 9 to DRBD 9
+==== Upgrading Within DRBD 9
 
-If you are already running 9.0, it is sufficient to
+If you are already running DRBD 9.x, it is sufficient to
 <<s-Upgrading-the-packages,install new package versions>>, make the cluster
 node <<s-upgrade-pausing-the-cluster,_standby_>>,
-<<s-upgrade-reload-kernel-mod,unload/reload>> the kernel module,
+<<s-upgrade-reload-kernel-mod,unload then reload>> the kernel module,
 <<s-upgrade-start-drbd,start the resources>>, and make the cluster node
-_online_ againfootnote:[At least that's the state at the time of writing - that's how it has been in the past, and we want to keep it that easy. But who
-knows? Who can tell? ;)].
+_online_ again.
 
-These individual steps have been detailed above, so we won't repeat them here.
+These individual steps have been detailed above, so they are not repeated here.
