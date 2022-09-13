@@ -18,6 +18,9 @@ Alternatively, LINBIT customers can install DRBD Reactor from prebuilt packages,
 LINBIT's `drbd-9` packages repository.
 endif::drbd-only[]
 
+Once installed, you can verify DRBD Reactor's version number by using the `drbd-reactor --version` command.
+
+[[s-drbd-reactor-components]]
 === DRBD Reactor's Components
 
 Because DRBD Reactor has many different uses, it was split into two components: a core component
@@ -71,6 +74,7 @@ not possible to create order constraints that are independent of colocations. Fo
 web service and a database run on different nodes, Pacemaker can constrain the web service to
 start after the database. DRBD Reactor and its promoter plug-in cannot.
 
+[[s-drbd-reactor-promoter-plug-in-how-it-works]]
 ===== How the Promoter Plug-in Works
 
 The promoter plug-in’s main function is that if a DRBD device can be promoted, promote it to
@@ -210,13 +214,71 @@ for illustrative purposes.
 
 <7> If set, resources are started on the preferred nodes, in the specified order, if possible.
 
+[[s-drbd-reactor-promoter-plugin-freeze-configure]]
+===== Configuring Resource Freezing
+
+Starting with DRBD Reactor version 0.9.0, you can configure the promoter plug-in to "freeze" a
+resource that DRBD Reactor is controlling, rather than stopping it when a currently active node
+loses quorum. DRBD Reactor can then "thaw" the resource when the node regains quorum and becomes
+active, rather than having to restart the resource if it was stopped.
+
+While in most cases the default stop and start behavior will be preferred, the freeze and thaw
+configuration could be useful for a resource that takes a long time to start, for example, a
+resource that includes services such as a large database. If a _Primary_ node loses quorum in
+such a cluster, and the remaining nodes are unable to form a partition with quorum, freezing the
+resource could be useful, especially if the _Primary_ node's loss of quorum was momentary, for
+example due to a brief network issue. When the formerly _Primary_ node with a frozen resource
+reconnects with its peer nodes, the node would again become _Primary_ and  DRBD Reactor would
+thaw the resource. The result of this behavior could be that the resource is again available in
+seconds, rather than minutes, because the resource did not have to start from a stopped state,
+it only had to resume from a frozen one.
+
+[[s-drbd-reactor-promoter-plug-in-freeze-requirements]]
+====== Requirements:
+
+Before configuring the promoter plug-in's freeze feature for a resource, you will need:
+
+* A system that uses https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html[cgroup
+v2], implementing unified cgroups. You can verify this by the presence of
+`/sys/fs/cgroup/cgroup.controllers` on your system. If this is not present, and your kernel
+supports it, you should be able to add the kernel command line argument
+`systemd.unified_cgroup_hierarchy=1` to enable this feature.
++
+NOTE: This should only be relevant for RHEL 8, Ubuntu 20.04, and earlier versions.
+
+* The following DRBD options configured for the resource:
+	** `on-no-quorum` set to `suspend-io`;
+	** `on-no-data-accessible` set to `suspend-io`;
+	** `on-suspended-primary` set to `force-secondary`;
+	** `rr-conflict` (`net` option) set to `retry-connect`.
+
+* A resource that can "tolerate" freezing and thawing. You can test how your resource (and any
+applications that rely on the resource) respond to freezing and thawing by using the `systemctl
+freeze <systemd_unit>`, and the `systemctl thaw <systemd_unit>` commands. Here you specify the
+systemd unit or units that correspond to the start list of services within the promoter
+plug-in's configuration. You can use these commands to test how your applications behave, after
+services that they depend on are frozen and thawed.
++
+IMPORTANT: If you are unsure whether your resource and applications will tolerate freezing, then
+it is safer to keep the default stop and start behavior.
+
+To configure resource freezing, add the following line to your DRBD Reactor resource's promoter
+plug-in snippet file:
+
+----
+on-quorum-loss = "freeze"
+----
+
+[[s-drbd-reactor-promoter-plug-in-ocf-resource-agents]]
 ===== Using OCF Resource Agents with the Promoter Plug-in
 
 You can also configure the promoter plug-in to use OCF resource agents in the `start` list of
 services.
 
 ifndef::de-brand[]
-Please make sure to install the `resource-agents` package provided in LINBIT's customer repositories.
+NOTE: If you have a LINBIT customer or evaluation account, you can install the `resource-agents`
+package available in LINBIT's `drbd-9` package repository to install a suite of open source
+resource agent scripts, including the "Filesystem" OCF resource agent.
 endif::de-brand[]
 
 The syntax for specifying an OCF resource agent as a service within a `start` list is
@@ -225,17 +287,10 @@ and `key=value` pairs, if specified, are passed as environment variables to the 
 unit file. For example:
 
 ----
-start = [
-	"ocf:linbit:drbd drbd_backed_mysql \
-		drbd_resource="mysql" \
-	"ocf:heartbeat:IPaddr2 ip_mysql \
-		ip=10.43.7.223 \
-		cidr_netmask=16",
-	"ocf:heartbeat:Filesystem mysql_data_mount \
-		device=/dev/drbd/by-res/mysql/0 \
-		directory=/var/lib/mysql \
-		fstype=ext4",
-]
+[[promoter]]
+[...]
+start = ["ocf:heartbeat:IPaddr2 ip_mysql ip=10.43.7.223 cidr_netmask=16"]
+[...]
 ----
 
 IMPORTANT: The promoter plug-in expects OCF resource agents in the `/usr/lib/ocf/resource.d/`
@@ -270,7 +325,7 @@ based upon both the old and the new (current) DRBD state, that are reported to t
 because you want the plug-in to react to changes. This is only possible if two states, old
 and new, are filtered for, otherwise the plug-in might trigger randomly. For example, if you
 only specified a new (current) DRBD role as a DRBD state to filter for, the plug-in might
-trigger even when the new role is the same as as the old DRBD role.
+trigger even when the new role is the same as the old DRBD role.
 
 Here is an example UMH plug-in configuration snippet for a `resource` rule:
 
@@ -400,13 +455,19 @@ Prerequisites:
 
 - A directory `/mnt/test` created on all of your cluster nodes
 
-- A DRBD configured resource named _ha-mount_ that is backed by a DRBD device, `/dev/drbd1000`,
-  on all nodes
+- A DRBD configured resource named _ha-mount_ that is backed by a DRBD device on all nodes. The
+  configuration examples that follow use `/dev/drbd1000`.
 
 - The Cluster Labs "Filesystem" OCF resource agent, available through
   https://github.com/ClusterLabs/resource-agents/blob/main/heartbeat/Filesystem[Cluster Lab's
-  `resource-agents` GitHub] repository, should be present in the `/usr/lib/ocf/resource.d/`
-  directory
+  `resource-agents` GitHub] repository, should be present in the
+  `/usr/lib/ocf/resource.d/heartbeat` directory
++
+ifndef::de-brand[]
+NOTE: If you have a LINBIT customer or evaluation account, you can install the `resource-agents`
+package available in LINBIT's `drbd-9` package repository to install a suite of open source
+resource agent scripts, including the "Filesystem" OCF resource agent.
+endif::de-brand[]
 
 The DRBD resource, _ha-mount_, should have the following settings configured in its DRBD
 resource configuration file:
@@ -417,9 +478,10 @@ resource ha-mount {
     auto-promote no;
     quorum majority;
     on-no-quorum suspend-io;
-    ...
+    on-no-data-accessible suspend-io;
+    [...]
   }
-...
+[...]
 }
 ----
 
@@ -470,16 +532,13 @@ promoter plug-in:
 [[promoter]]
 id = "ha-mount"
 [promoter.resources.ha-mount]
-start = '''
-["ocf:heartbeat:Filesystem fs_test device=/dev/drbd1000 
-directory=/mnt/test fstype=ext4 run_fsck=no"]
-'''
+start = ["ocf:heartbeat:Filesystem fs_test device=/dev/drbd1000 directory=/mnt/test fstype=ext4 run_fsck=no"]
 on-drbd-demote-failure = "reboot"
 EOF
 ----
 
 This promoter plug-in configuration uses a start list of services that specifies an OCF resource
-agent, for the file system found at our HA mount point. By using this particular resource agent,
+agent, for the file system found at your HA mount point. By using this particular resource agent,
 you can circumvent situations where systemd might not know about certain users and processes
 that might hold the mount point open and prevent it from unmounting. Otherwise, if only the
 systemd unit file for the mount point was specified in the promoter plug-in's start list of
@@ -521,7 +580,7 @@ section on creating a highly available LINSTOR cluster]. There, DRBD Reactor is 
 the LINSTOR Controller as a service so that it is highly available within your cluster.
 
 [[s-drbd-reactor-configuring-prometheus-monitoring]]
-=== Configuring the DRBD Reactor Prometheus Plug-in
+=== Configuring DRBD Reactor's Prometheus Plug-in
 
 DRBD Reactor’s Prometheus monitoring plug-in acts as a Prometheus compatible endpoint for DRBD
 resources and exposes various DRBD metrics. You can find a list of the available metrics in
