@@ -19,10 +19,16 @@ define dockerfile=
 FROM debian:buster
 MAINTAINER Roland Kammerer <roland.kammerer@linbit.com>
 ADD /GNUmakefile /linbit-documentation/GNUmakefile
-RUN groupadd --gid $(shell id -g) makedoc
-RUN useradd -m -u $(shell id -u) -g $(shell id -g) makedoc
-RUN apt-get update && apt-get install -y make inkscape ruby po4a patch openssh-client lftp curl unzip
-RUN gem install --pre asciidoctor-pdf -v '< 1.7.0'
+SHELL ["/bin/bash", "-c"]
+RUN groupadd --gid 1000 makedoc
+RUN useradd -m -u 1000 -g 1000 makedoc
+RUN apt-get update && apt-get install -y make inkscape po4a patch openssh-client lftp curl unzip gnupg2 procps
+RUN curl -sSL https://rvm.io/mpapis.asc | gpg2 --import -
+RUN curl -sSL https://rvm.io/pkuczynski.asc | gpg2 --import -
+RUN curl -sSL https://get.rvm.io | bash -s stable
+ENV PATH="${PATH}:/usr/local/rvm/bin:/usr/local/rvm/rubies/ruby-2.7.2/bin"
+RUN rvm install 2.7.2; rvm use 2.7.2 --default
+RUN gem install --pre asciidoctor-pdf
 RUN gem install --pre asciidoctor-pdf-cjk
 RUN gem install asciidoctor-pdf-cjk-kai_gen_gothic && asciidoctor-pdf-cjk-kai_gen_gothic-install
 RUN curl https://packages.linbit.com/public/genshingothic-20150607.zip > /tmp/ja.zip && (mkdir /linbit-documentation/genshingothic-fonts && cd /linbit-documentation/genshingothic-fonts && unzip /tmp/ja.zip); rm /tmp/ja.zip

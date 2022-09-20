@@ -97,21 +97,21 @@ html-finalize: html
 $(OUTDIRPDF)/$(OUTPDF_UG): $(SRC) $(SVGSUSED)
 	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
 		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
-		INTERN="-a pdf-style=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
+		INTERN="-a pdf-theme=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
 	asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_UG)
 
 $(OUTDIRPDF)/$(OUTPDF_LS): $(SRC) $(SVGSUSED)
 	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
 		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
-		INTERN="-a pdf-style=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
+		INTERN="-a pdf-theme=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
 		if test -f $(IN_LS); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_LS); fi
 
 $(OUTDIRPDF)/$(OUTPDF_VSAN): $(SRC) $(SVGSUSED)
 	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
 		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
-		INTERN="-a pdf-style=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
+		INTERN="-a pdf-theme=../../stylesheets/pdf-style-$(lang).yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
 		if test -f $(IN_VSAN); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_VSAN); fi
 
