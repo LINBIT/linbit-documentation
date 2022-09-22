@@ -1,6 +1,5 @@
 lang=ja
-ASCIIDOCTOR_ADD_OPTIONS=-r asciidoctor-pdf-cjk
-FONTDIR=../../genshingothic-fonts
+FONTDIR=/linbit-documentation/genshingothic-fonts
 
 include ../../UG-build-po.mk
 include ../../UG-build.mk
