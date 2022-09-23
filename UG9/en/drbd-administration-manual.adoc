@@ -27,9 +27,9 @@ One convenient way to examine DRBD's status is the
 [[s-proc-drbd]]
 ==== Retrieving Status Information Through the DRBD Process File
 
-NOTE: `/proc/drbd` is deprecated. While it won't be removed in the 8.4
-series, we recommend to switch to other means, like <<s-drbdadm-status>>; or,
-for monitoring even more convenient, <<s-drbdsetup-events2>>.
+NOTE: Monitoring DRBD status by using `/proc/drbd` is deprecated. We recommend that you switch
+to other means, like <<s-drbdadm-status>>, or for even more convenient monitoring,
+<<s-drbdsetup-events2>>.
 
 indexterm:[/proc/drbd]`/proc/drbd` is a virtual file displaying
 basic information about the DRBD module.
@@ -270,7 +270,7 @@ data mirroring is now active. This is the normal state.
 [[s-replication-states]]
 ==== Replication States
 
-Each volume has over each connection a replication state. The possible replication
+Each volume has a replication state for each connection. The possible replication
 states are:
 
 ._Off_
@@ -909,8 +909,7 @@ a *minimum* synchronization speed, but rather a limit below which DRBD will not
 slow down further *on purpose*. +
 Whether you manage to *reach* that synchronization rate depends on your network
 and storage speed, network latency (which might be highly variable for shared
-links), and application I/O (which not might be able to do anything about).
-
+links), and application I/O (which you might not be able to do anything about).
 
 [[s-configure-checksum-sync]]
 === Configuring Checksum-based Synchronization
@@ -1400,7 +1399,7 @@ settings by issuing this command on both nodes:
 ----------------------------
 
 
-In case only one of the serves has a BBWCfootnote:[For example, in the DR site
+If only one of the servers has a BBWCfootnote:[For example, in the DR site
 you might be using different hardware, right?], you should move the setting into a host section, like this:
 
 [source,drbd]
@@ -1875,7 +1874,7 @@ on all nodes.
 ==== Cleaning Up
 
 On the one node that had the data up to now, but isn't used anymore for this
-resource, you can now take the DRBD device down by starting
+resource, you can now take the DRBD device down by entering:
 
 -------------------
 # drbdadm down <resource>
@@ -1889,7 +1888,7 @@ returned to the volume group using the `lvremove` command.
 ==== Conclusion and Further Steps
 
 One of the resources has been migrated to the new node. The same could be done
-for one or more other resources, to free space on two or three nodes in the
+for one or more other resources, to make free space on two or three nodes in the
 existing cluster.
 
 Then new resources can be configured, as there are enough nodes with free space
@@ -1931,8 +1930,8 @@ resync operations finish before any services start. So in a way you prefer
 that the minimal redundancy of your data is guaranteed over the availability of your
 service. Financial data and services is an example that comes to mind.
 
-Consider following example for a 5 node cluster. It requires a partitions to have at
-least 3 nodes, and two of them must be `UpToDate`:
+Consider the following example for a five node cluster. It requires a partitions to have at
+least three nodes, and two of them must be `UpToDate`:
 
 -------------------------------------
 resource quorum-demo {
@@ -1953,7 +1952,7 @@ requests with errors. Usually that means that a graceful shutdown is not possibl
 that would require more modifications to the data set. The I/O errors propagate from
 the block level to the file system and from the file system to the user space application(s).
 
-Ideally the application simply terminates in case of I/O errors. This allows then Pacemaker
+Ideally the application simply terminates in case of I/O errors. This then allows Pacemaker
 to unmount the filesystem and to demote the DRBD resource to secondary role.
 If that is true you should set the `on-no-quorum` resource option to `io-error`.
 Here is an example:
@@ -2013,7 +2012,7 @@ therefore not be migrated there.
 
 image::images/quorum-tiebreaker-disconnect.svg[]
 
-There are a few special cases in case two connections fail. Consider the following
+There are a few special cases if two connections fail. Consider the following
 scenario:
 
 image::images/quorum-tiebreaker-disconnect-case2.svg[]
@@ -2060,18 +2059,17 @@ to a diskless node*. Therefore, in this case, no node has quorum and the cluster
 
 It needs to be mentioned that nodes that leave a cluster gracefully are counted
 differently from failed nodes. In this context _leaving gracefully_ means that the leaving
-node marked it's data as Outdated, and that it was able to tell the remaining nodes
-that it's data is Outdated.
+node marked its data as Outdated, and that it was able to tell the remaining nodes
+that its data is Outdated.
 
 In a group of nodes where all disks are Outdated no one in that group can promote to Primary
-footnote:[The exception is a manual promotion with the --force flag. We assume that
-one that uses the --force knows what he is doing.].
+footnote:[The exception is a manual promotion with the `--force` flag. It's assumed that
+before you use the `--force` flag, you know what you are doing.].
 
-An implication is that, if a cluster is left by all but one node, it can keep quorum as
-long as all the others left in a graceful way. If a single node leaves ungraceful,
-it has to assume that all away nodes form a partition and have access to up-to-date
-data. If the other partition might (potentially) be larger than my own partition it
-looses quorum.
+An implication is that, if one node remains in a cluster where all the other nodes left
+gracefully, the remaining node can keep quorum. However, if any of the other nodes left
+ungracefully, the remaining node must assume that the departed nodes could form a partition and
+have access to up-to-date data.
 
 [[s-removing-DRBD]]
 === Removing DRBD
