@@ -1588,33 +1588,39 @@ by a second resource having the `--nvme-initiator` option enabled.
 [[s-managing_network_interface_cards]]
 === Managing Network Interface Cards
 
-LINSTOR can deal with multiple network interface cards (NICs) in a machine,
-they are called `netif` in LINSTOR speak.
+LINSTOR can deal with multiple network interface cards (NICs) in a machine.
+They are called "net interfaces" in LINSTOR speak.
 
-NOTE: When a satellite node is created a first `netif` gets created implicitly
-with the name `default`. Using the `--interface-name` option of the `node create`
-command you can give it a different name.
+NOTE: When a satellite node is created a first net interface gets created implicitly
+with the name `default`. You can use the `--interface-name` option of the `node create`
+command to give it a different name, when you create the satellite node.
 
-Additional NICs are created like this:
+For existing nodes, additional net interfaces are created like this:
 
-----------------------------
-# linstor node interface create alpha 100G_nic 192.168.43.221
-# linstor node interface create alpha 10G_nic 192.168.43.231
-----------------------------
+----
+# linstor node interface create node-0 10G_nic 192.168.43.231
+----
 
-NICs are identified by the IP address only, the name is arbitrary and is
-*not* related to the interface name used by Linux. The NICs can be assigned
-to storage pools so that whenever a resource is created in such a storage
-pool, the DRBD traffic will be routed through the specified NIC.
+Net interfaces are identified by the IP address only, the name is arbitrary and is
+*not* related to the NIC name used by Linux. You can then assign the net interface
+to a node so that the node's DRBD traffic will be routed through the corresponding NIC.
 
-----------------------------
-# linstor storage-pool set-property alpha pool_hdd PrefNic 10G_nic
-# linstor storage-pool set-property alpha pool_ssd PrefNic 100G_nic
-----------------------------
+----
+# linstor node set-property node-0 PrefNic 10G_nic
+----
+
+NOTE: It is also possible to set the `PrefNic` property on a storage pool. DRBD traffic from
+resources using the storage pool will be routed through the corresponding NIC. However, you need
+to be careful here. Any DRBD resource that requires Diskless storage, for example, diskless
+storage acting in a tiebreaker role for DRBD quorum purposes, will go through the default
+satellite node net interface, until you also set the `PrefNic` property for the `default` net
+interface. Setups can become complex. It is far easier and safer, if you can get away with it,
+to set the `PrefNic` property at the node level. This way, all storage pools on the node,
+including Diskless storage pools, will use your preferred NIC.
 
 While this method routes DRBD traffic through a specified NIC, it is not possible through `linstor` commands only, to route LINSTOR controller-client traffic through a specific NIC. To achieve this, you can either:
 
-. Specify a LINSTOR controller using methods outlined in <<s-using_the_linstor_client>> *and* have the only route to the controller as specified be through the NIC you would like to use for controller-client traffic.
+. Specify a LINSTOR controller using methods outlined in <<s-using_the_linstor_client>> *and* have the only route to the controller as specified be through the NIC that you want to use for controller-client traffic.
 . Use Linux tools such as `ip route` and `iptables` to filter LINSTOR client-controller traffic, port number 3370, and route it through a specific NIC.
 
 [[s-creating-multiple-drbd-paths]]
