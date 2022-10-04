@@ -161,7 +161,26 @@ moved out of the LINSTOR Operator chart. If you want to keep using the old versi
 helm upgrade linstor-op linstor/linstor ... --set haController.enabled=true
 ----
 
+If you are upgrading to v1.9 from v1.6 or earlier, you need to either:
+
+. Create a master passphrase, before you upgrade:
++
+----
+$ kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<password>
+----
++
+. Or, upgrade to v1.7 first, and Helm will create a master passphrase for you automatically. You
+can view this passphrase later, by entering:
++
+----
+$ kubectl get secret linstor-op-passphrase \
+-ogo-template='{{ .data.MASTER_PASSPHRASE | base64decode }}'
+----
+
 ===== Upgrading to v1.8
+
+NOTE: This upgrade requires a complete rebuild of the K8s database, so upgrades might take
+longer than normal.
 
 Version
 1.8 introduces new options to centrally set the log level and number of worker threads for the CSI driver. If you need
@@ -179,7 +198,21 @@ customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbi
 In addition, 1.8 reworks the way SSL/TLS setups work. Please revisit the
 <<s-kubernetes-securing-deployment,secure deployment section>> and work through these steps again.
 
-NOTE: LINSTOR 1.18.0 requires a complete rebuild of the K8s database, so upgrades might take longer than normal.
+If you are upgrading to v1.8 from v1.6 or earlier, you need to either:
+
+. Create a master passphrase, before you upgrade:
++
+----
+$ kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<password>
+----
++
+. Or, upgrade to v1.7 first, and Helm will create a master passphrase for you automatically. You
+can view this passphrase later, by entering:
++
+----
+$ kubectl get secret linstor-op-passphrase \
+-ogo-template='{{ .data.MASTER_PASSPHRASE | base64decode }}'
+----
 
 ===== Upgrading to v1.7
 
