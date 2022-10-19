@@ -604,12 +604,12 @@ stork:
 csi:
   enabled: true
   pluginImage: "drbd.io/linstor-csi:v0.20.0"
-  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
+  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v4.0.0
   csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.7.0
   csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
   csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.2.1
   csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1
-  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
+  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.6.0
   csiAttacherWorkerThreads: 10 <9>
   csiProvisionerWorkerThreads: 10 <9>
   csiSnapshotterWorkerThreads: 10 <9>
@@ -640,7 +640,7 @@ psp:
   unprivilegedRole: ""
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
-  image: "drbd.io/linstor-operator:v1.9.1"
+  image: "drbd.io/linstor-operator:v1.10.0"
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
@@ -654,7 +654,7 @@ operator:
   extraVolumes: []
   controller:
     enabled: true
-    controllerImage: "drbd.io/linstor-controller:v1.19.1"
+    controllerImage: "drbd.io/linstor-controller:v1.20.0"
     dbConnectionURL: ""
     luksSecret: ""
     dbCertSecret: ""
@@ -680,16 +680,17 @@ operator:
     customAnnotations: {}
   satelliteSet:
     enabled: true
-    satelliteImage: "drbd.io/linstor-satellite:v1.19.1"
+    satelliteImage: "drbd.io/linstor-satellite:v1.20.0"
     storagePools: {}
     sslSecret: ""
     automaticStorageType: None
     affinity: {} <4>
     tolerations: [] <4>
     resources: {} <3>
-    monitoringImage: "drbd.io/drbd-reactor:v0.8.0"
+    monitoringImage: "drbd.io/drbd-reactor:v0.9.0"
     monitoringBindAddress: ""
-    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.1.8"
+    mountDrbdResourceDirectoriesFromHost: false <10>
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.1.11"
     kernelModuleInjectionMode: ShippedModules
     kernelModuleInjectionAdditionalSourceDirectory: "" <8>
     kernelModuleInjectionResources: {} <3>
@@ -740,6 +741,15 @@ Uses the same format as https://kubernetes.io/docs/tasks/inject-data-application
 <8> Directory on the host that is required for building kernel modules. Only needed if using the `Compile` injection method. Defaults to `/usr/src`, which is where the actual kernel sources are stored on most distributions. Use `"none"` to not mount any additional directories.
 
 <9> Set the number of worker threads used by the CSI driver. Higher values put more load on the LINSTOR Controller, which may lead to instability when creating many volumes at once.
+
+<10> If set to true, the satellite containers will have the following files and directories mounted from the host OS:
++
+* `/etc/drbd/drbd.conf` (file)
+* `/etc/drbd.d` (directory)
+* `/var/lib/drbd` (directory)
+* `/var/lib/linstor.d` (directory)
++
+All files and directories must already exist on the host.
 
 [[s-kubernetes-ha-deployment]]
 ===== High-Availability Deployment
