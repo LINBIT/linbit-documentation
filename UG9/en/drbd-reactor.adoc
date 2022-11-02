@@ -18,7 +18,8 @@ Alternatively, LINBIT customers can install DRBD Reactor from prebuilt packages,
 LINBIT's `drbd-9` packages repository.
 endif::drbd-only[]
 
-Once installed, you can verify DRBD Reactor's version number by using the `drbd-reactor --version` command.
+Once installed, you can verify DRBD Reactor's version number by using the `drbd-reactor
+--version` command.
 
 [[s-drbd-reactor-components]]
 === DRBD Reactor's Components
@@ -213,6 +214,32 @@ details. "true" is the default option if this setting is not specified. It is sp
 for illustrative purposes.
 
 <7> If set, resources are started on the preferred nodes, in the specified order, if possible.
+
+[[s-drbd-reactor-promoter-multi-line-start-list-service-string]]
+===== Specifying a Promoter Start List Service String Spanning Multiple Lines
+
+For formatting or readability reasons, it is possible to split a long service string across
+multiple lines within a promoter plug-in snippet file's start list of services. You can do this
+by using https://toml.io/en/v1.0.0#string[TOML syntax for multi-line basic strings]. In the
+following example, the first and third service strings in a promoter plug-in's start list are
+split across multiple lines. A backslash (\) at the end of a line within a multi-line basic
+string ensures that a newline character is not inserted between lines within the string.
+
+----
+[...]
+start = [
+"""
+ocf:heartbeat:Filesystem fs_mysql device=/dev/drbd1001 \
+directory=/var/lib/mysql fstype=ext4 run_fsck=no""",
+"mariadb.service",
+"""ocf:heartbeat:IPaddr2 db_virtip ip=192.168.222.65 \
+cidr_netmask=24 iflabel=virtualip"""
+]
+[...]
+----
+
+TIP: You can also use this technique to split up long strings within other plug-in snippet
+files.
 
 [[s-drbd-reactor-promoter-plugin-freeze-configure]]
 ===== Configuring Resource Freezing
@@ -532,19 +559,22 @@ promoter plug-in:
 [[promoter]]
 id = "ha-mount"
 [promoter.resources.ha-mount]
-start = ["ocf:heartbeat:Filesystem fs_test device=/dev/drbd1000 directory=/mnt/test fstype=ext4 run_fsck=no"]
+start = [
+"""ocf:heartbeat:Filesystem fs_test device=/dev/drbd1000 \
+directory=/mnt/test fstype=ext4 run_fsck=no"""
+]
 on-drbd-demote-failure = "reboot"
 EOF
 ----
 
-This promoter plug-in configuration uses a start list of services that specifies an OCF resource
-agent, for the file system found at your HA mount point. By using this particular resource agent,
-you can circumvent situations where systemd might not know about certain users and processes
-that might hold the mount point open and prevent it from unmounting. Otherwise, if only the
-systemd unit file for the mount point was specified in the promoter plug-in's start list of
-services, the mount point might be held open indefinitely in some cases.
+NOTE: This promoter plug-in configuration uses a start list of services that specifies an OCF
+resource agent for the file system found at your HA mount point. By using this particular
+resource agent, you can circumvent situations where systemd might not know about certain users
+and processes that might hold the mount point open and prevent it from unmounting. This could
+happen if you specified a systemd mount unit for the mount point, for example,
+`start = ["mnt-test.mount"]`, rather than using the OCF Filesystem resource agent.
 
-To apply the configurations, enable and start the DRBD Reactor service on all nodes. If the DRBD
+To apply the configuration, enable and start the DRBD Reactor service on all nodes. If the DRBD
 Reactor service is already running, reload it instead.
 
 ----
