@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-05-13 14:53+0900\n"
+"POT-Creation-Date: 2022-11-03 15:01+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -38,6 +38,17 @@ msgstr ""
 "DRBD上でGFSを使用するためには、indexterm:[dual-primary mode]<<s-dual-primary-"
 "mode,デュアルプライマリモード>>でDRBDを設定する必要があります。"
 
+#. type: Plain text
+msgid ""
+"DRBD 9 supports exactly two nodes with its indexterm:[dual-primary mode]<<s-"
+"dual-primary-mode,dual-primary mode>>.  Attempting to use more than three "
+"nodes in the Primary state is _not_ supported and may lead to data loss."
+msgstr ""
+"DRBD 9 は indexterm:[dual-primary mode]<<s-dual-primary-mode,デュアルプライマ"
+"リモード>> で 2 つのノードをサポートします。Primary 状態で 3 つ以上のノードを"
+"使用しようとする試みはサポートされておらず、データの損失につながる可能性があ"
+"ります。"
+
 #. type: delimited block =
 msgid ""
 "All cluster file systems _require_ fencing - not only through the DRBD "
@@ -47,10 +58,10 @@ msgstr ""
 "なくSTONITHもです。問題のあるノードは _必ず_ killされる必要があります。"
 
 #. type: delimited block =
-msgid "You'll want these settings:"
+msgid "You will want these settings:"
 msgstr "次のような設定がよいでしょう。"
 
-#. type: delimited block =
+#. type: delimited block -
 #, no-wrap
 msgid ""
 "\tnet {\n"
@@ -59,7 +70,8 @@ msgid ""
 "\thandlers {\n"
 "\t\t# Make sure the other node is confirmed\n"
 "\t\t# dead after this!\n"
-"\t\toutdate-peer \"/sbin/kill-other-node.sh\";\n"
+"        fence-peer \"/usr/lib/drbd/crm-fence-peer.9.sh\";\n"
+"        after-resync-target \"/usr/lib/drbd/crm-unfence-peer.9.sh\";\n"
 "\t}\n"
 msgstr ""
 "\tnet {\n"
@@ -68,23 +80,43 @@ msgstr ""
 "\thandlers {\n"
 "\t\t# Make sure the other node is confirmed\n"
 "\t\t# dead after this!\n"
-"\t\toutdate-peer \"/sbin/kill-other-node.sh\";\n"
+"        fence-peer \"/usr/lib/drbd/crm-fence-peer.9.sh\";\n"
+"        after-resync-target \"/usr/lib/drbd/crm-unfence-peer.9.sh\";\n"
 "\t}\n"
 
 #. type: delimited block =
 msgid ""
-"There must be _no_ volatile caches! Please see https://fedorahosted.org/"
-"cluster/wiki/DRBD_Cookbook for some more information."
+"If a node becomes a disconnected primary, the `resource-and-stonith` network "
+"fencing setting will:"
 msgstr ""
-"これらは _非揮発性_ のキャッシュである必要があります。 詳細は https://"
-"fedorahosted.org/cluster/wiki/DRBD_Cookbook を参考にしてください。"
+"ノードが切断されたプライマリになると `resource-and-stonith` ネットワークフェ"
+"ンシング設定は次のようになります。"
+
+#. type: delimited block =
+msgid "Freeze all the node's I/O operations."
+msgstr "すべてのノードの I/O 操作をフリーズする。"
+
+#. type: delimited block =
+msgid "Call the node's fence-peer handler."
+msgstr "ノードの fence-peer ハンドラを呼び出す。"
+
+#. type: delimited block =
+msgid ""
+"If the fence-peer handler cannot reach the peer node, for example over an "
+"alternate network, then the fence-peer handler should STONITH the "
+"disconnected primary node. I/O operations will resume as soon as the "
+"situation is resolved."
+msgstr ""
+"fence-peer ハンドラが対向ノードに到達できない場合 (代替ネットワークなど)、"
+"fence-peer ハンドラは切断されたプライマリノードを STONITH する必要がありま"
+"す。状況が解決され次第、I/O 操作が再開されます。"
 
 #. type: Title ===
 #, no-wrap
 msgid "Introduction to GFS"
 msgstr "GFS の概要"
 
-#. type: Plain text
+#. type: delimited block =
 msgid ""
 "The Red Hat Global File System (GFS) is Red Hat's implementation of a "
 "concurrent-access shared storage file system. As any such filesystem, GFS "
@@ -99,7 +131,7 @@ msgstr ""
 "ることが可能です。これには、クラスタメンバからの同時アクセスを管理するDLM "
 "(Distributed Lock Manager)が使用されています。"
 
-#. type: Plain text
+#. type: delimited block =
 msgid ""
 "GFS was designed, from the outset, for use with conventional shared storage "
 "devices. Regardless, it is perfectly possible to use DRBD, in dual-primary "
@@ -117,7 +149,7 @@ msgstr ""
 "うためです。また、DRBDは各GFSファイルシステムに物理コピーを追加して、冗長性を"
 "確保します。"
 
-#. type: Plain text
+#. type: delimited block =
 msgid ""
 "GFS makes use of a cluster-aware variant of LVM, indexterm:[LVM]termed "
 "Cluster Logical Volume Manager or indexterm:[CLVM]CLVM. As such, some "
@@ -129,7 +161,7 @@ msgstr ""
 "トレージとしてDRBDを使用することと、<<s-lvm-drbd-as-pv,従来のLVMの物理ボ"
 "リュームとしてDRBDを使用する>>こととの間に存在します。"
 
-#. type: Plain text
+#. type: delimited block =
 msgid ""
 "GFS file systems are usually tightly integrated with Red Hat's own cluster "
 "management framework, the indexterm:[Red Hat Cluster Suite]<<ch-rhcs,Red Hat "
@@ -141,7 +173,7 @@ msgstr ""
 "この章ではDRBDをGFSとともに使用する方法を Red Hat Clusterの観点から説明しま"
 "す。"
 
-#. type: Plain text
+#. type: delimited block =
 msgid ""
 "GFS, CLVM, and Red Hat Cluster are available in Red Hat Enterprise Linux "
 "(RHEL) and distributions derived from it, such as indexterm:[CentOS]CentOS. "
@@ -160,7 +192,7 @@ msgstr ""
 msgid "Creating a DRBD Resource Suitable for GFS"
 msgstr "GFS用のDRBDリソースの作成"
 
-#. type: Plain text
+#. type: delimited block =
 msgid ""
 "Since GFS is a shared cluster file system expecting concurrent read/write "
 "storage access from all cluster nodes, any DRBD resource to be used for "
@@ -187,9 +219,9 @@ msgid ""
 "    after-sb-0pri discard-zero-changes;\n"
 "    after-sb-1pri discard-secondary;\n"
 "    after-sb-2pri disconnect;\n"
-"    ...\n"
+"    [...]\n"
 "  }\n"
-"  ...\n"
+"  [...]\n"
 "}\n"
 msgstr ""
 "resource <resource> {\n"
@@ -198,18 +230,27 @@ msgstr ""
 "    after-sb-0pri discard-zero-changes;\n"
 "    after-sb-1pri discard-secondary;\n"
 "    after-sb-2pri disconnect;\n"
-"    ...\n"
+"    [...]\n"
 "  }\n"
-"  ...\n"
+"  [...]\n"
 "}\n"
 
 #. type: delimited block =
 msgid ""
-"By configuring auto-recovery policies, you are configuring effectively "
-"configuring automatic data-loss! Be sure you understand the implications."
+"By configuring auto-recovery policies, with the exception of the "
+"`disconnect` option, you are effectively configuring automatic data loss on "
+"one of your nodes after a split-brain scenario.  In a properly configured "
+"Pacemaker cluster with STONITH enabled, the settings above are considered "
+"safe. Be sure you understand the implications of the options you set should "
+"you choose different options.  See the `drbdsetup-9.0` man page for more "
+"details."
 msgstr ""
-"回復ポリシーを設定することは、事実上、自動データロス設定を行うことです。十分"
-"にご理解のうえご使用ください。"
+"`disconnect` オプションを除いて、自動回復ポリシーを構成することで、スプリッ"
+"ト ブレインシナリオの後にノードの 1 つで自動データ損失を効果的に構成できま"
+"す。 STONITH が有効になっている適切に構成された Pacemaker クラスターでは、上"
+"記の設定は安全であると見なされます。異なるオプションを選択した場合は、設定し"
+"たオプションの意味を理解していることを確認してください。詳細については "
+"`drbdsetup-9.0` の man ページを参照ください。"
 
 #. type: Plain text
 msgid ""
@@ -433,11 +474,11 @@ msgstr "# service gfs start\n"
 
 #. type: Plain text
 msgid ""
-"From then onwards, if you have DRBD configured to start automatically on "
-"system startup, before the RHCS services and the `gfs` service, you will be "
+"From then on, if you have DRBD configured to start automatically on system "
+"startup, before the Pacemaker services and the `gfs` service, you will be "
 "able to use this GFS file system as you would use one that is configured on "
 "traditional shared storage."
 msgstr ""
-"以降、システムの起動時にRHCSサービスと gfs サービスの前にDRBDが自動起動するよ"
-"う設定してあれば、従来の共有ストレージのようにGFSファイルシステムを使用するこ"
-"とができます。"
+"以降、Pacemaker サービスと `gfs` サービスの前に DRBD がシステムの起動時に自動"
+"的に開始するように構成されていれば、従来の共有ストレージのようにGFSファイルシ"
+"ステムを使用することができます。"

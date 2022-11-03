@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-04-17 10:08+0900\n"
+"POT-Creation-Date: 2022-11-03 15:00+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -23,11 +23,12 @@ msgstr "Proxmox VE での LINSTOR ボリューム"
 #. type: Plain text
 msgid ""
 "indexterm:[Proxmox]This chapter describes DRBD in Proxmox Virtual "
-"Environment (VE) using the http://git.linbit.com/linstor-proxmox.git[LINSTOR "
+"Environment (VE) using the https://github.com/linbit/linstor-proxmox[LINSTOR "
 "Proxmox Plug-in]."
 msgstr ""
-"indexterm:[Proxmox]この章は http://git.linbit.com/linstor-proxmox."
-"git[LINSTOR Proxmox Plug-in] にあるProxmox VEでのDRBDについて説明します。"
+"indexterm:[Proxmox]この章は https://github.com/linbit/linstor-"
+"proxmox[LINSTOR Proxmox Plug-in]  にあるProxmox VEでのDRBDについて説明しま"
+"す。"
 
 #. type: Title ===
 #, no-wrap
@@ -71,8 +72,8 @@ msgstr ""
 
 #. type: Title ====
 #, no-wrap
-msgid "Upgrading From 4.x to 5.x"
-msgstr "4.x から 5.x へアップグレード"
+msgid "Upgrading plugin from 4.x to 5.x"
+msgstr "プラグインのバージョン 4.x から 5.x へアップグレード"
 
 #. type: Plain text
 msgid ""
@@ -120,8 +121,38 @@ msgstr ""
 
 #. type: Title ====
 #, no-wrap
-msgid "Upgrading From 5.x to 6.x"
-msgstr "5.x から 6.x へアップグレード"
+msgid "Upgrading plugin from 5.x to 6.x"
+msgstr "プラグインのバージョン 5.x から 6.x へアップグレード"
+
+#. type: Plain text
+msgid ""
+"Version 6.0.0 of the plugin drops all code related to the `redundancy` "
+"setting. This is handled by LINSTOR resource groups (`resourcegroup` "
+"setting) for a very long time. No change should be required."
+msgstr ""
+"プラグインのバージョン 6.0.0 では `redundancy` 設定に関連するすべてのコードが"
+"削除されます。これは、非常に長い間、LINSTOR リソースグループ "
+"(`resourcegroup` 設定) によって処理されてます。変更は必要ありません。"
+
+#. type: Plain text
+msgid ""
+"The `controllervm` setting, which was intended for executing a LINSTOR "
+"controller in a VM manged by LINSTOR is gone. Using `drbd-reactor` to "
+"realize a highly available LINSTOR controller is what we suggest."
+msgstr ""
+"LINSTOR によって管理される VM で LINSTOR コントローラを実行するための "
+"`controllervm` 設定はなくなりました。 `drbd-reactor` を使用して高可用性 "
+"LINSTOR コントローラを実現することをお勧めします。"
+
+#. type: Plain text
+msgid ""
+"The settings `statuscache` and `preferlocal` are now enabled by default."
+msgstr "設定 `statuscache` と `preferlocal` がデフォルトで有効になりました。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Upgrading PVE from 5.x to 6.x"
+msgstr "PVE のバージョン 5.x から 6.x へアップグレード"
 
 #. type: Plain text
 msgid ""
@@ -184,12 +215,12 @@ msgstr ""
 #, no-wrap
 msgid ""
 "# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
-"# PVERS=7 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9\" > \\\n"
+"# PVERS=7 && echo \"deb http://packages.linbit.com/public/ proxmox-$PVERS drbd-9\" > \\\n"
 "\t/etc/apt/sources.list.d/linbit.list\n"
 "# apt update && apt install linstor-proxmox\n"
 msgstr ""
 "# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
-"# PVERS=7 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9\" > \\\n"
+"# PVERS=7 && echo \"deb http://packages.linbit.com/public/ proxmox-$PVERS drbd-9\" > \\\n"
 "\t/etc/apt/sources.list.d/linbit.list\n"
 "# apt update && apt install linstor-proxmox\n"
 
@@ -203,19 +234,39 @@ msgid ""
 "For the rest of this guide we assume that you have a LINSTOR cluster "
 "configured as described in <<s-linstor-init-cluster>>. Start the \"linstor-"
 "controller\" on one node, and the \"linstor-satellite\" on all nodes. The "
-"preferred way to use the plug-in, starting from version 4.1.0, is through "
-"LINSTOR resource groups and a single volume group within every resource "
-"group. LINSTOR resource groups are described in <<s-linstor-resource-"
-"groups>>. All the required LINSTOR configuration (e.g., redundancy count) "
-"has to be set on the resource group."
+"\"linstor-satellite\" service needs some extra configuration which should be "
+"done via `systemctl edit linstor-satellite.service`:"
 msgstr ""
 "このガイドの残りの部分では <<s-linstor-init-cluster>> に基づいて LINSTOR クラ"
 "スタが構成されていると仮定します。1 つのノードで \"linstor-controller\" を起"
-"動し、すべてのノードで \"linstor-satellite\" を起動します。また、バージョン "
-"4.1.0 以降、このプラグインを使用する上で推奨する方法は、LINSTOR リソースグ"
-"ループと単一のボリュームグループを使用することです。 LINSTOR リソースグループ"
-"については <<s-linstor-resource-groups>> を参照してください。必要なすべての "
-"LINSTOR 構成（冗長カウントなど）をリソースグループに設定する必要があります。"
+"動し、すべてのノードで \"linstor-satellite\" を起動します。\"linstor-"
+"satellite\" サービスには `systemctl edit linstor-satellite.service`  で追加構"
+"成が必要です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Service]\n"
+"Type=notify\n"
+"TimeoutStartSec=infinity\n"
+msgstr ""
+"[Service]\n"
+"Type=notify\n"
+"TimeoutStartSec=infinity\n"
+
+#. type: Plain text
+msgid ""
+"The preferred way to use the plug-in, starting from version 4.1.0, is "
+"through LINSTOR resource groups and a single volume group within every "
+"resource group. LINSTOR resource groups are described in <<s-linstor-"
+"resource-groups>>. All the required LINSTOR configuration (e.g., redundancy "
+"count) has to be set on the resource group."
+msgstr ""
+"バージョン 4.1.0 以降、このプラグインを使用する上で推奨する方法は、LINSTOR リ"
+"ソースグループと単一のボリュームグループを使用することです。 LINSTOR リソース"
+"グループについては <<s-linstor-resource-groups>> を参照してください。必要なす"
+"べての LINSTOR 構成（冗長カウントなど）をリソースグループに設定する必要があり"
+"ます。"
 
 #. type: Title ===
 #, no-wrap
@@ -417,18 +468,3 @@ msgstr ""
 "   content images,rootdir\n"
 "   controller 10.11.12.13,10.11.12.14,10.11.12.15\n"
 "   resourcegroup defaultpool\n"
-
-#~ msgid "Proxmox VE Overview"
-#~ msgstr "Proxmox VE概要"
-
-#~ msgid "Upgrades"
-#~ msgstr "アップグレード"
-
-#~ msgid "Proxmox Plugin Installation"
-#~ msgstr "Proxmoxプラグインのインストール"
-
-#~ msgid "LINSTOR Configuration"
-#~ msgstr "LINSTORの設定"
-
-#~ msgid "Proxmox Plugin Configuration"
-#~ msgstr "Proxmoxプライグインの設定"
