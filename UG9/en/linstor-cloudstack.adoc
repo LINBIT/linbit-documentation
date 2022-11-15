@@ -1,0 +1,464 @@
+[[ch-cloudstack]]
+== LINSTOR Volumes in CloudStack
+
+This chapter describes using LINSTOR to provision volumes that can be used to back _primary
+storage_ in Apache CloudStack. CloudStack primary storage stores the virtual disks for virtual
+machines (VMs) running on hosts in CloudStack. A LINBIT-developed CloudStack plug-in integrates
+LINSTOR with CloudStack. A benefit to integrating LINSTOR with CloudStack is that it can be a
+way to provide highly available primary storage that is also flexible to manage.
+
+IMPORTANT: Currently, the LINSTOR plug-in for CloudStack can only be used to provision volumes
+for use with KVM hypervisors.
+
+Setting up and deploying CloudStack can be a complex task. A production-ready deployment can
+take several weeks to months before it is ready for users. A basic test deployment in a virtual
+environment can be set up in a few hours perhaps. This chapter will deal only with aspects
+related to integrating LINSTOR in CloudStack and should be considered a general overview. You
+should supplement instructions in this chapter with instructions and best practice
+recommendations from the http://docs.cloudstack.apache.org/en/latest/[CloudStack documentation].
+Attention should be paid to security, firewall, and resource provisioning instructions in the
+CloudStack documentation, and in other chapters in the LINSTOR User's Guide, before production
+deployment.
+
+NOTE: In this chapter, as in other areas of the LINSTOR User's Guide, the word _node_ is used.
+In most cases, you can think of a node as equivalent to a CloudStack _host_.
+
+[[s-linstor-cloudstack-introduction]]
+=== Introduction to CloudStack
+
+From the CloudStack documentation: "Apache CloudStack is an open source
+Infrastructure-as-a-Service (Iaas) platform that manages and orchestrates pools of storage,
+network, and computer resources to build a public or private IaaS compute cloud."
+
+[[s-linstor-cloudstack-preparing-environment]]
+=== Preparing Your Environment For CloudStack and LINSTOR Deployment
+
+You will need to make a few preparatory steps before deploying LINSTOR for use with CloudStack.
+
+==== Configuring Time Synchronization
+
+It is important that the nodes in your cluster are time synchronized. To do this, you can
+install and configure a tool such as Chrony or OpenNTPD.
+
+==== Adding Node IP Addresses and Host Names
+
+Add your cluster nodes' IP addresses and host names to each node's `/etc/hosts` file.
+
+==== Setting a Root User Password and Permitting SSH Login
+
+Set a root password by using the `passwd root` command. Then edit your SSH configuration file
+(`/etc/ssh/sshd_config`) to permit root login. The line in your file should look like this:
+
+----
+PermitRootLogin yes
+----
+
+==== Configuring SELinux
+
+For CloudStack to work properly, SELinux must be set to permissive or disabled (not
+recommended in production).
+
+[[s-linstor-cloudstack-installing-linstor]]
+=== Installing and Preparing LINSTOR for CloudStack
+
+The Apache CloudStack community merged the LINSTOR plug-in into its own code base, beginning
+with CloudStack v4.16.1. This means that you do not have to install anything else to support
+LINSTOR. CloudStack version 4.16.0 and earlier versions do not support the LINSTOR plug-in.
+
+WARNING: One of the pull requests did not merge properly in CloudStack v4.17.0 which caused a
+CloudStack UI bug in the CloudStack initialization wizard. More details are available
+https://github.com/apache/cloudstack/pull/6481[here]. If you need to be on the v4.17 branch, it
+is recommended (at time of writing) that you install v4.17.1.
+
+Follow <<linstor-administration.adoc#s-installation,"the installation instructions in the
+LINSTOR User's Guide">> to install LINSTOR on the storage providing nodes in your cluster.
+
+A basic outline of installation steps is:
+
+1. Install necessary packages for storage layers that you will be using, for example, ZFS or
+LVM. The steps below use ZFS as a backing storage layer for LINSTOR.
+
+2. Install the necessary LINSTOR packages (DRBD kernel module, `linbit-sds-controller`,
+and `linbit-sds-satellite` packages) from LINBIT repositories if you are a LINBIT customer,
+otherwise, you will need to build from source.
+
+3. Restart the `multipathd` daemon.
++
+----
+systemctl restart multipathd
+----
+
+4. Enable and start the LINSTOR Controller and LINSTOR Satellite services on your nodes.
++
+----
+# systemctl enable --now linstor-controller
+# systemctl enable --now linstor-satellite
+----
+
+5. Add your nodes to LINSTOR.
++
+----
+linstor node create <node_host_name>
+----
+
+6. Create a new LINSTOR storage pool on all of your participating nodes. For example, given a
+ZFS pool named `zfs_storage`, enter the following to create a storage pool named `DfltStorPool`:
++
+----
+# linstor storage-pool create zfs <node_host_name> DfltStorPool zfs_storage
+----
+
+7. Create a LINSTOR resource group to be used for CloudStack. To create a resource group named
+`cloudstack`, to be placed on two of your cluster nodes, enter:
++
+----
+# linstor resource-group create cloudstack --place-count 2 --storage-pool DfltStorPool
+----
+
+8. Create a LINSTOR volume group from your resource group, by entering the command:
++
+----
+# linstor volume-group create cloudstack
+----
+
+==== Verifying Creating Resources
+
+After installing LINSTOR and creating a resource group backed by a storage pool and storage
+layer, test that you can create storage resources. You can do this by spawning resources from
+the resource group that you created.
+
+WARNING: The
+http://docs.cloudstack.apache.org/projects/archived-cloudstack-installation/en/latest/choosing_deployment_architecture.html?highlight=6%20TB#setup-best-practices[CloudStack
+setup best practices] recommend that a primary storage mount point (and therefore the LINSTOR
+resource that backs it) "should not exceed 6TB in size."
+
+----
+# linstor resource-group spawn cloudstack testres 1GiB
+----
+
+Verify that LINSTOR created your resources by using a `resource list` command.
+
+----
+# linstor resource list
++----------------------------------------------------------------------------------+
+| ResourceName | Node   | Port | Usage  | Conns |      State | CreatedOn           |
+|==================================================================================|
+| testres      | node-0 | 7000 | Unused | Ok    |   UpToDate | 2022-11-10 20:12:30 |
+| testres      | node-1 | 7000 | Unused | Ok    |   UpToDate | 2022-11-10 20:12:30 |
+| testres      | node-2 | 7000 | Unused | Ok    | TieBreaker | 2022-11-10 20:12:29 |
++----------------------------------------------------------------------------------+
+----
+
+==== Cleaning Up After Verifying Resource Creation
+
+After verifying resource creation, you can delete the resource, here `testres`, in your cluster
+by entering:
+
+----
+# linstor resource-definition delete testres
+----
+
+[[s-linstor-cloudstack-installing-cloudstack]]
+=== Installing CloudStack
+
+After installing and preparing LINSTOR, you can install and configure CloudStack. As disclaimed
+previously, you should take these instructions as a way to setup CloudStack quickly for testing
+and illustrative purposes. Refer to http://docs.cloudstack.apache.org/en/latest/[CloudStack
+documentation] for detailed instructions and best practice recommendations, before deploying
+into production.
+
+==== Installing MySQL
+
+First, install a MySQL server instance that is necessary for CloudStack's database.
+
+On Ubuntu, enter:
+
+----
+# apt install -y mysql-server
+----
+
+On RHEL, enter:
+
+----
+# dnf install -y mysql-server
+----
+
+==== Configuring the CloudStack Database
+
+After installing the MySQL server package, create a CloudStack database configuration file named
+`/etc/mysql/conf.d/cloudstack.cnf` with the following contents:
+
+----
+[mysqld]
+innodb_rollback_on_timeout=1
+innodb_lock_wait_timeout=600
+max_connections=350 <1>
+log-bin=mysql-bin
+binlog-format = 'ROW'
+----
+
+<1> 350 is the `max_connections` value specified in
+http://docs.cloudstack.apache.org/en/latest/quickinstallationguide/qig.html#database-installation-and-configuration[the
+CloudStack installation guide]. You can change this value depending on your needs.
+
+If you are on an Ubuntu 16.04 or later system, for binary logging, you need to
+specify a `server_id` in your .`cnf` database configuration file, for example:
+
+----
+[mysqld]
+server_id = 1
+innodb_rollback_on_timeout=1
+innodb_lock_wait_timeout=600
+max_connections=350
+log-bin=mysql-bin
+binlog-format = 'ROW'
+----
+
+Then restart the MySQL service by entering `systemctl restart mysql`.
+
+==== Installing NFS for Secondary Storage
+
+Next, install and configure NFS for CloudStack's secondary storage. You only need to do this on
+the node that will be your CloudStack management node. CloudStack uses secondary storage to
+store such things as operating system images for VMs and snapshots of VM data.
+
+To install NFS, on Ubuntu, enter:
+
+----
+# apt install -y nfs-kernel-server
+----
+
+On RHEL, enter:
+
+----
+# dnf install -y nfs-utils
+----
+
+After installing the NFS server, create an NFS export for CloudStack's secondary storage by
+entering the following commands:
+
+----
+# mkdir -p /export/secondary
+# echo "/export *(rw,async,no_root_squash,no_subtree_check)" >> /etc/exports
+# exportfs -a
+----
+
+Next, enable and start the NFS and `rpcbind` services.
+
+On Ubuntu:
+
+----
+# systemctl enable --now nfs-server
+# systemctl enable --now rpcbind
+----
+
+On RHEL:
+
+----
+# systemctl enable --now nfs
+# systemctl enable --now rpcbind
+----
+
+[[s-linstor-cloudstack-installing-configuring-cloudstack]]
+=== Installing and Configuring CloudStack
+
+General CloudStack installation and configuration instructions follow. As your environment may
+have specific needs or variations, you should also reference the instructions in the
+http://docs.cloudstack.apache.org/en/4.17.1.0/installguide/index.html[CloudStack Installation
+Guide].
+
+==== Installing CloudStack
+
+While official CloudStack releases are "always in source code form," for convenience, there are
+community generated DEB and RPM packages available at cloudstack.org:
+
+- Ubuntu DEB repository: http://download.cloudstack.org/ubuntu
+
+- EL8 RPM repository: http://download.cloudstack.org/el/8/
+
+- EL7 RPM repository: http://download.cloudstack.org/el/7/
+
+You can follow the links above to find and download the packages that you need for your
+installation. Be sure to verify the integrity of downloaded packages against CloudStack's
+signing keys, as outlined in the instructions
+https://cloudstack.apache.org/downloads.html[here].
+
+Alternatively, you can follow instructions
+http://docs.cloudstack.apache.org/en/latest/installguide/management-server/#configure-package-repository[here]
+to configure the CloudStack repository appropriate to your Linux distribution and then pull and
+install packages by using your distribution's package manager.
+
+After adding the CloudStack repository, you may need to update the package manager's repository
+list, before you can install packages.
+
+For your CloudStack management node, install these packages:
+
+- `cloudstack-management`
+- `cloudstack-common`
+- `cloudstack-ui`
+
+For your other cluster nodes that will be hosting VMs, install the `cloudstack-agent` package.
+
+==== Initializing the CloudStack Database
+
+After installing the necessary CloudStack packages, initialize the CloudStack database.
+
+For testing purposes, you can enter the following command on your management node:
+
+----
+# cloudstack-setup-databases cloud:cloud --deploy-as=root:nonsense -i <node_name>
+----
+
+Here, the `cloud` after `cloud:` and `nonsense` are passwords that you can change as you see
+fit.
+
+For production deployments, follow the more detailed instructions in the
+http://docs.cloudstack.apache.org/en/4.17.1.0/installguide/management-server/index.html#install-the-database-on-the-management-server-node[CloudStack
+Installation Guide].
+
+[[s-linstor-cloudstack-installing-system-vm-image-template]]
+=== Installing the CloudStack System Virtual Machine Image Template
+
+CloudStack needs to run some system VMs for some of its functionality. You can download a
+CloudStack VM template image and then run a CloudStack script that will prepare the image for
+various system VMs in deployment. On the CloudStack management node, enter the following
+commands:
+
+----
+# CS_VERSION=4.17
+# CS_VERSION_PATCH=4.17.1
+# wget https://download.cloudstack.org/systemvm/$CS_VERSION/systemvmtemplate-$CS_VERSION_PATCH-kvm.qcow2.bz2
+# /usr/share/cloudstack-common/scripts/storage/secondary/cloud-install-sys-tmplt \
+-m /export/secondary \
+-f systemvmtemplate-$CS_VERSION_PATCH=-kvm.qcow2.bz2 \
+-h kvm -o localhost -r cloud -d cloud
+----
+
+[[s-linstor-cloudstack-configuring-kvm-hosts]]
+=== Configuring KVM Hypervisor Hosts for Use in CloudStack
+
+Currently, the LINSTOR CloudStack plug-in only supports KVM hypervisor hosts. The instructions
+that follow are for configuring your CloudStack installation with KVM hypervisor hosts.
+
+Enter the following command to add `libvirt` configurations to every node in your cluster that
+will host CloudStack VMs:
+
+----
+# cat << EOF >> /etc/libvirt/libvirtd.conf
+listen_tls = 0
+listen_tcp = 1
+tcp_port = "16509"
+auth_tcp = "none" # not suitable for production
+mdns_adv = 0
+EOF
+----
+
+Restart the `libvirtd` service on all hypervisor nodes.
+
+----
+# systemctl restart libvirtd
+----
+
+==== Configuring AppArmor
+
+If you are running CloudStack on Ubuntu Linux and if AppArmor is enabled, enter the following:
+
+----
+# ln -s /etc/apparmor.d/usr.sbin.libvirtd /etc/apparmor.d/disable/
+# ln -s /etc/apparmor.d/usr.lib.libvirt.virt-aa-helper /etc/apparmor.d/disable/
+# apparmor_parser -R /etc/apparmor.d/usr.sbin.libvirtd
+# apparmor_parser -R /etc/apparmor.d/usr.lib.libvirt.virt-aa-helper
+----
+
+==== Restarting the CloudStack Management Service
+
+After making the necessary setup and preparatory configurations, restart the
+`cloudstack-management` service.
+
+----
+# systemctl restart cloudstack-management
+----
+
+You can follow the progress of CloudStack's initial database setup by entering:
+
+----
+# journalctl -u cloudstack-management -f
+----
+
+==== Logging into the CloudStack UI
+
+After some time, you should be able to log into the CloudStack management UI. Given a management
+node resolvable host name of `node-0`, enter the following URL into a web browser on a computer
+in your cluster's network: `http://node-0:8080/client`.
+
+You should be greeted by the CloudStack UI's portal login page. Log into the portal by using the
+default user name `admin` and the default password `password`.
+
+After successfully logging in, the CloudStack UI should show a "Hello and Welcome to
+CloudStack" page.
+
+==== Running the CloudStack Initialization Wizard
+
+You can continue to set up CloudStack by launching an initialization wizard. Click on the
+"Continue with installation" button to launch the wizard.
+
+The wizard will first prompt you to change the default password for the administrator user.
+After changing the password, you can continue through the wizard steps to configure a zone,
+network, and resources details. Complete the fields in each setup step according to your
+environment and needs. More details about initializing CloudStack can be found
+http://docs.cloudstack.apache.org/projects/cloudstack-installation/en/4.6/configuration.html#adding-a-zone[here].
+
+The following fields will be common to all LINSTOR use cases in CloudStack:
+
+* Zone details
+** Hypervisor: KVM
+
+* Add resources, IP Address step:
+** Host Name: <host_name_of_cluster_node_that_will_host_VMs>
+** Username: root
+** Password: <root_password_that_you_configured_previously_for_the_host>
+
+* Add resources, Primary Storage step:
+** Protocol: Linstor
+** Server: <IP_address_of_LINSTOR_controller_node>
+** Resource Group: <LINSTOR_resource_group_name_that_you_configured_previously>
+
+Based on configuring an NFS export for secondary storage earlier, complete the fields presented
+during the "Add resources, Secondary Storage" step as follows:
+
+* Provider: NFS
+* IP Address: <IP_address_of_NFS_server> # should be the CloudStack management node
+* Path: <NFS_mount_point> # `/export/secondary`, as configured previously
+
+After completing entry fields in the "Add resources" fields and clicking the "Next" button, the
+wizard should show a message that the "Zone is ready to launch." Click on the "Launch Zone"
+button.
+
+NOTE: The "Adding Host" step of the "Launch Zone" process may take a while.
+
+After the zone is added, the wizard should show a "Zone creation complete" message. You can then
+click on the "Enable Zone" button. There should be another "Success" notification and you will
+be returned to the CloudStack UI dashboard.
+
+==== Verifying Primary Storage in CloudStack
+
+Click on the "Infrastructure" icon on the left of the screen, then click on "Primary Storage".
+The "Primary Storage" screen should show your LINSTOR-backed primary storage pool in an "Up"
+state.
+
+==== Verifying Secondary Storage in CloudStack
+
+Click on the "Infrastructure" icon on the left of the screen, then click on "Secondary Storage".
+The "Secondary Storage" screen should show your NFS-backed secondary storage in a "ReadWrite"
+access state.
+
+[[s-linstor-cloudstack-next-steps]]
+=== Taking Next Steps in CloudStack
+
+After configuring LINSTOR for use in CloudStack you can move onto other tasks, such as
+http://docs.cloudstack.apache.org/en/4.17.1.0/adminguide/hosts.html#adding-hosts[adding hosts]
+to host your CloudStack VMs.
+
+LINBIT has also made available a video demonstrating deploying LINSTOR and CloudStack into a
+three-node VM cluster. You can view the video https://www.youtube.com/watch?v=hI_kTlsbNeU[here].
+
