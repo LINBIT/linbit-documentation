@@ -117,7 +117,7 @@ The southbound drivers used by LINSTOR are LVM, thinLVM and ZFS.
 [[s-packages]]
 === Packages
 
-LINSTOR is packaged in both the `.rpm` and the `.deb` variants:
+LINSTOR is packaged in both the RPM and the DEB variants:
 
 . _linstor-client_ contains the command line client program. It depends
   on python which is usually already installed. In RHEL 8 systems you will need to symlink
@@ -135,92 +135,114 @@ our certified binaries through our repositories.
 [[s-installation]]
 === Installing LINSTOR
 
-IMPORTANT: If you want to use LINSTOR in containers skip this Topic and use the "Containers" section below for the installation.
+IMPORTANT: If you want to use LINSTOR in containers, skip this section and use the
+<<s-containers,Containers>> section below for the installation.
 
-[[s-admin-linstor-ubuntu_linux]]
-==== Ubuntu Linux
+==== Installing a Volume Manager
 
-If you want to have the option of creating replicated storage using DRBD, you will need to install _drbd-dkms_ and _drbd-utils_. These packages will need to be installed on all nodes. You will also need
-to choose a volume manager, either ZFS or LVM, in this instance we're using LVM.
+To use LINSTOR to create storage volumes, you will need to install a volume manager, either LVM
+or ZFS, if one is not already installed on your system.
 
---------------------------------------------
-# apt install -y drbd-dkms drbd-utils lvm2
---------------------------------------------
+ifndef::de-brand[]
+==== Using a Script to Manage LINBIT Cluster Nodes
 
-Depending on whether your node is a LINSTOR controller, satellite, or both (Combined) will determine what packages are required on that node. For combined type nodes, we'll need both the controller and satellite LINSTOR package.
+If you are a LINBIT customer, you can download a LINBIT created helper script and run it on your
+nodes to:
 
-Combined node:
+* Register a cluster node with LINBIT.
+* Join a node to an existing LINBIT cluster.
+* Enable LINBIT package repositories on your node.
 
---------------------------------------------------------------------
-# apt install linstor-controller linstor-satellite  linstor-client
---------------------------------------------------------------------
+Enabling LINBIT package repositories will give you access to LINBT software packages, DRBD
+kernel modules, and other related software such as cluster managers and OCF scripts. You can
+then use a package manager to fetch, install, and manage updating installed packages.
 
-That will make our remaining nodes our Satellites, so we'll need to install the following packages on them:
+===== Downloading the LINBIT Manage Nodes Script
 
--------------------------------------------------
-# apt install linstor-satellite  linstor-client
--------------------------------------------------
+To register your cluster nodes with LINBIT, and configure LINBIT's repositories, first download
+and then run the manage nodes helper script by entering the following commands on all cluster
+nodes:
 
+----
+# curl -O https://my.linbit.com/linbit-manage-node.py
+# chmod +x ./linbit-manage-node.py
+# ./linbit-manage-node.py
+----
 
-[[s-admin-suse_linux_enterprise_server]]
-==== SUSE Linux Enterprise Server
+IMPORTANT: You must run the script as the `root` user.
 
+The script will prompt you for your https://my.linbit.com/[LINBIT customer portal] username and
+password. After entering your credentials, the script will list cluster nodes associated with
+your account (none at first).
 
-SLES High Availability Extension (HAE) includes DRBD.
+[[s-linbit-package-repos-enabling]]
+===== Enabling LINBIT Package Repositories
 
-On SLES, DRBD is normally installed through the software installation component of YaST2. It comes bundled with the High Availability
-package selection.
+After you specify which cluster to register the node with, have the script write the
+registration data to a JSON file when prompted. Next, the script will show you a list of LINBIT
+repositories that you can enable or disable. You can find LINSTOR and other related packages
+in the `drbd-9` repository. In most cases, unless you have a need to be on a different DRBD
+version branch, you should enable at least this repository.
 
-As we download DRBD's newest module we can check if the LVM-tools are up to date as well. User who prefer a command line install
-may simply issue the following command to get the newest DRBD and LVM version:
+[[s-linbit-manage-nodes-script-final-tasks]]
+===== Final Tasks Within Manage Nodes Script
 
-----------------------
-# zypper install drbd lvm2
-----------------------
+After you have finished making your repositories selection, you can write the configuration to a
+file by following the script's prompting. Next, be sure to answer yes to the question about
+installing LINBIT's public signing key to your node's keyring.
 
-Depending on whether your node is a LINSTOR controller, satellite, or both (Combined) will determine what packages
-are required on that node. For combined type nodes, we'll need both the controller and satellite LINSTOR package.
+Before it closes, the script will show a message that suggests different packages that you can
+install for different use cases.
 
-Combined node:
+IMPORTANT: On DEB based systems you can install a precompiled DRBD kernel module package,
+`drbd-module-$(uname -r)`, or a source version of the kernel module, `drbd-dkms`.  Install one
+or the other package but not both.
 
-------------------------------------------------------------------------
-# zypper install linstor-controller linstor-satellite  linstor-client
-------------------------------------------------------------------------
+[[s-linstor-installing-using-package-manager]]
+==== Using a Package Manager to Install LINSTOR
 
-That will make our remaining nodes our Satellites, so we'll need to install the following packages on them:
+After registering your node and enabling the `drbd-9` LINBIT package repository, you can use a
+DEB, RPM, or YaST2 based package manager to install LINSTOR and related components.
 
-----------------------------------------------------
-# zypper install linstor-satellite  linstor-client
-----------------------------------------------------
+IMPORTANT: If you are using a DEB based package manager, refresh your package repositories list
+by entering: `apt update`, before proceeding.
 
-[[s-admin-centos]]
-==== CentOS
+[[s-installing-drbd-packages]]
+===== Installing DRBD Packages for Replicated LINSTOR Storage
 
-CentOS has had DRBD 8 since release 5. For DRBD 9 you will need look to EPEL and similar sources.
-Alternatively, if you have an active support contract with LINBIT you can use our RHEL 8 repositories.
-DRBD can be installed using `yum`. We can also check for the newest version of the LVM-tools as well.
+TIP: If you will be <<linstor-administration.adoc#s-linstor-without-drbd,using LINSTOR without
+DRBD>>, you can skip installing theses packages.
 
-IMPORTANT: LINSTOR *requires* DRBD 9 if you want to have replicated storage. This requires an external
-repository to be configured, either LINBIT's or a 3rd parties.
+If you want to be able to use LINSTOR to create DRBD replicated storage, you will need to
+install the required DRBD packages. Depending on the Linux distribution that you are running on
+your node, install the DRBD-related packages that the helper script suggested. If you need to
+review the script's suggested packages and installation commands, you can enter:
 
------------------------------
-# yum install drbd kmod-drbd lvm2
------------------------------
+----
+# ./linbit-manage-node.py --hints
+----
 
-Depending on whether your node is a LINSTOR controller, satellite, or both (Combined) will determine what packages
-are required on that node. For combined type nodes, we'll need both the controller and satellite LINSTOR package.
+[[s-linstor-installing-satellite-and-controller]]
+===== Installing LINSTOR Packages
 
-Combined node:
+To install LINSTOR on a controller node, use your package manager to install the
+`linbit-sds-controller` package.
 
--------------------------------------------------------------------
-# yum install linstor-controller linstor-satellite  linstor-client
--------------------------------------------------------------------
+To install LINSTOR on a satellite node, use your package manager to install the
+`linbit-sds-satellite` package.
 
-That will make our remaining nodes our Satellites, so we'll need to install the following packages on them:
+Install both packages if your node will be both a satellite and controller (_Combined_ role).
+endif::de-brand[]
 
-------------------------------------------------
-# yum install linstor-satellite  linstor-client
-------------------------------------------------
+[[s-linstor-installation-from-source]]
+==== Installing LINSTOR from Source Code
+
+The LINSTOR project's GitHub page is here: https://github.com/LINBIT/linstor-server.
+
+LINBIT also has downloadable archived files of source code for LINSTOR, DRBD, and more,
+available here:
+https://linbit.com/linbit-software-download-page-for-linstor-and-drbd-linux-driver/.
+
 
 [[s-upgrading]]
 === Upgrading LINSTOR
@@ -1346,7 +1368,7 @@ be installed on every Node which acts as a Satellite and will use
 NVMe-oF/NVMe-TCP for a resource:
 
 IMPORTANT: If you are not using Ubuntu, use the suitable command for
-installing packages on your operating system: SLES: `zypper`; CentOS: `yum`.
+installing packages on your operating system: SLES: `zypper`; RHEL-family: `dnf`.
 
 ------
 # apt install nvme-cli
