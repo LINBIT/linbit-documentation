@@ -1799,24 +1799,25 @@ interface for controller-satellite traffic by entering the following command:
 You can verify this change by using the `linstor node interface list node-0` command. Output
 from the command should show that the `StltCon` label applies to the `1G-satconn` interface.
 
-While the above methods can re-route DRBD traffic, and LINSTOR communication between the
-controller and satellite nodes, it is not possible through `linstor` commands only, to route
-LINSTOR controller-client traffic (commands that you issue from a LINSTOR client to the
-controller) through a specific NIC. To achieve this, you can either:
+While this method routes DRBD traffic through a specified NIC, it is not possible through
+`linstor` commands only, to route LINSTOR controller-client traffic through a specific NIC, for
+example, commands that you issue from a LINSTOR client to the controller. To achieve this, you
+can either:
 
-. Specify a LINSTOR controller using methods outlined in <<s-using_the_linstor_client>> *and*
+* Specify a LINSTOR controller by using methods outlined in <<s-using_the_linstor_client>> *and*
 have the only route to the controller as specified be through the NIC that you want to use for
 controller-client traffic.
-. Use Linux tools such as `ip route` and `iptables` to filter LINSTOR client-controller traffic,
+
+* Use Linux tools such as `ip route` and `iptables` to filter LINSTOR client-controller traffic,
 port number 3370, and route it through a specific NIC.
 
 [[s-creating-multiple-drbd-paths]]
 ==== Creating Multiple DRBD Paths with LINSTOR
 
-To use https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-configuring-multiple-paths[multiple network paths]
-for DRBD setups, the `PrefNic` property is not sufficient. Instead the
-`linstor node interface` and `linstor resource-connection path` commands
-should be used, as shown below.
+To use
+https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-configuring-multiple-paths[multiple
+network paths] for DRBD setups, the `PrefNic` property is not sufficient. Instead the `linstor
+node interface` and `linstor resource-connection path` commands should be used, as shown below.
 
 ----
 # linstor node interface create alpha nic1 192.168.43.221
@@ -1828,9 +1829,10 @@ should be used, as shown below.
 # linstor resource-connection path create alpha bravo myResource path2 nic2 nic2
 ----
 
-In the example above we define two network interfaces (`nic1` and `nic2`) for each node.
-The last two commands create network path entries in the generated DRBD `.res` file.
-This is the relevant part of the resulting `.res` file:
+The first four commands in the example define a network interface (`nic1` and `nic2`) for each
+node (`alpha` and `bravo`) by specifying the network interface's IP address. The last two
+commands create network path entries in the DRBD `.res` file that LINSTOR generates. This is the
+relevant part of the resulting `.res` file:
 
 ----
 resource myResource {
@@ -1852,6 +1854,43 @@ NOTE: While it is possible to specify a port number to be used for LINSTOR satel
 traffic when creating a node interface, this port number is ignored when creating a
 DRBD resource connection path. Instead, the command will assign a port number
 dynamically, starting from port number 7000 and incrementing up.
+
+[[s-linstor-effects-of-new-paths-on-default-path]]
+===== How Adding a New DRBD Path Affects the Default Path
+
+The NIC that is first in order on a LINSTOR satellite node is named the `default` net interface.
+DRBD traffic traveling between two nodes that do not have an explicitly configured resource
+connection path will take an implicit path that uses the two nodes' `default` net interfaces.
+
+When you add a resource connection path between two nodes for a DRBD-backed resource, DRBD
+traffic between the two nodes will use this new path only, although a `default` network
+interface will still exist on each node. This may be significant if your new path uses different
+NICs than the implicit default path.
+
+To use the default path again, in addition to any new paths, you will need to explicitly add it.
+For example:
+
+====
+# linstor resource-connection path create alpha bravo myResource path3 default default
+====
+
+Although the newly created `path3` uses net interfaces that are named `default` on the two
+nodes, the path itself is not a default path because other paths exist, namely `path1` and
+`path2`. The new path, `path3`, will just act as a third possible path, and DRBD traffic and
+path selection behavior will be as described in the next section.
+
+===== Multiple DRBD Paths Behavior
+
+The behavior of a multiple DRBD paths configuration will be different depending on the DRBD
+transport type. From the DRBD User's
+Guidefootnote:[https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-configuring-multiple-paths]:
+
+"The TCP transport uses one path at a time. If the backing TCP connections get dropped, or show
+timeouts, the TCP transport implementation tries to establish a connection over the next path.
+It goes over all paths in a round-robin fashion until a connection gets established.
+
+"The RDMA transport uses all paths of a connection concurrently and it balances the network
+traffic between the paths evenly."
 
 // if customers request, we should be able to also extend this to `node-connection` level
 
