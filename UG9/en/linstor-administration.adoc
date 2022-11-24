@@ -2636,27 +2636,103 @@ Example output could look like this:
 ----
 
 [[s-linstor-setupopts]]
-=== Setting DRBD Options on LINSTOR Objects
+=== Setting DRBD Options for LINSTOR Objects
 
-You can use LINSTOR commands to set DRBD options. Configurations in files such as `/etc/drbd.d/global_common.conf` that are not managed by LINSTOR will be ignored. You can enter the LINSTOR object along with `drbd-options` and the `--help` or `-h` flag to show the command usage, available options, and the default value for each option. Some examples are:
-
-----
-# linstor controller drbd-options -h
-# linstor resource-definition drbd-options -h
-# linstor volume-definition drbd-options -h
-----
-
-An exception to this is the LINSTOR resource object. With the LINSTOR resource object, you use the `drbd-peer-options` to set DRBD options at the connection level between the two nodes that you specify.
+You can use LINSTOR commands to set DRBD options. Configurations in files that are not managed
+by LINSTOR, such as `/etc/drbd.d/global_common.conf`, will be ignored. The syntax for this
+command is generally:
 
 ----
-# linstor resource drbd-peer-options -h
+# linstor <LINSTOR_object> drbd-options --<DRBD_option> <value> <LINSTOR_object_identifiers>
 ----
 
-For example, to set the DRBD protocol for a resource named `backups`, enter:
+In the syntax above, `<LINSTOR_ object_identifiers>` is a placeholder for identifiers such as a
+node name, node names, or a resource name, or a combination of these identifiers.
+
+For example, to set the DRBD replication protocol for a resource definition named `backups`,
+enter:
 
 ----
 # linstor resource-definition drbd-options --protocol C backups
 ----
+
+You can enter a LINSTOR object along with `drbd-options` and the `--help`, or `-h`, flag to
+show the command usage, available options, and the default value for each option. For example:
+
+----
+# linstor controller drbd-options -h
+----
+
+[[s-linstor-setup-drbd-peer-opts]]
+==== Setting DRBD Peer Options for LINSTOR Resources or Resource Connections
+
+The LINSTOR resource object is an exception to the general syntax for setting DRBD options for
+LINSTOR objects. With the LINSTOR resource object, you can use the `drbd-peer-options` to set
+DRBD options at the connection level between the two nodes that you specify. Specifying
+`drbd-peer-options` for a LINSTOR resource object between two nodes is equivalent to using
+the`linstor resource-connection drbd-peer-options` for a resource between two nodes.
+
+For example, to set the DRBD maximum buffer size to 8192 at a connection level, for a resource
+named `backups`, between two nodes, `node-0` and `node-1`, enter:
+
+----
+# linstor resource drbd-peer-options --max-buffers 8192 node-0 node-1 backups
+----
+
+The command above is equivalent to the following:
+
+----
+# linstor resource-connection drbd-peer-options --max-buffers 8192 node-0 node-1 backups
+----
+
+Indeed, when using the `linstor --curl` command to examine the two commands actions on the
+LINSTOR REST API, the output is identical:
+
+----
+# linstor --curl resource drbd-peer-options --max-buffers 8192 node-0 node-1 backups
+curl -X PUT -H "Content-Type: application/json" -d '{"override_props": {"DrbdOptions/Net/max-buffers": "8192"}}' http://localhost:3370/v1/resource-definitions/backups/resource-connections/node-0/node-1
+
+# linstor --curl resource-connection drbd-peer-options --max-buffers 8192 node-0 node-1 backups
+curl -X PUT -H "Content-Type: application/json" -d '{"override_props": {"DrbdOptions/Net/max-buffers": "8192"}}' http://localhost:3370/v1/resource-definitions/backups/resource-connections/node-0/node-1
+----
+
+The connection section of the LINSTOR-generated resource file `backups.res` on `node-0` will
+look something like this:
+
+----
+connection {
+        _peer_node_id 1;
+        path {
+            _this_host ipv4 192.168.222.10:7000;
+            _remote_host ipv4 192.168.222.11:7000;
+        }
+        path {
+            _this_host ipv4 192.168.121.46:7000;
+            _remote_host ipv4 192.168.121.220:7000;
+        }
+        net {
+			[...]
+            max-buffers         8192;
+            _name               "node-1";
+        }
+    }
+----
+
+NOTE: If there are multiple paths between the two nodes, as in the example above, DRBD options
+that you set using the `resource drbd-peer-options` command will apply to all of them.
+
+[[s-linstor-setup-node-connection-drbd-opts]]
+==== Setting DRBD Options for Node Connections
+
+You can use the `drbd-peer-options` argument to set DRBD options at a connection level, between
+two nodes, for example:
+
+----
+# linstor node-connection drbd-peer-options --ping-timeout 299 node-0 node-1
+----
+
+The preceding command would set the DRBD `ping-timeout` option to 29.9 seconds at a connection
+level between two nodes, `node-0` and `node-1`.
 
 [[s-linstor-verifying-opts]]
 ==== Verifying Options for LINSTOR Objects
@@ -2676,13 +2752,24 @@ command, for example:
 [[s-linstor-unset-opts]]
 ==== Removing DRBD Options from LINSTOR Objects
 
-To remove a DRBD option, prefix the option name with the word `unset`. For example:
+To remove a previously set DRBD option, prefix the option name with `unset-`. For
+example:
 
 ----
 # linstor resource-definition drbd-options --unset-protocol backups
 ----
 
-Removing a DRBD option will return the option to its default value.
+The same syntax applies to any `drbd-peer-options` set either on a LINSTOR resource, resource
+connection, or node connection. For example:
+
+----
+# linstor resource-connection drbd-peer-options --unset-max-buffers node-0 node-1 backups
+----
+
+Removing a DRBD option or DRBD peer option will return the option to its default value. Refer to
+the `linstor <LINSTOR_object> drbd-options --help` (or `drbd-peer-options --help`) command
+output for the default values of options. You can also refer to the `drbd.conf-9.0` man page to
+get information about DRBD options.
 
 [[s-linstor-toggle-disk]]
 === Adding and Removing Disks
