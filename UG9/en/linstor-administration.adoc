@@ -2636,25 +2636,53 @@ Example output could look like this:
 ----
 
 [[s-linstor-setupopts]]
-=== Setting Options for Resources
+=== Setting DRBD Options on LINSTOR Objects
 
-DRBD options are set using LINSTOR commands.
-Configuration in files such as `/etc/drbd.d/global_common.conf` that are not
-managed by LINSTOR will be ignored.
-The following commands show the usage and available options:
+You can use LINSTOR commands to set DRBD options. Configurations in files such as `/etc/drbd.d/global_common.conf` that are not managed by LINSTOR will be ignored. You can enter the LINSTOR object along with `drbd-options` and the `--help` or `-h` flag to show the command usage, available options, and the default value for each option. Some examples are:
 
 ----
 # linstor controller drbd-options -h
 # linstor resource-definition drbd-options -h
 # linstor volume-definition drbd-options -h
+----
+
+An exception to this is the LINSTOR resource object. With the LINSTOR resource object, you use the `drbd-peer-options` to set DRBD options at the connection level between the two nodes that you specify.
+
+----
 # linstor resource drbd-peer-options -h
 ----
 
-For instance, it is easy to set the DRBD protocol for a resource named `backups`:
+For example, to set the DRBD protocol for a resource named `backups`, enter:
 
 ----
 # linstor resource-definition drbd-options --protocol C backups
 ----
+
+[[s-linstor-verifying-opts]]
+==== Verifying Options for LINSTOR Objects
+
+You can verify a LINSTOR object's set properties by using the `list-properties`
+command, for example:
+
+----
+# linstor resource-definition list-properties backups
++------------------------------------------------------+
+| Key                               | Value            |
+|======================================================|
+| DrbdOptions/Net/protocol          | C                |
+[...]
+----
+
+[[s-linstor-unset-opts]]
+==== Removing DRBD Options from LINSTOR Objects
+
+To remove a DRBD option, prefix the option name with the word `unset`. For example:
+
+----
+# linstor resource-definition drbd-options --unset-protocol backups
+----
+
+Removing a DRBD option will return the option to its default value.
 
 [[s-linstor-toggle-disk]]
 === Adding and Removing Disks
