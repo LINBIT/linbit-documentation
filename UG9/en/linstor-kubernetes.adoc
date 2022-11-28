@@ -1741,3 +1741,29 @@ To exempt a Pod from management by the HA Controller, add the following annotati
 ----
 $ kubectl annotate pod <podname> drbd.linbit.com/ignore-fail-over=""
 ----
+
+[[s-kubernetes-evacuate-node]]
+=== Evacuating a Node in Kubernetes
+
+If you want to evacuate a LINSTOR node of its resources, so that they are placed onto other
+nodes within your cluster, the process is detailed in <<s-linstor-node-evacuate>>. However,
+before evacuating a LINSTOR node in Kubernetes, you need to take an additional action.
+
+First move the node's workload to another node. You can do this by entering the command:
+
+----
+# kubectl drain --ignore-daemonsets <node_name>
+----
+
+After verifying that your cluster is running all right, you can continue to follow the steps in
+<<s-linstor-node-evacuate>>.
+
+If you are planning on evacuating more than one node, enter the following command on all the
+nodes that you will be evacuating:
+
+----
+# linstor node set-property n1.k8s-mwa.at.linbit.com AutoplaceTarget false
+----
+
+This ensures that LINSTOR will not place resources from a node that you are evacuating onto
+another node that you plan on evacuating.

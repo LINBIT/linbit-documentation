@@ -1852,10 +1852,87 @@ These commands start with a 'list' precursor, after which, various filtering and
 sorting options can be used. The '--groupby' option can be used to group and sort the
 output in multiple dimensions.
 
-----------------------------
+----
 # linstor node list
 # linstor storage-pool list --groupby Size
-----------------------------
+----
+
+[[s-linstor-node-evacuate]]
+=== Evacuating a Node
+
+You can use the LINSTOR command `node evacuate` to evacuate a node of its resources, for
+example, if you are preparing to delete a node from your cluster, and you need the node's
+resources moved to other nodes in the cluster. After successfully evacuating a node, the node's
+LINSTOR status will show as "EVACUATE" rather than "Online", and it will have no LINSTOR
+resources on it.
+
+IMPORTANT: If you are evacuating a node where LINSTOR is deployed within another environment,
+such as Kubernetes, or OpenNebula, you need to move the node's LINSTOR-backed workload to
+another node in your cluster before evacuating its resources. For special actions and
+considerations within a Kubernetes environment, see the <<s-kubernetes-evacuate-node>> section.
+For a LINSTOR node in OpenNebula, you need to perform a <<s-opennebula-linstor-live-migration,
+live migration>> of the OpenNebula LINSTOR-backed virtual machines that your node hosts, to
+another node in your cluster, before evacuating the node's resources.
+
+Evacuate a node using the following steps:
+
+. Determine if any resources on the node that you want to evacuate are "InUse". The "InUse"
+status corresponds to a resource being in a DRBD _Primary_ state. Before you can evacuate a node
+successfully, none of the resources on the node should be "InUse", otherwise LINSTOR will fail
+to remove the "InUse" resources from the node as part of the evacuation process.
+
+. Run `linstor node evacuate <node_name>`. You will get a warning if there is no suitable
+replacement node for a resource on the evacuating node. For example, if you have three nodes and
+you want to evacuate one, but your resource group sets a placement count of three, you will get
+a warning that will prevent the node from removing the resources from the evacuating node.
+
+. Verify that the status of `linstor node list` for your node is "EVACUATE" rather than
+"Online".
+
+. Check the "State" status of resources on your node, by using the `linstor resource list`
+command.  You should see syncing activity that will last for sometime, depending on the size of
+the data sets in your node's resources.
+
+. List the remaining resources on the node by using the command `linstor resource list --nodes
+<node_name>`. If any are left, verify whether they are just waiting for the sync to complete.
+
+. Verify that there are no resources on the node, by using the `linstor resource list` command.
+
+. Remove the node from the cluster by using the command `linstor node delete <node_name>`.
+
+[[s-linstor-evacuating-multiple-nodes]]
+==== Evacuating Multiple Nodes
+
+Some evacuation cases may need special planning. For example, if you are evacuating more than
+one node, you can exclude the nodes from participating in LINSTOR's resource autoplacer. You can
+do this by using the following command on each node that you want to evacuate:
+
+----
+# linstor node set-property <node_name> AutoplaceTarget false
+----
+
+This ensures that LINSTOR will not place resources from a node that you are evacuating onto
+another node that you plan on evacuating.
+
+[[s-linstor-removing-node-evacuating-state]]
+==== Restoring an Evacuating Node
+
+If you already ran a `node evacuate` command that has either completed or still has resources in
+an "Evacuating" state, you can remove the "Evacuating" state from a node by using the `node
+restore` command. This will work so long as you have not yet run a `node delete` command.
+
+After restoring the node, you should use the `node set-property <node_name> AutoplaceTarget
+true` command, if you previously set the `AutoplaceTarget` property to "false".  This way,
+LINSTOR can again place resources onto the node automatically, to fulfill placement count
+properties that you might have set for resources in your cluster.
+
+IMPORTANT: If LINSTOR has already evacuated resources when running a `node restore` command,
+evacuated resources will not automatically return to the node. If LINSTOR is still in the
+process of evacuating resources, this process will continue until LINSTOR has placed the
+resources on other nodes. You will need to manually "move" the resources that were formerly on
+the restored node. You can do this by first creating the resources on the restored node and then
+deleting the resources from another node where LINSTOR may have placed them. You can use the
+`resource list` command to show you on which nodes your resources are placed.
 
 [[s-linstor-snapshots]]
 === Managing Snapshots
@@ -3053,7 +3130,7 @@ echo '[netcom]
 Now just start controller and satellites and add the nodes with `--communication-type SSL`.
 
 [[s-linstor-ldap-authentication]]
-=== Configuring LDAP Authentication 
+=== Configuring LDAP Authentication
 
 You can configure LINSTOR to use LDAP authentication to limit access to the LINSTOR Controller.
 This feature is disabled by default but you can enable and configure it by editing the
@@ -3122,14 +3199,14 @@ Controller and an LDAP server.
 After configuring the LINSTOR Controller to authenticate users through LDAP (or LDAPS), and the LINSTOR REST API HTTPS, you will need to enter LINSTOR commands as follows:
 
 ----
-$ linstor --user <LDAP_user_name> <command> 
+$ linstor --user <LDAP_user_name> <command>
 ----
 
 If you have configured LDAP authentication without also configuring <<s-linstor-rest-api-https,LINSTOR REST API
 HTTPS>>, you will need to explicitly enable password authentication over HTTP, by using the `--allow-insecure-path` flag with your `linstor` commands. This is not recommended outside of a secured and isolated LAN, as you will be sending credentials in plain text.
 
 ----
-$ linstor --allow-insecure-auth --user <LDAP_user_name> <command> 
+$ linstor --allow-insecure-auth --user <LDAP_user_name> <command>
 ----
 
 The LINSTOR Controller will prompt you for the user's password, in each of the above examples. You may optionally use the `--password` argument to supply the user's password on the command line, with all the warnings of caution that would go along with doing so.
