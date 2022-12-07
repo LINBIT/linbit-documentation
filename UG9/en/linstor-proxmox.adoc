@@ -21,7 +21,7 @@ replicated to multiple nodes.
 If this is a fresh installation, skip this section and continue with <<s-proxmox-ls-install>>.
 
 [[s-proxmox-ls-upgrades-plug-4-5]]
-==== Upgrading plugin from 4.x to 5.x
+==== Upgrading Plug-in from 4.x to 5.x
 Version 5 of the plug-in drops compatibility with the legacy configuration options "storagepool" and
 "redundancy". Version 5 *requires* a "resourcegroup" option, and obviously a LINSTOR resource group. The old
 options should be removed from the configuration.
@@ -40,8 +40,8 @@ drbd: drbdstorage
 ----------------------------
 
 [[s-proxmox-ls-upgrades-plug-5-6]]
-==== Upgrading plugin from 5.x to 6.x
-Version 6.0.0 of the plugin drops all code related to the `redundancy` setting. This is handled by LINSTOR
+==== Upgrading Plug-in from 5.x to 6.x
+Version 6.0.0 of the plug-in drops all code related to the `redundancy` setting. This is handled by LINSTOR
 resource groups (`resourcegroup` setting) for a very long time. No change should be required.
 
 The `controllervm` setting, which was intended for executing a LINSTOR controller in a VM manged by LINSTOR is
@@ -56,37 +56,64 @@ means that old plug-ins, while actually usable as they don't use any of these ch
 anymore. Please upgrade to plug-in version 5.2.1 at least.
 
 [[s-proxmox-ls-install]]
-=== Installing the Proxmox Plug-in
+=== Installing the LINSTOR Proxmox Plug-in
 
-ifndef::drbd-only[]
-If you are a LINBIT customer you can enable LINBIT's `drbd-9` repository on your node. You can then install the LINSTOR Proxmox plug-in by using a package manager.
+To use LINSTOR in Proxmox, you will need to install the LINSTOR Proxmox plug-in.
 
+[[s-proxmox-pve-headers-install]]
+==== Installing the Proxmox VE Kernel Headers
 
-NOTE: Refer to the Using a Script to Manage LINBIT Cluster Nodes for instructions on registering a node with LINBIT and enabling LINBIT repositories.
+To use LINSTOR in Proxmox, you will need to install the DRBD kernel module. The DRBD 9 kernel
+module is installed as a kernel module source package (`drbd-dkms`).  Therefore, you will have
+to install the Proxmox VE kernel headers package, `pve-headers`, before you install the DRBD
+kernel module from LINBIT's repositories. Following that order ensures that the kernel module
+will build properly for your kernel.
 
-endif::drbd-only[]
-
-==== Installing the Proxmox Plug-in By Using LINBIT Public Repositories
-
-LINBIT provides a dedicated public repository for Proxmox VE users. This repository not only contains the
-Proxmox plug-in, but the whole DRBD SDS stack including a DRBD SDS kernel
-module and user space utilities.
-
-The DRBD9 kernel module is installed as a `dkms` package (i.e., `drbd-dkms`), therefore you'll have to install
-`pve-headers` package, before you set up/install the software packages from LINBIT's repositories. Following
-that order ensures that the kernel module will build properly for your kernel. If you don't plan to install
-the latest Proxmox kernel, you have to install kernel headers matching your current running kernel (e.g., `pve-headers-$(uname -r)`). If you missed this step, then still you can rebuild the dkms package against
-your current kernel, (kernel headers have to be installed in advance), by issuing `apt install --reinstall
+If you do not plan to install the latest Proxmox kernel, you have to install kernel headers
+matching your current running kernel (for example, `pve-headers-$(uname -r)`). If you missed
+this step, then you can still rebuild the `drbd-dkms` package against your current kernel (so
+long as you have installed kernel headers in advance) by entering the `apt install --reinstall
 drbd-dkms` command.
 
+IMPORTANT: You will need to add the Proxmox PVE repository to your APT sources list,
+`/etc/apt/sources.list`, and then enter `apt update`, before you can install the `pve-headers`
+package. Refer to
+https://pve.proxmox.com/wiki/Package_Repositories#_repositories_in_proxmox_vei[the Proxmox wiki]
+for instructions.
+
+ifndef::de-brand[]
+[[s-proxmox-installing-from-linbit-customer-repos]]
+==== Installing the Proxmox Plug-in By Using LINBIT Customer Repositories
+
+If you are a LINBIT customer, or you have an evaluation account, you can enable LINBIT's
+`drbd-9` repository on your node and then update your repositories by using an `apt update`
+command.
+
+You can then install the DRBD kernel module, DRBD utilities, and the LINSTOR Proxmox plug-in by
+entering:
+
+----
+# apt install drbd-utils linstor-proxmox drbd-dkms
+----
+
+NOTE: Refer to the <<linstor-administration.adoc#s-linbit-manage-nodes-script,Using a Script to
+Manage LINBIT Cluster Nodes>> for instructions on registering a node with LINBIT and enabling
+LINBIT repositories.
+endif::de-brand[]
+
+[[s-proxmox-installing-from-linbit-public-repos]]
+==== Installing the Proxmox Plug-in By Using LINBIT Public Repositories
+
+LINBIT provides a dedicated public repository for Proxmox VE users. This repository not only contains the Proxmox plug-in, but the whole DRBD SDS stack including a DRBD SDS kernel module and user-space utilities.
+
 LINBIT's repository can be enabled as follows, where "$PVERS" should be set to your Proxmox VE *major version*
-(e.g., "7", not "7.1"):
+(for example, "7", not "7.1"):
 
 ----------------------------
 # wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -
 # PVERS=7 && echo "deb http://packages.linbit.com/public/ proxmox-$PVERS drbd-9" > \
-	/etc/apt/sources.list.d/linbit.list
-# apt update && apt install linstor-proxmox
+/etc/apt/sources.list.d/linbit.list
+# apt update && apt -y install linstor-proxmox
 ----------------------------
 
 [[s-proxmox-ls-ls-configuration]]
