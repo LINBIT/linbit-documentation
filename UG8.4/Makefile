@@ -1,1 +1,0 @@
-include ../UG-top.mk
