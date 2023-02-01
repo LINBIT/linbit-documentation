@@ -1,6 +1,6 @@
 #
 # UG-build-po.mk
-#   
+#
 # Makefile in localized document should include this file and UG-build.mk
 #
 

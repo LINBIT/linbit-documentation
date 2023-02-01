@@ -1,3 +1,5 @@
+# this file referenced via an `include` statement in the `Makefile`s within the various UGx directories
+
 languages = en ja cn
 formats = html pdf
 

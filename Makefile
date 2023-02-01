@@ -1,10 +1,27 @@
 # you can override on command line
 lang = en
 
+# `make` reminders:
+#  `make -C <dir>` == change directory to <dir> before `make`-ing
+#  $@ == the file name of the target of the rule
+#  $< == the name of the first prerequisite
+#  $^ == the name of all the prerequisites, with a space between each one
+
+# /linbit-documentation is the WORKDIR in the Dockerfile
+# so, `./` in the `define` block below == `linbit-documentation`
 define run-in-docker =
-	docker run --rm -v $$(pwd):/home/makedoc/linbit-documentation linbit-documentation /bin/sh -c 'cd ~/linbit-documentation && make $(patsubst %-docker,%,$@) lang=$(lang)'
+	docker run \
+		--rm \
+		--user $$(id -u):$$(id -g) \
+		--volume $$(pwd):/linbit-documentation \
+		linbit-documentation \
+		/bin/sh -c \
+		'ln -sf /fonts/genshingothic-fonts ./ && \
+		make $(patsubst %-docker,%,$@) lang=$(lang); \
+		unlink ./genshingothic-fonts'
 endef
 
+# generate README.html from README.adoc
 .PHONY: README.html-docker
 README.html: README.adoc
 	asciidoctor -n -o $@ $<
@@ -12,36 +29,56 @@ README.html: README.adoc
 README.html-docker: dockerimage
 	$(run-in-docker)
 
-#
-# po4a v0.54 is required to make build ja adoc files.
-#
+# needed for `make dockerimage` target
 define dockerfile=
-FROM debian:buster
-MAINTAINER Roland Kammerer <roland.kammerer@linbit.com>
-ADD /GNUmakefile /linbit-documentation/GNUmakefile
-RUN groupadd --gid $(shell id -g) makedoc
-RUN useradd -m -u $(shell id -u) -g $(shell id -g) makedoc
-RUN apt-get update && apt-get install -y make inkscape ruby po4a patch openssh-client lftp curl unzip
-RUN gem install --pre asciidoctor-pdf -v '< 1.7.0'
-RUN gem install --pre asciidoctor-pdf-cjk
-RUN gem install asciidoctor-pdf-cjk-kai_gen_gothic && asciidoctor-pdf-cjk-kai_gen_gothic-install
-RUN curl https://packages.linbit.com/public/genshingothic-20150607.zip > /tmp/ja.zip && (mkdir /linbit-documentation/genshingothic-fonts && cd /linbit-documentation/genshingothic-fonts && unzip /tmp/ja.zip); rm /tmp/ja.zip
+FROM asciidoctor/docker-asciidoctor:1
+LABEL maintainers="Roland Kammerer <roland.kammerer@linbit.com>, Michael Troutman <michael.troutman@linbit.com>"
+# po4a and related packages needed for documenation translation commands
+# zip needed for extracting LINBIT fonts package below
+# font-noto-cjk needed for Japanese and Chinese EPUB rendering (one day)
+# lftp and openssh-client needed for some GitLab pipeline preview actions
+# shadow needed for useradd command
+RUN apk update && \
+    apk add --no-cache \
+    po4a po4a-lang perl-yaml-tiny perl-unicode-linebreak perl-mime-charset \
+    make \
+    patch \
+    zip \
+    openssh-client \
+    lftp \
+    shadow \
+    curl \
+    font-noto-cjk
+# download and extract LINBIT fonts collection for Japanese and Chinese translations
+RUN mkdir -p /fonts/genshingothic-fonts
+RUN curl https://packages.linbit.com/public/genshingothic-20150607.zip --output /tmp/ja.zip && \
+	unzip /tmp/ja.zip -d /fonts/genshingothic-fonts && rm /tmp/ja.zip
+WORKDIR /linbit-documentation
+COPY /GNUmakefile ./
+# the `makedoc` user actions below are necessary for docs website staging actions in a GitLab pipeline
+RUN useradd -m makedoc
 USER makedoc
-RUN mkdir /home/makedoc/.ssh && chmod 700 /home/makedoc/.ssh && ssh-keygen -f /home/makedoc/.ssh/id_rsa -t rsa -N '' && cat /home/makedoc/.ssh/id_rsa.pub
+RUN mkdir /home/makedoc/.ssh && \
+	chmod 700 /home/makedoc/.ssh && \
+	ssh-keygen -f /home/makedoc/.ssh/id_rsa -t rsa -N '' && \
+	cat /home/makedoc/.ssh/id_rsa.pub
 endef
 
 export dockerfile
 Dockerfile:
 	@echo "$$dockerfile" > $@
 
+# Quietly check for the existence of a linbit-documentation:latest Docker image and
+# build the image if one does not exist already
+# Also create a GNUmakefile if it does not exist already
 .PHONY: dockerimage
 dockerimage: Dockerfile
-	if ! docker images --format={{.Repository}}:{{.Tag}} | grep -q 'linbit-documentation:latest'; then \
+	if ! docker images --format={{.Repository}}:{{.Tag}} | grep -q '^linbit-documentation:latest'; then \
 		test -f GNUmakefile || echo 'include Makefile' > GNUmakefile ; \
-		docker build -t linbit-documentation . ; \
+		DOCKER_BUILDKIT=1 docker build -t linbit-documentation . ; \
 	fi
 
-# UG 9
+# Create UG 9 (PDF version)
 .PHONY: UG9-pdf-finalize UG9-pdf-finalize-docker UG9-html-finalize UG9-html-finalize-docker UG9-pot UG9-pot-docker
 UG9-pdf-finalize:
 	make -C UG9 pdf-finalize lang=$(lang)
@@ -49,19 +86,21 @@ UG9-pdf-finalize:
 UG9-pdf-finalize-docker: dockerimage
 	$(run-in-docker)
 
+# Create UG 9 (HTML version)
 UG9-html-finalize:
 	make -C UG9 html-finalize lang=$(lang)
 
 UG9-html-finalize-docker: dockerimage
 	$(run-in-docker)
 
+# Create UG 9 translation `pot` files
 UG9-pot:
 	make -C UG9 pot lang=en
 
 UG9-pot-docker: dockerimage
 	$(run-in-docker)
 
-# UG 8.4
+# Create UG 8.4 (PDF version)
 .PHONY: UG8.4-pdf-finalize UG8.4-pdf-finalize-docker UG8.4-html-finalize UG8.4-html-finalize-docker UG8.4-pot UG8.4-pot-docker
 UG8.4-pdf-finalize:
 	make -C UG8.4 pdf-finalize lang=$(lang)
@@ -69,20 +108,22 @@ UG8.4-pdf-finalize:
 UG8.4-pdf-finalize-docker: dockerimage
 	$(run-in-docker)
 
+# Create UG 8.4 (HTML version)
 UG8.4-html-finalize:
 	make -C UG8.4 html-finalize lang=$(lang)
 
 UG8.4-html-finalize-docker: dockerimage
 	$(run-in-docker)
 
+# Create UG 8.4 translation `pot` files
 UG8.4-pot:
 	make -C UG8.4 pot lang=en
 
 UG8.4-pot-docker: dockerimage
 	$(run-in-docker)
 
-## targets you can only use if you cloned the according *private* project
-# tech guides
+## targets you can only use if you cloned the *private* `tech-guides` project
+# create PDF tech guides
 .PHONY: tech-guides-pdf-finalize tech-guides-pdf-finalize-docker
 tech-guides-pdf-finalize:
 	make -C tech-guides pdf-finalize
@@ -92,7 +133,7 @@ tech-guides-pdf-finalize-docker: dockerimage
 
 .PHONY: clean clean-all
 clean:
-	$(warning this target is reserved, maybe you look for clean-all)
+	$(warning this target is reserved, maybe you're looking for clean-all)
 
 clean-all:
 	make -C UG8.4 clean-all
