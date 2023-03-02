@@ -23,21 +23,137 @@ specifications of Kubernetes objects.
 [[s-kubernetes-deploy]]
 === Deploying LINSTOR on Kubernetes
 
-[[s-kubernetes-deploy-linstor-operator]]
-==== Deploying with the LINSTOR Operator
-
 LINBIT provides a LINSTOR Operator to commercial support customers.
 The Operator eases deployment of LINSTOR on Kubernetes by installing DRBD,
 managing Satellite and Controller pods, and other related functions.
 
-The Operator itself is installed using a Helm v3 chart as follows:
-
-IMPORTANT: LINBIT's container image repository (http://drbd.io), used in the `kubectl create`
-command below, is only available to LINBIT customers or through LINBIT customer trial accounts.
+IMPORTANT: LINBIT's container image repository (https://drbd.io), used by LINSTOR Operator,
+is only available to LINBIT customers or through LINBIT customer trial accounts.
 link:https://linbit.com/contact-us/[Contact LINBIT for information on pricing or to begin a
 trial]. Alternatively, you may use LINSTOR SDS' upstream project named
 link:https://github.com/piraeusdatastore/piraeus-operator[Piraeus], without being a LINBIT
 customer.
+
+LINSTOR Operator v2 is the recommended way of deploying LINBIT SDS for Kubernetes on new clusters.
+Users of existing Operator v1 deployments should continue to use their Helm deployments,
+<<s-kubernetes-deploy-linstor-operator-v1,skipping to the Operator v1 instructions>>.
+
+[[s-kubernetes-deploy-linstor-operator-v2]]
+==== Deploying LINSTOR Operator v2
+
+LINSTOR Operator v2 is deployed using
+link:https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization[`kustomize` tool],
+integrated with `kubectl`.
+
+[[s-kubernetes-deploy-linstor-operator-v2-prerequisites]]
+===== Prerequisites for LINSTOR Operator v2
+
+To deploy LINSTOR Operator v2, you need to meet the following prerequisites:
+
+* link:https://cert-manager.io/docs/installation/[Install `cert-manager`]. You can quickly install `cert-manager` by
+applying its static manifests:
++
+----
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+----
+* link:https://kubernetes.io/docs/tasks/tools/[Install `kubectl` version `>= 1.22`].
+* Have your link:https://my.linbit.com[my.linbit.com] credentials ready.
+
+===== Creating the Operator
+
+To deploy the Operator, create a `kustomization.yaml` file. This will declare your pull secret for `drbd.io` and
+allow you to pull in the Operator deployment. The Operator will be deployed in a new namespace `linbit-sds`.
+Make sure to replace `MY_LINBIT_USER` and `MY_LINBIT_PASSWORD` with your own credentials.
+
+.kustomization.yaml
+[source,yaml]
+----
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: linbit-sds
+resources:
+  - https://github.com/LINBIT/linstor-operator-builder//deploy/default?ref=v2.0.1
+generatorOptions:
+  disableNameSuffixHash: true
+secretGenerator:
+  - name: drbdio-pull-secret
+    type: kubernetes.io/dockerconfigjson
+    literals:
+      - .dockerconfigjson={"auths":{"drbd.io":{"username":"MY_LINBIT_USER","password":"MY_LINBIT_PASSWORD"}}}
+----
+
+Then, apply the `kustomization.yaml` file, by using `kubectl` command, and wait for the Operator to start:
+
+----
+$ kubectl apply -k .
+namespace/linbit-sds created
+...
+$ kubectl -n linbit-sds  wait pod --for=condition=Ready --all
+pod/linstor-operator-controller-manager-6d9847d857-zc985 condition met
+----
+
+The Operator is now ready to deploy LINBIT SDS for Kubernetes.
+
+===== Deploying LINBIT SDS for Kubernetes
+
+Deploying LINBIT SDS for Kubernetes with the Operator is a simple as creating a new `LinstorCluster` resource and
+waiting for the Operator to complete the setup:
+
+----
+$ kubectl create -f - <<EOF
+apiVersion: piraeus.io/v1
+kind: LinstorCluster
+metadata:
+  name: linstorcluster
+spec: {}
+EOF
+$ kubectl wait pod --for=condition=Ready -n linbit-sds --timeout=3m --all
+pod/ha-controller-4tgcg condition met
+pod/k8s-1-26-10.test condition met
+pod/linstor-controller-76459dc6b6-tst8p condition met
+pod/linstor-csi-controller-75dfdc967d-dwdx6 condition met
+pod/linstor-csi-node-9gcwj condition met
+pod/linstor-operator-controller-manager-6d9847d857-zc985 condition met
+----
+
+===== Configuring Storage
+
+By default, LINBIT SDS for Kubernetes does not configure any storage. To add storage, you can configure a
+`LinstorSatelliteConfiguration`, which the Operator uses to configure one or more satellites.
+
+The following example creates a simple `FILE_THIN` pool and it does not require any additional set up on the host:
+
+----
+$ kubectl apply -f - <<EOF
+apiVersion: piraeus.io/v1
+kind: LinstorSatelliteConfiguration
+metadata:
+  name: storage-pool
+spec:
+  storagePools:
+    - name: pool1
+      fileThinPool:
+        directory: /var/lib/linbit-sds/pool1
+EOF
+----
+
+Other types of storage pools can be configured as well. Please check
+link:https://github.com/piraeusdatastore/piraeus-operator/blob/v2/docs/reference/linstorsatelliteconfiguration.md#specstoragepools[the examples upstream].
+
+===== Next Steps
+
+After deploying LINBIT SDS for Kubernetes, you can continue with the
+<<s-kubernetes-basic-configuration-and-deployment,guide for creating basic volumes>>, or refer to the
+available link:https://github.com/piraeusdatastore/piraeus-operator/tree/v2/docs/tutorial[tutorials] and
+link:https://github.com/piraeusdatastore/piraeus-operator/tree/v2/docs/how-to[how-to guides] upstream.
+
+[[s-kubernetes-deploy-linstor-operator-v1]]
+==== Deploying LINSTOR Operator v1
+
+IMPORTANT: If you plan to deploy LINSTOR Operator on a new cluster, you should use
+<<s-kubernetes-deploy-linstor-operator-v2, Operator v2>>.
+
+The Operator v1 is installed using a Helm v3 chart as follows:
 
 * Create a Kubernetes secret containing your my.linbit.com credentials:
 +
@@ -301,7 +417,7 @@ The possible values for `operator.satelliteSet.automaticStorageType`:
 ==== Securing Deployment
 
 This section describes the different options for enabling security features available when
-using this operator. The following guides assume the operator is installed <<s-kubernetes-deploy-linstor-operator,using Helm>>
+using this operator. The following guides assume the operator is installed <<s-kubernetes-deploy-linstor-operator-v1,using Helm>>
 
 ===== Secure Communication with an Existing etcd Instance
 
