@@ -210,3 +210,22 @@ The maximum number of volumes per DRBD resource is 65535, numbered 0 through 655
 
 There is a limit of 32 nodes that can access the same DRBD resource concurrently. In practice,
 clusters of more than five nodes are not recommended.
+
+[[s-drbd-fips-compliance]]
+=== FIPS Compliance
+
+"This standard shall be used in designing and implementing cryptographic modules..."
+-- https://csrc.nist.gov/publications/detail/fips/140/3/final[NIST's _FIPS 140-3_ publication]
+
+DRBD does not use nor implement any cryptographic modules in its code base and is therefore
+outside the scope of FIPS compliance. If the data that you are replicating has requirements that
+need the use of cryptographic modules, for example, encryption, this is implemented in a
+different block layer, and not by DRBD itself. Linux Unified Key Setup (LUKS) is an example of
+such an implementation. You can refer to details in the
+https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/#s-linstor-without-drbd[_LINSTOR User's
+Guide_] about using LINSTOR as a way that you can layer LUKS below the DRBD layer.
+
+WARNING: If you are using DRBD outside of LINSTOR, it is possible to layer LUKS above the DRBD
+layer. However, this implementation is not recommended because DRBD would no longer be able to
+disklessly attach or auto-promote resources.
+
