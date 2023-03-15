@@ -3239,7 +3239,9 @@ The LINSTOR Controller will prompt you for the user's password, in each of the a
 
 
 [[s-linstor-drbd-automatisms]]
-=== Automatisms for DRBD-Resources
+=== Automatisms for DRBD Resources
+
+This section details some of LINSTOR's automatisms for DRBD resources.
 
 [[s-linstor-auto-quorum]]
 ==== Auto-Quorum Policies
@@ -3363,7 +3365,85 @@ still be on the satellite. To restore a satellite, use
 Should you want to instead throw everything that once was on that node, including the node
 itself, away, you need to use the `node lost` command instead.
 
-[[s-linstor-qos]]
+[[s-linstor-auto-diskful]]
+==== Auto-Diskful and Related Options
+
+You can set the LINSTOR `auto-diskful` and `auto-diskful-allow-cleanup` properties for various
+LINSTOR objects, for example, a resource definition, to have LINSTOR help automatically make
+a _Diskless_ node _Diskful_ and perform appropriate cleanup actions afterwards.
+
+This is useful when a _Diskless_ node has been in a _Primary_ state for a DRBD resource for more
+than a specified number of minutes. This could happen in cases where you integrate LINSTOR
+managed storage with other orchestrating and scheduling platforms, such as OpenStack,
+OpenNebula, and others. On some platforms that you integrate LINSTOR with, you might not have a
+way to influence where in your cluster a storage volume will be used.
+
+The auto-diskful options give you a way to use LINSTOR to sensibly delegate the roles of your
+storage nodes in response to an integrated platform's actions that are beyond your control.
+
+[[s-linstor-auto-diskful-setting]]
+===== Setting the Auto-Diskful Option
+
+By setting the `DrbdOptions/auto-diskful` option on a LINSTOR resource definition , you are
+configuring the LINSTOR controller to make a _Diskless_ DRBD resource _Diskful_ if the resource
+has been in a DRBD _Primary_ state for more than the specified number of minutes. After the
+specified number of minutes, LINSTOR will automatically use the
+<<s-linstor-toggle-disk,`resource toggle-disk` command>> to toggle the resource state on the
+_Diskless_ node, for the given resource.
+
+To set this property, for example, on a LINSTOR resource definition named `myres` with a
+threshold of five minutes, enter the command:
+
+----
+# linstor resource-definition set-property myres DrbdOptions/auto-diskful 5
+----
+
+[[s-linstor-auto-diskful-setting-on-rg-or-controller]]
+===== Setting the Auto-Diskful Option on a Resource Group or Controller
+
+You can also set the `DrbdOptions/auto-diskful` option on LINSTOR `controller` or
+`resource-group` objects. By setting the option at the controller level, the option will affect
+all LINSTOR resource definitions in your LINSTOR cluster that do not have this option set,
+either on the resource definition itself, or else on the resource group that you might have
+created the resource from.
+
+Setting the option on a LINSTOR resource group will affect all resource definitions that are
+spawned from the group, unless a resource definition has the option set on it.
+
+The order of priority, from highest to lowest, for the effect of setting the `auto-diskful`
+option is:
+
+- Resource definition
+- Resource group
+- Controller
+
+[[s-linstor-auto-diskful-unsetting]]
+===== Unsetting the Auto-Diskful Option
+
+To unset the LINSTOR `auto-diskful` option, enter:
+
+----
+# linstor <controller|resource-definition|resource-group> set-property DrbdOptions/auto-diskful
+----
+
+[[s-linstor-auto-diskful-allow-cleanup-setting]]
+===== Setting the Auto-Diskful-Allow-Cleanup Option
+
+A companion option to the LINSTOR `auto-diskful` option is the
+`DrbdOptions/auto-diskful-allow-cleanup` option.
+
+You can set this option on the following LINSTOR objects: node, resource, resource definition,
+or resource group. The default value for this option is `True`, but the option has no effect
+unless the `auto-diskful` option has also been set.
+
+After LINSTOR has toggled a resource to _Diskful_, because the threshold number of minutes has
+passed where a _Diskless_ node was in the _Primary_ role for a resource, and after DRBD has
+synchronized the data to this previously _Diskless_ and now _Primary_ node, LINSTOR will remove the resource from any _Secondary_
+nodes when that action is necessary to fulfill a replica count constraint that the resource
+might have. This could be the case, for example, if you have specified a number of replicas for
+a resource by using the `--auto-place` option.
+
+[s-linstor-qos]]
 === QoS Settings
 
 LINSTOR implements QoS for managed resources by using sysfs properties that correspond to
