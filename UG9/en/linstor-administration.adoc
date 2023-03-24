@@ -2226,22 +2226,61 @@ on the given node as with the backup. Should that not be the case, again, just l
 command, `--storpool-rename` should be used.
 
 [[s-shipping_snapshots-l2l]]
-===== Shipping Snapshots Within LINSTOR
+===== Shipping Snapshots Between Two LINSTOR Clusters
 
-Shipping a snapshot directly between two LINSTOR clusters can be done with a linstor-remote as well
-as a resource definition with at least one diskful resource on the source side (where the command
-is issued). On the target side, you only need to create a linstor-remote with the cluster ID of the source cluster:
+Shipping a snapshot directly between two LINSTOR clusters can be done with a LINSTOR remote as well
+as a resource definition with at least one diskful resource on the source side (where the shipping command
+is issued). On the target side, you need to create a LINSTOR remote with the cluster ID of the source (remote) cluster:
 
 ----
-# linstor remote create linstor --cluster-id <SOURCE_CLUSTER_ID>
+$ linstor remote create linstor --cluster-id <SOURCE_CLUSTER_ID> <NAME> <URL>
 ----
 
-NOTE: To get the cluster ID of your source cluster, you can enter the command `linstor controller list-properties|grep -i cluster` from the source cluster.
+IMPORTANT: If you do not specify the cluster ID of your source cluster when you create a LINSTOR
+remote on your target cluster, you will receive an "Unknown Cluster" error when you try to ship
+a backup. To get the cluster ID of your source cluster, you can enter the command `linstor
+controller list-properties|grep -i cluster` from the source cluster.
 
-If you want to ship a snapshot inside the same cluster just use a remote pointing to the local controller.
+In the `remote create` command shown above, `<NAME>` is an arbitrary name that you specify to
+identify the remote. `<URL>` is either the IP address of the source (remote) LINSTOR controller
+or its resolvable hostname. If you have configured a highly available LINSTOR controller, use
+its virtual IP address (VIP) or the VIP's resolvable name.
 
-IMPORTANT: If you do not specify a linstor-remote (cluster ID of source cluster) on your target
-cluster, you will receive an "Unknown Cluster" error when you try to ship a backup.
+[[s-linstor-snapshot-shipping-within-a-single-cluster]]
+===== Snapshot Shipping Within a Single LINSTOR Cluster
+
+If you want to ship a snapshot inside the same cluster, you just need to create a LINSTOR remote
+that points to the local controller.
+
+[[s-linstor-remote-passphrase]]
+===== Specifying a LINSTOR Passphrase When Creating a Remote
+
+When the snapshot that you want to ship contains a LUKS layer, the remote on the target cluster
+also needs the passphrase of the source cluster set when you create the remote. This is because
+the LINSTOR passphrase is used to encrypt the LUKS passphrase. To specify the source cluster's
+LINSTOR passphrase when you create a LINSTOR remote on the target cluster, enter:
+
+----
+$ linstor --controllers <TARGET_CONTROLLER> remote create linstor \
+--cluster-id <SOURCE_CLUSTER_ID> --passphrase <SOURCE_CONTROLLER_PASSPHRASE> <NAME> <URL>
+----
+
+For LINSTOR to LINSTOR snapshot shipping, you must also create a LINSTOR remote on the source
+cluster. For simplicity sake, although not strictly necessary, you can specify the target
+cluster's LINSTOR passphrase when you create a LINSTOR remote for the target cluster on the
+source cluster, before you ship backups or snapshots. On the source cluster, enter:
+
+----
+$ linstor --controllers <SOURCE_CONTROLLER> remote create linstor \
+--cluster-id <TARGET_CLUSTER_ID> --passphrase <TARGET_CONTROLLER_PASSPHRASE> <NAME> <URL>
+----
+
+NOTE: If you are specifying a LINSTOR controller node (perhaps because you have a
+<<s-linstor_ha, highly available controller>>), when creating a remote, you can specify the
+controller either by an IP address or a resolvable hostname.
+
+[[s-linstor-resource-backup-shipping]]
+===== Shipping a Backup of a LINSTOR Resource
 
 The command to ship a backup is:
 
@@ -2258,15 +2297,9 @@ backup shipping for `localRsc` will ship to the remote cluster but they will not
 the remote cluster. The same is true if you specify the `--download-only` option with the
 `linstor backup ship` command.
 
-When the snapshot you want to ship contains a LUKS layer, the remote on the target cluster also needs
-the passphrase of the source cluster set.
 
 [[s-shipping_snapshots-old]]
 ===== Shipping a Snapshot in the Same Cluster
-
-WARNING: The `snapshot ship` command is considered deprecated and any bugs found
-with it will not be fixed. Instead, use the `backup ship` command with a remote pointing
-to your local controller. For more details, see <<s-shipping_snapshots-l2l,the previous section>>.
 
 Both, the source as well as the target node have to have the resource for
 snapshot shipping deployed. Additionally, the target resource has to be
@@ -2286,7 +2319,11 @@ To manually start the snapshot-shipping, use:
 # linstor snapshot ship --from-node nodeSource --to-node nodeTarget --resource resource1
 ----
 
-By default, the snapshot-shipping uses tcp ports from the range 12000-12999. To change
+WARNING: The `snapshot ship` command is considered deprecated and any bugs found
+with it will not be fixed. Instead, use the `backup ship` command with a remote pointing
+to your local controller. For more details, see <<s-shipping_snapshots-l2l,the previous section>>.
+
+By default, the snapshot-shipping uses TCP ports from the range 12000-12999. To change
 this range, the property `SnapshotShipping/TcpPortRange`, which accepts a to-from range,
 can be set on the controller:
 
