@@ -1117,21 +1117,20 @@ is active at a time, and a service manager that takes care of mounting and unmou
 
 ==== Configuring Highly Available Storage
 
-For configuring the highly-available storage we use LINSTOR itself. This has the advantage that the storage is
+For configuring the highly available storage you can use LINSTOR itself. This has the advantage that the storage is
 under LINSTOR control and can for example be easily extended to new cluster nodes. Just create a new
-resource with 200MB in size. This could look like this, you certainly need to adapt the storage pool name:
-
+resource with 200MiB in size. Given and existing storage pool named `pool_ssd`, you can create a new LINSTOR resource named `linstor_db`, by entering the following commands:
 
 ----
-# linstor resource-definition create linstor_db
-# linstor resource-definition drbd-options --on-no-quorum=io-error linstor_db
-# linstor resource-definition drbd-options --auto-promote=no linstor_db
-# linstor volume-definition create linstor_db 200M
-# linstor resource create linstor_db -s pool1 --auto-place 3
+# linstor resource-group create my_ssd_group --storage-pool pool_ssd --place-count 3
+# linstor resource-group drbd-options --on-no-quorum=io-error my_ssd_group
+# linstor resource-group drbd-options --auto-promote=no my_ssd_group
+# linstor volume-group create my_ssd_group
+# linstor resource-group spawn-resources my_ssd_group linstor_db 200M
 ----
 
 From now on we assume the resource's name is "linstor_db". It is crucial that your
-cluster qualifies for auto-quorum and uses the `io-error` policy (see Section <<s-linstor-auto-quorum>>), and
+cluster qualifies for `auto-quorum` and uses the `io-error` policy (see Section <<s-linstor-auto-quorum>>), and
 that `auto-promote` is disabled.
 
 After the resource is created, it is time to move the LINSTOR DB to the new storage and to create a `systemd`
