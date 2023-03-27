@@ -1,7 +1,6 @@
 [[ch-install-packages]]
 == Installing Prebuilt DRBD Binary Packages
 
-
 [[s-linbit-packages]]
 === LINBIT Supplied Packages
 
@@ -24,13 +23,156 @@ Packages for some other distributions are built as well, but don't receive as mu
 LINBIT releases binary builds in parallel with any new DRBD source
 release.
 
-Package installation on RPM-based systems (SLES, RHEL) is done by
-simply invoking `yum install` (for new installations) or `yum update` (for
+Package installation on RPM-based systems (SLES, RHEL, AlmaLinux) is done by
+simply using `dnf install` (for new installations) or `dnf update` (for
 upgrades).
 
-For Debian-based systems (Debian GNU/Linux, Ubuntu) systems,
-`drbd-utils` and `drbd-module-`uname -r`` packages are installed with `apt`,
-or similar tools like `aptitude` or `synaptic`, if available.
+For DEB-based systems (Debian GNU/Linux, Ubuntu) systems,
+`drbd-utils` and `drbd-module-`uname -r`` packages are installed by using `apt install`,
+
+ifndef::de-brand[]
+[[s-linbit-manage-node-script]]
+==== Using a LINBIT Helper Script to Register Nodes and Configure Package Repositories
+
+If you are a LINBIT customer, you can install DRBD and dependencies that you may need from
+LINBIT's customer repositories. To access those repositories you will need to have been set up
+in LINBIT's system and have access to the link:https://my.linbit.com/[LINBIT Customer Portal].
+If you have not been set up in LINBIT's system, or if you want an evaluation account, you can
+contact a sales team member: sales@linbit.com.
+
+[[s-linbit-manage-node-script-register-nodes]]
+===== Using the LINBIT Customer Portal to Register Nodes
+
+Once you have access to the LINBIT Customer Portal, you can register your cluster nodes and
+configure repository access by using LINBIT's Python helper script. See the
+https://my.linbit.com/#/reg_nodes[Register Nodes] section of the Customer Portal for details
+about this script.
+
+===== Downloading and Running the LINBIT Manage Nodes Helper Script
+
+To download and run the LINBIT helper script to register your nodes and configure LINBIT
+repository access, enter the following commands on all nodes, one node at a time:
+
+----
+# curl -O https://my.linbit.com/linbit-manage-node.py
+# chmod +x ./linbit-manage-node.py
+# ./linbit-manage-node.py
+----
+
+IMPORTANT: The script must be run as superuser.
+
+TIP: If the error message `no python interpreter found :-(` is displayed when running
+`linbit-manage-node.py`, enter the command `dnf -y install python3` (RPM-based distributions) or
+`apt -y install python3` (DEB-based distributions) to install Python 3.
+
+The script will prompt you to enter your LINBIT Customer Portal username and password. After
+validating your credentials, the script will list clusters and nodes (if you have any already
+registered) that are associated with your account.
+
+===== Joining Nodes to a Cluster
+
+Select the cluster that you want to register the current node with. If you want the node to be
+the first node in a new cluster, select the "new cluster" option.
+
+===== Saving the Registration and Repository Configurations to Files
+
+To save the registration information on your node, confirm the writing of registration data to a
+JSON file, when the helper script prompts you to.
+
+----
+Writing registration data:
+--> Write to file (/var/lib/drbd-support/registration.json)? [y/N]
+----
+
+To save the LINBIT repository configuration to a file on your node, confirm the writing of a
+`linbit.repo` file, when the helper script prompts you to.
+
+===== Enabling Access to LINBIT Repositories
+
+After registering a node by using the LINBIT manage node helper script and joining the node to
+a cluster, the script will show you a menu of LINBIT repositories.
+
+To install DRBD, its dependencies, and related packages, enable the `drbd-9` repository.
+
+
+NOTE: The `drbd-9` repository includes the latest DRBD 9 version. It also includes other LINBIT
+software packages, including LINSTOR(R), DRBD Reactor, LINSTOR GUI, OCF resource agents, and
+others.
+
+===== Installing LINBIT's Public Key and Verifying LINBIT Repositories
+
+After enabling LINBIT repositories and confirming your selection, be sure to respond *yes* to
+the questions about installing LINBIT's public key to your keyring and writing the repository
+configuration file.
+
+Before it closes, the script will show a message that suggests different packages that you can
+install for different use cases.
+
+===== Verifying LINBIT Repositories
+
+After the LINBIT manage node helper script completes, you can verify that you enabled LINBIT
+repositories by using the `dnf info` or `apt info` command, after updating your package
+manager's package metadata.
+
+On RPM-based systems, enter:
+
+----
+# dnf --refresh info drbd-utils
+----
+
+On DEB-based systems, enter:
+
+----
+# apt update && apt info drbd-utils
+----
+
+Output from the package manager `info` command should show that the package manager is pulling
+package information from LINBIT repositories.
+
+===== Excluding Packages from Red Hat or AlmaLinux Repositories
+
+If you are using an RPM-based Linux distribution, before installing DRBD, be sure to only pull
+DRBD and related packages from LINBIT repositories. To do this, you will need to exclude certain
+packages from your RPM-based distribution's repositories that overlap with packages in the
+LINBIT customer repositories.
+
+The commands that follow insert an "exclude" line after the occurrence of every enabled
+repository line in all files in the repositories configuration directory, except for LINBIT
+repository files.
+
+To exclude the relevant DRBD packages from enabled repositories on RPM-based distributions,
+enter the commands:
+
+----
+# RPM_REPOS="`ls /etc/yum.repos.d/*.repo|grep -v linbit`"
+# PKGS="drbd kmod-drbd"
+# for file in $RPM_REPOS; do sed -i "/^enabled[ =]*1/a exclude=$PKGS" $file; done
+----
+
+===== Using the Helper Script's Suggested Package Manager Command to Install DRBD
+
+To install DRBD, you can use the package manager command that the LINBIT helper script showed
+before the script completed. The relevant command was shown after this line:
+
+----
+If you don't intend to run an SDS satellite or controller, a useful set is:
+[...]
+----
+
+[TIP]
+====
+If you need to refer to the helper script's suggested actions some time after the script
+completes, you can run the script again using the `--hints` flag:
+
+----
+# ./linbit-manage-node.py --hints
+----
+====
+
+IMPORTANT: On DEB based systems you can install a precompiled DRBD kernel module package,
+`drbd-module-$(uname -r)`, or a source version of the kernel module, `drbd-dkms`. Install one
+or the other package but not both.
+endif::de-brand[]
 
 [[s-ko-signing]]
 ==== LINBIT Kernel Module Signing for Secure Boot
