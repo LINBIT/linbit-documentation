@@ -27,15 +27,15 @@ Installation of the LINSTOR storage add-on for OpenNebula requires a working Ope
 
 With access to LINBIT's customer repositories you can install the linstor-opennebula package with:
 
-----------------------------
+----
 # apt install linstor-opennebula
-----------------------------
+----
 
 or
 
-----------------------------
+----
 # yum install linstor-opennebula
-----------------------------
+----
 
 Without access to LINBIT's prepared packages you need to fall back to instructions on the
 https://github.com/OpenNebula/addon-linstor[OpenNebula LINSTOR Add-on GitHub page].
@@ -69,36 +69,36 @@ Modify the following sections of `/etc/one/oned.conf`
 Add linstor to the list of drivers in the `TM_MAD` and `DATASTORE_MAD`
 sections:
 
-----------------------------
+----
 TM_MAD = [
     EXECUTABLE = "one_tm",
     ARGUMENTS = "-t 15 -d dummy,lvm,shared,fs_lvm,qcow2,ssh,vmfs,ceph,linstor"
 ]
-----------------------------
-----------------------------
+----
+----
 DATASTORE_MAD = [
     EXECUTABLE = "one_datastore",
     ARGUMENTS  = "-t 15 -d dummy,fs,lvm,ceph,dev,iscsi_libvirt,vcenter,linstor -s shared,ssh,ceph,fs_lvm,qcow2,linstor"
 ]
-----------------------------
+----
 
 NOTE: `linstor` is specified *twice* in the `DATASTORE_MAD` arguments.
 
 Add new TM_MAD_CONF and DS_MAD_CONF sections:
 
-----------------------------
+----
 TM_MAD_CONF = [
     NAME = "linstor", LN_TARGET = "NONE", CLONE_TARGET = "SELF", SHARED = "yes", ALLOW_ORPHANS="yes",
     TM_MAD_SYSTEM = "ssh,shared", LN_TARGET_SSH = "NONE", CLONE_TARGET_SSH = "SELF", DISK_TYPE_SSH = "BLOCK",
     LN_TARGET_SHARED = "NONE", CLONE_TARGET_SHARED = "SELF", DISK_TYPE_SHARED = "BLOCK"
 ]
-----------------------------
-----------------------------
+----
+----
 DS_MAD_CONF = [
     NAME = "linstor", REQUIRED_ATTRS = "BRIDGE_LIST", PERSISTENT_ONLY = "NO",
     MARKETPLACE_ACTIONS = "export"
 ]
-----------------------------
+----
 After making these changes, restart the OpenNebula service.
 
 [[s-opennebula-configuring-nodes]]
@@ -151,11 +151,11 @@ The following is an example of this process using two physical volumes (/dev/sdX
 generic names for the volume group and thinpool. Take care to set the thinLV's
 metadata volume to a reasonable size. once it becomes full it can be difficult to resize.
 
-----------------------------
+----
 pvcreate /dev/sdX /dev/sdY
 vgcreate drbdpool /dev/sdX /dev/sdY
 lvcreate -l 95%VG --poolmetadatasize 8g -T /dev/drbdpool/drbdthinpool
-----------------------------
+----
 
 Then you'll create storage pool(s) on LINSTOR using this as the backing storage.
 
@@ -168,9 +168,9 @@ relationships.
 The `oneadmin`, "Cloud Administrator", user account must have passwordless sudo access to the `mkfs` command on
 the Storage nodes
 
-----------------------------
+----
 oneadmin ALL=(root) NOPASSWD: /sbin/mkfs
-----------------------------
+----
 
 ===== Groups
 
@@ -179,9 +179,9 @@ gain access to the devices and programs needed to access storage and
 instantiate VMs. For this add-on, the `oneadmin` user must belong to the `disk`
 group on all nodes to access the DRBD devices where images are held.
 
-----------------------------
+----
 usermod -a -G disk oneadmin
-----------------------------
+----
 
 ==== Creating a New LINSTOR Datastore
 
@@ -203,14 +203,14 @@ Create a resource group and volume group for your datastore, it is mandatory to 
 within the resource group, otherwise monitoring space for OpenNebula will not work.
 Here we create one with 2 node redundancy and use a created `opennebula-storagepool`:
 
-----------------------------
+----
 linstor resource-group create OneRscGrp --place-count 2 --storage-pool opennebula-storagepool
 linstor volume-group create OneRscGrp
-----------------------------
+----
 
 Now add a OpenNebula datastore using the LINSTOR plug-in:
 
-----------------------------
+----
 cat >ds.conf <<EOI
 NAME = linstor_datastore
 DS_MAD = linstor
@@ -223,7 +223,7 @@ BRIDGE_LIST = "alice bob charlie"  #node names
 EOI
 
 onedatastore create ds.conf
-----------------------------
+----
 
 ==== Plug-in Attributes
 
@@ -280,7 +280,7 @@ bridge list still contains all of the storage nodes in the LINSTOR cluster.
 LINSTOR driver can also be used as a system datastore,
 configuration is pretty similar to normal datastores, with a few changes:
 
-----------------------------
+----
 cat >system_ds.conf <<EOI
 NAME = linstor_system_datastore
 TM_MAD = linstor
@@ -290,7 +290,7 @@ BRIDGE_LIST = "alice bob charlie"  # node names
 EOI
 
 onedatastore create system_ds.conf
-----------------------------
+----
 
 Also add the new sys datastore id to the `COMPATIBLE_SYS_DS` to your image datastores (COMMA separated), otherwise the scheduler will ignore them.
 

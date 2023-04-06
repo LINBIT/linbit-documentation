@@ -29,7 +29,7 @@ options should be removed from the configuration.
 Configuring LINSTOR is described in Section <<s-proxmox-ls-ls-configuration>>, a typical example follows:
 
 Let's assume the pool was set to "mypool", and redundancy to 3.
-----------------------------
+----
 # linstor resource-group create --storage-pool=mypool --place-count=3 drbdMypoolThree
 # linstor volume-group create drbdMypoolThree
 # vi /etc/pve/storage.cfg
@@ -37,7 +37,7 @@ drbd: drbdstorage
    content images,rootdir
    controller 10.11.12.13
    resourcegroup drbdMypoolThree
-----------------------------
+----
 
 [[s-proxmox-ls-upgrades-plug-5-6]]
 ==== Upgrading Plug-in from 5.x to 6.x
@@ -109,12 +109,12 @@ LINBIT provides a dedicated public repository for Proxmox VE users. This reposit
 LINBIT's repository can be enabled as follows, where "$PVERS" should be set to your Proxmox VE *major version*
 (for example, "7", not "7.1"):
 
-----------------------------
+----
 # wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -
 # PVERS=7 && echo "deb http://packages.linbit.com/public/ proxmox-$PVERS drbd-9" > \
 /etc/apt/sources.list.d/linbit.list
 # apt update && apt -y install linstor-proxmox
-----------------------------
+----
 
 [[s-proxmox-ls-ls-configuration]]
 === Configuring LINSTOR
@@ -124,11 +124,11 @@ For the rest of this guide we assume that you have a LINSTOR cluster configured 
 nodes. The "linstor-satellite" service needs some extra configuration which should be done via
 `systemctl edit linstor-satellite.service`:
 
-------------------------
+----
 [Service]
 Type=notify
 TimeoutStartSec=infinity
-------------------------
+----
 
 The preferred way to use the plug-in, starting from version 4.1.0, is through LINSTOR resource groups and a
 single volume group within every resource group. LINSTOR resource groups are described in
@@ -140,12 +140,12 @@ on the resource group.
 The final step is to provide a configuration for Proxmox itself. This can be done by adding an entry in the
 `/etc/pve/storage.cfg` file, with a content similar to the following.
 
-----------------------------
+----
 drbd: drbdstorage
    content images,rootdir
    controller 10.11.12.13
    resourcegroup defaultpool
-----------------------------
+----
 
 The "drbd" entry is fixed and you are not allowed to modify it, as it tells to Proxmox to use DRBD as storage
 back end. The "drbdstorage" entry can be modified and is used as a friendly name that will be shown in the PVE
@@ -160,7 +160,7 @@ value to its IP address.
 
 A configuration using different storage pools in different resource groups would look like this:
 
-----------------------------
+----
 drbd: drbdstorage
    content images,rootdir
    controller 10.11.12.13
@@ -175,7 +175,7 @@ drbd: slowdrbd
    content images,rootdir
    controller 10.11.12.13
    resourcegroup backup
-----------------------------
+----
 
 By now, you should be able to create VMs using Proxmox's web GUI by selecting "__drbdstorage__", or any other of
 the defined pools as storage location.
@@ -216,10 +216,10 @@ able to connect to multiple LINSTOR controllers. It will use the first one it
 receives an answer from. This is done by adding a comma-separated list of
 controllers in the `controller` section of the plug-in like this:
 
-----------------------------
+----
 drbd: drbdstorage
    content images,rootdir
    controller 10.11.12.13,10.11.12.14,10.11.12.15
    resourcegroup defaultpool
-----------------------------
+----
 

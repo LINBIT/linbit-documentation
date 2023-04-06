@@ -50,9 +50,9 @@ with the parameter `disable_sendpage` set to `1`. To do so, create (or open) the
 `/etc/modprobe.d/drbd.conf` and enter the following line:
 
 [source,drbd]
-----------------------------
+----
 options drbd disable_sendpage=1
-----------------------------
+----
 
 [[s-xen-create-resource]]
 === Creating a DRBD Resource Suitable to Act as a Xen Virtual Block Device
@@ -65,7 +65,7 @@ for your guest instance, you need to enable indexterm:[Dual-Primary
 mode]<<s-dual-primary-mode,dual-primary mode>>for this resource:
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   net {
     allow-two-primaries yes;
@@ -73,7 +73,7 @@ resource <resource> {
   }
   ...
 }
-----------------------------
+----
 
 Enabling dual-primary mode is necessary because Xen, before initiating
 live migration, checks for write access on all VBDs a resource is
@@ -88,9 +88,9 @@ add a line like the following to your Xen DomU configuration:
 indexterm:[Xen]
 
 [source,drbd]
-----------------------------
+----
 disk = [ 'drbd:<resource>,xvda,w' ]
-----------------------------
+----
 
 This example configuration makes the DRBD resource named _resource_
 available to the DomU as `/dev/xvda` in read/write mode (`w`).
@@ -134,11 +134,11 @@ that provided by the `drbd` resource type.
 Once you have configured your DRBD-backed DomU, you may start it as
 you would any other DomU:
 
-----------------------------
+----
 # xm create <domU>
 Using config file "/etc/xen/<domU>".
 Started domain <domU>
-----------------------------
+----
 
 In the process, the DRBD resource you configured as the VBD will be
 promoted to the primary role, and made accessible to Xen as expected.
@@ -147,10 +147,10 @@ promoted to the primary role, and made accessible to Xen as expected.
 .Stopping the DomU
 This is equally straightforward:
 
-----------------------------
+----
 # xm shutdown -w <domU>
 Domain <domU> terminated.
-----------------------------
+----
 
 Again, as you would expect, the DRBD resource is returned to the
 secondary role after the DomU is successfully shut down.
@@ -159,9 +159,9 @@ secondary role after the DomU is successfully shut down.
 .Migrating the DomU
 This, too, is done using the usual Xen tools:
 
-----------------------------
+----
 # xm migrate --live <domU> <destination-host>
-----------------------------
+----
 
 In this case, several administrative steps are automatically taken in
 rapid succession:

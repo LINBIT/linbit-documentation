@@ -84,7 +84,7 @@ do all this, include the following lines in the resource
 configuration: indexterm:[drbd.conf]
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   net {
     # allow-two-primaries yes;
@@ -95,7 +95,7 @@ resource <resource> {
   }
   ...
 }
-----------------------------
+----
 
 [WARNING]
 ===============================
@@ -119,7 +119,7 @@ resource>>to the primary role on both nodes.
 === Creating an OCFS2 Filesystem
 
 Now, use OCFS2's `mkfs` implementation to create the file system:
-----------------------------
+----
 # mkfs -t ocfs2 -N 2 -L ocfs2_drbd0 /dev/drbd0
 mkfs.ocfs2 1.4.0
 Filesystem label=ocfs2_drbd0
@@ -137,7 +137,7 @@ Writing backup superblock: 0 block(s)
 Formatting Journals: done
 Writing lost+found: done
 mkfs.ocfs2 successful
-----------------------------
+----
 
 This will create an OCFS2 file system with two node slots on
 `/dev/drbd0`, and set the filesystem label to `ocfs2_drbd0`. You may
@@ -155,12 +155,12 @@ be added to Pacemaker resource management with the following
 `crm` configuration:
 
 [source,drbd]
-----------------------------
+----
 primitive p_drbd_ocfs2 ocf:linbit:drbd \
   params drbd_resource="ocfs2"
 ms ms_drbd_ocfs2 p_drbd_ocfs2 \
   meta master-max=2 clone-max=2 notify=true
-----------------------------
+----
 
 IMPORTANT: Note the `master-max=2` meta variable; it enables
 dual-Master mode for a Pacemaker master/slave set. This requires that
@@ -188,12 +188,12 @@ by creating a _cloned group_ of resources, with the following
 `crm` configuration:
 
 [source,drbd]
-----------------------------
+----
 primitive p_controld ocf:pacemaker:controld
 primitive p_o2cb ocf:ocfs2:o2cb
 group g_ocfs2mgmt p_controld p_o2cb
 clone cl_ocfs2mgmt g_ocfs2mgmt meta interleave=true
-----------------------------
+----
 
 Once this configuration is committed, Pacemaker will start instances
 of the `controld` and `o2cb` resource types on all nodes in the cluster.
@@ -207,12 +207,12 @@ put an OCFS2 filesystem under Pacemaker management, use the following
 `crm` configuration:
 
 [source,drbd]
-----------------------------
+----
 primitive p_fs_ocfs2 ocf:heartbeat:Filesystem \
   params device="/dev/drbd/by-res/ocfs2/0" directory="/srv/ocfs2" \
          fstype="ocfs2" options="rw,noatime"
 clone cl_fs_ocfs2 p_fs_ocfs2
-----------------------------
+----
 
 NOTE: This example assumes a single-volume resource.
 
@@ -223,10 +223,10 @@ To tie all OCFS2-related resources and clones together, add
 the following constraints to your Pacemaker configuration:
 
 [source,drbd]
-----------------------------
+----
 order o_ocfs2 ms_drbd_ocfs2:promote cl_ocfs2mgmt:start cl_fs_ocfs2:start
 colocation c_ocfs2 cl_fs_ocfs2 cl_ocfs2mgmt ms_drbd_ocfs2:Master
-----------------------------
+----
 
 [[s-ocfs2-legacy]]
 === Legacy OCFS2 Management (Without Pacemaker)
@@ -258,7 +258,7 @@ you selected, your `/etc/ocfs2/cluster.conf` file contents should look
 roughly like this:
 
 [source,drbd]
-----------------------------
+----
 node:
     ip_port = 7777
     ip_address = 10.1.1.31
@@ -276,7 +276,7 @@ node:
 cluster:
     node_count = 2
     name = ocfs2
-----------------------------
+----
 
 
 When you have configured you cluster, use `scp` to
@@ -288,7 +288,7 @@ distribute the configuration to both nodes in the cluster.
 On SLES, you may use the `configure` option of the `o2cb` init
 script:
 
-----------------------------
+----
 # /etc/init.d/o2cb configure
 Configuring the O2CB driver.
 
@@ -313,7 +313,7 @@ Loading module "ocfs2_dlm": OK
 Loading module "ocfs2_dlmfs": OK
 Mounting ocfs2_dlmfs filesystem at /dlm: OK
 Starting O2CB cluster ocfs2: OK
-----------------------------
+----
 
 [[s-configure-o2cb-driver-debian_gnu_linux_systems]]
 ===== Configuring the O2CB Driver in Debian GNU/Linux Systems
@@ -321,7 +321,7 @@ On Debian, the `configure` option to `/etc/init.d/o2cb` is not
 available. Instead, reconfigure the `ocfs2-tools` package to enable the
 driver:
 
-----------------------------
+----
 # dpkg-reconfigure -p medium -f readline ocfs2-tools
 Configuring ocfs2-tools
 Would you like to start an OCFS2 cluster (O2CB) at boot time? yes
@@ -346,24 +346,24 @@ Loading filesystem "ocfs2_dlmfs": OK
 Mounting ocfs2_dlmfs filesystem at /dlm: OK
 Setting cluster stack "o2cb": OK
 Starting O2CB cluster ocfs2: OK
-----------------------------
+----
 
 [[s-ocfs2-use]]
 ==== Using Your OCFS2 Filesystem
 
 When you have completed cluster configuration and created your file
 system, you may mount it as any other file system:
-----------------------------
+----
 # mount -t ocfs2 /dev/drbd0 /shared
-----------------------------
+----
 
 Your kernel log (accessible by issuing the command `dmesg`) should
 then contain a line similar to this one:
 
 [source,drbd]
-----------------------------
+----
 ocfs2: Mounting device (147,0) on (node 0, slot 0) with ordered data mode.
-----------------------------
+----
 
 From that point forward, you should be able to simultaneously mount
 your OCFS2 filesystem on both your nodes, in read/write mode.

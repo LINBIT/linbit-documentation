@@ -22,7 +22,7 @@ are covered in detail in <<ch-troubleshooting>>.
 One convenient way to look at DRBD's status is the
 indexterm:[drbd-overview]`drbd-overview` utility.
 
-----------------------------
+----
 # drbd-overview
 0:home                 Connected Primary/Secondary
   UpToDate/UpToDate C r--- /home        xfs  200G 158G 43G  79%
@@ -30,7 +30,7 @@ indexterm:[drbd-overview]`drbd-overview` utility.
   UpToDate/UpToDate C r--- /mnt/ha1     ext3 9.9G 618M 8.8G 7%
 2:nfs-root             Connected Primary/Secondary
   UpToDate/UpToDate C r--- /mnt/netboot ext3 79G  57G  19G  76%
-----------------------------
+----
 
 [[s-drbdadm-status]]
 ==== Status information via `drbdadm`
@@ -38,13 +38,13 @@ indexterm:[drbd-overview]`drbd-overview` utility.
 indexterm:[drbdadm status]In its simplest invocation, we just ask for the
 status of a single resource.
 
-----------------------------
+----
 # drbdadm status home
 home role:Secondary
   disk:UpToDate
   peer role:Secondary
     replication:Established peer-disk:UpToDate
-----------------------------
+----
 
 This here just says that the resource `home` is locally and on peer
 _UpToDate_ and _Secondary_; so the two nodes have the same
@@ -53,7 +53,7 @@ data on their storage devices, and nobody is using the device currently.
 You can get more information by passing the `--verbose` and/or
 `--statistics` arguments to `drbdsetup`:
 
-----------------------------
+----
 # drbdsetup status home --verbose --statistics
 home role:Secondary suspended:no
     write-ordering:flush
@@ -64,7 +64,7 @@ home role:Secondary suspended:no
     volume:0 replication:Established peer-disk:UpToDate
         resync-suspended:no
         received:0 sent:0 out-of-sync:0 pending:0 unacked:0
-----------------------------
+----
 
 Every few lines in this example form a block that is repeated
 for every node used in this resource, with small format exceptions
@@ -111,7 +111,7 @@ In its simplest invocation, showing only the current status, the output looks
 like this (but, when running on a terminal, will include colors):
 
 .'drbdsetup' example output (lines broken for readability)
------------------
+----
 # drbdsetup events2 --now r0
 exists resource name:r0 role:Secondary suspended:no
 exists connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connected role:Secondary
@@ -122,23 +122,23 @@ exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:0
 exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:1
 	replication:Established peer-disk:UpToDate resync-suspended:no
 exists -
------------------
+----
 
 Without the ''--now'', the process will keep running, and send continuous updates like this:
 
------------------
+----
 # drbdsetup events2 r0
 ...
 change connection name:r0 peer-node-id:1 conn-name:remote-host connection:StandAlone
 change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Unconnected
 change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connecting
------------------
+----
 
 Then, for monitoring purposes, there's another argument ''--statistics'', that
 will produce some performance counters and other facts:
 
 .'drbdsetup' verbose output (lines broken for readability)
------------------
+----
 # drbdsetup events2 --statistics --now r0
 exists resource name:r0 role:Secondary suspended:no write-ordering:drain
 exists connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connected role:Secondary congested:no
@@ -151,7 +151,7 @@ exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:0 replica
 exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:1 replication:Established
 	peer-disk:UpToDate resync-suspended:no received:0 sent:6634548 out-of-sync:0 pending:0 unacked:0
 exists -
------------------
+----
 
 You might also like the `--timestamp` parameter.
 
@@ -170,7 +170,7 @@ real-time status information about all DRBD resources currently
 configured. You may interrogate this file's contents using this
 command:
 
-----------------------------
+----
 $ cat /proc/drbd
 version: 8.4.0 (api:1/proto:86-100)
 GIT-hash: 09b6d528b3b3de50462cd7831c0a3791abc665c3 build by linbit@buildsystem.linbit, 2011-10-12 09:07:35
@@ -180,7 +180,7 @@ GIT-hash: 09b6d528b3b3de50462cd7831c0a3791abc665c3 build by linbit@buildsystem.l
     ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
  2: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r---
     ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
-----------------------------
+----
 
 The first line, prefixed with +version:+, shows the DRBD version used
 on your system. The second line contains information about this
@@ -231,10 +231,10 @@ indexterm:[connection state]A resource's connection state can be
 observed either by monitoring `/proc/drbd`, or by issuing the `drbdadm
 cstate` command:
 
-----------------------------
+----
 # drbdadm cstate <resource>
 Connected
-----------------------------
+----
 
 A resource may have one of the following connection states:
 
@@ -347,10 +347,10 @@ indexterm:[resource]A resource's role can be observed either by
 monitoring `/proc/drbd`, or by issuing the indexterm:[drbdadm]
 `drbdadm role` command:
 
-----------------------------
+----
 # drbdadm role <resource>
 Primary/Secondary
-----------------------------
+----
 
 The local resource role is always displayed first, the remote resource
 role last.
@@ -380,10 +380,10 @@ role, and only in disconnected mode.
 A resource's disk state can be observed either by monitoring
 `/proc/drbd`, or by issuing the `drbdadm dstate` command:
 
-----------------------------
+----
 # drbdadm dstate <resource>
 UpToDate/UpToDate
-----------------------------
+----
 
 The local disk state is always displayed first, the remote disk state
 last.
@@ -536,9 +536,9 @@ automatically enabled
 If, however, you need to enable resources manually for any reason, you
 may do so by issuing the command
 
-----------------------------
+----
 # drbdadm up <resource>
-----------------------------
+----
 
 As always, you may use the keyword `all` instead of a specific
 resource name if you want to enable all resources configured in
@@ -550,9 +550,9 @@ resource name if you want to enable all resources configured in
 indexterm:[resource]You may temporarily disable specific resources by
 issuing the command
 
-----------------------------
+----
 # drbdadm down <resource>
-----------------------------
+----
 
 Here, too, you may use the keyword `all` in place of a resource name if
 you wish to temporarily disable all resources listed in
@@ -588,10 +588,10 @@ indexterm:[resource]Manually switching a <<s-resource-roles,resource's
 role>> from secondary to primary (promotion) or vice versa (demotion)
 is done using the following commands:
 
-----------------------------
+----
 # drbdadm primary <resource>
 # drbdadm secondary <resource>
-----------------------------
+----
 
 In <<s-single-primary-mode,single-primary mode>> (DRBD's default), any
 resource can be in the primary role on only one node at any given time
@@ -612,17 +612,17 @@ passive/active configuration the process is as follows.
 On the current primary node stop any applications or services using the DRBD device,
 unmount the DRBD device, and demote the resource to secondary.
 
-----------------------------
+----
 # umount /dev/drbd/by-res/<resource>
 # drbdadm secondary <resource>
-----------------------------
+----
 
 Now on the node we wish to make primary promote the resource and mount the device.
 
-----------------------------
+----
 # drbdadm primary <resource>
 # mount /dev/drbd/by-res/<resource> <mountpoint>
-----------------------------
+----
 
 [[s-upgrading-drbd]]
 === Upgrading DRBD
@@ -644,12 +644,12 @@ update on both servers.
 Edit your /etc/yum.repos.d/linbit.repo file to reflect the following
 changes.
 
-----------------------------
+----
 [drbd-8.4]
 name=DRBD 8.4
 baseurl=http://packages.linbit.com/<hash>/8.4/rhel6/<arch>
 gpgcheck=0
-----------------------------
+----
 
 NOTE: You will have to populate the <hash> and <arch> variables. The
 <hash> is provided by LINBIT support services.
@@ -659,25 +659,25 @@ NOTE: You will have to populate the <hash> and <arch> variables. The
 
 Edit /etc/apt/sources.list to reflect the following changes.
 
-----------------------------
+----
 deb http://packages.linbit.com/<hash>/8.4/debian squeeze main
-----------------------------
+----
 
 NOTE: You will have to populate the <hash> variable. The
 <hash> is provided by LINBIT support services.
 
 Next you will want to add the DRBD signing key to your trusted keys.
 
-----------------------------
+----
 # gpg --keyserver subkeys.pgp.net --recv-keys  0x282B6E23
 # gpg --export -a 282B6E23 | apt-key add -
-----------------------------
+----
 
 Lastly perform an apt-get update so Debian recognizes the updated repo.
 
-----------------------------
+----
 apt-get update
-----------------------------
+----
 
 [[s-Upgrading-the-packages]]
 ==== Upgrading the packages
@@ -685,14 +685,14 @@ apt-get update
 Before you begin make sure your resources are in sync. The output of
 'cat /proc/drbd' should show UpToDate/UpToDate.
 
-----------------------------
+----
 bob# cat /proc/drbd
 
 version: 8.3.12 (api:88/proto:86-96)
 GIT-hash: e2a8ef4656be026bbae540305fcb998a5991090f build by buildsystem@linbit, 2011-10-28 10:20:38
  0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
     ns:0 nr:33300 dw:33300 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
-----------------------------
+----
 
 Now that you know the resources are in sync, start by upgrading the
 secondary node. This can be done manually or if you're using
@@ -700,53 +700,53 @@ Pacemaker put the node in standby mode. Both processes are covered
 below.  If you're running Pacemaker do not use the manual method.
 
 * Manual Method
-----------------------------
+----
 bob# /etc/init.d/drbd stop
-----------------------------
+----
 
 * Pacemaker
 
 Put the secondary node into standby mode. In this example bob is secondary.
 
-----------------------------
+----
 bob# crm node standby bob
-----------------------------
+----
 
 NOTE: You can watch the status of your cluster using 'crm_mon -rf' or watch
 'cat /proc/drbd' until it shows "Unconfigured" for your resources.
 
 Now update your packages with either yum or apt.
 
-----------------------------
+----
 bob# yum upgrade
-----------------------------
+----
 
-----------------------------
+----
 bob# apt-get upgrade
-----------------------------
+----
 
 Once the upgrade is finished will now have the latest DRBD 8.4 kernel
 module and drbd-utils on your secondary node, bob. Start DRBD.
 
 * Manually
-----------------------------
+----
 bob# /etc/init.d/drbd start
-----------------------------
+----
 
 * Pacemaker
-----------------------------
+----
 # crm node online bob
-----------------------------
+----
 
 The output of 'cat /proc/drbd' on bob should show 8.4.x and look similar
 to this.
 
-----------------------------
+----
 version: 8.4.1 (api:1/proto:86-100)
 GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 2011-12-20 12:58:48
  0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
     ns:0 nr:12 dw:12 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
-----------------------------
+----
 
 NOTE: On the primary node, alice, 'cat /proc/drbd' will still show the
 prior version, until you upgrade it.
@@ -756,46 +756,46 @@ any service using DRBD and then DRBD on the primary node, alice, and promote
 bob. Again this can be done either manually or via the Pacemaker shell.
 
 * Manually
-----------------------------
+----
 alice # umount /dev/drbd/by-res/r0
 alice # /etc/init.d/drbd stop
 bob # drbdadm primary r0
 bob # mount /dev/drbd/by-res/r0/0 /mnt/drbd
-----------------------------
+----
 Please note that the mount command now references '/0' which defines
 the volume number of a resource. See <<s-recent-changes-volumes>> for
 more information on the new volumes feature.
 
 * Pacemaker
-----------------------------
+----
 # crm node standby alice
-----------------------------
+----
 
 WARNING: This will interrupt running services by stopping them and
 migrating them to the secondary server, bob.
 
 At this point you can safely upgrade DRBD by using yum or apt.
 
-----------------------------
+----
 alice# yum upgrade
-----------------------------
+----
 
-----------------------------
+----
 alice# apt-get upgrade
-----------------------------
+----
 
 Once the upgrade is complete you will now have the latest version
 of DRBD on alice and can start DRBD.
 
 * Manually
-----------------------------
+----
 alice# /etc/init.d/drbd start
-----------------------------
+----
 
 * Pacemaker
-----------------------------
+----
 alice# crm node online alice
-----------------------------
+----
 
 NOTE: Services will still be located on bob and will remain there
 until you migrate them back.
@@ -803,12 +803,12 @@ until you migrate them back.
 Both servers should now show the latest version of DRBD in a connected
 state.
 
-----------------------------
+----
 version: 8.4.1 (api:1/proto:86-100)
 GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 2011-12-20 12:58:48
  0: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
     ns:0 nr:12 dw:12 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
-----------------------------
+----
 
 [[s-migrating_your_configs]]
 ==== Migrating your configs
@@ -833,11 +833,11 @@ the devices to Secondary. Then perform the following commands.
 
 NOTE: These steps will have to be completed on both servers.
 
-----------------------------
+----
 drbdadm down all
 drbdadm apply-al all
 rmmod drbd
-----------------------------
+----
 
 If you're using the LINBIT repositories you can remove the packages using
 `apt-get remove drbd8-utils drbd8-module-`uname -r`` or
@@ -880,7 +880,7 @@ indexterm:[dual-primary mode]To enable dual-primary mode, set the
 resource configuration:
 
 [source,drbd]
-----------------------------
+----
 resource <resource>
   net {
     protocol C;
@@ -895,7 +895,7 @@ resource <resource>
   }
   ...
 }
-----------------------------
+----
 
 After that, do not forget to synchronize the configuration between nodes. Run
 `drbdadm adjust <resource>` on both nodes.
@@ -914,9 +914,9 @@ To temporarily enable dual-primary mode for a resource normally
 running in a single-primary configuration, issue the following
 command:
 
-----------------------------
+----
 # drbdadm net-options --protocol=C --allow-two-primaries <resource>
-----------------------------
+----
 
 To end temporary dual-primary mode, run the same command as above but with
 `--allow-two-primaries=no` (and your desired replication protocol, if
@@ -931,14 +931,14 @@ also be desirable to automatically switch the resource into the
 primary role upon system (or DRBD) startup.
 
 [source,drbd]
-----------------------------
+----
 resource <resource>
   startup {
     become-primary-on both;
   }
   ...
 }
-----------------------------
+----
 
 The `/etc/init.d/drbd` system init script parses this option on
 startup and promotes resources accordingly.
@@ -963,14 +963,14 @@ enable it, add the following lines to your resource configuration in
 `/etc/drbd.conf`:
 
 [source,drbd]
-----------------------------
+----
 resource <resource>
   net {
     verify-alg <algorithm>;
   }
   ...
 }
-----------------------------
+----
 
 _<algorithm>_ may be any message digest algorithm supported by the
 kernel crypto API in your system's kernel configuration. Normally, you
@@ -987,9 +987,9 @@ indexterm:[on-line device verification]After you have enabled on-line
 verification, you will be able to initiate a verification run using
 the following command:
 
-----------------------------
+----
 # drbdadm verify <resource>
-----------------------------
+----
 
 When you do so, DRBD starts an online verification run for
 _<resource>_, and if it detects any blocks not in sync, will mark
@@ -1002,10 +1002,10 @@ If out-of-sync blocks were detected during the verification run, you
 may resynchronize them using the following commands after verification
 has completed:
 
-----------------------------
+----
 # drbdadm disconnect <resource>
 # drbdadm connect <resource>
-----------------------------
+----
 
 
 [[s-online-verify-automate]]
@@ -1017,9 +1017,9 @@ accomplished. Create a file with the following contents, named
 `/etc/cron.d/drbd-verify` on _one_ of your nodes:
 
 [source,drbd]
-----------------------------
+----
 42 0 * * 0    root    /sbin/drbdadm verify <resource>
-----------------------------
+----
 
 This will have `cron` invoke a device verification every Sunday at 42
 minutes past midnight.
@@ -1029,9 +1029,9 @@ example, by adding `verify-alg <algorithm>` to the `common` section
 in `/etc/drbd.conf`), you may also use:
 
 [source,drbd]
-----------------------------
+----
 42 0 * * 0    root    /sbin/drbdadm verify all
-----------------------------
+----
 
 
 [[s-configure-sync-rate]]
@@ -1078,7 +1078,7 @@ configure this DRBD feature. An _example_ configuration (which assumes
 a deployment in conjunction with DRBD Proxy) is provided below:
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   disk {
     c-plan-ahead 200;
@@ -1086,7 +1086,7 @@ resource <resource> {
     c-fill-target 15M;
   }
 }
-----------------------------
+----
 
 TIP: A good starting value for `c-fill-target` is _BDP✕3_, where
 BDP is your bandwidth delay product on the replication link.
@@ -1106,7 +1106,7 @@ for a resource. This must be included in the resource configuration's
 `disk` section in `/etc/drbd.conf`:
 
 [source,drbd]
-----------------------------
+----
 resource <resource>
   disk {
     resync-rate 40M;
@@ -1114,7 +1114,7 @@ resource <resource>
   }
   ...
 }
-----------------------------
+----
 
 Note that the rate setting is given in _bytes_, not _bits_ per second; the
 default unit is _Kibibyte_, so a value of `4096` would be interpreted as `4MiB`.
@@ -1156,18 +1156,18 @@ of the existing bandwidth is available to replication.
 For example, in order to make most bandwidth of a Gigabit Ethernet
 link available to re-synchronization, issue the following command:
 
-----------------------------
+----
 # drbdadm disk-options --c-plan-ahead=0 --resync-rate=110M <resource>
-----------------------------
+----
 
 You need to issue this command on the _SyncTarget_ node.
 
 To revert this temporary setting and re-enable the synchronization
 rate set in `/etc/drbd.conf`, issue this command:
 
-----------------------------
+----
 # drbdadm adjust <resource>
-----------------------------
+----
 
 
 [[s-configure-checksum-sync]]
@@ -1179,14 +1179,14 @@ not enabled for resources by default. To enable it, add the following
 lines to your resource configuration in `/etc/drbd.conf`:
 
 [source,drbd]
-----------------------------
+----
 resource <resource>
   net {
     csums-alg <algorithm>;
   }
   ...
 }
-----------------------------
+----
 
 _<algorithm>_ may be any message digest algorithm supported by the
 kernel crypto API in your system's kernel configuration. Normally, you
@@ -1214,7 +1214,7 @@ until sufficient bandwidth becomes available again.
 The following example is for a DRBD Proxy configuration:
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   net {
     on-congestion pull-ahead;
@@ -1224,7 +1224,7 @@ resource <resource> {
   }
   ...
 }
-----------------------------
+----
 
 It is usually wise to set both `congestion-fill` and
 `congestion-extents` together with the `pull-ahead` option.
@@ -1248,7 +1248,7 @@ errors>> is determined by the `on-io-error` option, included in the
 resource `disk` configuration in `/etc/drbd.conf`:
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   disk {
     on-io-error <strategy>;
@@ -1256,7 +1256,7 @@ resource <resource> {
   }
   ...
 }
-----------------------------
+----
 
 You may, of course, set this in the `common` section too, if you want
 to define a global I/O error handling policy for all resources.
@@ -1308,14 +1308,14 @@ is not enabled for resources by default. To enable it, add the
 following lines to your resource configuration in `/etc/drbd.conf`:
 
 [source,drbd]
-----------------------------
+----
 resource <resource>
   net {
     data-integrity-alg <algorithm>;
   }
   ...
 }
-----------------------------
+----
 
 _<algorithm>_ may be any message digest algorithm supported by the
 kernel crypto API in your system's kernel configuration. Normally, you
@@ -1344,9 +1344,9 @@ must be fulfilled:
 Having grown the backing block devices on both nodes, ensure that only
 one node is in primary state. Then enter on one node:
 
-----------------------------
+----
 # drbdadm resize <resource>
-----------------------------
+----
 
 This triggers a synchronization of the new section. The
 synchronization is done from the primary node to the secondary node.
@@ -1354,9 +1354,9 @@ synchronization is done from the primary node to the secondary node.
 If the space you're adding is clean, you can skip syncing the additional
 space by using the --assume-clean option.
 
-----------------------------
+----
 # drbdadm -- --assume-clean resize <resource>
-----------------------------
+----
 
 [[s-growing-offline]]
 ==== Growing off-line
@@ -1380,15 +1380,15 @@ WARNING: This is an advanced procedure. Use at your own discretion.
 
 [source,drbd]
 
-----------------------------
+----
 # drbdadm down <resource>
-----------------------------
+----
 
 * Save the meta data in a text file prior to growing the backing block device:
 
-----------------------------
+----
 # drbdadm dump-md <resource> > /tmp/metadata
-----------------------------
+----
 
 You must do this on both nodes, using a separate dump file for every
 node. _Do not_ dump the meta data on one node, and simply copy the
@@ -1402,19 +1402,19 @@ dump file to the peer. This will not work.
 
 * Re-initialize the metadata area:
 
-----------------------------
+----
 # drbdadm create-md <resource>
-----------------------------
+----
 
 * Re-import the corrected meta data, on both nodes:
 
-----------------------------
+----
 # drbdmeta_cmd=$(drbdadm -d dump-md <resource>)
 # ${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata
 Valid meta-data in place, overwrite? [need to type 'yes' to confirm]
 yes
 Successfully restored meta data
-----------------------------
+----
 
 NOTE: This example uses `bash` parameter substitution. It may or may
 not work in other shells. Check your `SHELL` environment variable if
@@ -1422,15 +1422,15 @@ you are unsure which shell you are currently using.
 
 * Re-enable your DRBD resource:
 
-----------------------------
+----
 # drbdadm up <resource>
-----------------------------
+----
 
 * On one node, promote the DRBD resource:
 
-----------------------------
+----
 # drbdadm primary <resource>
-----------------------------
+----
 
 * Finally, grow the file system so it fills the extended size of the
   DRBD device.
@@ -1455,9 +1455,9 @@ To shrink DRBD on-line, issue the following command _after_ you have
 shrunk the file system residing on top of it:
 
 [source,drbd]
-----------------------------
+----
 # drbdadm -- --size=<new-size> resize <resource>
-----------------------------
+----
 
 You may use the usual multiplier suffixes for _<new-size>_ (K, M, G
 etc.). After you have shrunk DRBD, you may also shrink the containing
@@ -1482,15 +1482,15 @@ WARNING: This is an advanced procedure. Use at your own discretion.
 
 * Unconfigure your DRBD resource:
 
-----------------------------
+----
 # drbdadm down <resource>
-----------------------------
+----
 
 * Save the meta data in a text file prior to shrinking:
 
-----------------------------
+----
 # drbdadm dump-md <resource> > /tmp/metadata
-----------------------------
+----
 
 You must do this on both nodes, using a separate dump file for every
 node. _Do not_ dump the meta data on one node, and simply copy the dump
@@ -1506,19 +1506,19 @@ file to the peer. This will not work.
   probably been lost due to the shrinking process), re-initialize the
   metadata area:
 
-----------------------------
+----
 # drbdadm create-md <resource>
-----------------------------
+----
 
 * Re-import the corrected meta data, on both nodes:
 
-----------------------------
+----
 # drbdmeta_cmd=$(drbdadm -d dump-md <resource>)
 # ${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata
 Valid meta-data in place, overwrite? [need to type 'yes' to confirm]
 yes
 Successfully restored meta data
-----------------------------
+----
 
 NOTE: This example uses `bash` parameter substitution. It may or may not
 work in other shells. Check your `SHELL` environment variable if you
@@ -1526,9 +1526,9 @@ are unsure which shell you are currently using.
 
 * Re-enable your DRBD resource:
 
-----------------------------
+----
 # drbdadm up <resource>
-----------------------------
+----
 
 
 [[s-disable-flushes]]
@@ -1554,7 +1554,7 @@ To disable disk flushes for the replicated data set, include the
 following line in your configuration:
 
 [source,drbd]
-----------------------------
+----
 resource <resource>
   disk {
     disk-flushes no;
@@ -1562,14 +1562,14 @@ resource <resource>
   }
   ...
 }
-----------------------------
+----
 
 
 To disable disk flushes on DRBD's meta data, include the following
 line:
 
 [source,drbd]
-----------------------------
+----
 resource <resource>
   disk {
     md-flushes no;
@@ -1577,15 +1577,15 @@ resource <resource>
   }
   ...
 }
-----------------------------
+----
 
 After you have modified your resource configuration (and synchronized
 your `/etc/drbd.conf` between nodes, of course), you may enable these
 settings by issuing this command on both nodes:
 
-----------------------------
+----
 # drbdadm adjust <resource>
-----------------------------
+----
 
 
 [[s-configure-split-brain-behavior]]
@@ -1598,7 +1598,7 @@ DRBD invokes the `split-brain` handler, if configured, at any time
 split brain is _detected_. To configure this handler, add the
 following item to your resource configuration:
 
-----------------------------
+----
 resource <resource>
   handlers {
     split-brain <handler>;
@@ -1606,7 +1606,7 @@ resource <resource>
   }
   ...
 }
-----------------------------
+----
 
 _<handler>_ may be any executable present on the system.
 
@@ -1617,7 +1617,7 @@ handler to send a message to `root@localhost` (which is expected to be
 an email address that forwards the notification to a real system
 administrator), configure the `split-brain handler` as follows:
 
-----------------------------
+----
 resource <resource>
   handlers {
     split-brain "/usr/lib/drbd/notify-split-brain.sh root";
@@ -1625,7 +1625,7 @@ resource <resource>
   }
   ...
 }
-----------------------------
+----
 
 After you have made this modification on a running resource (and
 synchronized the configuration file between nodes), no additional
@@ -1710,7 +1710,7 @@ For example, a resource which serves as the block device for a GFS or
 OCFS2 file system in dual-Primary mode may have its recovery policy
 defined as follows:
 
-----------------------------
+----
 resource <resource> {
   handlers {
     split-brain "/usr/lib/drbd/notify-split-brain.sh root"
@@ -1724,7 +1724,7 @@ resource <resource> {
   }
   ...
 }
-----------------------------
+----
 
 
 [[s-three-nodes]]
@@ -1763,7 +1763,7 @@ In the following example, nodes are named 'alice', 'bob', and
 'charlie' being the backup node.
 
 [source,drbd]
-----------------------------
+----
 resource r0 {
   net {
     protocol C;
@@ -1801,7 +1801,7 @@ resource r0-U {
     meta-disk  internal;
   }
 }
-----------------------------
+----
 
 As with any `drbd.conf` configuration file, this must be distributed
 across all nodes in the cluster -- in this case, three nodes. Notice
@@ -1823,32 +1823,32 @@ depending on your application.
 
 To enable a stacked resource, you first enable its lower-level
 resource and promote it:
-----------------------------
+----
 drbdadm up r0
 drbdadm primary r0
-----------------------------
+----
 
 As with unstacked resources, you must create DRBD meta data on the
 stacked resources. This is done using the following command:
 
-----------------------------
+----
 # drbdadm create-md --stacked r0-U
-----------------------------
+----
 
 Then, you may enable the stacked resource:
 
----------------------------
+----
 # drbdadm up --stacked r0-U
 # drbdadm primary --stacked r0-U
----------------------------
+----
 
 After this, you may bring up the resource on the backup node, enabling
 three-node replication:
 
-----------------------------
+----
 # drbdadm create-md r0-U
 # drbdadm up r0-U
-----------------------------
+----
 
 In order to automate stacked resource management, you may integrate
 stacked resources in your cluster manager configuration. See
@@ -1883,17 +1883,17 @@ To install DRBD Proxy on Debian and Debian-based systems, use the dpkg
 tool as follows (replace version with your DRBD Proxy version, and
 architecture with your target architecture):
 
-----------------------------
+----
 # dpkg -i drbd-proxy_3.0.0_amd64.deb
-----------------------------
+----
 
 To install DRBD Proxy on RPM based systems (like SLES or RHEL) use
 the rpm tool as follows (replace version with your DRBD Proxy version,
 and architecture with your target architecture):
 
-----------------------------
+----
 # rpm -i drbd-proxy-3.0-3.0.0-1.x86_64.rpm
-----------------------------
+----
 
 Also install the DRBD administration program drbdadm since it is
 required to configure DRBD Proxy.
@@ -1911,9 +1911,9 @@ license file which is required to run DRBD Proxy. The file is called
 `drbd-proxy.license`, it  must be copied into the `/etc` directory of the
 target machines, and be owned by the user/group `drbdpxy`.
 
-----------------------------
+----
 # cp drbd-proxy.license /etc/
-----------------------------
+----
 
 
 [[s-drbd-proxy-configuration]]
@@ -1927,7 +1927,7 @@ Below is a DRBD configuration example for proxies running directly on
 the DRBD nodes:
 
 [source,drbd]
-----------------------------
+----
 resource r0 {
         net {
           protocol A;
@@ -1959,7 +1959,7 @@ resource r0 {
                 }
         }
 }
-----------------------------
+----
 
 The `inside` IP address is used for communication between DRBD and the
 DRBD Proxy, whereas the `outside` IP address is used for communication
@@ -1981,15 +1981,15 @@ To pass a command directly, avoiding interactive mode, use
 the `-c` parameter followed by the command.
 
 To display the available commands use:
-----------------------------
+----
 # drbd-proxy-ctl -c "help"
-----------------------------
+----
 
 Note the double quotes around the command being passed.
 
 
 [source,drbd]
-----------------------------
+----
 add connection <name> <listen-lan-ip>:<port> <remote-proxy-ip>:<port>
    <local-proxy-wan-ip>:<port> <local-drbd-ip>:<port>
    Creates a communication path between two DRBD instances.
@@ -2031,7 +2031,7 @@ Examples:
 		monitors memory usage.
              Note that the quotes are required as listed above.
 
-----------------------------
+----
 
 While the commands above are only accepted from UID 0 (i.e., the `root` user),
 there's one (information gathering) command that can be used by any user
@@ -2039,14 +2039,14 @@ there's one (information gathering) command that can be used by any user
 `/var/run/drbd-proxy/drbd-proxy-ctl.socket`); see the init script at
 `/etc/init.d/drbdproxy` about setting the rights.
 
-----------------------------
+----
 print details
    This prints detailed statistics for the currently active connections.
    Can be used for monitoring, as this is the only command that may be sent by a user with UID
 
 quit
    Exits the client program (closes control connection).
-----------------------------
+----
 
 
 [[s-drbd-proxy-plugins]]
@@ -2089,7 +2089,7 @@ limit bandwidth consumed by proxy on the WAN side.
 In the following example you would need to replace the interface
 name, the source port and the ip address of the peer.
 
-----------------------------
+----
 # tc qdisc add dev eth0 root handle 1: htb default 1
 # tc class add dev eth0 parent 1: classid 1:1 htb rate 1gbit
 # tc class add dev eth0 parent 1:1 classid 1:10 htb rate 500kbit
@@ -2099,13 +2099,13 @@ name, the source port and the ip address of the peer.
 # tc filter add dev eth0 parent 1: protocol ip prio 16 u32 \
         match ip dport 7000 0xffff \
         match ip dst 192.168.47.11 flowid 1:10
-----------------------------
+----
 
 You can remove this bandwidth limitation with
 
-----------------------------
+----
 # tc qdisc del dev eth0 root handle 1
-----------------------------
+----
 
 [[s-drbd-proxy-troubleshoot]]
 ==== Troubleshooting
@@ -2115,9 +2115,9 @@ you will find DRBD Proxy messages in `/var/log/daemon.log`.
 
 Enabling debug mode in DRBD Proxy can be done with the following command.
 
---------------------------
+----
 # drbd-proxy-ctl -c 'set loglevel debug'
---------------------------
+----
 
 For example, if proxy fails to connect it will log something like
 "Rejecting connection because I can't connect on the other side". In

@@ -35,16 +35,16 @@ indexterm:[drbdadm, detach]If DRBD is <<fp-io-error-pass-on,configured to pass
 on I/O errors>> (not recommended), you must first detach the DRBD
 resource, that is, disassociate it from its backing storage:
 
-----------------------------
+----
 # drbdadm detach <resource>
-----------------------------
+----
 
 By running the `drbdadm status` or the `drbdadm dstate` command, you will now be able to verify
 that the resource is now in indexterm:[diskless
 mode]indexterm:[diskless (disk state)]indexterm:[disk state, Diskless]_diskless
 mode_:
 
-----------------------------
+----
 # drbdadm status <resource>
 <resource> role:Primary
   volume:0 disk:Diskless
@@ -52,7 +52,7 @@ mode_:
     volume:0 peer-disk:UpToDate
 # drbdadm dstate <resource>
 Diskless/UpToDate
-----------------------------
+----
 
 If the disk failure has occurred on your primary node, you may combine
 this step with a switch-over operation.
@@ -78,7 +78,7 @@ the DRBD configuration file has to be modified accordingly.
 This process involves creating a new metadata set, then reattaching
 the resource: indexterm:[drbdadm, create-md]
 
-----------------------------
+----
 # drbdadm create-md <resource>
 v08 Magic number not found
 Writing meta data...
@@ -87,7 +87,7 @@ NOT initializing bitmap
 New drbd meta data block successfully created.
 
 # drbdadm attach <resource>
-----------------------------
+----
 
 Full synchronization of the new hard disk starts instantaneously and
 automatically. You will be able to monitor the synchronization's
@@ -101,7 +101,7 @@ is basically the same. However, DRBD is not able to recognize
 independently that the hard disk was swapped, therefore an additional step
 is required.
 
-----------------------------
+----
 # drbdadm create-md <resource>
 v08 Magic number not found
 Writing meta data...
@@ -111,7 +111,7 @@ New drbd meta data block successfully created.
 
 # drbdadm attach <resource>
 # drbdadm invalidate <resource>
-----------------------------
+----
 
 WARNING: Be sure to run `drbdadm invalidate` on the node __*without*__ good data;
 this command will cause the local contents to be overwritten with data from the
@@ -212,9 +212,9 @@ initial DRBD protocol handshake. If DRBD detects that both nodes are
 immediately tears down the replication connection. The tell-tale sign
 of this is a message like the following appearing in the system log:
 
-----------------------------
+----
 Split-Brain detected, dropping connection!
-----------------------------
+----
 
 After split brain has been detected, one node will always have the
 resource in a indexterm:[StandAlone (connection
@@ -238,26 +238,26 @@ The split brain victim needs to be in the connection state of
 _StandAlone_ or the following commands will return an error.
 You can ensure it is standalone by issuing:
 
-----------
+----
 # drbdadm disconnect <resource>
-----------
+----
 ===========================
 /////////////////
 
 
-----------------------------
+----
 # drbdadm disconnect <resource>
 # drbdadm secondary <resource>
 # drbdadm connect --discard-my-data <resource>
-----------------------------
+----
 
 On the other node (the indexterm:[split brain]_split brain survivor_),
 if its connection state is also _StandAlone_, you would enter:
 
-----------------------------
+----
 # drbdadm disconnect <resource>
 # drbdadm connect <resource>
-----------------------------
+----
 
 You may omit this step if the node is already in the
 _Connecting_ state; it will then reconnect automatically.

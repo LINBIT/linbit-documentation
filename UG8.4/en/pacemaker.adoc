@@ -36,9 +36,9 @@ recommended that you defer DRBD startup, shutdown, promotion, and
 demotion _exclusively_ to the OCF resource agent. That means that you
 should disable the DRBD init script:
 
-----------------------------
+----
 chkconfig drbd off
-----------------------------
+----
 
 The `ocf:linbit:drbd` OCF resource agent provides Master/Slave
 capability, allowing Pacemaker to start and monitor the DRBD resource
@@ -64,7 +64,7 @@ resource. You may do so using the `crm` shell, as outlined in the
 following example:
 
 .Pacemaker configuration for DRBD-backed MySQL service
-----------------------------
+----
 crm configure
 crm(live)configure# primitive drbd_mysql ocf:linbit:drbd \
                     params drbd_resource="mysql" \
@@ -88,7 +88,7 @@ crm(live)configure# order mysql_after_drbd \
 crm(live)configure# commit
 crm(live)configure# exit
 bye
-----------------------------
+----
 
 After this, your configuration should be enabled. Pacemaker now
 selects a node on which it promotes the DRBD resource, and then starts
@@ -107,14 +107,14 @@ In order to enable any resource-level fencing for DRBD, you must add
 the following lines to your resource configuration:
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   disk {
     fencing resource-only;
     ...
   }
 }
-----------------------------
+----
 
 You will also have to make changes to the `handlers` section depending
 on the cluster infrastructure being used:
@@ -146,10 +146,10 @@ To enable dopd, you must add these lines to your indexterm:[ha.cf
 (Heartbeat configuration file)]`/etc/ha.d/ha.cf` file:
 
 [source,drbd]
-----------------------------
+----
 respawn hacluster /usr/lib/heartbeat/dopd
 apiauth dopd gid=haclient uid=hacluster
-----------------------------
+----
 
 You may have to adjust ``dopd``'s path according to your preferred
 distribution. On some distributions and architectures, the correct
@@ -172,7 +172,7 @@ Once `dopd` is running, add these items to your DRBD resource
 configuration:
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
     handlers {
         fence-peer "/usr/lib/heartbeat/drbd-peer-outdater -t 5";
@@ -184,7 +184,7 @@ resource <resource> {
     }
     ...
 }
-----------------------------
+----
 
 As with `dopd`, your distribution may place the `drbd-peer-outdater`
 binary in `/usr/lib64/heartbeat` depending on your system
@@ -233,7 +233,7 @@ In order to enable resource-level fencing for Pacemaker, you will have
 to set two options in `drbd.conf`:
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   disk {
     fencing resource-only;
@@ -246,7 +246,7 @@ resource <resource> {
   }
   ...
 }
-----------------------------
+----
 
 Thus, if the DRBD replication link becomes disconnected, the
 `crm-fence-peer.sh` script contacts the cluster manager, determines the
@@ -285,7 +285,7 @@ initialize DRBD resources as described in <<s-three-nodes>>. Then,
 configure Pacemaker with the following CRM configuration:
 
 [source,drbd]
-----------------------------
+----
 primitive p_drbd_r0 ocf:linbit:drbd \
 	params drbd_resource="r0"
 
@@ -319,15 +319,15 @@ order o_ip_before_r0-U \
 
 order o_drbd_r0_before_r0-U \
         inf: ms_drbd_r0:promote ms_drbd_r0-U:start
-----------------------------
+----
 
 Assuming you created this configuration in a temporary file named
 `/tmp/crm.txt`, you may import it into the live cluster configuration
 with the following command:
 
-----------------------------
+----
 crm configure < /tmp/crm.txt
-----------------------------
+----
 
 This configuration will ensure that the following actions occur in the
 correct order on the 'alice' and 'bob' cluster:
@@ -388,7 +388,7 @@ just the local cluster). Then, configure Pacemaker with the following
 CRM configuration, starting with the cluster 'left':
 
 [source,drbd]
-----------------------------
+----
 primitive p_drbd_left ocf:linbit:drbd \
 	params drbd_resource="left"
 
@@ -420,15 +420,15 @@ order o_ip_before_stacked_left \
 order o_drbd_left_before_stacked_left \
         inf: ms_drbd_left:promote ms_drbd_stacked:start
 
-----------------------------
+----
 
 Assuming you created this configuration in a temporary file named
 `/tmp/crm.txt`, you may import it into the live cluster configuration
 with the following command:
 
-----------------------------
+----
 crm configure < /tmp/crm.txt
-----------------------------
+----
 
 After adding this configuration to the CIB, Pacemaker will execute the
 following actions:
@@ -449,7 +449,7 @@ Now, proceed on the cluster 'right' by creating the following
 configuration:
 
 [source,drbd]
-----------------------------
+----
 primitive p_drbd_right ocf:linbit:drbd \
 	params drbd_resource="right"
 
@@ -480,7 +480,7 @@ order o_ip_before_stacked_right \
 
 order o_drbd_right_before_stacked_right \
         inf: ms_drbd_right:promote ms_drbd_stacked:start
-----------------------------
+----
 
 After adding this configuration to the CIB, Pacemaker will execute the
 following actions:
@@ -533,7 +533,7 @@ To enable your DRBD resource to float, configure it in `drbd.conf` in
 the following fashion:
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   ...
   device /dev/drbd0;
@@ -542,7 +542,7 @@ resource <resource> {
   floating 10.9.9.100:7788;
   floating 10.9.10.101:7788;
 }
-----------------------------
+----
 
 The `floating` keyword replaces the `on <host>` sections normally
 found in the resource configuration. In this mode, DRBD identifies
@@ -572,7 +572,7 @@ To configure a resource named `mysql` in a floating peers
 configuration in a 2-node cluster, using the replication address
 `10.9.9.100`, configure Pacemaker with the following `crm` commands:
 
-----------------------------
+----
 crm configure
 crm(live)configure# primitive p_ip_float_left ocf:heartbeat:IPaddr2 \
                     params ip=10.9.9.100
@@ -588,7 +588,7 @@ crm(live)configure# colocation drbd_on_left \
                       inf: ms_drbd_mysql p_ip_float_left
 crm(live)configure# commit
 bye
-----------------------------
+----
 
 After adding this configuration to the CIB, Pacemaker will execute the
 following actions:
@@ -601,7 +601,7 @@ Then, in order to create the matching configuration in the other
 cluster, configure _that_ Pacemaker instance with the following
 commands:
 
-----------------------------
+----
 crm configure
 crm(live)configure# primitive p_ip_float_right ocf:heartbeat:IPaddr2 \
                     params ip=10.9.10.101
@@ -617,7 +617,7 @@ crm(live)configure# colocation drbd_on_right
                       inf: ms_drbd_mysql p_ip_float_right
 crm(live)configure# commit
 bye
-----------------------------
+----
 
 After adding this configuration to the CIB, Pacemaker will execute the
 following actions:
