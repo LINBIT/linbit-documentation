@@ -16,6 +16,25 @@ build:
     paths:
       - UG9/en/output-html-finalize/*.zip
 
+lint:
+  stage: build
+  image:
+    name: $LINBIT_DOCKER_REGISTRY/lb-vale:latest
+    entrypoint: [""]
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == 'master'
+  script:
+    - /bin/vale --config=/vale_app/.vale.ini --no-exit --output=JSON **/en/*.adoc | tee vale.json
+    - /bin/vale2climate vale.json > vale-climate.json
+  artifacts:
+    paths:
+    - vale.json
+    when: always
+    reports:
+      codequality:
+        - vale-climate.json
+
 preview:
   stage: preview
   image: $LINBIT_DOCKER_REGISTRY/ug-preview:latest
