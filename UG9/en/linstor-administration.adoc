@@ -1768,10 +1768,29 @@ interface. Setups can become complex. It is far easier and safer, if you can get
 to set the `PrefNic` property at the node level. This way, all storage pools on the node,
 including Diskless storage pools, will use your preferred NIC.
 
-While this method routes DRBD traffic through a specified NIC, it is not possible through `linstor` commands only, to route LINSTOR controller-client traffic through a specific NIC. To achieve this, you can either:
+If you need to add an interface for only controller-satellite traffic, you can add an
+interface using the above `node interface create` command. Then you modify the connection to
+make it the active controller-satellite connection. For example, if you added an interface named
+`1G-satconn` on all nodes, after adding the interface, you can then tell LINSTOR to use this
+interface for controller-satellite traffic by entering the following command:
 
-. Specify a LINSTOR controller using methods outlined in <<s-using_the_linstor_client>> *and* have the only route to the controller as specified be through the NIC that you want to use for controller-client traffic.
-. Use Linux tools such as `ip route` and `iptables` to filter LINSTOR client-controller traffic, port number 3370, and route it through a specific NIC.
+----
+# linstor node interface modify node-0 1G-satconn --active
+----
+
+You can verify this change by using the `linstor node interface list node-0` command. Output
+from the command should show that the `StltCon` label applies to the `1G-satconn` interface.
+
+While the above methods can re-route DRBD traffic, and LINSTOR communication between the
+controller and satellite nodes, it is not possible through `linstor` commands only, to route
+LINSTOR controller-client traffic (commands that you issue from a LINSTOR client to the
+controller) through a specific NIC. To achieve this, you can either:
+
+. Specify a LINSTOR controller using methods outlined in <<s-using_the_linstor_client>> *and*
+have the only route to the controller as specified be through the NIC that you want to use for
+controller-client traffic.
+. Use Linux tools such as `ip route` and `iptables` to filter LINSTOR client-controller traffic,
+port number 3370, and route it through a specific NIC.
 
 [[s-creating-multiple-drbd-paths]]
 ==== Creating Multiple DRBD Paths with LINSTOR
