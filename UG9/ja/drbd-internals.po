@@ -1,0 +1,1190 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2022-05-13 14:52+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "DRBD Internals"
+msgstr "DRBDの内部"
+
+#. type: Plain text
+msgid ""
+"This chapter gives _some_ background information about some of DRBD's "
+"internal algorithms and structures. It is intended for interested users "
+"wishing to gain a certain degree of background knowledge about DRBD. It does "
+"not dive into DRBD's inner workings deep enough to be a reference for DRBD "
+"developers. For that purpose, please refer to the papers listed in <<s-"
+"publications>>, and of course to the comments in the DRBD source code."
+msgstr ""
+"この章ではDRBDの内部アルゴリズムと内部構造について、 _いくつか_ の背景情報を"
+"取り上げます。 これは、DRBDの背景について関心のあるユーザーが対象です。DRBD開"
+"発者が参考にできるほど深い内容には踏み込んでいません。開発者の方は<<s-"
+"publications>>に記載の文章やDRBDのソースコードを参照してください。"
+
+#. type: Title ===
+#, no-wrap
+msgid "DRBD Metadata"
+msgstr "DRBDメタデータ"
+
+#. type: Plain text
+msgid ""
+"indexterm:[metadata]DRBD stores various pieces of information about the data "
+"it keeps in a dedicated area. This metadata includes:"
+msgstr ""
+"indexterm:[metadata]DRBDはレプリケートするデータに関するさまざまな情報を専用"
+"の領域に格納しています。メタデータには次のようなものがあります。"
+
+#. type: Plain text
+msgid "the size of the DRBD device,"
+msgstr "DRBDデバイスのサイズ"
+
+#. type: Plain text
+msgid "the Generation Identifier (GI, described in detail in <<s-gi>>),"
+msgstr "世代識別子(GI、詳細は<<s-gi>>を参照)"
+
+#. type: Plain text
+msgid "the Activity Log (AL, described in detail in <<s-activity-log>>)."
+msgstr "アクティビティログ(AL、詳細は<<s-activity-log>>)を参照"
+
+#. type: Plain text
+msgid "the quick-sync bitmap (described in detail in <<s-quick-sync-bitmap>>),"
+msgstr "クイック同期ビットマップ(詳細は<<s-quick-sync-bitmap>>を参照)"
+
+#. type: Plain text
+msgid ""
+"This metadata may be stored _internally_ or _externally_. Which method is "
+"used is configurable on a per-resource basis."
+msgstr ""
+"このメタデータは _内部_ または _外部_ に格納されます。格納する場所はリソース"
+"ごとに設定できます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Internal Metadata"
+msgstr "内部メタデータ"
+
+#. type: Plain text
+msgid ""
+"indexterm:[metadata]Configuring a resource to use internal metadata means "
+"that DRBD stores its metadata on the same physical lower-level device as the "
+"actual production data. It does so by setting aside an area at the _end_ of "
+"the device for the specific purpose of storing metadata."
+msgstr ""
+"indexterm:[metadata]内部メタデータを使用するようにリソースを設定すると、DRBD"
+"はメタデータを実際の本稼働データと同じ下位レベルの物理デバイスに格納します。"
+"デバイスの _末尾_ の領域がメタデータを格納するための領域として確保されます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Advantage"
+msgstr "メリット"
+
+#. type: Plain text
+msgid ""
+"Since the metadata are inextricably linked with the actual data, no special "
+"action is required from the administrator in case of a hard disk failure. "
+"The metadata are lost together with the actual data and are also restored "
+"together."
+msgstr ""
+"メタデータは実際のデータと密接にリンクされているため、ハードディスクに障害が"
+"発生しても、管理者は特に何かする必要はありません。メタデータは実際のデータと"
+"ともに失われ、ともに復元されます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Disadvantage"
+msgstr "デメリット"
+
+#. type: Plain text
+msgid ""
+"In case of the lower-level device being a single physical hard disk (as "
+"opposed to a RAID set), internal metadata may negatively affect write "
+"throughput. The performance of write requests by the application may trigger "
+"an update of the metadata in DRBD. If the metadata are stored on the same "
+"magnetic disk of a hard disk, the write operation may result in two "
+"additional movements of the write/read head of the hard disk."
+msgstr ""
+"RAIDセットではなく、下位レベルデバイスが唯一の物理ハードディスクの場合は、内"
+"部メタデータが原因で書き込みスループットが低下することがあります。アプリケー"
+"ションによる書き込み要求の実行により、DRBDのメタデータの更新が引き起こされる"
+"場合があります。メタデータがハードディスクの同じ磁気ディスクに格納されている"
+"場合は、書き込み処理によって、ハードディスクの書き込み/読み取りヘッドが2回余"
+"分に動作することになります。"
+
+#. type: delimited block =
+msgid ""
+"If you are planning to use internal metadata in conjunction with an existing "
+"lower-level device that already has data that you want to preserve, you "
+"_must_ account for the space required by DRBD's metadata."
+msgstr ""
+"すでにデータが書き込まれているディスク領域を下位デバイスに指定してDRBDでレプ"
+"リケートする場合で、内部メタデータを使うには、DRBDのメタデータに必要な領域を "
+"_必ず_ 確保してください。"
+
+#. type: delimited block =
+msgid ""
+"Otherwise, upon DRBD resource creation, the newly created metadata would "
+"overwrite data at the end of the lower-level device, potentially destroying "
+"existing files in the process."
+msgstr ""
+"そうでない場合、DRBDリソースの作成時に、新しく作成されるメタデータによって下"
+"位レベルデバイスの末尾のデータが上書きされ、既存のファイルが破損します。"
+
+#. type: Plain text
+msgid "To avoid that, you must do one of the following things:"
+msgstr "以下のいずれかの方法でこれを避けることができます。"
+
+#. type: Plain text
+msgid ""
+"Enlarge your lower-level device. This is possible with any logical volume "
+"management facility (such as indexterm:[LVM]LVM) provided that you have free "
+"space available in the corresponding volume group. It may also be supported "
+"by hardware storage solutions."
+msgstr ""
+"下位レベルデバイスを拡張します。これには、LVMなどの論理 ボリューム管理機能を"
+"使用します。 ただし、対応するボリュームグループに有効な空き領域が必要です。 "
+"ハードウェアストレージソリューションを使用することもできます。"
+
+#. type: Plain text
+msgid ""
+"Shrink your existing file system on your lower-level device. This may or may "
+"not be supported by your file system."
+msgstr ""
+"下位レベルデバイスの既存のファイルシステムを縮小します。ファイルシステムに"
+"よっては 実行できない場合があります。"
+
+#. type: Plain text
+msgid ""
+"If neither of the two are possible, use <<s-external-meta-data,external "
+"metadata>> instead."
+msgstr ""
+"上記2つが不可能な場合は、 代わりに<<s-external-meta-data,外部メタデータ>>を使"
+"用します。"
+
+#. type: Plain text
+msgid ""
+"To estimate the amount by which you must enlarge your lower-level device or "
+"shrink your file system, see <<s-meta-data-size>>."
+msgstr ""
+"下位レベルデバイスをどの程度拡張するか、またはファイルシステムをどの程度縮小"
+"するかについては、<<s-meta-data-size>>を参照してください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "External Metadata"
+msgstr "外部メタデータ"
+
+#. type: Plain text
+msgid ""
+"indexterm:[metadata]External metadata is simply stored on a separate, "
+"dedicated block device distinct from that which holds your production data."
+msgstr ""
+"indexterm:[metadata]外部メタデータは、本稼働データを格納するものとは異なる個"
+"別の専用ブロックデバイスに格納します。"
+
+#. type: Plain text
+msgid ""
+"For some write operations, using external metadata produces a somewhat "
+"improved latency behavior."
+msgstr ""
+"一部の書き込み処理では、外部メタデータを使用することにより、待ち時間をいくら"
+"か短縮できます。"
+
+#. type: Plain text
+msgid ""
+"Meta data are not inextricably linked with the actual production data. This "
+"means that manual intervention is required in the case of a hardware failure "
+"destroying just the production data (but not DRBD metadata), to effect a "
+"full data sync from the surviving node onto the subsequently replaced disk."
+msgstr ""
+"メタデータが実際の本稼働データに密接にリンクされません。つまり、ハードウェア"
+"障害により本稼働データだけが破損したか、DRBDメタデータは破損しなかった場合、"
+"手動による介入が必要です。生き残ったノードから切り替えるディスクに、手動で"
+"データの完全同期を行う必要があります。"
+
+#. type: Plain text
+msgid ""
+"Use of external metadata is also the only viable option if _all_ of the "
+"following apply:"
+msgstr ""
+"次の項目の _すべて_ に該当する場合には、外部メタデータ使用する以外の選択肢は"
+"ありません。"
+
+#. type: Plain text
+msgid ""
+"You are using DRBD to duplicate an existing device that already contains "
+"data you want to preserve, _and_"
+msgstr "DRBDでレプリケートしたい領域に すでにデータが格納されており、"
+
+#. type: Plain text
+msgid "that existing device does not support enlargement, _and_"
+msgstr "この既存デバイスを拡張することができず、"
+
+#. type: Plain text
+msgid "the existing file system on the device does not support shrinking."
+msgstr "デバイスの既存のファイルシステムが縮小をサポートしていない。"
+
+#. type: Plain text
+msgid ""
+"To estimate the required size of the block device dedicated to hold your "
+"device metadata, see <<s-meta-data-size>>."
+msgstr ""
+"デバイスのメタデータを格納する専用ブロックデバイスが必要とするサイズにについ"
+"ては、<<s-meta-data-size>>を参照してください。"
+
+#. type: Plain text
+msgid "External metadata requires a minimum of a 1MB device size."
+msgstr "外部メータデータは少なくとも1MBのデバイスサイズを必要とします。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Estimating Metadata Size"
+msgstr "メタデータサイズの見積り"
+
+#. type: Plain text
+msgid ""
+"indexterm:[metadata]You may calculate the exact space requirements for "
+"DRBD's metadata using the following formula:"
+msgstr ""
+"indexterm:[metadata]次の式を使用して、DRBDのメタデータに必要な領域を正確に計"
+"算できます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Calculating DRBD metadata size (exactly)"
+msgstr "DRBDメタデータサイズの計算(正確)"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/metadata-size-exact.svg"
+msgstr "images/metadata-size-exact.svg"
+
+#. type: Plain text
+#, no-wrap
+msgid "*_C~s~_* is the data device size in sectors, and *_N_* is the number of peers.\n"
+msgstr "*_C~s~_* はセクタ単位のデータデバイスサイズです。 *_N_* は対向ノードの数です。\n"
+
+#. If
+#. you are using the <<al-stripe,al-stripes>> setting, additional space of size
+#. _al-stripes_ times _al-strip-size_ is required.
+#. type: Plain text
+msgid ""
+"You may retrieve the device size (in bytes) by issuing `blockdev --getsize64 "
+"<device>`; to convert to MB, divide by 1048576 (= 2^20^ or 1024^2^)."
+msgstr ""
+"デバイスサイズは(バイト単位で) `blockdev --getsize64 <device>` を実行して取得"
+"できます。MBに変換するときは1048576で割ってください(= 2^20^または1024^2^)"
+
+#. type: Plain text
+msgid ""
+"In practice, you may use a reasonably good approximation, given below. Note "
+"that in this formula, the unit is megabytes, not sectors:"
+msgstr ""
+"実際には、次の計算で得られる大まかな見積りで十分です。この式では、単位はセク"
+"タではなくメガバイトである点に注意してください。"
+
+#. type: Block title
+#, no-wrap
+msgid "Estimating DRBD metadata size (approximately)"
+msgstr "DRBDメタデータサイズの見積り(概算)"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/metadata-size-approx.svg"
+msgstr "images/metadata-size-approx.svg"
+
+#. type: Title ===
+#, no-wrap
+msgid "Generation Identifiers"
+msgstr "世代識別子"
+
+#. type: Plain text
+msgid ""
+"indexterm:[generation identifiers]DRBD uses _generation identifiers_ (GIs) "
+"to identify \"generations\" of replicated data."
+msgstr ""
+"indexterm:[generation identifiers]DRBDでは 世代識別子 (GI)を使用してレプリ"
+"ケートされたデータの「世代」を識別します。"
+
+#. type: Plain text
+msgid "This is DRBD's internal mechanism used for"
+msgstr "これはDRBDの内部メカニズムで、次のような目的で使用されます。"
+
+#. type: Plain text
+msgid ""
+"determining whether the two nodes are in fact members of the same cluster "
+"(as opposed to two nodes that were connected accidentally),"
+msgstr ""
+"2つのノードが実際に同じクラスタのメンバか確認する (2つのノードが誤って接続さ"
+"れたものではないこと確認する)。"
+
+#. type: Plain text
+msgid ""
+"determining the direction of background re-synchronization (if necessary),"
+msgstr "バックグラウンド同期の方向を確認する (必要な場合)。"
+
+#. type: Plain text
+msgid ""
+"determining whether full re-synchronization is necessary or whether partial "
+"re-synchronization is sufficient,"
+msgstr "完全な再同期が必要か、 部分的な再同期で十分か判断する。"
+
+#. type: Plain text
+msgid "indexterm:[split brain]identifying split brain."
+msgstr "indexterm:[split brain]スプリットブレインを検出する。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Data Generations"
+msgstr "データ世代"
+
+#. type: Plain text
+msgid ""
+"DRBD marks the start of a new _data generation_ at each of the following "
+"occurrences:"
+msgstr ""
+"DRBDは次のような場合に、新しい _データ世代_ の開始としてマークを付けます。"
+
+#.  FIXME PRe
+#. type: Plain text
+msgid "The initial device full sync,"
+msgstr "デバイスの初期フル同期。"
+
+#. type: Plain text
+msgid "a disconnected resource switching to the primary role,"
+msgstr "切断したリソースがプライマリロールに切り替わる。"
+
+#. type: Plain text
+msgid "a resource in the primary role disconnecting."
+msgstr "プライマリロールのリソースが切断する。"
+
+#. type: Plain text
+msgid ""
+"Therefore, we can summarize that whenever a resource is in the _Connected_ "
+"connection state, and both nodes' disk state is _UpToDate_, the current data "
+"generation on both nodes is the same. The inverse is also true. Note that "
+"the current implementation uses the lowest bit to encode the role of the "
+"node (Primary/Secondary). Therefore, the lowest bit might be different on "
+"distinct nodes even if they are considered to have the same data generation."
+msgstr ""
+"つまり、リソースのコネクションステータスが Connected になり、両方のノードの"
+"ディスク状態が _UpToDate_ になると、両方のノードの現在のデータ世代が同一にな"
+"ります。逆も同様です。 現在はノードのロール(プライマリ/セカンダリ)を表すため"
+"に最下位ビットを使用しています。そのため、同じデータ世代であってもあるノード"
+"では最下位ビットが異なることがあります。"
+
+#. type: Plain text
+msgid ""
+"Every new data generation is identified by an 8-byte, universally unique "
+"identifier (UUID)."
+msgstr "データ世代は8バイトで定義される、全体でユニークな識別子(UUID)です。"
+
+#. type: Title ====
+#, no-wrap
+msgid "The Generation Identifier Tuple"
+msgstr "世代識別子タプル"
+
+#. type: Plain text
+msgid ""
+"DRBD keeps some pieces of information about current and historical data "
+"generations in the local resource metadata:"
+msgstr ""
+"DRBDでは、現在と履歴のデータ世代についての情報がローカルリソースメタデータに"
+"格納されます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Current UUID"
+msgstr "カレントUUID"
+
+#. type: Plain text
+msgid ""
+"This is the generation identifier for the current data generation, as seen "
+"from the local node's perspective. When a resource is _Connected_ and fully "
+"synchronized, the current UUID is identical between nodes."
+msgstr ""
+"これは、ローカルノードからみた最新のデータ世代の世代識別子です。リソースが "
+"Connected になり完全に同期されると、両ノードのカレントUUIDが同一になります。"
+
+#. type: Block title
+#, no-wrap
+msgid "Bitmap UUIDs"
+msgstr "ビットマップUUID"
+
+#. type: Plain text
+msgid ""
+"This is the UUID of the generation against which this on-disk bitmap is "
+"tracking changes (per remote host). Like the on-disk sync bitmap itself, "
+"this identifier is only relevant while the remote host is disconnected."
+msgstr ""
+"リモードホストごとに変更を追跡しているオンディスクのビットマップの世代のUUID"
+"です。オンディスク同期ビットマップ自体と同様に、リモートホストと切断されてい"
+"場合のみ意味を持ちます。"
+
+#.  If the resource is _Connected_, this UUID is always empty (zero). FIXME
+#. type: Block title
+#, no-wrap
+msgid "Historical UUIDs"
+msgstr "履歴UUID"
+
+#. type: Plain text
+msgid ""
+"These are the identifiers of data generations preceding the current one, "
+"sized to have one slot per (possible) remote host."
+msgstr ""
+"現在のものより以前のデータ世代の識別子で、リモートホストごとに1スロットです。"
+
+#. type: Plain text
+msgid ""
+"Collectively, these items are referred to as the _generation identifier "
+"tuple_, or \"__GI tuple__\" for short."
+msgstr ""
+"これらをまとめて _世代識別子タプル_ 、または略して「 _GIタプル_ 」と呼びま"
+"す。"
+
+#. type: Title ====
+#, no-wrap
+msgid "How Generation Identifiers Change"
+msgstr "世代識別子の変化"
+
+#. type: Title =====
+#, no-wrap
+msgid "Start of a New Data Generation"
+msgstr "新規データ世代の開始"
+
+#. type: Plain text
+msgid ""
+"When a node in _Primary_ role loses connection to its peer (either by "
+"network failure or manual intervention), DRBD modifies its local generation "
+"identifiers in the following manner:"
+msgstr ""
+"それがネットワーク障害であれ、意図的なものであれ、 `プライマリ` のノードが対"
+"向ノードへのコネクションを失うと、DRBDは次のようにしてローカルの世代識別子を"
+"変更します。"
+
+#. type: Block title
+#, no-wrap
+msgid "GI tuple changes at start of a new data generation"
+msgstr "新規データ世代の開始時に変化するGIタプル"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/gi-changes-newgen.svg"
+msgstr "images/gi-changes-newgen.svg"
+
+#. type: Plain text
+msgid ""
+"The primary creates a new UUID for the new data generation. This becomes the "
+"_new_ current UUID for the primary node."
+msgstr ""
+"プライマリが新しいデータ世代用の新規UUIDを作ります。これがプライマリノードの "
+"_新しい_ カレントUUIDになります。"
+
+#. type: Plain text
+msgid ""
+"The _previous_ current UUID now refers to the generation the bitmap is "
+"tracking changes against, so it becomes the new bitmap UUID for the primary "
+"node."
+msgstr ""
+"_以前の_ カレントUUIDはビットマップが変更を追跡している世代を参照します。した"
+"がって、これがプライマリノードの新しいビットマップUUIDになります。"
+
+#. type: Plain text
+msgid "On the secondary node(s), the GI tuple remains unchanged."
+msgstr "セカンダリノードではGIタプルは変化しません。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Completion of Resynchronization"
+msgstr "再同期の完了"
+
+#. type: Plain text
+msgid ""
+"When resynchronization concludes, the synchronization target adopts the "
+"entire GI tuple from the synchronization source."
+msgstr "再同期が完了すると、同期対象は同期元のGIタプルをすべて適用します。"
+
+#. type: Plain text
+msgid ""
+"The synchronization source keeps the same set, and doesn't generate new "
+"UUIDs."
+msgstr "同期元は元のUUIDを維持し、新しいUUIDは作成しません。"
+
+#. type: Title ====
+#, no-wrap
+msgid "How DRBD Uses Generation Identifiers"
+msgstr "世代識別子とDRBDの状態"
+
+#. type: Plain text
+msgid ""
+"When a connection between nodes is established, the two nodes exchange their "
+"currently available generation identifiers, and proceed accordingly. Several "
+"possible outcomes exist:"
+msgstr ""
+"ノード間の接続が確立すると、2つのノードは現在入手可能な世代識別子を交換し、そ"
+"れに従って処理を続行します。結果は次のようにいくつか考えられます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Current UUIDs empty on both nodes"
+msgstr "両ノードのカレントUUIDが空の場合"
+
+#. type: Plain text
+msgid ""
+"The local node detects that both its current UUID and the peer's current "
+"UUID are empty. This is the normal occurrence for a freshly configured "
+"resource that has not had the initial full sync initiated. No "
+"synchronization takes place; it has to be started manually."
+msgstr ""
+"ローカルノードと対向ノードの両方でカレントUUIDが空の状態です。新規に構成さ"
+"れ、初回フル同期が完了していない場合は、通常この状態です。同期が開始していな"
+"いため、手動で開始する必要があります。"
+
+#. type: Block title
+#, no-wrap
+msgid "Current UUIDs empty on one node"
+msgstr "1つのノードのカレントUUIDが空の場合"
+
+#. type: Plain text
+msgid ""
+"The local node detects that the peer's current UUID is empty, and its own is "
+"not. This is the normal case for a freshly configured resource on which the "
+"initial full sync has just been initiated, the local node having been "
+"selected as the initial synchronization source. DRBD now sets all bits in "
+"the on-disk sync bitmap (meaning it considers the entire device out-of-"
+"sync), and starts synchronizing as a synchronization source. In the opposite "
+"case (local current UUID empty, peer's non-empty), DRBD performs the same "
+"steps, except that the local node becomes the synchronization target."
+msgstr ""
+"対向ノードのカレントUUIDが空で、自身は空でない場合です。これは、ローカルノー"
+"ドを同期元とした初期フル同期が進行中であることを表します。ローカルノードの"
+"DRBDはディスク上の同期ビットマップのすべてのビットを1にして、ディスク全体が非"
+"同期だと マークします。その後ローカルノードを同期元とした同期が始まります。逆"
+"の場合(ローカルのカレントUUIDが空で、対向ノードが空でない場合)は、DRBDは同様"
+"のステップをとります。ただし、ローカルノードが同期先になります。"
+
+#. type: Block title
+#, no-wrap
+msgid "Equal current UUIDs"
+msgstr "カレントUUIDが等しい場合"
+
+#. type: Plain text
+msgid ""
+"The local node detects that its current UUID and the peer's current UUID are "
+"non-empty and equal. This is the normal occurrence for a resource that went "
+"into disconnected mode at a time when it was in the secondary role, and was "
+"not promoted on either node while disconnected. No synchronization takes "
+"place, as none is necessary."
+msgstr ""
+"ローカルのカレントUUIDと対向ノードのカレントUUIDが空でなく、同じ値を持ってい"
+"る状態です。両ノードがともにセカンダリで、通信切断中にどのノードもプライマリ"
+"にならなかったことを表します。この状態では同期は必要ありません。"
+
+#. type: Block title
+#, no-wrap
+msgid "Bitmap UUID matches peer's current UUID"
+msgstr "ビットマップUUIDが対向ノードのカレントUUIDと一致する場合"
+
+#. type: Plain text
+msgid ""
+"The local node detects that its bitmap UUID matches the peer's current UUID, "
+"and that the peer's bitmap UUID is empty. This is the normal and expected "
+"occurrence after a secondary node failure, with the local node being in the "
+"primary role. It means that the peer never became primary in the meantime "
+"and worked on the basis of the same data generation all along. DRBD now "
+"initiates a normal, background re-synchronization, with the local node "
+"becoming the synchronization source. If, conversely, the local node detects "
+"that _its_ bitmap UUID is empty, and that the _peer's_ bitmap matches the "
+"local node's current UUID, then that is the normal and expected occurrence "
+"after a failure of the local node. Again, DRBD now initiates a normal, "
+"background re-synchronization, with the local node becoming the "
+"synchronization target."
+msgstr ""
+"ローカルノードのビットマップUUIDが対向ノードのカレントUUIDと一致し、対向ノー"
+"ドのビットマップUUIDが空の状態です。これは、ローカルノードがプライマリで動作"
+"している間にセカンダリノードが停止して再起動したときに生じる正常な状態です。"
+"これは、リモートノードは決してプライマリにならず、ずっと同じデータ世代にもと"
+"づいて動作していたことを意味します。この場合、ローカルノードを同期元とする通"
+"常のバックグラウンド再同期が開始します。逆に、ローカルノード _自身の_ ビット"
+"マップUUIDが空で、 _対向ノードの_ ビットマップがローカルノードのカレントUUID"
+"と一致する状態の場合は、これはローカルノードの再起動に伴う正常な状態です。そ"
+"して、ローカルノードを同期先とする通常のバックグラウンド再同期が開始します。"
+
+#. type: Block title
+#, no-wrap
+msgid "Current UUID matches peer's historical UUID"
+msgstr "カレントUUIDが対向ノードの履歴UUIDと一致する場合"
+
+#. type: Plain text
+msgid ""
+"The local node detects that its current UUID matches one of the peer's "
+"historical UUIDs. This implies that while the two data sets share a common "
+"ancestor, and the peer node has the up-to-date data, the information kept in "
+"the peer node's bitmap is outdated and not usable. Therefore, a normal "
+"synchronization would be insufficient. DRBD now marks the entire device as "
+"out-of-sync and initiates a full background re-synchronization, with the "
+"local node becoming the synchronization target. In the opposite case (one of "
+"the local node's historical UUID matches the peer's current UUID), DRBD "
+"performs the same steps, except that the local node becomes the "
+"synchronization source."
+msgstr ""
+"ローカルノードのカレントUUIDが対向ノードの履歴UUIDのうちの1つと一致する状態で"
+"す。これは過去のある時点では同じデータを持っていたが、現在は対向ノードが最新"
+"のデータを持ち、しかし対向ノードのビットマップUUIDが古くなって使用できない状"
+"態です。通常の部分同期では不十分なため、ローカルノードを同期元とするフル同期"
+"が開始します。DRBDはデバイス全体を非同期状態とし、ローカルノードを同期先とす"
+"るバックグラウンドでのフル再同期を始めます。逆の場合(ローカルノードの履歴UUID"
+"のうち1つが対向ノードのカレントUUIDと一致する)、DRBDは同様のステップを行いま"
+"すが、ローカルノードが同期元となります。"
+
+#.  ERROR: FIXME
+#. type: Block title
+#, no-wrap
+msgid "Bitmap UUIDs match, current UUIDs do not"
+msgstr "ビットマップUUIDが一致し、カレントUUIDが一致しない場合"
+
+#. type: Plain text
+msgid ""
+"indexterm:[split brain]The local node detects that its current UUID differs "
+"from the peer's current UUID, and that the bitmap UUIDs match. This is split "
+"brain, but one where the data generations have the same parent. This means "
+"that DRBD invokes split brain auto-recovery strategies, if configured. "
+"Otherwise, DRBD disconnects and waits for manual split brain resolution."
+msgstr ""
+"indexterm:[スプリットブレイン]ローカルノードのカレントUUIDが対向ノードのカレ"
+"ントUUIDと異なるが、ビットマップUUIDは一致する状態はスプリットブレインです。"
+"ただし、データ世代は同じ親を持っています。この場合、設定されていればDRBDがス"
+"プリットブレイン自動回復ストラテジが実行されます。設定されていない場合、DRBD"
+"はノード間の通信を切断し、手動でスプリットブレインが解決されるまで待機しま"
+"す。"
+
+#. type: Block title
+#, no-wrap
+msgid "Neither current nor bitmap UUIDs match"
+msgstr "カレントUUIDもビットマップUUIDも一致しない場合"
+
+#. type: Plain text
+msgid ""
+"The local node detects that its current UUID differs from the peer's current "
+"UUID, and that the bitmap UUIDs _do not_ match. This is split brain with "
+"unrelated ancestor generations, therefore auto-recovery strategies, even if "
+"configured, are moot. DRBD disconnects and waits for manual split brain "
+"resolution."
+msgstr ""
+"ローカルノードのカレントUUIDが対向ノードのカレントUUIDと異なり、ビットマップ"
+"UUIDも _一致しない_ 状態です。これもスプリットブレインで、しかも過去に同一の"
+"データ状態であったという保証もありません。したがって、自動回復ストラテジが構"
+"成されていても役に立ちません。DRBDはノード間通信を切断し、手動でスプリットブ"
+"レインが解決されるまで待機します。"
+
+#. type: Block title
+#, no-wrap
+msgid "No UUIDs match"
+msgstr "いずれのUUIDも一致しない場合"
+
+#. type: Plain text
+msgid ""
+"Finally, in case DRBD fails to detect even a single matching element in the "
+"two nodes' GI tuples, it logs a warning about unrelated data and "
+"disconnects. This is DRBD's safeguard against accidental connection of two "
+"cluster nodes that have never heard of each other before."
+msgstr ""
+"最後は、DRBDが2つのノードのGIタプルの中に一致するものを1つも検出できない場合"
+"です。この場合DRBDは、\"Unrelate data\"という警告をログに書き込んでコネクショ"
+"ンを切断します。これは、相互にまったく関連のない2つのクラスタノードが誤って接"
+"続された場合に備えるDRBDの機能です。"
+
+#. type: Title ===
+#, no-wrap
+msgid "The Activity Log"
+msgstr "アクティビティログ"
+
+#. type: Title ====
+#, no-wrap
+msgid "Purpose"
+msgstr "目的"
+
+#. type: Plain text
+msgid ""
+"indexterm:[Activity Log]During a write operation DRBD forwards the write "
+"operation to the local backing block device, but also sends the data block "
+"over the network. These two actions occur, for all practical purposes, "
+"simultaneously. Random timing behavior may cause a situation where the write "
+"operation has been completed, but the transmission over the network has not "
+"yet taken place, or vice versa."
+msgstr ""
+"indexterm:[アクティビティログ]書き込み操作中に、DRBDは書き込み操作をローカル"
+"の下位ブロックデバイスに転送するだけでなく、ネットワークを介して送信します。"
+"実用的な目的で、この2つの操作は同時に実行されます。タイミングがランダムな場合"
+"は、書込み操作が完了しても、ネットワークを介した転送がまだ始まっていないと"
+"いった状況が発生する可能性があります。その逆の場合もあります。"
+
+#. type: Plain text
+msgid ""
+"If, at this moment, the active node fails and failover is being initiated, "
+"then this data block is out of sync between nodes -- it has been written on "
+"the failed node prior to the failure, but replication has not yet completed. "
+"Therefore, when the node eventually recovers, this block must be removed "
+"from the data set during subsequent synchronization. Otherwise, the failed "
+"node would be \"one write ahead\" of the surviving node, which would violate "
+"the \"all or nothing\" principle of replicated storage. This is an issue "
+"that is not limited to DRBD, in fact, this issue exists in practically all "
+"replicated storage configurations. Many other storage solutions (just as "
+"DRBD itself, prior to version 0.7) therefore require that after a failure of "
+"the active node the data must be fully synchronized after its recovery."
+msgstr ""
+"この状況で、アクティブなノードに障害が発生してフェイルオーバが始まると、この"
+"データブロックのノード間の同期は失われます。障害が発生したノードにはクラッ"
+"シュ前にデータブロックが書き込まれていますが、レプリケーションはまだ完了して"
+"いません。そのため、ノードが回復しても、このブロックは回復後の同期のデータ"
+"セット中から取り除かれる必要があります。さもなくば、クラッシュしたノードは生"
+"き残ったノードに対して「先書き」状態となり、レプリケーションストレージの"
+"「オール・オア・ナッシング」の原則に違反してしまいます。これはDRBDだけでな"
+"く、実際、すべてのレプリケーションストレージの構成で問題になります。バージョ"
+"ン0.6以前のDRBDを含む他の多くのストレージソリューションでは、アクティブなノー"
+"ドに障害が発生した場合、回復後にそのノードを改めてフル同期する必要がありま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"DRBD's approach, since version 0.7, is a different one. The _activity log_ "
+"(AL), stored in the metadata area, keeps track of those blocks that have "
+"\"recently\" been written to. Colloquially, these areas are referred to as "
+"_hot extents_."
+msgstr ""
+"バージョン0.7以降のDRBDは、これとは異なるアプローチを採用しています。_アク"
+"ティビティログ_(AL)は、メタデータ領域にに格納され、「最近」書き込まれたブロッ"
+"クを追跡します。この領域は _ホットエクステント_ と呼ばれます。"
+
+#. type: Plain text
+msgid ""
+"If a temporarily failed node that was in active mode at the time of failure "
+"is synchronized, only those hot extents highlighted in the AL need to be "
+"synchronized (plus any blocks marked in the bitmap on the now-active peer), "
+"rather than the full device. This drastically reduces synchronization time "
+"after an active node failure."
+msgstr ""
+"アクティブモードだったノードに一時的な障害が発生し、同期が行われる場合は、デ"
+"バイス全体ではなくALでハイライトされたホットエクステントだけが同期されます。"
+"(それに加えて現在アクティブな対向ノードのビットマップのマークされたブロック"
+"も)これによって、アクティブなノードがクラッシュしたときの同期時間を大幅に短縮"
+"できます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Active Extents"
+msgstr "アクティブエクステント"
+
+#. type: Plain text
+msgid ""
+"indexterm:[Activity Log]The activity log has a configurable parameter, the "
+"number of active extents. Every active extent adds 4MiB to the amount of "
+"data being retransmitted after a Primary failure. This parameter must be "
+"understood as a compromise between the following opposites:"
+msgstr ""
+"indexterm:[アクティビティログ]アクティビティログの設定可能なパラメータに、ア"
+"クティブエクステントの数があります。アクティブエクステントは4MiB単位でプライ"
+"マリのクラッシュ後に再送されるデータ量に追加されます。このパラメータは、次の"
+"対立する2つの状況の折衷案としてご理解ください。"
+
+#. type: Block title
+#, no-wrap
+msgid "Many active extents"
+msgstr "アクティブエクステントが多い場合"
+
+#. type: Plain text
+msgid ""
+"Keeping a large activity log improves write throughput. Every time a new "
+"extent is activated, an old extent is reset to inactive. This change "
+"requires a write operation to the metadata area. If the number of active "
+"extents is high, old active extents are swapped out fairly rarely, reducing "
+"metadata write operations and thereby improving performance."
+msgstr ""
+"大量のアクティビティログを記録すれば書き込みスループットが向上します。新しい"
+"エクステントがアクティブになるたびに、古いエクステントが非アクティブにリセッ"
+"トされます。この移行には、メタデータ領域への書き込み操作が必要です。アクティ"
+"ブエクステントの数が多い場合は、古いアクティブエクステントはめったにスワップ"
+"アウトされないため、メタデータの書き込み操作が減少し、その結果パフォーマンス"
+"が向上します。"
+
+#. type: Block title
+#, no-wrap
+msgid "Few active extents"
+msgstr "アクティブエクステントが少ない場合"
+
+#. type: Plain text
+msgid ""
+"Keeping a small activity log reduces synchronization time after active node "
+"failure and subsequent recovery."
+msgstr ""
+"アクティビティログが小さい場合は、アクティブなノードが障害から回復した後の同"
+"期時間が短くなります。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Selecting a Suitable Activity Log Size"
+msgstr "アクティビティログの適切なサイズの選択"
+
+#. type: Plain text
+msgid ""
+"indexterm:[Activity Log]Consideration of the number of extents should be "
+"based on the desired synchronization time at a given synchronization rate. "
+"The number of active extents can be calculated as follows:"
+msgstr ""
+"エクステントの数は所定の同期速度における適切な同期時間にもとづいて定義しま"
+"す。アクティブエクステントの数は次のようにして算出できます。"
+
+#. type: Block title
+#, no-wrap
+msgid "Active extents calculation based on sync rate and target sync time"
+msgstr "同期速度とターゲットの同期時間にもとづくアクティブエクステントの計算"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/al-extents.svg"
+msgstr "images/al-extents.svg"
+
+#. type: Plain text
+msgid ""
+"_R_ is the synchronization rate, given in MiB/s. _t~sync~_ is the target "
+"synchronization time, in seconds. _E_ is the resulting number of active "
+"extents."
+msgstr ""
+"_R_ はMiB/秒単位の同期速度、_t~sync~_ 秒単位のターゲットの同期時間です。_E_ "
+"は求めるアクティブエクステントの数です。"
+
+#. type: Plain text
+msgid ""
+"To provide an example, suppose the cluster has an I/O subsystem with a "
+"throughput rate of 200 MiByte/s that was configured to a synchronization "
+"rate (_R_) of 60 MiByte/s, and we want to keep the target synchronization "
+"time (_t~sync~_) at 4 minutes or 240 seconds:"
+msgstr ""
+"スループット速度が200MiByte/秒のI/Oサブシステムがあり、同期速度(_R_)が"
+"60MiByte/sに設定されているとします。ターゲットの同期時間( _t~sync~_ ) は4分ま"
+"たは240秒を維持する必要があります。"
+
+#. type: Block title
+#, no-wrap
+msgid "Active extents calculation based on sync rate and target sync time (example)"
+msgstr "同期速度とターゲット同期時間にもとづくアクティブエクステントの計算(例)"
+
+#. type: Target for macro image
+#, no-wrap
+msgid "images/al-extents-example.svg"
+msgstr "images/al-extents-example.svg"
+
+#. type: Plain text
+msgid ""
+"On a final note, DRBD 9 needs to keep an AL even on the Secondary nodes, as "
+"their data might be used to synchronize other Secondary nodes."
+msgstr ""
+"また、最後に付け加えると、DRBD9ではデータを他のセカンダリノードへ同期させるの"
+"で、セカンダリノードでもALを維持する必要があります。"
+
+#. type: Title ===
+#, no-wrap
+msgid "The Quick-sync Bitmap"
+msgstr "クイック同期ビットマップ"
+
+#. type: Plain text
+msgid ""
+"indexterm:[quick-sync bitmap]indexterm:[bitmap (DRBD-specific concept)]The "
+"quick-sync bitmap is the internal data structure which DRBD uses, on a per-"
+"resource per-peer basis, to keep track of blocks being in sync (identical on "
+"both nodes) or out-of sync. It is only relevant when a resource is in "
+"disconnected mode."
+msgstr ""
+"indexterm:[くいっくどうきびっとまっぷ@クイック同期ビットマップ]indexterm:"
+"[ビットマップ]クイック同期ビットマップはDRBDが各対向ノードがリソースごとに使"
+"用する内部データ構造で、同期ブロック(両方のノードで同一)または非同期ブロック"
+"を追跡します。ビットマップはノード間通信が切断しているときのみ使われます。"
+
+#. type: Plain text
+msgid ""
+"In the quick-sync bitmap, one bit represents a 4-KiB chunk of on-disk data. "
+"If the bit is cleared, it means that the corresponding block is still in "
+"sync with the peer node. That implies that the block has not been written to "
+"since the time of disconnection. Conversely, if the bit is set, it means "
+"that the block has been modified and needs to be re-synchronized whenever "
+"the connection becomes available again."
+msgstr ""
+"クイック同期ビットマップでは、1ビットが4KiBチャンクのオンディスクデータを表し"
+"ます。ビットがクリアされていれば、対応するブロックが対向ノードと同期していま"
+"す。つまり、切断以降、ブロックに書き込まれていないということです。逆に、ビッ"
+"トがセットされていればブロックが変更されているため、接続が再確立したらすぐに"
+"再同期を行う必要があります。"
+
+#. type: Plain text
+msgid ""
+"As DRBD detects write I/O on a disconnected device, and therefore starts "
+"setting bits in the quick-sync bitmap, it does so in RAM -- therefore "
+"avoiding expensive synchronous metadata I/O operations. Only when the "
+"corresponding blocks turn cold (that is, expire from the <<s-activity-log,"
+"Activity Log>>), DRBD makes the appropriate modifications in an on-disk "
+"representation of the quick-sync bitmap. Likewise, if the resource happens "
+"to be manually shut down on the remaining node while disconnected, DRBD "
+"flushes the _complete_ quick-sync bitmap out to persistent storage."
+msgstr ""
+"スタンドアロンノードでディスクにデータが書き込まれると、クイック同期ビット"
+"マップへの書き込みも始まります。ディスクへの同期的なI/Oは負荷が大きいため、実"
+"際にはメモリ上のビットマップのビットがセットされます。<<s-activity-log,アク"
+"ティビティログ>>が期限切れになってブロックがコールドになると、メモリ上のビッ"
+"トマップがディスクに書き込まれます。同様に、生き残ったスタンドアロンのノード"
+"でリソースが手動でシャットダウンされると、DRBDは _すべての_ ビットマップを"
+"ディスクにフラッシュします。"
+
+#. type: Plain text
+msgid ""
+"When the peer node recovers or the connection is re-established, DRBD "
+"combines the bitmap information from both nodes to determine the _total data "
+"set_ that it must re-synchronize. Simultaneously, DRBD <<s-gi-use,examines "
+"the generation identifiers>> to determine the _direction_ of synchronization."
+msgstr ""
+"リモートノードが回復するか接続が再確立すると、DRBDは両方のノードのビットマッ"
+"プ情報を照合して、再同期が必要な _すべてのデータ領域_ を決定します。同時に"
+"DRBDは<<s-gi-use,世代識別子>>を調べ、同期の _方向_ を決定します。"
+
+#. type: Plain text
+msgid ""
+"The node acting as the synchronization source then transmits the agreed-upon "
+"blocks to the peer node, clearing sync bits in the bitmap as the "
+"synchronization target acknowledges the modifications. If the re-"
+"synchronization is now interrupted (by another network outage, for example) "
+"and subsequently resumed it will continue where it left off"
+msgstr ""
+"同期元ノードが同期対象ブロックを対向ノードに送信し、同期先が変更を確認する"
+"と、ビットマップの同期ビットがクリアされます。その後再開すると、中断した箇所"
+"から同期を続行します。"
+
+#. type: Plain text
+msgid ""
+"with any additional blocks modified in the meantime being added to the re-"
+"synchronization data set, of course."
+msgstr ""
+"中断中にブロックが変更された場合、もちろんそのブロックが再同期データセットに"
+"追加されます。"
+
+#. type: Plain text
+msgid ""
+"Re-synchronization may be also be paused and resumed manually with the "
+"indexterm:[drbdadm, pause-sync]`drbdadm pause-sync` and indexterm:[drbdadm, "
+"resume-sync]`drbdadm resume-sync` commands. You should, however, not do so "
+"light-heartedly -- interrupting re-synchronization leaves your secondary "
+"node's disk _Inconsistent_ longer than necessary."
+msgstr ""
+"`drbdadm pause-sync` と `drbdadm resume-sync` コマンドを使用して、再同期を手"
+"動で一時停止したり再開することもできます。ただしこれは慎重に行ってください。"
+"再同期を中断すると、セカンダリノードのディスクが必要以上に長く "
+"`Inconsistent` 状態になります。"
+
+#. type: Title ===
+#, no-wrap
+msgid "The Peer-fencing Interface"
+msgstr "peer fencingインタフェース"
+
+#. type: Plain text
+msgid ""
+"DRBD has an interface defined for fencingfootnote:[For a discussion about "
+"Fencing and STONITH, please see the corresponding Pacemaker page http://"
+"clusterlabs.org/doc/crm_fencing.html.] the peer node in case of the "
+"replication link being interrupted. The `fence-peer` should mark the disk(s) "
+"on the peer node as _Outdated_, or shut down the peer node. It has to "
+"fulfill these tasks under the assumption that the replication network is "
+"down."
+msgstr ""
+"DRBDにはレプリケーションリンクが途切れたときに対向ノードをフェンシング "
+"footnote:[フェンシングとSTONITHについては http://clusterlabs.org/doc/"
+"crm_fencing.html の対応するPacemakerのページをご参照ください] するよう定義さ"
+"れたインタフェースがあります。 `fence-peer` は、対向ノード上のディスクを "
+"_Outdated_ としてマークするか、対向ノードをシャットダウンする必要があります。"
+"レプリケーションネットワークがダウンしていることを前提として、これらのタスク"
+"を実行する必要があります。"
+
+#. type: Plain text
+msgid "The fencing helper is invoked only in case"
+msgstr "fencingヘルパーは次のすべてを満たす場合にのみ呼び出されます。"
+
+#. type: Plain text
+msgid ""
+"a `fence-peer` handler has been defined in the resource's (or `common`)  "
+"`handlers` section, _and_"
+msgstr ""
+"リソース(または `common` )の `handlers` セクションで `fence-peer` ハンドラが"
+"定義されており"
+
+#. type: Plain text
+msgid ""
+"the `fencing` option for the resource is set to either `resource-only` or "
+"`resource-and-stonith`, _and_"
+msgstr ""
+"`fencing` オプションで、 `resource-only` または `resource-and-stonith` が設定"
+"されており、"
+
+#. type: Plain text
+msgid ""
+"the node was primary _and_ the replication link is interrupted long enough "
+"for DRBDfootnote:[That means, for example, a TCP timeout, the `ping-"
+"timeout`, or the kernel triggers a connection abort, perhaps as a result of "
+"the network link going down.] to detect a network failure. _or_"
+msgstr ""
+"ノードはプライマリであった。レプリケーションリンクは DRBD がネットワーク障害"
+"を検出 [つまり TCP タイムアウト、`ping-timeout`、またはカーネルがネットワーク"
+"障害を検出、例えばネットワークリンクがダウンしたときなど] するのに十分な時間"
+"中断され 、"
+
+#. type: Plain text
+msgid ""
+"the node should promote to primary _and_ is not connected to the peer _and_ "
+"the peer's disks are not already marked as _Outdated_."
+msgstr ""
+"ノードはプライマリにプロモートする必要があり、対向ノードに接続されておらず、"
+"対向ノードのディスクはまだ _Outdated_ としてマークされていない"
+
+#. type: Plain text
+msgid ""
+"The program or script specified as the `fence-peer` handler, when it is "
+"invoked, has the `DRBD_RESOURCE` and `DRBD_PEER` environment variables "
+"available. They contain the name of the affected DRBD resource and the "
+"peer's hostname, respectively."
+msgstr ""
+"`fence-peer` ハンドラとして指定されたプログラムかスクリプトが呼び出される"
+"と、 `DRBD_RESOURCE` と `DRBD_PEER` 環境変数が利用できるようになります。これ"
+"らの環境変数には、それぞれ、影響を受けるDRBDリソース名と対向ホストのホスト名"
+"が含まれています。"
+
+#. type: Plain text
+msgid ""
+"Any peer fencing helper program (or script) must return one of the following "
+"exit codes:"
+msgstr ""
+"peer fencingヘルパープログラム(またはスクリプト)は、次のいずれかの終了コード"
+"を返します。"
+
+#. type: Block title
+#, no-wrap
+msgid "`fence-peer` handler exit codes"
+msgstr "`fence-peer` ハンドラの終了コード"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"Exit code;Implication\n"
+"3;Peer's disk state was already _Inconsistent_.\n"
+"4;Peer's disk state was successfully set to _Outdated_ (or was _Outdated_ to begin with).\n"
+"5;Connection to the peer node failed, peer could not be reached.\n"
+"6;Peer refused to be outdated because the affected resource was in the primary role.\n"
+"7;Peer node was successfully fenced off the cluster. This should never occur unless `fencing` is set to `resource-and-stonith` for the affected resource.\n"
+msgstr ""
+"終了コード;意味\n"
+"3;対向ノードのディスク状態がすでに Inconsistent になっている。\n"
+"4;対向ノードのディスク状態が正常に `Outdated` に設定された(または最初から `Outdated` だった。)\n"
+"5;対向ノードへの接続に失敗。対向ノードに到達できなかった。\n"
+"6;影響を受けるリソースがプライマリロールになっていたため、対向ノードを無効にできなかった。\n"
+"7;対向ノードがクラスタから正常にフェンシングされた。影響を受けるリソースの `fencing` を `resource-and-stonith` に設定しておかなければ発生しない。\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "The Client Mode"
+msgstr "クライアントモード"
+
+#. type: Plain text
+msgid ""
+"Since version 9.0.13 DRBD supports clients. A client in DRBD speak is just a "
+"permanently diskless node. In the configuration, it is expressed by using "
+"the keyword `none` for the backing block device (the `disk` keyword). You "
+"will notice that in the `drbdsetup status` output you will see the "
+"`Diskless` disk status displayed in green color. (Usually, a disk state of "
+"`Diskless` is displayed in red)."
+msgstr ""
+"バージョン 9.0.13 以降、DRBD はクライアントモードをサポートします。 DRBD クラ"
+"イアントは、永続的にディスクレスノードです。下位ブロックデバイスにキーワード "
+"`none` ( `disk` キーワード) を使用して構成します。 `drbdsetup status` の出力"
+"に `Diskless` ディスクのステータスが緑色で表示されます（通常 `Diskless` の"
+"ディスク状態は赤で表示されます）。"
+
+#. type: Plain text
+msgid ""
+"Internally all the peers of an intentional diskless node are configured with "
+"the `peer-device-option` `--bitmap=no`. That means that they will not "
+"allocate a bitmap slot in the meta-data for the intentional diskless peer. "
+"On the intentional diskless node the device gets marked with the option `--"
+"diskless=yes` while it is created with the `new-minor` sub-command of "
+"`drbdsetup`."
+msgstr ""
+"内部的には、意図的なディスクレスノードのすべての対向ノードは `peer-device-"
+"option` `--bitmap=no` で構成されています。つまり、意図的なディスクレスでは、"
+"対向ノードのメタデータにビットマップスロットを割り当てないということです。意"
+"図的なディスクレスノードでは、デバイスは `drbdsetup` のサブコマンド `new-"
+"minor` で作成されている間、オプション `--diskless=yes` でマークされます。"
+
+#. type: Plain text
+msgid "These flags are visible through the `events2` status command:"
+msgstr "これらのフラグは `events2` ステータスコマンドで表示できます。"
+
+#. type: Plain text
+msgid ""
+"a `device` might have the `client:` field. If it reports `yes` the local "
+"device was marked to be permanently diskless."
+msgstr ""
+"`device` は `client:` フィールドを持つかもしれません。 `yes` で表示された場"
+"合、ローカルデバイスは永続的にディスクレスであるとマークされています。"
+
+#. type: Plain text
+msgid ""
+"a `peer-device` might have the `peer-client` filed. If it says `yes` then "
+"there is no change-tracking bitmap to that peer."
+msgstr ""
+"`peer-device` は `peer-client` フィールドを持つかもしれません。 `yes` で表示"
+"された場合、その対向ノードへの変更追跡ビットマップはありません。"
+
+#. type: Plain text
+msgid "Relevant commands and implications:"
+msgstr "関連するコマンドと影響"
+
+#. type: Plain text
+msgid ""
+"You can only run `drbdsetup peer-device-options --bitmap=yes ...` if bitmap "
+"slots are available in the meta-data, since a bitmap-slot gets allocated."
+msgstr ""
+"ビットマップスロットが割り当てられるため、メタデータでビットマップスロットが"
+"使用可能な場合にのみ `drbdsetup peer-device-options --bitmap=yes ...` を実行"
+"できます。"
+
+#. type: Plain text
+msgid ""
+"The command `drbdsetup peer-device-options --bitmap=no ...` is only possible "
+"if the peer is diskless, it does _not_ unallocate the bitmap-slot."
+msgstr ""
+"コマンド `drbdsetup peer-device-options --bitmap=no ...` は、対向ノードがディ"
+"スクレスの場合にのみ可能であり、ビットマップスロットの割り当てを解除しませ"
+"ん。"
+
+#. type: Plain text
+msgid ""
+"`drbdsetup forget-peer ...` is used to irrevocable free the bitmap-slot "
+"assigned to a certain peer."
+msgstr ""
+"`drbdsetup forget-peer ...` は、特定の対向ノードに割り当てられたビットマップ"
+"スロットを解放するために使用されます。"
+
+#. type: Plain text
+msgid ""
+"Connecting two peers with disk where one (or both) expect the peer to be "
+"permanently diskless fails."
+msgstr ""
+"1つ（または両方）が対向ノードが永続的にディスクレスであると予想する場合に、2"
+"つの対向ノードに接続すると失敗します。"

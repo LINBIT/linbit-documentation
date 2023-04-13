@@ -1,16 +1,68 @@
-image:
-  name: $CI_REGISTRY/linbit/linbit-documentation
-  entrypoint: [""]
-
-workflow:
-  rules:
-    - if: $CI_COMMIT_BRANCH == 'master'
-
 stages:
+  - build
+  - preview
   - deploy
+
+build:
+  stage: build
+  image:
+    name: $CI_REGISTRY/linbit/linbit-documentation
+    entrypoint: [""]
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  script:
+    - make UG9-html-finalize
+  artifacts:
+    paths:
+      - UG9/en/output-html-finalize/*.zip
+
+lint:
+  stage: build
+  image:
+    name: $LINBIT_DOCKER_REGISTRY/lb-vale:latest
+    entrypoint: [""]
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == 'master'
+  script:
+    - /bin/vale --config=/vale_app/.vale.ini --no-exit --output=JSON **/en/*.adoc | tee vale.json
+    - /bin/vale2climate vale.json > vale-climate.json
+  artifacts:
+    paths:
+    - vale.json
+    when: always
+    reports:
+      codequality:
+        - vale-climate.json
+
+preview:
+  stage: preview
+  image: $LINBIT_DOCKER_REGISTRY/ug-preview:latest
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  environment:
+    name: preview/$CI_COMMIT_REF_SLUG
+    url: $LINBIT_REGISTRY_URL/repository/pages/$CI_COMMIT_REF_SLUG/
+  script:
+    - zips=$(realpath ./UG9/en/output-html-finalize/*.zip)
+    - mkdir /index
+    - cd /build
+    - |
+      for zip in $zips; do
+        prefix=$(basename $zip .zip)
+        php linbit-drbd.php $zip /out
+        ./upload.sh $CI_COMMIT_REF_SLUG /out $prefix
+        echo "<a href='./$prefix/'><h2>$prefix</h2></a>" >> /index/index.html
+      done
+      ./upload.sh $CI_COMMIT_REF_SLUG /index .
+  dependencies:
+    - build
 
 deploy:
   stage: deploy
+  image:
+    name: $CI_REGISTRY/linbit/linbit-documentation
+    entrypoint: [""]
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'
   before_script:

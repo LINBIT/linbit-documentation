@@ -1,0 +1,229 @@
+[[ch-latency]]
+
+== Optimizing DRBD Latency
+
+This chapter deals with optimizing DRBD latency. It examines some
+hardware considerations with regard to latency minimization, and
+details tuning recommendations for that purpose.
+
+[[s-latency-hardware]]
+=== Hardware Considerations
+
+DRBD latency is affected by both the latency of the underlying I/O
+subsystem (disks, controllers, and corresponding caches), and the
+latency of the replication network.
+
+.I/O subsystem latency
+indexterm:[latency]For _rotating media_ the I/O subsystem latency is primarily a function of
+disk rotation speed. Therefore, using fast-spinning disks is a valid
+approach for reducing I/O subsystem latency.
+
+For _solid state media_ (like SSDs) the Flash storage controller is the
+determining factor; the next most important thing is the amount of unused
+capacity. Using DRBD's <<s-trim-discard>> will help you provide the controller
+with the needed information which blocks it can recycle. That way, when a write
+requests comes in, it can use a block that got cleaned ahead-of-time and
+doesn't have to wait *now* until there's space availablefootnote:[On low-end
+hardware you can help that a bit by reserving some space - just keep
+10% to 20% of the total space unpartitioned.].
+
+[[s-hardware-bbu]]
+Likewise, the use of a indexterm:[battery-backed write cache]
+indexterm:[BBU]
+battery-backed write cache (BBWC) reduces write completion times, also
+reducing write latency. Most reasonable storage subsystems come with
+some form of battery-backed cache, and allow the administrator to
+configure which portion of this cache is used for read and write
+operations. The recommended approach is to disable the disk read cache
+completely and use all available cache memory for the disk write
+cache.
+
+.Network latency
+indexterm:[latency]Network latency is, in essence, the packet
+indexterm:[round-trip-time]indexterm:[RTT]
+round-trip time (RTT) between hosts. It is influenced by several
+factors, most of which are irrelevant on the dedicated, back-to-back
+network connections recommended for use as DRBD replication
+links. Therefore, it is sufficient to accept that a certain amount of
+latency always exists in network links, which typically is on
+the order of 100 to 200 microseconds (μs) packet RTT for Gigabit Ethernet.
+
+Network latency may typically be pushed below this limit only by using
+lower-latency network protocols, such as running DRBD over Dolphin
+Express using Dolphin SuperSockets, or a 10GBe direct connection; these are
+typically in the 50µs range. Even better is InfiniBand, which provides
+even lower latency.
+
+
+[[s-estimating-latency-effects]]
+=== Estimating DRBD's Effects on Latency
+
+As for throughput, when estimating the latency effects associated
+with DRBD, there are some important natural limitations to consider:
+
+* DRBD latency is bound by that of the raw I/O subsystem.
+* DRBD latency is bound by the available network latency.
+
+The _sum_ of the two establishes the theoretical latency _minimum_
+incurred to DRBDfootnote:[for protocol C, because the other node(s) have to
+write to stable storage, too]. DRBD then adds to that latency a slight
+additional latency, which can be expected to be less than one percent.
+
+* Consider the example of a local disk subsystem with a write latency
+  of 3ms and a network link with one of 0.2ms. Then the expected DRBD
+  latency would be 3.2 ms or a roughly 7-percent latency increase over
+  just writing to a local disk.
+
+NOTE: Latency may be influenced by several other factors,
+including CPU cache misses, context switches, and others.
+
+
+[[s-latency-iops]]
+=== Latency Compared to IOPS
+
+indexterm:[latency]indexterm:[IOPS]_IOPS_ is the abbreviation of "__I/O
+operations per second__".
+
+Marketing typically doesn't like numbers that get smaller; press releases
+aren't written with "__Latency reduced by 10µs, from 50µs to 40µs now!__" in
+mind, they like "__Performance increased by 25%, from 20000 to now 25000
+IOPS__" much more. Therefore IOPS were invented - to get a number that says
+"higher is better".
+
+So, IOPS are the reciprocal of latency. The method in <<s-measure-latency>> gives you a latency
+measurement based on the number of IOPS for a purely sequential, single-threaded I/O load.
+Most other documentation will give measurements for some highly parallel I/O loadfootnote:[Like
+in "__16 threads, I/O-depth of 32__" - this means that 512 I/O-requests are being done in
+parallel!], because this gives much larger numbers.
+
+So, please don't shy away from measuring serialized, single-threaded latency.
+If you want a large IOPS number, run the `fio` utility with `threads=8` and an
+`iodepth=16`, or some similar settings... But please remember that these
+numbers will not have any meaning to your setup, unless you're driving
+a database with many tens or hundreds of client connections active at the same
+time.
+
+[[s-latency-tuning]]
+=== Tuning Recommendations
+
+[[s-latency-tuning-cpu-mask]]
+==== Setting DRBD's CPU Mask
+
+DRBD allows for setting an explicit CPU mask for its kernel
+threads. This is particularly beneficial for applications which would
+otherwise compete with DRBD for CPU cycles.
+
+The CPU mask is a number in whose binary representation the least
+significant bit represents the first CPU, the second-least significant
+bit the second, and so forth. A set bit in the bitmask implies that
+the corresponding CPU may be used by DRBD, whereas a cleared bit means
+it must not. Therefore, for example, a CPU mask of 1 (`00000001`) means
+DRBD may use the first CPU only. A mask of 12 (`00001100`) implies
+DRBD may use the third and fourth CPU.
+
+
+An example CPU mask configuration for a resource may look like this:
+
+[source,drbd]
+----
+resource <resource> {
+  options {
+    cpu-mask 2;
+    ...
+  }
+  ...
+}
+----
+
+IMPORTANT: Of course, to minimize CPU competition between
+DRBD and the application using it, you need to configure your
+application to use only those CPUs which DRBD does not use.
+
+Some applications may provide for this through an entry in a configuration
+file, just like DRBD itself. Others include an invocation of the
+`taskset` command in an application init script.
+
+[NOTE]
+====================
+
+It makes sense to keep the DRBD threads running on the same L2/L3 caches.
+
+But: the numbering of CPUs doesn't have to correlate with the physical partitioning.
+You can try the `lstopo` (or `hwloc-ls`) program for X11 or `hwloc-info -v -p`
+for console output to get an overview of the topology.
+====================
+
+
+[[s-latency-tuning-mtu-size]]
+==== Modifying the Network MTU
+
+It may be beneficial to change the replication network's
+maximum transmission unit (MTU) size to a value higher than the
+default of 1500 bytes. Colloquially, this is referred to as
+indexterm:[Jumbo frames] "enabling Jumbo frames".
+
+The MTU may be changed using the following commands:
+----
+# ifconfig <interface> mtu <size>
+----
+or
+----
+# ip link set <interface> mtu <size>
+----
+
+_<interface>_ refers to the network interface used for DRBD
+replication. A typical value for _<size>_ would be 9000 (bytes).
+
+[[s-latency-tuning-deadline-scheduler]]
+==== Enabling the Deadline I/O Scheduler
+
+indexterm:[io scheduler]
+When used in conjunction with high-performance, write back enabled
+hardware RAID controllers, DRBD latency may benefit greatly from using
+the simple deadline I/O scheduler, rather than the CFQ scheduler. The
+latter is typically enabled by default.
+
+Modifications to the I/O scheduler configuration may be performed through
+the `sysfs` virtual file system, mounted at `/sys`. The scheduler
+configuration is in `/sys/block/__device__`, where _<device>_ is the
+backing device DRBD uses.
+
+You can enable the deadline scheduler with the following command:
+
+----
+# echo deadline > /sys/block/<device>/queue/scheduler
+----
+
+You may then also set the following values, which may provide
+additional latency benefits:
+
+* Disable front merges:
++
+----
+# echo 0 > /sys/block/<device>/queue/iosched/front_merges
+----
+
+* Reduce read I/O deadline to 150 milliseconds (the default is 500ms):
++
+----
+# echo 150 > /sys/block/<device>/queue/iosched/read_expire
+----
+
+* Reduce write I/O deadline to 1500 milliseconds (the default is
+  3000ms):
++
+----
+# echo 1500 > /sys/block/<device>/queue/iosched/write_expire
+----
+
+If these values effect a significant latency improvement, you may want
+to make them permanent so they are automatically set at system
+startup. indexterm:[Debian GNU/Linux]Debian and indexterm:[Ubuntu
+Linux]Ubuntu systems provide this functionality through the
+`sysfsutils` package and the `/etc/sysfs.conf` configuration file.
+
+You may also make a global I/O scheduler selection by passing the
+`elevator` parameter through your kernel command line. To do so, edit your
+boot loader configuration (normally found in `/etc/default/grub` if
+you are using the GRUB boot loader) and add `elevator=deadline` to your
+list of kernel boot options.

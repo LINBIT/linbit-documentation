@@ -95,10 +95,10 @@ All aspects of DRBD are controlled in its configuration file,
 `/etc/drbd.conf`. Normally, this configuration file is just a skeleton
 with the following contents:
 
--------------------------------------
+----
 include "/etc/drbd.d/global_common.conf";
 include "/etc/drbd.d/*.res";
--------------------------------------
+----
 
 By convention, `/etc/drbd.d/global_common.conf` contains the
 <<s-drbdconf-global,`global`>> and <<s-drbdconf-common,`common`>>
@@ -134,7 +134,7 @@ minimal setup in line with the examples given in the
 previous sections:
 
 .Simple DRBD configuration (`/etc/drbd.d/global_common.conf`)
--------------------------------------
+----
 global {
   usage-count yes;
 }
@@ -143,10 +143,10 @@ common {
     protocol C;
   }
 }
--------------------------------------
+----
 
 .Simple DRBD resource configuration (`/etc/drbd.d/r0.res`)
--------------------------------------
+----
 resource r0 {
   on alice {
     device    /dev/drbd1;
@@ -161,7 +161,7 @@ resource r0 {
     meta-disk internal;
   }
 }
--------------------------------------
+----
 
 This example configures DRBD in the following fashion:
 
@@ -186,7 +186,7 @@ resource, numbered zero (`0`). For multiple volumes in one resource,
 modify the syntax as follows:
 
 .Multi-volume DRBD resource configuration (`/etc/drbd.d/r0.res`)
--------------------------------------
+----
 resource r0 {
   volume 0 {
     device    /dev/drbd1;
@@ -205,7 +205,7 @@ resource r0 {
     address   10.1.1.32:7789;
   }
 }
--------------------------------------
+----
 
 NOTE: Volumes may also be added to existing resources on the fly. For
 an example see <<s-lvm-add-pv>>.
@@ -268,7 +268,7 @@ In addition, options with equal values on both hosts
 can be specified directly in the `resource` section. Thus, we can
 further condense our example configuration as follows:
 
--------------------------------------
+----
 resource r0 {
   device    /dev/drbd1;
   disk      /dev/sda7;
@@ -280,7 +280,7 @@ resource r0 {
     address   10.1.1.32:7789;
   }
 }
--------------------------------------
+----
 
 
 [[s-first-time-up]]
@@ -296,34 +296,34 @@ Please note that with our example config snippets (`resource r0 { ... }`), `<res
 .Create device metadata
 This step must be completed only on initial device
 creation. It initializes DRBD's metadata:
--------------------------------------
+----
 # drbdadm create-md <resource>
 v08 Magic number not found
 Writing meta data...
 initialising activity log
 NOT initializing bitmap
 New drbd meta data block successfully created.
--------------------------------------
+----
 
 .Enable the resource
 This step associates the resource with its backing device (or devices,
 in case of a multi-volume resource), sets replication parameters, and
 connects the resource to its peer:
--------------------------------------
+----
 # drbdadm up <resource>
--------------------------------------
+----
 
 .Observe `/proc/drbd`
 DRBD's virtual status file in the `/proc` filesystem, `/proc/drbd`,
 should now contain information similar to the following:
 
--------------------------------------
+----
 # cat /proc/drbd
 version: 8.4.1 (api:1/proto:86-100)
 GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by buildsystem@linbit, 2011-12-20 12:58:48
  0: cs:Connected ro:Secondary/Secondary ds:Inconsistent/Inconsistent C r-----
     ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:524236
--------------------------------------
+----
 
 NOTE: The __Inconsistent__/__Inconsistent__ disk state is expected at this
 point.
@@ -353,9 +353,9 @@ This step must be performed on only one node, only on initial resource
 configuration, and only on the node you selected as the
 synchronization source. To perform this step, issue this command:
 
--------------------------------------
+----
 # drbdadm primary --force <resource>
--------------------------------------
+----
 
 After issuing this command, the initial full synchronization will
 commence. You will be able to monitor its progress via
@@ -387,9 +387,9 @@ nodes, and you have issued the commands for
 
 
 * On the local node, issue the following command:
--------------------------------------
+----
 # drbdadm new-current-uuid --clear-bitmap <resource>
--------------------------------------
+----
 
 * Create a consistent, verbatim copy of the resource's data _and its
   metadata_. You may do so, for example, by removing a hot-swappable
@@ -402,9 +402,9 @@ nodes, and you have issued the commands for
 
 
 * On the local node, issue:
--------------------------------------
+----
 # drbdadm new-current-uuid <resource>
--------------------------------------
+----
 
 Note the absence of the `--clear-bitmap` option in this second
 invocation.
@@ -418,9 +418,9 @@ invocation.
   metadata. If you fail to do so, the disk shipping process is moot.
 
 * Bring up the resource on the remote node:
--------------------------------------
+----
 # drbdadm up <resource>
--------------------------------------
+----
 
 After the two peers connect, they will not initiate a full device
 synchronization. Instead, the automatic synchronization that now

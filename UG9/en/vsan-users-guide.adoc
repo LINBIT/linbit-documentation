@@ -7,7 +7,7 @@
 
 [[s-intro]]
 == Introduction
-LINBIT VSAN is a software-defined storage solution for hyper-converged infrastructure, based on LINBIT's https://github.com/LINBIT/drbd[DRBD] and https://github.com/LINBIT/linstor-server[LINSTOR]. It uses CentOS 8 as a foundation and utilizes software by LINBIT to provide highly available storage to hypervisors through a convenient iSCSI target.
+LINBIT VSAN is a software-defined storage solution for hyper-converged infrastructure, based on LINBIT's https://github.com/LINBIT/drbd[DRBD] and https://github.com/LINBIT/linstor-server[LINSTOR]. It uses AlmaLinux 8 as a foundation and utilizes software by LINBIT to provide highly available storage to hypervisors through a convenient iSCSI target.
 
 It is built primarily with VMware ESXi as a target platform in mind, but it is fully independent of the hypervisor software, so it should also work on any other virtualization platform.
 
@@ -82,7 +82,18 @@ It is *highly recommended* to log into the machine over SSH and change the passw
 === Installing via ISO file
 
 This method is appropriate as a fall-back option for all *non-VMware hypervisors* that do not support importing OVA files.
-Of course it can also be used on VMware hypervisors if greater flexibility in the operating system setup process is desired.
+Of course, it can also be used on VMware hypervisors if greater flexibility in the operating system setup process is desired.
+
+[TIP]
+===========
+It is also possible to install LINBIT VSAN *directly to physical machines*, eliminating the need for any hypervisor software
+to be present at all. Since LINBIT VSAN is based on the AlmaLinux operating system, their guidelines for creating a
+physical installation medium apply.
+
+For a guide on how to write the LINBIT VSAN image to a physical medium, please refer to the
+https://wiki.almalinux.org/LiveMedia.html#how-to-download-and-write-images[AlmaLinux Wiki page on the subject].
+Simply use the LINBIT VSAN appliance image in place of the AlmaLinux image.
+===========
 
 Take the following steps to set up your LINBIT VSAN cluster:
 
@@ -92,9 +103,9 @@ Take the following steps to set up your LINBIT VSAN cluster:
 +
 TIP: Make sure the storage devices you pass through remain completely empty. For example, do not create any partitions or LVM volumes.
 4. Assign at least one network adapter to each of the virtual machines. VSAN acquires an IP address via DHCP.
-5. Start the virtual machines and complete the operating system setup on each machine. This is similar to a regular CentOS 8 installation process.
+5. Start the virtual machines and complete the operating system setup on each machine. This is similar to a regular AlmaLinux 8 installation process.
 +
-WARNING: Do not use a kickstart file to automate the installation process. The VSAN ISO already contains a kickstart file to customize certain aspects of the CentOS 8 installer; providing an additional kickstart file will cause conflicts.
+WARNING: Do not use a kickstart file to automate the installation process. The VSAN ISO already contains a kickstart file to customize certain aspects of the AlmaLinux 8 installer; providing an additional kickstart file will cause conflicts.
 +
 TIP: Make sure you take note of the special requirements regarding <<s-iso-networking,Networking>> and <<s-iso-time,Time>> during the setup process.
 6. Done! Next, start <<p-initialization,the VSAN initialization process>> by navigating to the IP of one of your virtual machines using your browser.
@@ -102,7 +113,7 @@ TIP: Make sure you take note of the special requirements regarding <<s-iso-netwo
 [[s-iso-networking]]
 ==== Networking
 
-VSAN relies on a network connection being made available on boot. By default, the CentOS installer configures the network interface to *not* automatically connect.
+VSAN relies on a network connection being made available on boot. By default, the AlmaLinux installer configures the network interface to *not* automatically connect.
 
 Please make sure that, when configuring the network interface, the "Connect automatically with priority" checkbox is checked.
 
@@ -114,7 +125,7 @@ image::images/vsan-connect-automatically.png[]
 
 In a cluster of multiple servers, it is important to ensure that the clocks of the individual nodes are in sync with each other.
 
-This is easiest achieved by using NTP (Network Time Protocol). Please make sure that NTP is enabled in the CentOS setup and that the nodes' clocks are synchronized after the installation is done.
+This is easiest achieved by using NTP (Network Time Protocol). Please make sure that NTP is enabled in the AlmaLinux setup and that the nodes' clocks are synchronized after the installation is done.
 
 [[p-initialization]]
 == Initialization
@@ -134,7 +145,7 @@ To get started, navigate to the IP address of one VSAN virtual machine with your
 
 If you are not sure what the IP address of your virtual machine is, refer to the helpful message VSAN prints to the console and when logging in over SSH:
 
-----------------------------
+----
 Welcome to LINBIT VSAN version 0.9.12
 
 Please visit the following URL in your
@@ -144,7 +155,7 @@ https://192.168.122.190:443
 
 Last login: Mon May 10 14:26:07 2021 from 192.168.122.1
 [root@uninitialized-2704efc50652198ea06592f8 ~]#
-----------------------------
+----
 
 VSAN gives you a one-stop Web UI wizard to configure the storage cluster. Follow the instructions in the wizard to complete the installation.
 
@@ -158,4 +169,4 @@ The VSAN Web UI intenionally offers relatively minimal administration and monito
 
 One of VSAN's design philosophies is that, after the setup is completed, it should be as close to a regular Linux system as possible.
 
-So, if you are familiar with the technologies under the hood, you are free to directly use the underlying operating system and treat it as a standard CentOS-based LINSTOR cluster.
+So, if you are familiar with the technologies under the hood, you are free to directly use the underlying operating system and treat it as a standard AlmaLinux-based LINSTOR cluster.

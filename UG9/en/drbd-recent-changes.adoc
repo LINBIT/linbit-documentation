@@ -1,0 +1,82 @@
+[[ap-recent-changes]]
+[appendix]
+== Recent Changes
+
+This appendix is for users who upgrade from earlier DRBD versions to
+DRBD 9.x. It highlights some important changes to DRBD's configuration
+and behavior.
+
+[[s-recent-changes-drbd-9.2]]
+=== DRBD 9.2 Changelog
+
+- Add RDMA transport.
+
+- Allow resync to proceed even with continuous application I/O.
+
+- Process control socket packets directly in "bottom half" context. This improves performance
+  by decreasing latency.
+
+- Perform more discards when resyncing. Resync in multiples of discard granularity.
+
+- Support network namespaces, for better integration with containers and orchestrators such
+  as Kubernetes.
+
+[[s-recent-changes-drbd-9.1]]
+=== DRBD 9.1 Changelog
+
+- Reduce locking contention in sending path. This increases performance of workloads with
+  multiple peers or high I/O depth.
+
+- Improve support for various scenarios involving suspended I/O due to loss of quorum.
+
+[[s-recent-changes-from-drbd-8.4]]
+=== Changes Coming From DRBD 8.4
+
+If you are coming to DRBD 9.x from DRBD 8.4, some noteworthy changes are detailed in the
+following subsections.
+
+[[s-recent-changes-connections]]
+==== Connections
+
+With DRBD 9 data can be replicated across more than two nodes.
+
+This also means that stacking DRBD volumes is now deprecated (though still
+possible), and that using DRBD as a network-blockdevice (a
+<<s-drbd-client,__DRBD client__>>) now makes sense.
+
+Associated with this change are:
+
+- Metadata size changes (one bitmap per peer).
+
+- `/proc/drbd` now only gives minimal information, see
+    <<s-drbdadm-status, `drbdadm status`>>.
+
+- Resynchronization to or from <<s-multi-node,multiple peers>> is possible.
+
+- The <<s-activity-log,activity log>> is used even when in
+  <<s-resource-roles,Secondary>> role.
+
+[[s-recent-changes-auto-promote]]
+==== Auto-promote Feature
+
+DRBD 9 can be configured to do the _Primary_/_Secondary_ <<s-resource-roles,role switch>>
+automatically, on demand.
+
+This feature replaces both the `become-primary-on` configuration value, as well
+as the old Heartbeat v1 `drbddisk` script.
+
+See <<s-automatic-promotion>> for more details.
+
+[[s-recent-changes-performance]]
+==== Increased Performance
+
+DRBD 9 has seen noticeable performance improvements, depending on your specific
+hardware it's up to two magnitudes faster (measuring number of I/O
+operations per second for random writes).
+
+[[s-recent-changes-config]]
+==== Changes to the Configuration Syntax
+
+In DRBD 8.4, the `drbdadm` parser still accepted pre-8.4 configuration syntax for configuration
+files in `/etc/drbd.d` and `/etc/drbd.conf`. DRBD 9 no longer accepts pre-8.4 configuration
+syntax.

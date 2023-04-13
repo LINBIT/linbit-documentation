@@ -27,21 +27,21 @@ In DRBD 8.3 and earlier, links in `/dev/drbd/by-disk` point to single
 block devices:
 
 .udev managed DRBD symlinks in DRBD 8.3 and earlier
-----------------------------
+----
 lrwxrwxrwx 1 root root 11 2011-05-19 11:46 /dev/drbd/by-res/home ->
   ../../drbd0
 lrwxrwxrwx 1 root root 11 2011-05-19 11:46 /dev/drbd/by-res/data ->
   ../../drbd1
 lrwxrwxrwx 1 root root 11 2011-05-19 11:46 /dev/drbd/by-res/nfs-root ->
   ../../drbd2
-----------------------------
+----
 
 In DRBD 8.4, since a single resource may correspond to multiple
 volumes, `/dev/drbd/by-res/<resource>` becomes a _directory_,
 containing symlinks pointing to individual volumes:
 
 .udev managed DRBD symlinks in DRBD 8.4
-----------------------------
+----
 lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/home/0 ->
   ../../drbd0
 lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/data/0 ->
@@ -50,7 +50,7 @@ lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/nfs-root/0 ->
   ../../drbd2
 lrwxrwxrwx 1 root root 11 2011-07-04 09:22 /dev/drbd/by-res/nfs-root/1 ->
    ../../drbd3
-----------------------------
+----
 
 Configurations where filesystems are referred to by symlink must be
 updated when moving to DRBD 8.4, usually by simply appending `/0` to
@@ -79,13 +79,13 @@ pre DRBD 8.4 syntax, these boolean options would be set as follows:
 
 .Pre-DRBD 8.4 configuration example with boolean options
 [source,drbd]
-----------------------------
+----
 resource test {
   disk {
     no-md-flushes;
   }
 }
-----------------------------
+----
 
 This led to configuration issues if you wanted to set a boolean
 variable in the `common` configuration section, and then override it
@@ -93,7 +93,7 @@ for individual resources:
 
 .Pre-DRBD 8.4 configuration example with boolean options in `common` section
 [source,drbd]
-----------------------------
+----
 common {
   no-md-flushes;
 }
@@ -103,7 +103,7 @@ resource test {
     # "common"
   }
 }
-----------------------------
+----
 
 In DRBD 8.4, all boolean options take a value of `yes` or `no`, making
 them easily configurable both from `common` and from individual
@@ -111,7 +111,7 @@ them easily configurable both from `common` and from individual
 
 .DRBD 8.4 configuration example with boolean options in `common` section
 [source,drbd]
-----------------------------
+----
 common {
   md-flushes no;
 }
@@ -120,7 +120,7 @@ resource test {
     md-flushes yes;
   }
 }
-----------------------------
+----
 
 [[s-recent-changes-config-syncer]]
 ==== `syncer` section no longer exists
@@ -132,7 +132,7 @@ resources.
 
 .Pre-DRBD 8.4 configuration example with `syncer` section
 [source,drbd]
-----------------------------
+----
 resource test {
   syncer {
     al-extents 3389;
@@ -140,13 +140,13 @@ resource test {
   }
   ...
 }
-----------------------------
+----
 
 The above example is expressed, in DRBD 8.4 syntax, as follows:
 
 .DRBD 8.4 configuration example with `syncer` section replaced
 [source,drbd]
-----------------------------
+----
 resource test {
   disk {
     al-extents 3389;
@@ -156,7 +156,7 @@ resource test {
   }
   ...
 }
-----------------------------
+----
 
 [[s-recent-changes-config-protocol]]
 ==== `protocol` option is no longer special
@@ -167,7 +167,7 @@ as part of the `net` section. DRBD 8.4 removes this anomaly:
 
 .Pre-DRBD 8.4 configuration example with standalone `protocol` option
 [source,drbd]
-----------------------------
+----
 resource test {
   protocol C;
   ...
@@ -176,13 +176,13 @@ resource test {
   }
   ...
 }
-----------------------------
+----
 
 The equivalent DRBD 8.4 configuration syntax is:
 
 .DRBD 8.4 configuration example with `protocol` option within `net` section
 [source,drbd]
-----------------------------
+----
 resource test {
   net {
     protocol C;
@@ -190,7 +190,7 @@ resource test {
   }
   ...
 }
-----------------------------
+----
 
 
 [[s-recent-changes-config-options]]
@@ -205,7 +205,7 @@ it had been in pre-8.4 releases.
 
 .Pre-DRBD 8.4 configuration example with `cpu-mask` and `on-no-data-accessible`
 [source,drbd]
-----------------------------
+----
 resource test {
   syncer {
     cpu-mask ff;
@@ -215,13 +215,13 @@ resource test {
   }
   ...
 }
-----------------------------
+----
 
 The equivalent DRBD 8.4 configuration syntax is:
 
 .DRBD 8.4 configuration example with `options` section
 [source,drbd]
-----------------------------
+----
 resource test {
   options {
     cpu-mask ff;
@@ -229,7 +229,7 @@ resource test {
   }
   ...
 }
-----------------------------
+----
 
 
 [[s-recent-changes-net]]
@@ -248,9 +248,9 @@ may, for example, temporarily switch a connection to asynchronous
 replication from its normal, synchronous replication mode.
 
 .Changing replication protocol while connection is established
-----------------------------
+----
 drbdadm net-options --protocol=A <resource>
-----------------------------
+----
 
 [[s-recent-changes-switch-dual-primary]]
 ==== Changing from single-Primary to dual-Primary replication
@@ -283,16 +283,16 @@ Prior to DRBD 8.4, if you wanted `drbdadm` to pass special options through to
 following example:
 
 .Pre-DRBD 8.4 `drbdadm` pass-through options
-----------------------------
+----
 drbdadm -- --discard-my-data connect <resource>
-----------------------------
+----
 
 Instead, `drbdadm` now accepts those pass-through options as normal options:
 
 .DRBD 8.4 `drbdadm` pass-through options
-----------------------------
+----
 drbdadm connect --discard-my-data <resource>
-----------------------------
+----
 
 NOTE: The old syntax is still supported, but its use is strongly
 discouraged. However, if you choose to use the new, more
@@ -309,16 +309,16 @@ an initial resource synchronization, you no longer use the following
 command:
 
 .Pre-DRBD 8.4 initial sync `drbdadm` commands
-----------------------------
+----
 drbdadm -- --overwrite-data-of-peer primary <resource>
-----------------------------
+----
 
 Use the command below instead:
 
 .DRBD 8.4 initial sync `drbdadm` commands
-----------------------------
+----
 drbdadm primary --force <resource>
-----------------------------
+----
 
 
 [[s-recent-changes-defaults]]
@@ -364,7 +364,7 @@ following configuration options:
 
 .DRBD 8.4 default options for variable-rate synchronization
 [source,drbd]
-----------------------------
+----
 resource test {
   disk {
     c-plan-ahead 20;
@@ -372,7 +372,7 @@ resource test {
     c-min-rate 250k;
   }
   ...
-----------------------------
+----
 
 [[s-recent-changes-defaults-minor-count]]
 ==== Number of configurable DRBD devices (`minor-count`)

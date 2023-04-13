@@ -1,0 +1,503 @@
+[[ch-internals]]
+== DRBD Internals
+
+This chapter gives _some_ background information about some of DRBD's
+internal algorithms and structures. It is intended for interested
+users wishing to gain a certain degree of background knowledge about
+DRBD. It does not dive into DRBD's inner workings deep enough to be a
+reference for DRBD developers. For that purpose, please refer to the
+papers listed in <<s-publications>>, and of course to the comments in
+the DRBD source code.
+
+[[s-metadata]]
+=== DRBD Metadata
+
+indexterm:[metadata]DRBD stores various pieces of information about
+the data it keeps in a dedicated area. This metadata includes:
+
+* the size of the DRBD device,
+* the Generation Identifier (GI, described in detail in <<s-gi>>),
+* the Activity Log (AL, described in detail in <<s-activity-log>>).
+* the quick-sync bitmap (described in detail in <<s-quick-sync-bitmap>>),
+
+This metadata may be stored _internally_ or _externally_. Which method
+is used is configurable on a per-resource basis.
+
+[[s-internal-meta-data]]
+==== Internal Metadata
+
+indexterm:[metadata]Configuring a resource to use internal metadata
+means that DRBD stores its metadata on the same physical lower-level
+device as the actual production data. It does so by setting aside an
+area at the _end_ of the device for the specific purpose of storing
+metadata.
+
+.Advantage
+Since the metadata are inextricably linked with the actual data, no
+special action is required from the administrator in case of a hard
+disk failure. The metadata are lost together with the actual data and
+are also restored together.
+
+.Disadvantage
+In case of the lower-level device being a single physical hard disk
+(as opposed to a RAID set), internal metadata may negatively affect
+write throughput. The performance of write requests by the application
+may trigger an update of the metadata in DRBD. If the metadata are
+stored on the same magnetic disk of a hard disk, the write operation
+may result in two additional movements of the write/read head of the
+hard disk.
+
+[CAUTION]
+============
+If you are planning to use internal metadata in conjunction
+with an existing lower-level device that already has data that you
+want to preserve, you _must_ account for the space required by DRBD's
+metadata.
+
+Otherwise, upon DRBD resource creation, the newly created metadata
+would overwrite data at the end of the lower-level device, potentially
+destroying existing files in the process.
+============
+
+To avoid that, you must do one of the following things:
+
+* Enlarge your lower-level device. This is possible with any logical
+  volume management facility (such as indexterm:[LVM]LVM) provided that
+  you have free space available in the corresponding volume group. It
+  may also be supported by hardware storage solutions.
+
+* Shrink your existing file system on your lower-level device. This
+  may or may not be supported by your file system.
+
+* If neither of the two are possible, use
+  <<s-external-meta-data,external metadata>> instead.
+
+To estimate the amount by which you must enlarge your lower-level
+device or shrink your file system, see <<s-meta-data-size>>.
+
+[[s-external-meta-data]]
+==== External Metadata
+
+indexterm:[metadata]External metadata is simply stored on a
+separate, dedicated block device distinct from that which holds your
+production data.
+
+.Advantage
+For some write operations, using external metadata produces a
+somewhat improved latency behavior.
+
+.Disadvantage
+Meta data are not inextricably linked with the actual production
+data. This means that manual intervention is required in the case of a
+hardware failure destroying just the production data (but not DRBD
+metadata), to effect a full data sync from the surviving node onto
+the subsequently replaced disk.
+
+Use of external metadata is also the only viable option if _all_ of
+the following apply:
+
+* You are using DRBD to duplicate an existing device that already
+  contains data you want to preserve, _and_
+
+* that existing device does not support enlargement, _and_
+
+* the existing file system on the device does not support shrinking.
+
+To estimate the required size of the block device dedicated to hold
+your device metadata, see <<s-meta-data-size>>.
+
+NOTE: External metadata requires a minimum of a 1MB device size.
+
+[[s-meta-data-size]]
+==== Estimating Metadata Size
+
+indexterm:[metadata]You may calculate the exact space requirements
+for DRBD's metadata using the following formula:
+
+[[eq-metadata-size-exact]]
+.Calculating DRBD metadata size (exactly)
+image::images/metadata-size-exact.svg[]
+
+*_C~s~_* is the data device size in sectors, and *_N_* is the number of peers.
+
+////
+If
+you are using the <<al-stripe,al-stripes>> setting, additional space of size
+_al-stripes_ times _al-strip-size_ is required.
+////
+
+NOTE: You may retrieve the device size (in bytes) by issuing `blockdev --getsize64
+<device>`; to convert to MB, divide by 1048576 (= 2^20^ or 1024^2^).
+
+In practice, you may use a reasonably good approximation, given
+below. Note that in this formula, the unit is megabytes, not sectors:
+
+[[eq-metadata-size-approx]]
+.Estimating DRBD metadata size (approximately)
+image::images/metadata-size-approx.svg[]
+
+[[s-gi]]
+=== Generation Identifiers
+
+indexterm:[generation identifiers]DRBD uses _generation identifiers_
+(GIs) to identify "generations" of replicated data.
+
+This is DRBD's internal mechanism used for
+
+* determining whether the two nodes are in fact members of the same
+  cluster (as opposed to two nodes that were connected accidentally),
+
+* determining the direction of background re-synchronization (if
+  necessary),
+
+* determining whether full re-synchronization is necessary or whether
+  partial re-synchronization is sufficient,
+
+* indexterm:[split brain]identifying split brain.
+
+[[s-data-generations]]
+==== Data Generations
+
+DRBD marks the start of a new _data generation_ at each of the
+following occurrences:
+
+// FIXME PRe
+
+* The initial device full sync,
+
+* a disconnected resource switching to the primary role,
+
+* a resource in the primary role disconnecting.
+
+Therefore, we can summarize that whenever a resource is in the _Connected_
+connection state, and both nodes' disk state is _UpToDate_, the
+current data generation on both nodes is the same. The inverse is also
+true. Note that the current implementation uses the lowest bit to encode the
+role of the node (Primary/Secondary). Therefore, the lowest bit might be
+different on distinct nodes even if they are considered to have the same data
+generation.
+
+Every new data generation is identified by an 8-byte, universally
+unique identifier (UUID).
+
+[[s-gi-tuple]]
+==== The Generation Identifier Tuple
+
+DRBD keeps some pieces of information about current and historical
+data generations in the local resource metadata:
+
+.Current UUID
+This is the generation identifier for the current data generation, as
+seen from the local node's perspective. When a resource is
+_Connected_ and fully synchronized, the current UUID is identical
+between nodes.
+
+.Bitmap UUIDs
+This is the UUID of the generation against which this on-disk
+bitmap is tracking changes (per remote host). Like the on-disk sync bitmap itself, this
+identifier is only relevant while the remote host is disconnected.
+
+// If the resource is _Connected_, this UUID is always empty (zero). FIXME
+
+.Historical UUIDs
+These are the identifiers of data generations preceding the
+current one, sized to have one slot per (possible) remote host.
+
+Collectively, these items are referred to as the _generation
+identifier tuple_, or "__GI tuple__" for short.
+
+[[s-gi-changes]]
+==== How Generation Identifiers Change
+
+[[s-gi-changes-newgen]]
+===== Start of a New Data Generation
+
+When a node in _Primary_ role loses connection to its peer (either by network failure or
+manual intervention), DRBD modifies its local generation identifiers
+in the following manner:
+
+[[f-gi-changes-newgen]]
+.GI tuple changes at start of a new data generation
+image::images/gi-changes-newgen.svg[]
+
+. The primary creates a new UUID for the new data generation. This becomes the
+  _new_ current UUID for the primary node.
+
+. The _previous_ current UUID now refers to the generation the bitmap is
+  tracking changes against, so it becomes the new bitmap UUID for the
+  primary node.
+
+. On the secondary node(s), the GI tuple remains unchanged.
+
+
+[[s-gi-changes-synccomplete]]
+===== Completion of Resynchronization
+
+When resynchronization concludes, the synchronization target adopts the entire
+GI tuple from the synchronization source.
+
+The synchronization source keeps the same set, and doesn't generate new UUIDs.
+
+[[s-gi-use]]
+==== How DRBD Uses Generation Identifiers
+
+When a connection between nodes is established, the two nodes exchange
+their currently available generation identifiers, and proceed
+accordingly. Several possible outcomes exist:
+
+.Current UUIDs empty on both nodes
+The local node detects that both its current UUID and the peer's
+current UUID are empty. This is the normal occurrence for a freshly
+configured resource that has not had the initial full sync
+initiated. No synchronization takes place; it has to be started
+manually.
+
+.Current UUIDs empty on one node
+The local node detects that the peer's current UUID is empty, and its
+own is not. This is the normal case for a freshly configured resource
+on which the initial full sync has just been initiated, the local node
+having been selected as the initial synchronization source. DRBD now
+sets all bits in the on-disk sync bitmap (meaning it considers the
+entire device out-of-sync), and starts synchronizing as a
+synchronization source. In the opposite case (local current UUID
+empty, peer's non-empty), DRBD performs the same steps, except that
+the local node becomes the synchronization target.
+
+.Equal current UUIDs
+The local node detects that its current UUID and the peer's current
+UUID are non-empty and equal. This is the normal occurrence for a
+resource that went into disconnected mode at a time when it was in the
+secondary role, and was not promoted on either node while
+disconnected. No synchronization takes place, as none is necessary.
+
+.Bitmap UUID matches peer's current UUID
+The local node detects that its bitmap UUID matches the peer's current
+UUID, and that the peer's bitmap UUID is empty. This is the normal and
+expected occurrence after a secondary node failure, with the local
+node being in the primary role. It means that the peer never became
+primary in the meantime and worked on the basis of the same data
+generation all along. DRBD now initiates a normal, background
+re-synchronization, with the local node becoming the synchronization
+source. If, conversely, the local node detects that _its_ bitmap UUID
+is empty, and that the _peer's_ bitmap matches the local node's current
+UUID, then that is the normal and expected occurrence after a failure
+of the local node. Again, DRBD now initiates a normal, background
+re-synchronization, with the local node becoming the synchronization
+target.
+
+.Current UUID matches peer's historical UUID
+The local node detects that its current UUID matches one of the peer's
+historical UUIDs. This implies that while the two data sets share a
+common ancestor, and the peer node has the up-to-date data, the
+information kept in the peer node's bitmap is outdated and not
+usable. Therefore, a normal synchronization would be insufficient. DRBD
+now marks the entire device as out-of-sync and initiates a full
+background re-synchronization, with the local node becoming the
+synchronization target. In the opposite case (one of the local node's
+historical UUID matches the peer's current UUID), DRBD performs the
+same steps, except that the local node becomes the synchronization
+source.
+
+// ERROR: FIXME
+
+.Bitmap UUIDs match, current UUIDs do not
+indexterm:[split brain]The local node detects that its current UUID
+differs from the peer's current UUID, and that the bitmap UUIDs
+match. This is split brain, but one where the data generations have
+the same parent. This means that DRBD invokes split brain
+auto-recovery strategies, if configured. Otherwise, DRBD disconnects
+and waits for manual split brain resolution.
+
+.Neither current nor bitmap UUIDs match
+The local node detects that its current UUID differs from the peer's
+current UUID, and that the bitmap UUIDs _do not_ match. This is split
+brain with unrelated ancestor generations, therefore auto-recovery
+strategies, even if configured, are moot. DRBD disconnects and waits
+for manual split brain resolution.
+
+.No UUIDs match
+Finally, in case DRBD fails to detect even a single matching element
+in the two nodes' GI tuples, it logs a warning about unrelated data
+and disconnects. This is DRBD's safeguard against accidental
+connection of two cluster nodes that have never heard of each other
+before.
+
+
+[[s-activity-log]]
+=== The Activity Log
+
+[[s-al-purpose]]
+==== Purpose
+
+indexterm:[Activity Log]During a write operation DRBD forwards the
+write operation to the local backing block device, but also sends the
+data block over the network. These two actions occur, for all
+practical purposes, simultaneously. Random timing behavior may cause a
+situation where the write operation has been completed, but the
+transmission over the network has not yet taken place, or vice versa.
+
+If, at this moment, the active node fails and failover is being
+initiated, then this data block is out of sync between nodes -- it has
+been written on the failed node prior to the failure, but replication
+has not yet completed. Therefore, when the node eventually recovers, this
+block must be removed from the data set during subsequent
+synchronization. Otherwise, the failed node would be "one write
+ahead" of the surviving node, which would violate the "all or
+nothing" principle of replicated storage. This is an issue that is not
+limited to DRBD, in fact, this issue exists in practically all
+replicated storage configurations. Many other storage solutions (just
+as DRBD itself, prior to version 0.7) therefore require that after a
+failure of the active node the data must be fully synchronized after
+its recovery.
+
+DRBD's approach, since version 0.7, is a different one. The _activity
+log_ (AL), stored in the metadata area, keeps track of those blocks
+that have "recently" been written to. Colloquially, these areas are
+referred to as _hot extents_.
+
+If a temporarily failed node that was in active mode at the time of
+failure is synchronized, only those hot extents highlighted in the AL
+need to be synchronized (plus any blocks marked in the bitmap on the now-active peer),
+rather than the full device. This drastically
+reduces synchronization time after an active node failure.
+
+[[s-active-extents]]
+==== Active Extents
+
+indexterm:[Activity Log]The activity log has a configurable parameter,
+the number of active extents. Every active extent adds 4MiB to the
+amount of data being retransmitted after a Primary failure. This
+parameter must be understood as a compromise between the following
+opposites:
+
+.Many active extents
+Keeping a large activity log improves write throughput. Every time a
+new extent is activated, an old extent is reset to inactive. This
+change requires a write operation to the metadata area. If the
+number of active extents is high, old active extents are swapped out
+fairly rarely, reducing metadata write operations and thereby
+improving performance.
+
+.Few active extents
+Keeping a small activity log reduces synchronization time after active
+node failure and subsequent recovery.
+
+
+[[s-suitable-al-size]]
+==== Selecting a Suitable Activity Log Size
+
+indexterm:[Activity Log]Consideration of the number of extents should
+be based on the desired synchronization time at a given
+synchronization rate. The number of active extents can be calculated
+as follows:
+
+[[eq-al-extents]]
+.Active extents calculation based on sync rate and target sync time
+image::images/al-extents.svg[]
+
+_R_ is the synchronization rate, given in MiB/s. _t~sync~_ is the target
+synchronization time, in seconds. _E_ is the resulting number of active
+extents.
+
+To provide an example, suppose the cluster has an I/O subsystem with a
+throughput rate of 200 MiByte/s that was configured to a
+synchronization rate (_R_) of 60 MiByte/s, and we want to keep the
+target synchronization time (_t~sync~_) at 4 minutes or 240 seconds:
+
+[[eq-al-extents-example]]
+.Active extents calculation based on sync rate and target sync time (example)
+image::images/al-extents-example.svg[]
+
+On a final note, DRBD 9 needs to keep an AL even on the Secondary nodes, as
+their data might be used to synchronize other Secondary nodes.
+
+
+[[s-quick-sync-bitmap]]
+=== The Quick-sync Bitmap
+
+indexterm:[quick-sync bitmap]indexterm:[bitmap (DRBD-specific
+concept)]The quick-sync bitmap is the internal data structure which
+DRBD uses, on a per-resource per-peer basis, to keep track of blocks being in
+sync (identical on both nodes) or out-of sync. It is only relevant
+when a resource is in disconnected mode.
+
+In the quick-sync bitmap, one bit represents a 4-KiB chunk of on-disk
+data. If the bit is cleared, it means that the corresponding block is
+still in sync with the peer node. That implies that the block has not
+been written to since the time of disconnection. Conversely, if the
+bit is set, it means that the block has been modified and needs to be
+re-synchronized whenever the connection becomes available again.
+
+As DRBD detects write I/O on a disconnected device, and therefore starts
+setting bits in the quick-sync bitmap, it does so in RAM -- therefore 
+avoiding expensive synchronous metadata I/O operations. Only when the
+corresponding blocks turn cold (that is, expire from the
+<<s-activity-log,Activity Log>>), DRBD makes the appropriate
+modifications in an on-disk representation of the quick-sync
+bitmap. Likewise, if the resource happens to be manually shut down on
+the remaining node while disconnected, DRBD flushes the
+_complete_ quick-sync bitmap out to persistent storage.
+
+When the peer node recovers or the connection is re-established, DRBD
+combines the bitmap information from both nodes to determine the
+_total data set_ that it must re-synchronize. Simultaneously, DRBD
+<<s-gi-use,examines the generation identifiers>> to determine the
+_direction_ of synchronization.
+
+The node acting as the synchronization source then transmits the
+agreed-upon blocks to the peer node, clearing sync bits in the bitmap
+as the synchronization target acknowledges the modifications. If the
+re-synchronization is now interrupted (by another network outage, for
+example) and subsequently resumed it will continue where it left off
+-- with any additional blocks modified in the meantime being added to
+the re-synchronization data set, of course.
+
+NOTE: Re-synchronization may be also be paused and resumed manually
+with the indexterm:[drbdadm, pause-sync]`drbdadm pause-sync` and
+indexterm:[drbdadm, resume-sync]`drbdadm resume-sync` commands. You
+should, however, not do so light-heartedly -- interrupting
+re-synchronization leaves your secondary node's disk
+_Inconsistent_ longer than necessary.
+
+[[s-drbd-client-internals]]
+=== The Client Mode
+
+Since version 9.0.13 DRBD supports clients. A client in DRBD speak is
+just a permanently diskless node. In the configuration, it is
+expressed by using the keyword `none` for the backing block device
+(the `disk` keyword). You will notice that in the `drbdsetup status`
+output you will see the `Diskless` disk status displayed in green
+color. (Usually, a disk state of `Diskless` is displayed in red).
+
+Internally all the peers of an intentional diskless node are
+configured with the `peer-device-option` `--bitmap=no`. That means
+that they will not allocate a bitmap slot in the meta-data for the
+intentional diskless peer. On the intentional diskless node the device
+gets marked with the option `--diskless=yes` while it is created with
+the `new-minor` sub-command of `drbdsetup`.
+
+These flags are visible through the `events2` status command:
+
+* a `device` might have the `client:` field. If it reports `yes` the
+  local device was marked to be permanently diskless.
+
+* a `peer-device` might have the `peer-client` filed. If it says `yes`
+  then there is no change-tracking bitmap to that peer.
+
+Relevant commands and implications:
+
+* You can only run `drbdsetup peer-device-options --bitmap=yes ...` if
+  bitmap slots are available in the meta-data, since a bitmap-slot
+  gets allocated.
+
+* The command `drbdsetup peer-device-options --bitmap=no ...` is only
+  possible if the peer is diskless, it does _not_ unallocate the
+  bitmap-slot.
+
+* `drbdsetup forget-peer ...` is used to irrevocable free the
+  bitmap-slot assigned to a certain peer.
+
+* Connecting two peers with disk where one (or both) expect the peer
+  to be permanently diskless fails.
+
+//- list divider. Keep it otherwise next included section is interpreted as list element

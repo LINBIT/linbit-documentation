@@ -1,0 +1,198 @@
+[[s-upgrading-drbd]]
+=== Upgrading DRBD
+
+Upgrading DRBD is a fairly simple process. This section contains warnings or important
+information regarding upgrading to a particular DRBD 9 version from another DRBD 9 version.
+
+If you are upgrading DRBD from 8.4.x to 9.x, refer to the instructions within <<drbd-upgrading-8.4-to-9.x.adoc#ap-upgrading-8.4-to-9.x,
+the Appendix>>.
+
+==== Upgrading to DRBD 9.2.x
+
+If you are upgrading to DRBD 9.2.x from an earlier version not on the 9.2 branch, you will need
+to pay attention to the names of your resources. DRBD 9.2.x enforces strict naming conventions
+for DRBD resources. By default, DRBD 9.2.x accepts only alphanumeric, `.`, `+`, `_`, and `-`
+characters in resource names (regular expression: `[0-9A-Za-z.+_-]*`). If you depend on the old
+behavior, it can be brought back by disabling strict name checking:
+
+----
+# echo 0 > /sys/module/drbd/parameters/strict_names
+----
+
+==== Compatibility
+
+DRBD is _wire protocol_ compatible over minor versions. Its _wire protocol_ is
+independent of the host kernel version and the machines' CPU architectures.
+
+DRBD is protocol compatible within a major number. For example, all version 9.x.y releases
+are protocol compatible.
+
+[[s-upgrade-within-9]]
+==== Upgrading Within DRBD 9
+
+If you are already running DRBD 9.x, you can upgrade to a newer DRBD 9 version by following
+these steps:
+
+1. Verify that DRBD resources are synchronized, by <<s-upgrade-check,checking the DRBD state>>.
+
+2. <<s-Upgrading-the-packages,Install new package versions>>.
+
+3. Stop the DRBD service or, if you are using a cluster manager, put the cluster node that you
+are upgrading into <<s-upgrade-pausing-the-cluster,_standby_>>.
+
+4. Unload and then <<s-upgrade-reload-kernel-mod,reload the new kernel module>>.
+
+5. <<s-upgrade-start-drbd,Start the DRBD resources>> and bring the cluster node _online_ again if
+you are using a cluster manager.
+
+These individual steps are detailed below.
+
+// STEP 1
+[[s-upgrade-check]]
+===== Checking the DRBD State
+
+Before you update DRBD, verify that your resources are synchronized. The output of `drbdadm
+status all` should show an _UpToDate_ status for your resources, as shown for an example
+resource (`data`) below:
+
+----
+# drbdadm status all
+data role:Secondary
+  disk:UpToDate
+  node-1 role:Primary
+    peer-disk:UpToDate
+----
+
+// STEP 2
+[[s-Upgrading-the-packages]]
+===== Upgrading the Packages
+
+If you are ready to upgrade DRBD within version 9, first upgrade your packages.
+
+RPM-based:
+
+----
+# dnf -y upgrade
+----
+
+DEB-based:
+
+----
+# apt update && apt -y upgrade
+----
+
+Once the upgrade is finished you will have the latest DRBD 9.x kernel module and `drbd-utils`
+installed. However, the new kernel module is not active yet. Before you make the new kernel
+module active, you must first pause your cluster services.
+
+// STEP 3
+[[s-upgrade-pausing-the-cluster]]
+===== Pausing the Services
+
+You can pause your cluster services manually or according to your cluster manager's
+documentation.
+ifndef::drbd-only[]
+Both processes are covered
+below. If you are running Pacemaker as your cluster manager do not use the manual method.
+endif::drbd-only[]
+
+====== Manual Method
+
+----
+# systemctl stop drbd@<resource>.target
+----
+
+IMPORTANT: To use the `systemctl stop` command with a DRBD resource target, you would have
+needed to have enabled the `drbd.service` previously. You can verify this by using the
+`systemctl is-enabled drbd.service` command.
+
+ifndef::drbd-only[]
+====== Pacemaker
+
+Put the secondary node (the node that you are upgrading) into standby mode.
+
+----
+# crm node standby node-2
+----
+
+NOTE: You can watch the status of your cluster using `crm_mon -rf` or watch
+`cat /proc/drbd` until it shows _Unconfigured_ for your resources.
+endif::drbd-only[]
+
+// STEP 4
+[[s-upgrade-reload-kernel-mod]]
+===== Loading the New Kernel Module
+
+After pausing your cluster services, the DRBD module should not be in use anymore, so unload it by entering the following
+command:
+
+----
+# rmmod drbd_transport_tcp; rmmod drbd
+----
+
+If there is a message like `ERROR: Module drbd is in use`, then not all
+resources have been correctly stopped.
+
+Retry <<s-Upgrading-the-packages, upgrading the packages>>, or run the command `drbdadm down all` to find
+out which resources are still active.
+
+Some typical issues that might prevent you from unloading the kernel module are:
+
+  * NFS export on a DRBD-backed filesystem (see `exportfs -v` output)
+  * File system still mounted - check `grep drbd /proc/mounts`
+  * Loopback device active (`losetup -l`)
+  * Device mapper using DRBD, directly or indirectly (`dmsetup ls --tree`)
+  * LVM with a DRBD-PV (`pvs`)
+
+NOTE: This list is not complete. These are just the most common examples.
+
+Now you can load the new DRBD module.
+
+----
+# modprobe drbd
+----
+
+Next, you can verify that the version of the DRBD kernel module that is loaded is the updated
+9.x.y version. The output of `drbdadm --version` should show the 9.x.y version that you are
+expecting to upgrade to and look similar to this:
+
+----
+DRBDADM_BUILDTAG=GIT-hash: [...] build\ by\ buildd@lcy02-amd64-080\,\ 2023-03-14\ 10:21:20
+DRBDADM_API_VERSION=2
+DRBD_KERNEL_VERSION_CODE=0x090202
+DRBD_KERNEL_VERSION=9.2.2
+DRBDADM_VERSION_CODE=0x091701
+DRBDADM_VERSION=9.23.1
+----
+
+// STEP 5
+[[s-upgrade-start-drbd]]
+===== Starting the DRBD Resources Again
+
+Now, the only thing left to do is to get the DRBD devices up and running again. You can do this by using the `drbdadm up all` command.
+
+Next, depending on whether you are using a cluster manager or if you are managing your
+DRBD resources manually, there are two different ways to bring up your resources. If you are
+using a cluster manager follow its documentation.
+
+* Manually
++
+----
+# systemctl start drbd@<resource>.target
+----
+
+ifndef::drbd-only[]
+* Pacemaker
++
+----
+# crm node online node-2
+----
+endif::drbd-only[]
+
+This should make DRBD connect to the other node, and the resynchronization
+process will start.
+
+When the two nodes are _UpToDate_ on all resources again, you can move your
+applications to the already upgraded node, and then follow the
+same steps on the next cluster node that you want to upgrade.
+

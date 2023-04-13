@@ -1,0 +1,220 @@
+[[ch-throughput]]
+== Optimizing DRBD Throughput
+
+This chapter deals with optimizing DRBD throughput. It examines some
+hardware considerations with regard to throughput optimization, and
+details tuning recommendations for that purpose.
+
+[[s-throughput-hardware]]
+=== Hardware Considerations
+
+DRBD throughput is affected by both the bandwidth of the underlying
+I/O subsystem (disks, controllers, and corresponding caches), and the
+bandwidth of the replication network.
+
+.I/O subsystem throughput
+indexterm:[throughput]I/O subsystem throughput is determined, largely,
+by the number and type of storage units (disks, SSDs, other Flash storage [like
+FusionIO], ...) that can be written to in parallel. A single,
+reasonably recent, SCSI or SAS disk will typically allow streaming
+writes of roughly 40MiB/s to the single disk; an SSD will do 300MiB/s;
+one of the recent Flash storages (NVMe) will be at 1GiB/s. When deployed in a
+striping configuration, the I/O subsystem will parallelize writes
+across disks, effectively multiplying a single disk's throughput by
+the number of stripes in the configuration. Therefore, the same 40MiB/s
+disks will allow effective throughput of 120MiB/s in a RAID-0 or
+RAID-1+0 configuration with three stripes, or 200MiB/s with five
+stripes; with SSDs, NVMe, or both, you can easily get to 1GiB/sec.
+
+A RAID-controller with RAM and a <<s-hardware-bbu,BBU>> can speed up short
+spikes (by buffering them), and so too-short benchmark tests might show speeds
+like 1GiB/s too; for sustained writes its buffers will just run full,
+and then not be of much help, though.
+
+
+NOTE: Disk _mirroring_ (RAID-1) in hardware typically has little, if
+any, effect on throughput. Disk _striping with parity_ (RAID-5) does
+have an effect on throughput, usually an adverse one when compared to
+striping; RAID-5 and RAID-6 in software even more so.
+
+.Network throughput
+indexterm:[throughput]Network throughput is usually determined by the
+amount of traffic present on the network, and on the throughput of any
+routing/switching infrastructure present. These concerns are, however,
+largely irrelevant in DRBD replication links which are normally
+dedicated, back-to-back network connections. Therefore, network throughput
+may be improved either by switching to a higher-throughput hardware
+(such as 10 Gigabit Ethernet, or 56GiB InfiniBand), or by using link aggregation over
+several network links, as one may do using the Linux
+indexterm:[bonding driver]`bonding` network driver.
+
+[[s-estimating-throughput-effects]]
+=== Estimating DRBD's Effects on Throughput
+
+When estimating the throughput effects associated with DRBD, it is
+important to consider the following natural limitations:
+
+* DRBD throughput is limited by that of the raw I/O subsystem.
+* DRBD throughput is limited by the available network bandwidth.
+
+The _lower_ of these two establishes the theoretical throughput
+_maximum_ available to DRBD. DRBD then reduces that baseline throughput maximum number
+by DRBD's additional I/O activity, which can be expected to be
+less than three percent of the baseline number.
+
+* Consider the example of two cluster nodes containing I/O subsystems
+  capable of 600 MB/s throughput, with a Gigabit Ethernet link
+  available between them. Gigabit Ethernet can be expected to produce
+  110 MB/s throughput for TCP connections, therefore the network connection
+  would be the bottleneck in this configuration and one would
+  expect about 110 MB/s maximum DRBD throughput.
+
+* By contrast, if the I/O subsystem is capable of only 80 MB/s for
+  sustained writes, then it constitutes the bottleneck, and you should
+  expect only about 77 MB/s maximum DRBD throughput.
+
+
+[[s-throughput-tuning]]
+=== Tuning Recommendations
+
+DRBD offers several configuration options which may have an effect
+on your system's throughput. This section list some recommendations
+for tuning for throughput. However, since throughput is largely
+hardware dependent, the effects of tweaking the options described here
+may vary greatly from system to system. It is important to understand
+that these recommendations should not be interpreted as "silver
+bullets" which would magically remove any and all throughput
+bottlenecks.
+
+[[s-tune-max-buffer-max-epoch-size]]
+==== Setting `max-buffers` and `max-epoch-size`
+
+These options affect write performance on the secondary
+nodes. `max-buffers` is the maximum number of buffers DRBD allocates for
+writing data to disk while `max-epoch-size` is the maximum number of
+write requests permitted between two write barriers. `max-buffers` must be
+equal or bigger to `max-epoch-size` to increase performance.
+The default for both is 2048; setting it to around
+8000 should be fine for most reasonably high-performance hardware RAID
+controllers.
+
+[source,drbd]
+----
+resource <resource> {
+  net {
+    max-buffers    8000;
+    max-epoch-size 8000;
+    ...
+  }
+  ...
+}
+----
+
+[[s-tune-sndbuf-size]]
+==== Tuning the TCP Send Buffer Size
+
+The TCP send buffer is a memory buffer for outgoing TCP traffic. By
+default, it is set to a size of 128 KiB. For use in high-throughput
+networks (such as dedicated Gigabit Ethernet or load-balanced bonded
+connections), it may make sense to increase this to a size of 2MiB,
+or perhaps even more. Send buffer sizes of more than 16MiB are
+generally not recommended (and are also unlikely to produce any
+throughput improvement).
+
+[source,drbd]
+----
+resource <resource> {
+  net {
+    sndbuf-size 2M;
+    ...
+  }
+  ...
+}
+----
+
+DRBD also supports TCP send buffer auto-tuning. After enabling this
+feature, DRBD will dynamically select an appropriate TCP send buffer
+size. TCP send buffer auto tuning is enabled by simply setting the
+buffer size to zero:
+
+[source,drbd]
+----
+resource <resource> {
+  net {
+    sndbuf-size 0;
+    ...
+  }
+  ...
+}
+----
+
+Please note that your ``sysctl``'s settings `net.ipv4.tcp_rmem` and
+`net.ipv4.tcp_wmem` will still influence the behaviour; you should check
+these settings, and perhaps set them similar to `131072 1048576 16777216`
+(minimum 128kiB, default 1MiB, max 16MiB).
+
+WARNING: `net.ipv4.tcp_mem` is a different beast, with a different unit -
+do not touch, wrong values can easily push your machine into out-of-memory
+situations!
+
+[[s-tune-al-extents]]
+==== Tuning the Activity Log Size
+
+If the application using DRBD is write intensive in the sense that it
+frequently issues small writes scattered across the device, it is
+usually advisable to use a fairly large activity log. Otherwise,
+frequent metadata updates may be detrimental to write performance.
+
+[source,drbd]
+----
+resource <resource> {
+  disk {
+    al-extents 6007;
+    ...
+  }
+  ...
+}
+----
+
+////
+For tuning on striped RAID setups, please see the <<al-stripes,al-stripes>> and
+<<al-stripe-size,al-stripe-size>> settings, too.
+////
+
+[[s-tune-disable-barriers]]
+==== Disabling Barriers and Disk Flushes
+
+WARNING: The recommendations outlined in this section should be applied
+_only_ to systems with non-volatile (battery backed) controller caches.
+
+Systems equipped with battery backed write cache come with built-in
+means of protecting data in the face of power failure. In that case,
+it is permissible to disable some of DRBD's own safeguards created for
+the same purpose. This may be beneficial in terms of throughput:
+
+[source,drbd]
+----
+resource <resource> {
+  disk {
+    disk-barrier no;
+    disk-flushes no;
+    ...
+  }
+  ...
+}
+----
+
+
+[[s-tune-read-balancing]]
+=== Achieving Better Read Performance Through Increased Redundancy
+
+As detailed in the man page of `drbd.conf` under `read-balancing`,
+you can increase your read performance by adding more copies of your data.
+
+As a ballpark figure: with a single node processing read requests, `fio` on
+a __FusionIO__ card gave us 100k IOPS; after enabling `read-balancing`, the
+performance jumped to 180k IOPS, i.e. +80%!
+
+So, in case you're running a read-mostly workload (big databases with many
+random reads), it might be worth a try to turn `read-balancing` on - and,
+perhaps, add another copy for still more read IO throughput.

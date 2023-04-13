@@ -1,0 +1,739 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2022-11-03 15:00+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Upgrading a LINSTOR Deployment on Kubernetes"
+msgstr "Kubernetes での LINSTOR デプロイメントのアップグレード"
+
+#. type: Plain text
+msgid ""
+"A LINSTOR Deployment on Kubernetes can be upgraded to a new release using "
+"Helm."
+msgstr ""
+"Kubernets での LINSTOR デプロイメントは、Helm を使用して新しいリリースにアッ"
+"プグレードできます。"
+
+#. type: Plain text
+msgid ""
+"Before upgrading to a new release, you should ensure you have an up-to-date "
+"backup of the LINSTOR database.  If you are using the etcd database packaged "
+"in the LINSTOR Chart, see <<s-kubernetes-etcd-backup,here>>"
+msgstr ""
+"新しいリリースにアップグレードする前に、LINSTOR データベースの最新のバック"
+"アップがあることを確認する必要があります。LINSTOR チャートにパッケージ化され"
+"た etcd データベースを使用している場合は、<<s-kubernetes-etcd-backup,こちら"
+">> を参照ください。"
+
+#. type: Plain text
+msgid ""
+"Upgrades using the LINSTOR etcd deployment require etcd to use persistent "
+"storage. Only follow these steps if etcd was deployed using `etcd."
+"persistentVolume.enabled=true`"
+msgstr ""
+"LINSTOR etcd デプロイメントを使用するアップグレードでは、永続ストレージを使用"
+"するために etcd が必要です。etcd が `etcd.persistentVolume.enabled=true` を使"
+"用してデプロイされた場合にのみ、これらの手順に従ってください。"
+
+#. type: Plain text
+msgid "Upgrades will update to new versions of the following components:"
+msgstr "アップグレードは、次のコンポーネントを新しいバージョンに更新します。"
+
+#. type: Plain text
+msgid "LINSTOR Operator deployment"
+msgstr "LINSTOR オペレーターのデプロイメント"
+
+#. type: Plain text
+msgid "LINSTOR Controller"
+msgstr "LINSTOR コントローラー"
+
+#. type: Plain text
+msgid "LINSTOR Satellite"
+msgstr "LINSTOR サテライト"
+
+#. type: Plain text
+msgid "LINSTOR CSI Driver"
+msgstr "LINSTOR CSI Driver"
+
+#. type: Plain text
+msgid "etcd"
+msgstr "etcd"
+
+#. type: Plain text
+msgid "Stork"
+msgstr "Stork"
+
+#. type: Plain text
+msgid ""
+"Some versions require special steps, please take a look <<s-kubernetes-"
+"upgrade-version,here>> The main command to upgrade to a new LINSTOR Operator "
+"version is:"
+msgstr ""
+"一部のバージョンでは特別な手順が必要です。 <<s-kubernetes-upgrade-version,こ"
+"ちら>> を参照ください。LINSTOR オペレーターの新しいバージョンにアップグレード"
+"するための主なコマンドは次のとおりです。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"helm repo update\n"
+"helm upgrade linstor-op linstor/linstor\n"
+msgstr ""
+"helm repo update\n"
+"helm upgrade linstor-op linstor/linstor\n"
+
+#. type: Plain text
+msgid ""
+"If you used any customizations on the initial install, pass the same options "
+"to `helm upgrade`. The options currently in use can be retrieved from Helm."
+msgstr ""
+"初期インストールでカスタマイズを使用した場合は、同じオプションを `helm "
+"upgrade` に渡します。現在使用されているオプションは、Helm から取得できます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# Retrieve the currently set options\n"
+"$ helm get values linstor-op\n"
+"USER-SUPPLIED VALUES:\n"
+"USER-SUPPLIED VALUES: null\n"
+"drbdRepoCred: drbdiocred\n"
+"operator:\n"
+"  satelliteSet:\n"
+"    kernelModuleInjectionImage: drbd.io/drbd9-rhel8:v9.0.28\n"
+"    storagePools:\n"
+"      lvmThinPools:\n"
+"      - devicePaths:\n"
+"        - /dev/vdb\n"
+"        name: thinpool\n"
+"        thinVolume: thinpool\n"
+"        volumeGroup: \"\"\n"
+"# Save current options\n"
+"$ helm get values linstor-op > orig.yaml\n"
+"# modify values here as needed. for example selecting a newer DRBD image\n"
+"$ vim orig.yaml\n"
+"# Start the upgrade\n"
+"$ helm upgrade linstor-op linstor/linstor -f orig.yaml\n"
+msgstr ""
+"# Retrieve the currently set options\n"
+"$ helm get values linstor-op\n"
+"USER-SUPPLIED VALUES:\n"
+"USER-SUPPLIED VALUES: null\n"
+"drbdRepoCred: drbdiocred\n"
+"operator:\n"
+"  satelliteSet:\n"
+"    kernelModuleInjectionImage: drbd.io/drbd9-rhel8:v9.0.28\n"
+"    storagePools:\n"
+"      lvmThinPools:\n"
+"      - devicePaths:\n"
+"        - /dev/vdb\n"
+"        name: thinpool\n"
+"        thinVolume: thinpool\n"
+"        volumeGroup: \"\"\n"
+"# Save current options\n"
+"$ helm get values linstor-op > orig.yaml\n"
+"# modify values here as needed. for example selecting a newer DRBD image\n"
+"$ vim orig.yaml\n"
+"# Start the upgrade\n"
+"$ helm upgrade linstor-op linstor/linstor -f orig.yaml\n"
+
+#. type: Plain text
+msgid ""
+"This triggers the rollout of new pods. After a short wait, all pods should "
+"be running and ready.  Check that no errors are listed in the status section "
+"of LinstorControllers, LinstorSatelliteSets and LinstorCSIDrivers."
+msgstr ""
+"これにより、新しい pod のロールアウトがトリガーされます。少し待つと、すべて"
+"の pod が実行され、準備が整います。LinstorControllers、LinstorSatelliteSets、"
+"および LinstorCSIDrivers のステータスセクションにエラーがリストされていないこ"
+"とを確認してください。"
+
+#. type: Plain text
+msgid ""
+"During the upgrade process, provisioning of volumes and attach/detach "
+"operations might not work. Existing volumes and volumes already in use by a "
+"pod will continue to work without interruption."
+msgstr ""
+"アップグレードプロセス中は、ボリュームのプロビジョニングとアタッチ/デタッチ操"
+"作が機能しない場合があります。既存のボリュームと pod ですでに使用されているボ"
+"リュームは、中断することなく引き続き機能します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Upgrading a LINSTOR Cluster with Kubernetes Back End"
+msgstr "Kubernetes バックエンドを使用した LINSTOR クラスターのアップグレード"
+
+#. type: Plain text
+msgid ""
+"The LINSTOR Operator will create a backup of the database before upgrading. "
+"This makes it possible to roll back to a known state should something go "
+"wrong during the upgrade."
+msgstr ""
+"LINSTOR オペレーターは、アップグレードする前にデータベースのバックアップを作"
+"成します。これにより、アップグレード中に問題が発生した場合に、以前の状態に"
+"ロールバックできます。"
+
+#. type: Plain text
+msgid ""
+"There are situations in which the Operator can't create the backup "
+"automatically. This might be because:"
+msgstr ""
+"オペレーターがバックアップを自動的に作成できない状況があります。これは、次の"
+"理由が考えられます。"
+
+#. type: Plain text
+msgid ""
+"The base version of the chart or operator is too old. Automatic backups are "
+"available starting with version 1.8.0 If upgrading from a version before "
+"1.8.0, please follow the manual steps in the next section."
+msgstr ""
+"チャートまたはオペレーターのバージョンが古すぎます。自動バックアップは、バー"
+"ジョン 1.8.0 以降で使用できます。1.8.0 より前のバージョンからアップグレードす"
+"る場合は、次のセクションの手動の手順に従ってください。"
+
+#. type: Plain text
+msgid ""
+"The backup is too large to fit into a Kubernetes secret. In this case an "
+"error is reported in the status field of the `LinstorController` resources. "
+"Follow the instructions by copying the created backup to a safe location and "
+"creating the necessary secret."
+msgstr ""
+"バックアップが大きすぎて、Kubernetes のシークレットに収まりません。この場合、"
+"`LinstorController` リソースのステータスフィールドにエラーが報告されます。作"
+"成したバックアップを安全な場所にコピーし、必要なシークレットを作成して、指示"
+"に従います。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kubectl cp <linstor-operator-pod>:/run/linstor-backups/linstor-backup-<some-hash>.tar.gz <destination-path>\n"
+"kubectl create secret linstor-backup-<same-hash>\n"
+msgstr ""
+"kubectl cp <linstor-operator-pod>:/run/linstor-backups/linstor-backup-<some-hash>.tar.gz <destination-path>\n"
+"kubectl create secret linstor-backup-<same-hash>\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Creating a backup of the LINSTOR Database"
+msgstr "LINSTOR データベースのバックアップを作成"
+
+#. type: Plain text
+msgid ""
+"Follow these instructions if you need to manually create a backup of the "
+"LINSTOR k8s database."
+msgstr ""
+"LINSTOR k8s データベースのバックアップを手動で作成する必要がある場合は、次の"
+"手順に従ってください。"
+
+#. type: Plain text
+msgid "Stop the current controller:"
+msgstr "現在のコントローラーを停止します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl patch linstorcontroller linstor-op-cs '{\"spec\":{\"replicas\": 0}}'\n"
+"$ kubectl rollout status --watch deployment/linstor-op-cs-controller\n"
+msgstr ""
+"$ kubectl patch linstorcontroller linstor-op-cs '{\"spec\":{\"replicas\": 0}}'\n"
+"$ kubectl rollout status --watch deployment/linstor-op-cs-controller\n"
+
+#. type: Plain text
+msgid ""
+"The following command will create a file `crds.yaml`, which stores the "
+"current state of all LINSTOR Custom Resource Definitions:"
+msgstr ""
+"次のコマンドは、すべての LINSTOR カスタムリソース定義の現在の状態を保存する"
+"ファイル `crds.yaml` を作成します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | \\\n"
+"  xargs kubectl get crds -oyaml > crds.yaml\n"
+msgstr ""
+"$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | \\\n"
+"  xargs kubectl get crds -oyaml > crds.yaml\n"
+
+#. type: Plain text
+msgid ""
+"In addition to the definitions, the actual resources must be backed up as "
+"well:"
+msgstr "定義に加えて、実際のリソースもバックアップする必要があります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | \\\n"
+"  xargs -i{} sh -c \"kubectl get {} -oyaml > {}.yaml\"\n"
+msgstr ""
+"$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | \\\n"
+"  xargs -i{} sh -c \"kubectl get {} -oyaml > {}.yaml\"\n"
+
+#. type: Plain text
+msgid ""
+"If upgrading the chart, use `--set IHaveBackedUpAllMyLinstorResources=true` "
+"to acknowledge you have executed the above steps."
+msgstr ""
+"`--set IHaveBackedUpAllMyLinstorResources=true` を使用して chart のアップグ"
+"レードを実行し、上記の手順を実行したことを確認します。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Restoring from a LINSTOR Database backup"
+msgstr "LINSTOR データベースのバックアップからの復元"
+
+#. type: Plain text
+msgid ""
+"Follow these instructions if you need to recover from an failure during a "
+"LINSTOR upgrade."
+msgstr ""
+"LINSTOR のアップグレード中に障害から回復する必要がある場合は、次の手順に従っ"
+"てください。"
+
+#. type: Plain text
+msgid ""
+"Fetch the backup (skip if the backup is already available on your local "
+"machine):"
+msgstr ""
+"バックアップを準備します（バックアップがローカルマシンですでに利用可能な場合"
+"はスキップ）。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ # List the available backups\n"
+"$ kubectl get secret '-ocustom-columns=NAME:.metadata.name,FROM:metadata.annotations.linstor\\.linbit\\.com/backup-previous-version,CREATED-AT:.metadata.creationTimestamp'\n"
+"$ kubectl get secret linstor-backup-<backup-specific-hash> '-ogo-template=go-template={{index .data \".binaryData.backup.tar.gz\" | base64decode}}' > linstor-backup.tar.gz\n"
+msgstr ""
+"$ # List the available backups\n"
+"$ kubectl get secret '-ocustom-columns=NAME:.metadata.name,FROM:metadata.annotations.linstor\\.linbit\\.com/backup-previous-version,CREATED-AT:.metadata.creationTimestamp'\n"
+"$ kubectl get secret linstor-backup-<backup-specific-hash> '-ogo-template=go-template={{index .data \".binaryData.backup.tar.gz\" | base64decode}}' > linstor-backup.tar.gz\n"
+
+#. type: Plain text
+msgid "Unpack the backup"
+msgstr "バックアップを解凍します"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ tar xvf linstor-backup.tar.gz\n"
+"crds.yaml\n"
+"....\n"
+msgstr ""
+"$ tar xvf linstor-backup.tar.gz\n"
+"crds.yaml\n"
+"....\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl patch linstorcontroller linstor-op-cs \"{\"spec\":{\"replicas\": 0}}\"\n"
+"$ kubectl rollout status --watch deployment/piraeus-op-cs-controller\n"
+msgstr ""
+"$ kubectl patch linstorcontroller linstor-op-cs \"{\"spec\":{\"replicas\": 0}}\"\n"
+"$ kubectl rollout status --watch deployment/piraeus-op-cs-controller\n"
+
+#. type: Plain text
+msgid "Delete existing resources"
+msgstr "既存のリソースを削除します"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | xargs --no-run-if-empty kubectl delete crds\n"
+msgstr "$ kubectl get crds | grep -o \".*.internal.linstor.linbit.com\" | xargs --no-run-if-empty kubectl delete crds\n"
+
+#. type: Plain text
+msgid "Apply the old LINSTOR CRDs"
+msgstr "古い LINSTOR CRD を適用します"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl apply -f crds.yaml\n"
+msgstr "$ kubectl apply -f crds.yaml\n"
+
+#. type: Plain text
+msgid "Apply the old LINSTOR resource state"
+msgstr "古い LINSTOR リソースの状態を適用します"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl apply -f *.internal.linstor.linbit.com.yaml\n"
+msgstr "$ kubectl apply -f *.internal.linstor.linbit.com.yaml\n"
+
+#. type: Plain text
+msgid "Re-apply the helm chart using the old LINSTOR version"
+msgstr "古い LINSTOR バージョンを使用してヘルムチャートを再適用します"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ helm upgrade linstor-op charts/piraeus --set operator.controller.controllerImage=... --set operator.satelliteSet.satelliteImage=...\n"
+msgstr "$ helm upgrade linstor-op charts/piraeus --set operator.controller.controllerImage=... --set operator.satelliteSet.satelliteImage=...\n"
+
+#. type: Title ====
+#, no-wrap
+msgid "Upgrading Instructions for Specific Versions"
+msgstr "特定のバージョンのアップグレード手順"
+
+#. type: Plain text
+msgid "Some versions require special steps, see below."
+msgstr "一部のバージョンでは特別な手順が必要です。以下を参照ください。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrading to 1.10"
+msgstr "v1.10 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"Version 1.10 introduces an option to share DRBD configuration between host "
+"and container. If you need this option, you have to update the CRDs. As Helm "
+"does not upgrade CRDs on chart upgrade, instead please run:"
+msgstr ""
+"バージョン 1.10 では、ホストとコンテナー間で DRBD 構成を共有するオプションが"
+"導入されています。このオプションが必要な場合は、CRD を更新する必要がありま"
+"す。 Helm はチャートのアップグレード時に CRD をアップグレードしないため、代わ"
+"りに次を実行してください。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ helm repo update\n"
+"$ helm pull linstor/linstor --untar\n"
+"$ kubectl replace -f linstor/crds/\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced\n"
+msgstr ""
+"$ helm repo update\n"
+"$ helm pull linstor/linstor --untar\n"
+"$ kubectl replace -f linstor/crds/\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrading to 1.9"
+msgstr "v1.9 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"Version 1.9 disables the <<s-kubernetes-ha-controller,LINSTOR HA "
+"Controller>> deployment by default. The deployment has moved out of the "
+"LINSTOR Operator chart. If you want to keep using the old version, enable it "
+"again using this Helm command:"
+msgstr ""
+"バージョン 1.9 では、デフォルトで <s-kubernetes-ha-controller,LINSTOR HA "
+"Controller>> デプロイメントが無効になっています。デプロイメントは、LINSTOR "
+"Operator チャートから移動しました。古いバージョンを引き続き使用する場合は、次"
+"の Helm コマンドを使用して再度有効にします。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "helm upgrade linstor-op linstor/linstor ... --set haController.enabled=true\n"
+msgstr "helm upgrade linstor-op linstor/linstor ... --set haController.enabled=true\n"
+
+#. type: Plain text
+msgid "If you are upgrading to v1.9 from v1.6 or earlier, you need to either:"
+msgstr ""
+"v1.6 以前から v1.9 にアップグレードする場合は、次のいずれかを行う必要がありま"
+"す。"
+
+#. type: Plain text
+msgid "Create a master passphrase, before you upgrade:"
+msgstr "アップグレードする前に、マスターパスフレーズを作成する。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "$ kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<password>\n"
+msgstr "$ kubectl create secret generic linstor-pass --from-literal=MASTER_PASSPHRASE=<password>\n"
+
+#. type: Plain text
+msgid ""
+"Or, upgrade to v1.7 first, and Helm will create a master passphrase for you "
+"automatically. You can view this passphrase later, by entering:"
+msgstr ""
+"または、最初に v1.7 にアップグレードすると、Helm によってマスターパスフレーズ"
+"が自動的に作成されます。このパスフレーズは、次のように入力して後で表示できま"
+"す。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ kubectl get secret linstor-op-passphrase \\\n"
+"-ogo-template='{{ .data.MASTER_PASSPHRASE | base64decode }}'\n"
+msgstr ""
+"$ kubectl get secret linstor-op-passphrase \\\n"
+"-ogo-template='{{ .data.MASTER_PASSPHRASE | base64decode }}'\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrading to v1.8"
+msgstr "v1.8 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"This upgrade requires a complete rebuild of the K8s database, so upgrades "
+"might take longer than normal."
+msgstr ""
+"このアップグレードには K8s データベースの完全な再構築が必要なため、アップグ"
+"レードに通常よりも時間がかかる場合があります。"
+
+#. type: Plain text
+msgid ""
+"Version 1.8 introduces new options to centrally set the log level and number "
+"of worker threads for the CSI driver. If you need these options, you have to "
+"update the CRDs. As Helm does not upgrade CRDs on chart upgrade, instead "
+"please run:"
+msgstr ""
+"バージョン 1.8 では、CSI ドライバーのログレベルとワーカースレッドの数を一元的"
+"に設定するための新しいオプションが導入されています。これらのオプションが必要"
+"な場合は、CRD を更新する必要があります。 Helm はチャートのアップグレード時に "
+"CRD をアップグレードしないため、代わりに次を実行してください。"
+
+#. type: Plain text
+msgid ""
+"In addition, 1.8 reworks the way SSL/TLS setups work. Please revisit the <<s-"
+"kubernetes-securing-deployment,secure deployment section>> and work through "
+"these steps again."
+msgstr ""
+"さらに 1.8 は SSL/TLS セットアップの動作を作り直します。 <<s-kubernetes-"
+"securing-deployment,secure deployment section>> を確認し、これらのステップを"
+"もう一度やり直してください。"
+
+#. type: Plain text
+msgid "If you are upgrading to v1.8 from v1.6 or earlier, you need to either:"
+msgstr ""
+"v1.6 以前から v1.8 にアップグレードする場合は、次のいずれかを行う必要がありま"
+"す。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrading to v1.7"
+msgstr "v1.7 へのアップグレード"
+
+#. type: Plain text
+msgid "No additional steps necessary."
+msgstr "追加の手順は必要ありません。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrading to v1.6"
+msgstr "v1.6 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"This versions introduces a new option to support Kubernetes distributions "
+"which use different state directories than the default of `/var/lib/"
+"kubelet`. A notable example is microk8s, which uses `/var/snap/microk8s/"
+"common/var/lib/kubelet`.  To support this, a small addition to the "
+"`LinstorCSIDriver` CRD was necessary. As Helm does not upgrade CRDs on chart "
+"upgrade, instead please run:"
+msgstr ""
+"このバージョンでは、デフォルトの `/var/lib/kubelet` とは異なる状態ディレクト"
+"リを使用する Kubernetes ディストリビューションをサポートするための新しいオプ"
+"ションが導入されています。注目すべきは `/var/snap/microk8s/common/var/lib/"
+"kubelet` を使用する microk8s です。これをサポートするには `LinstorCSIDriver` "
+"CRD に少し追加する必要がありました。Helm は chart のアップグレード時に CRD を"
+"アップグレードしないため、代わりに次を実行してください。"
+
+#. type: Plain text
+msgid ""
+"If you do not apply the new CRDs, you will get errors like the following:"
+msgstr "新しい CRD を適用しないと、次のようなエラーが発生します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "Error: UPGRADE FAILED: error validating \"\": error validating data: ValidationError(LinstorCSIDriver.spec): unknown field \"kubeletPath\" in com.linbit.linstor.v1.LinstorCSIDriver.spec\n"
+msgstr "Error: UPGRADE FAILED: error validating \"\": error validating data: ValidationError(LinstorCSIDriver.spec): unknown field \"kubeletPath\" in com.linbit.linstor.v1.LinstorCSIDriver.spec\n"
+
+#. type: Plain text
+msgid ""
+"If you previously used the included snapshot-controller to process "
+"`VolumeSnapshot` resources, you should replace it with the new charts "
+"provided by the Piraeus project. The <<s-kubernetes-add-snaphot-support,"
+"section on snapshots>> has been updated to include instructions on how you "
+"can add the snapshot-controller to your cluster."
+msgstr ""
+"以前に付属のスナップショットコントローラーを使用して `VolumeSnapshot` リソー"
+"スを処理したことがある場合は、それを Piraeus プロジェクトによって提供される新"
+"しい chart に置き換える必要があります。 <<s-kubernetes-add-snaphot-support, "
+"スナップショットセクション>> が更新され、スナップショットコントローラーをクラ"
+"スターに追加する方法e 含まれるようになりました。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrading to v1.5"
+msgstr "v1.5 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"This version introduces a <<s-kubernetes-monitoring,monitoring>> component "
+"for DRBD resources. This requires a new image and a replacement of the "
+"existing `LinstorSatelliteSet` CRD. Helm does not upgrade the CRDs on a "
+"chart upgrade, instead please run:"
+msgstr ""
+"このバージョンでは DRBD リソースの <<s-kubernetes-monitoring,監視>> コンポー"
+"ネントが導入されます。これには、新しいイメージと既存の `LinstorSatelliteSet` "
+"CRD の置き換えが必要です。 Helm は chart upgrade で CRD をアップグレードしま"
+"せん。代わりに、以下を実行してください。"
+
+#. type: Plain text
+msgid ""
+"If you do not plan to use the provided <<s-kubernetes-monitoring,"
+"monitoring>> you still need to apply the above steps, otherwise you will get "
+"an errors like the following"
+msgstr ""
+"提供されている <<s-kubernetes-monitoring,監視機能>> を使用する予定がない場合"
+"でも、上記の手順を適用する必要があります。そうしないと、次のようなエラーが発"
+"生します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "Error: UPGRADE FAILED: error validating \"\": error validating data: ValidationError(LinstorSatelliteSet.spec): unknown field \"monitoringImage\" in com.linbit.linstor.v1.LinstorSatelliteSet.spec\n"
+msgstr "Error: UPGRADE FAILED: error validating \"\": error validating data: ValidationError(LinstorSatelliteSet.spec): unknown field \"monitoringImage\" in com.linbit.linstor.v1.LinstorSatelliteSet.spec\n"
+
+#. type: Plain text
+msgid ""
+"Some Helm versions fail to set the monitoring image even after replacing the "
+"CRDs. In that case, the in-cluster LinstorSatelliteSet will show an empty "
+"`monitoringImage` value. Edit the resource using `kubectl edit "
+"linstorsatellitesets` and set the value to `drbd.io/drbd-reactor:v0.3.0` to "
+"enable monitoring."
+msgstr ""
+"一部の Helm バージョンでは、CRD を交換した後でも監視イメージを設定できませ"
+"ん。その場合、クラスター内の LinstorSatelliteSet は空の `monitoringImage` 値"
+"を表示します。 `kubectl edit linstorsatellitesets` を使用してリソースを編集"
+"し、値を `drbd.io/drbd-reactor:v0.3.0` に設定して、監視を有効にします。"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrading to v1.4"
+msgstr "v1.4 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"This version introduces a new default version for the etcd image, so take "
+"extra care that etcd is using persistent storage. *Upgrading the etcd image "
+"without persistent storage will corrupt the cluster*."
+msgstr ""
+"このバージョンでは、etcd イメージの新しいデフォルトバージョンが導入されている"
+"ため、etcd が永続ストレージを使用していることに特に注意してください。永続スト"
+"レージなしで etcd イメージをアップグレードすると、クラスターが壊れるので注意"
+"してください。"
+
+#. type: Plain text
+msgid ""
+"If you are upgrading an existing cluster without making use of new Helm "
+"options, no additional steps are necessary."
+msgstr ""
+"新しい Helm オプションを使用せずに既存のクラスターをアップグレードする場合、"
+"追加の手順は必要ありません。"
+
+#. type: Plain text
+msgid ""
+"If you plan to use the newly introduced `additionalProperties` and "
+"`additionalEnv` settings, you have to replace the installed "
+"CustomResourceDefinitions with newer versions. Helm does not upgrade the "
+"CRDs on a chart upgrade"
+msgstr ""
+"新しく導入された `additionalProperties` および `additionalEnv` 設定を使用する"
+"場合は、インストールされている CustomResourceDefinitions を新しいバージョンに"
+"置き換える必要があります。Helm は chart upgrade で CRD をアップグレードしませ"
+"ん。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"$ helm pull linstor/linstor --untar\n"
+"$ kubectl replace -f linstor/crds/\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced\n"
+msgstr ""
+"$ helm pull linstor/linstor --untar\n"
+"$ kubectl replace -f linstor/crds/\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcontrollers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.com replaced\n"
+"customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced\n"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrading to v1.3"
+msgstr "v1.3 へのアップグレード"
+
+#. type: Title =====
+#, no-wrap
+msgid "Upgrading to v1.2"
+msgstr "v1.2 へのアップグレード"
+
+#. type: Plain text
+msgid ""
+"LINSTOR Operator v1.2 is supported on Kubernetes 1.17+. If you are using an "
+"older Kubernetes distribution, you may need to change the default settings, "
+"for example [the CSI provisioner](https://kubernetes-csi.github.io/docs/"
+"external-provisioner.html)."
+msgstr ""
+"LINSTOR オペレーター v1.2 は Kubernetes 1.17 以降でサポートされています。古"
+"い Kubernetes ディストリビューションを使用している場合は、デフォルト設定を変"
+"更する必要がある場合があります。例えば [the CSI provisioner](https://"
+"kubernetes-csi.github.io/docs/external-provisioner.html) です。"
+
+#. type: Plain text
+msgid ""
+"There is a known issue when updating the CSI components: the pods will not "
+"be updated to the newest image and the `errors` section of the "
+"LinstorCSIDrivers resource shows an error updating the DaemonSet. In this "
+"case, manually delete `deployment/linstor-op-csi-controller` and `daemonset/"
+"linstor-op-csi-node`. They will be re-created by the Operator."
+msgstr ""
+"CSI コンポーネントの更新時に既知の問題があります。pod は最新のイメージに更新"
+"されず、LinstorCSIDrivers リソースの `errors` セクションに DaemonSet の更新エ"
+"ラーが表示されます。この場合、 `deployment/linstor-op-csi-controller` と "
+"`daemonset/linstor-op-csi-node` を手動で削除してください。それらはオペレー"
+"ターによって再作成されます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Creating etcd Backups"
+msgstr "etcd バックアップの作成"
+
+#. type: Plain text
+msgid ""
+"To create a backup of the etcd database and store it on your control host, "
+"run:"
+msgstr ""
+"etcd データベースのバックアップを作成し、それをコントロールホストに保存するに"
+"は、次のコマンドを実行します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"kubectl exec linstor-op-etcd-0 -- etcdctl snapshot save /tmp/save.db\n"
+"kubectl cp linstor-op-etcd-0:/tmp/save.db save.db\n"
+msgstr ""
+"kubectl exec linstor-op-etcd-0 -- etcdctl snapshot save /tmp/save.db\n"
+"kubectl cp linstor-op-etcd-0:/tmp/save.db save.db\n"
+
+#. type: Plain text
+msgid ""
+"These commands will create a file `save.db` on the machine you are running "
+"`kubectl` from."
+msgstr ""
+"これらのコマンドは `kubectl` を実行しているマシン上にファイル `save.db` を作"
+"成します。"

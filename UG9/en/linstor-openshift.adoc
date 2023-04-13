@@ -1,0 +1,141 @@
+[[ch-openshift]]
+== LINSTOR Volumes in OpenShift
+
+This chapter describes the usage of LINBIT SDS in
+OpenShift as managed by the LINSTOR Operator and with volumes provisioned using the
+https://github.com/LINBIT/linstor-csi[LINSTOR CSI plugin].
+
+_OpenShift_ is the official Red Hat developed and supported
+distribution of Kubernetes. The value of OpenShift is the strong integration
+of otherwise optional components, like network ingress and monitoring, all
+tied together with a Web UI to manage it all. LINSTOR Operator integrates with
+these components where possible.
+
+[[s-openshift-deploy]]
+=== Deploying LINBIT SDS on OpenShift
+
+Deploying LINBIT SDS on OpenShift is similar to deploying LINBIT SDS on other
+Kubernetes clusters. As prerequisites, you need:
+
+* https://helm.sh[Helm] installed.
+* Access to your OpenShift cluster through the `oc` utility.
+* Your LINBIT Customer Portal credentials for accessing `drbd.io`.
+
+IMPORTANT: LINBIT's container image repository (http://drbd.io) is only available to LINBIT
+customers or through LINBIT customer trial accounts.
+link:https://linbit.com/contact-us/[Contact LINBIT for information on pricing or to begin a
+trial]. Alternatively, you may use LINSTOR SDS' upstream project named
+link:https://github.com/piraeusdatastore/piraeus-operator[Piraeus], without being a LINBIT
+customer.
+
+First, create a new project for LINBIT SDS and configure your
+credentials for `drbd.io` (replace `$USERNAME` and `$PASSWORD` with your own
+LINBIT Customer Portal credentials):
+
+----
+$ oc new-project storage
+Now using project "storage" on server ...
+$ oc create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=$USERNAME --docker-password=$PASSWORD
+secret/drbdiocred created
+----
+
+Then, create a file to override some of the Helm chart's default values,
+named `override.yaml`:
+
+[source,yaml]
+.override.yaml
+----
+global:
+  setSecurityContext: false <1>
+etcd:
+  enabled: false <2>
+operator:
+  controller:
+    dbConnectionURL: k8s <3>
+  satelliteSet:
+    kernelModuleInjectionImage: drbd.io/drbd9-rhel8:v9.1.6 <4>
+----
+
+<1> Helm would set a https://kubernetes.io/docs/tasks/configure-pod-container/security-context/[SecurityContext]
+    for all Pods that would conflict with the SecurityContext.
+<2> Use of etcd, although still the default, will be phased out in favor of
+    the `k8s` backend for LINSTOR. New installations should not use etcd.
+<3> Use the new `k8s` backend for LINSTOR. The LINSTOR cluster state is stored
+    inside CustomResources in the Kubernetes API. No additional database setup
+    required.
+<4> OpenShift runs on Red Hat Core OS, which is based on Red Hat Enterprise
+    Linux 8 and uses the same Linux kernel.
+
+Make additional modifications to `override.yaml` based on your
+preference. Possible options are discussed in the
+<<s-kubernetes-advanced-deployments,Kubernetes advanced deployment section>>.
+
+Finally, deploy LINBIT SDS using Helm and wait until all Pods are ready:
+
+----
+$ helm install linstor-op linstor/linstor --values override.yaml
+NAME: linstor-op
+NAMESPACE: storage
+STATUS: deployed
+...
+$ oc wait --for=condition=Ready pod --all
+...
+$ oc get pods
+NAME                                         READY   STATUS    RESTARTS   AGE
+linstor-op-cs-controller-6588445756-mh9vn    1/1     Running   0          5m48s
+...
+----
+
+==== Using LINBIT SDS on OpenShift
+
+The next steps are exactly the same as in Kubernetes:
+
+* <<s-kubernetes-storage,Configuring storage pools>>
+* <<s-kubernetes-basic-configuration-and-deployment,Adding a storage class to provision a PersistentVolume>>
+
+==== Configuring LINBIT GUI Access
+
+The LINSTOR container images come with the LINBIT GUI preinstalled. To
+expose it on your cluster, configure an OpenShift Route resource:
+
+----
+$ oc create route edge --service linstor-op-cs
+$ oc get route
+NAME           HOST/PORT                                  PATH  SERVICES       PORT           TERMINATION  WILDCARD
+linstor-op-cs  linstor-op-cs-storage.apps.oc.example.com        linstor-op-cs  linstor-op-cs  edge         None
+----
+
+The GUI is now accessible at `+https://linstor-op-cs-storage.apps.oc.example.com/ui/+`
+
+WARNING: This may enable external access to LINBIT GUI and LINSTOR API.
+Ensure that only authorized users can access it, for example by
+requiring client side TLS certificates on the route.
+
+==== Configuring Cluster Monitoring
+
+OpenShift includes a fully configured monitoring stack. While most of
+the monitoring stack is only intended for Openstack infrastructure, basic
+monitoring for LINBIT SDS is possible.
+
+First, ensure that monitoring of user-defined projects is enabled in OpenShift
+by following the steps in
+https://docs.openshift.com/container-platform/4.6/monitoring/enabling-monitoring-for-user-defined-projects.html[Red Hat documentation].
+
+Once monitoring for user-defined projects is enabled, the LINSTOR Operator
+automatically detects the presence of OpenShift's Prometheus-based monitoring
+stack and configures the `ServiceMonitor` resources. The Prometheus instance
+will scrape metrics for DRBD and LINSTOR from all Cluster nodes.
+
+=== Interacting with LINBIT SDS in OpenShift
+
+The LINSTOR Controller pod includes a LINSTOR Client,
+making it easy to access LINSTOR's interactive mode. For instance:
+
+----
+$ oc exec -it deployment/linstor-op-cs-controller -- linstor interactive
+LINSTOR ==> ...
+----
+
+This should only be necessary for investigating problems and accessing advanced functionality.
+Regular operation such as creating volumes should be achieved through the
+<<s-kubernetes-basic-configuration-and-deployment,Kubernetes integration>>.

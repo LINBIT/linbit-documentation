@@ -1,0 +1,336 @@
+[[ch-troubleshooting]]
+== Troubleshooting and Error Recovery
+
+This chapter describes tasks to be performed in case of hardware
+or system failures.
+
+[[s-hard-drive-failure]]
+
+=== Dealing with Hard Disk Failure
+
+indexterm:[hard disk failure]indexterm:[disk failure]How to deal with hard
+disk failure depends on the way DRBD is configured to handle disk I/O
+errors (see <<s-handling-disk-errors>>), and on the type of metadata
+configured (see <<s-metadata>>).
+
+[NOTE]
+==================
+For the most part, the steps described here apply only if you
+run DRBD directly on top of physical hard disks. They generally do
+not apply in case you are running DRBD layered on top of
+
+* an MD software RAID set (in this case, use `mdadm` to manage disk
+  replacement),
+* device-mapper RAID (use `dmraid`),
+* a hardware RAID appliance (follow the vendor's instructions on how
+  to deal with failed disks),
+* some non-standard device-mapper virtual block devices (see the
+  device mapper documentation).
+==================
+
+[[s-detach-hard-drive-manual]]
+==== Manually Detaching DRBD from Your Hard Disk
+
+indexterm:[drbdadm, detach]If DRBD is <<fp-io-error-pass-on,configured to pass
+on I/O errors>> (not recommended), you must first detach the DRBD
+resource, that is, disassociate it from its backing storage:
+
+----
+# drbdadm detach <resource>
+----
+
+By running the `drbdadm status` or the `drbdadm dstate` command, you will now be able to verify
+that the resource is now in indexterm:[diskless
+mode]indexterm:[diskless (disk state)]indexterm:[disk state, Diskless]_diskless
+mode_:
+
+----
+# drbdadm status <resource>
+<resource> role:Primary
+  volume:0 disk:Diskless
+  <peer> role:Secondary
+    volume:0 peer-disk:UpToDate
+# drbdadm dstate <resource>
+Diskless/UpToDate
+----
+
+If the disk failure has occurred on your primary node, you may combine
+this step with a switch-over operation.
+
+[[s-detach-hard-drive-auto]]
+==== Automatically Detaching on I/O Error
+
+If DRBD is <<fp-io-error-detach,configured to automatically detach
+upon I/O error>> (the recommended option), DRBD should have
+automatically detached the resource from its backing storage already,
+without manual intervention. You may still use the `drbdadm status`
+command to verify that the resource is in fact running in diskless
+mode.
+
+[[s-replace-disk-internal-metadata]]
+==== Replacing a Failed Disk When Using Internal Metadata
+
+If using <<s-internal-meta-data,internal metadata>>, it is sufficient
+to bind the DRBD device to the new hard disk. If the new hard disk has
+to be addressed by another Linux device name than the defective disk,
+the DRBD configuration file has to be modified accordingly.
+
+This process involves creating a new metadata set, then reattaching
+the resource: indexterm:[drbdadm, create-md]
+
+----
+# drbdadm create-md <resource>
+v08 Magic number not found
+Writing meta data...
+initialising activity log
+NOT initializing bitmap
+New drbd meta data block successfully created.
+
+# drbdadm attach <resource>
+----
+
+Full synchronization of the new hard disk starts instantaneously and
+automatically. You will be able to monitor the synchronization's
+progress using the `drbdadm status --verbose` command, as with any background synchronization.
+
+[[s-replace-disk-external-metadata]]
+==== Replacing a Failed Disk When Using External Metadata
+
+When using <<s-external-meta-data,external metadata>>, the procedure
+is basically the same. However, DRBD is not able to recognize
+independently that the hard disk was swapped, therefore an additional step
+is required.
+
+----
+# drbdadm create-md <resource>
+v08 Magic number not found
+Writing meta data...
+initialising activity log
+NOT initializing bitmap
+New drbd meta data block successfully created.
+
+# drbdadm attach <resource>
+# drbdadm invalidate <resource>
+----
+
+WARNING: Be sure to run `drbdadm invalidate` on the node __*without*__ good data;
+this command will cause the local contents to be overwritten with data from the
+peers, so running this command on the wrong node might lose data!
+
+Here, the `drbdadm invalidate` command triggers synchronization. Again,
+sync progress may be observed using the `drbdadm status --verbose` command.
+
+[[s-node-failure]]
+=== Dealing with Node Failure
+
+indexterm:[node failure]When DRBD detects that its peer node is down
+(either by true hardware failure or manual intervention), DRBD changes
+its connection state from _Connected_ to _Connecting_ and waits for
+the peer node to reappear. The DRBD resource is then said to operate
+in _disconnected mode_. In disconnected mode, the resource and its
+associated block device are fully usable, and may be promoted and
+demoted as necessary, but no block modifications are being replicated
+to the peer node. Instead, DRBD stores which
+blocks are being modified while disconnected, on a per-peer basis.
+
+[[s-temp-node-failure-secondary]]
+==== Dealing with Temporary Secondary Node Failure
+
+indexterm:[node failure]If a node that currently has a resource in the
+secondary role fails temporarily (due to, for example, a memory
+problem that is subsequently rectified by replacing RAM), no further
+intervention is necessary — besides the obvious necessity to repair
+the failed node and bring it back online. When that happens, the two
+nodes will simply re-establish connectivity upon system
+start-up. After this, DRBD synchronizes all modifications made on the
+primary node in the meantime to the secondary node.
+
+IMPORTANT: At this point, due to the nature of DRBD's
+re-synchronization algorithm, the resource is briefly inconsistent on
+the secondary node. During that short time window, the secondary node
+can not switch to the Primary role if the peer is unavailable. Therefore,
+the period in which your cluster is not redundant consists of the
+actual secondary node down time, plus the subsequent
+re-synchronization.
+
+Please note that with DRBD 9 more than two nodes can be connected for each
+resource. So, for example, in the case of four nodes, a single failing secondary still leaves two other
+secondaries available for failover.
+
+[[s-temp-node-failure-primary]]
+==== Dealing with Temporary Primary Node Failure
+
+indexterm:[node failure]From DRBD's standpoint, failure of the primary
+node is almost identical to a failure of the secondary node. The
+surviving node detects the peer node's failure, and switches to
+disconnected mode. DRBD does _not_ promote the surviving node to the
+primary role; it is the cluster management application's
+responsibility to do so.
+
+When the failed node is repaired and returns to the cluster, it does
+so in the secondary role, therefore, as outlined in the previous section,
+no further manual intervention is necessary. Again, DRBD does not
+change the resource role back, it is up to the cluster manager to do
+so (if so configured).
+
+DRBD ensures block device consistency in case of a primary node
+failure by way of a special mechanism. For a detailed discussion,
+refer to <<s-activity-log>>.
+
+[[s-perm-node-failure]]
+==== Dealing with Permanent Node Failure
+
+indexterm:[node failure]If a node suffers an unrecoverable problem or
+permanent destruction, you must follow the following steps:
+
+* Replace the failed hardware with one with similar performance and
+  disk capacity.
++
+NOTE: Replacing a failed node with one with worse performance
+characteristics is possible, but not recommended. Replacing a failed
+node with one with less disk capacity is not supported, and will cause
+DRBD to refuse to connect to the replaced nodefootnote:[It couldn't replicate
+the data, anyway!].
+
+* Install the base system and applications.
+* Install DRBD and copy `/etc/drbd.conf` and all of `/etc/drbd.d/`
+  from one of the surviving nodes.
+* Follow the steps outlined in <<ch-configure>>, but stop short
+  of <<s-initial-full-sync>>.
+
+Manually starting a full device synchronization is not necessary at
+this point. The synchronization will commence automatically upon connection to the
+surviving primary or secondary node(s), or both.
+
+[[s-resolve-split-brain]]
+=== Manual Split Brain Recovery
+
+indexterm:[split brain]DRBD detects split brain at the time
+connectivity becomes available again and the peer nodes exchange the
+initial DRBD protocol handshake. If DRBD detects that both nodes are
+(or were at some point, while disconnected) in the primary role, it
+immediately tears down the replication connection. The tell-tale sign
+of this is a message like the following appearing in the system log:
+
+----
+Split-Brain detected, dropping connection!
+----
+
+After split brain has been detected, one node will always have the
+resource in a indexterm:[StandAlone (connection
+state)]indexterm:[connection state]_StandAlone_ connection state. The
+other might either also be in the _StandAlone_ state (if both nodes
+detected the split brain simultaneously), or in
+indexterm:[Connecting (connection state)] indexterm:[connection
+state]_Connecting_ (if the peer tore down the connection before the
+other node had a chance to detect split brain).
+
+At this point, unless you configured DRBD to automatically recover
+from split brain, you must manually intervene by selecting one node
+whose modifications will be discarded (this node is referred to as the
+indexterm:[split brain]_split brain victim_). This intervention is
+made with the following commands:
+
+/////////////////
+[NOTE]
+===========================
+The split brain victim needs to be in the connection state of
+_StandAlone_ or the following commands will return an error.
+You can ensure it is standalone by issuing:
+
+----
+# drbdadm disconnect <resource>
+----
+===========================
+/////////////////
+
+
+----
+# drbdadm disconnect <resource>
+# drbdadm secondary <resource>
+# drbdadm connect --discard-my-data <resource>
+----
+
+On the other node (the indexterm:[split brain]_split brain survivor_),
+if its connection state is also _StandAlone_, you would enter:
+
+----
+# drbdadm disconnect <resource>
+# drbdadm connect <resource>
+----
+
+You may omit this step if the node is already in the
+_Connecting_ state; it will then reconnect automatically.
+
+Upon connection, your split brain victim immediately changes its
+connection state to _SyncTarget_, and gets its modifications
+overwritten by the other node(s).
+
+NOTE: The split brain victim is not subjected to a full device
+synchronization. Instead, it has its local modifications rolled back,
+and any modifications made on the split brain survivor(s) propagate to
+the victim.
+
+After re-synchronization has completed, the split brain is considered
+resolved and the nodes form a fully consistent, redundant
+replicated storage system again.
+
+[[s-force-secondary]]
+=== Recovering a Primary Node that Lost Quorum
+
+IMPORTANT: The following instructions apply to cases where the DRBD on-loss-of-quorum action has
+been set to suspend I/O operations. In cases where the action has been set to generate I/O
+errors, the instructions are unnecessary.
+
+The DRBD administration tool, `drbdadm`, includes a force secondary option, `secondary --force`.
+If DRBD quorum was configured to suspend DRBD resource I/O operations upon loss of quorum, the
+force secondary option will allow you to gracefully recover the node that lost quorum and
+reintegrate it with the other nodes.
+
+Requirements:
+
+- DRBD version 9.1.7 or newer
+
+- `drbd-utils` version 9.21 or newer
+
+You can use the command `drbdadm secondary --force <all|resource_name>` to demote a primary node to secondary, in cases where you are trying to recover a primary node that lost quorum. The argument to this command can be either a single DRBD resource name or `all` to demote the node to a secondary role for all its DRBD resources.
+
+By using this command on the primary node that lost quorum with suspended I/O operations, all
+the suspended I/O requests and newly submitted I/O requests will terminate with I/O errors. You
+can then usually unmount the file system and reconnect the node to the other nodes in your cluster. An edge
+case is a file system opener that does not do any I/O and just idles around. Such processes need to be removed
+manually before unmounting will succeed or with the help of external tools such as `fuser -k`, or the OCF file
+system resource agent in clustered setups.
+
+Along with the DRBD administration tool's force secondary option, you can also add the
+`on-suspended-primary-outdated` option to a DRBD resource configuration file and set it to the
+keyword value `force-secondary`. You will also need to add the resource role conflict
+(`rr-conflict`) option to the DRBD resource configuration file's `net` section, and set it to
+`retry-connect`. This enables DRBD to automatically recover a primary node that loses quorum
+with suspended I/O operations. With these options configured, when such a node connects to a
+cluster partition that has a more recent data set, DRBD automatically demotes the primary node
+that lost quorum and has suspended I/O operations.  Additional configurations, for example in a
+`handlers` section of the resource configuration file, as well as additional configurations
+within a cluster manager, may also be necessary to complete a fully automatic recovery setup.
+
+Settings within a DRBD resource configuration file's `options` section that cover this scenario
+could look like this:
+
+----
+resource <resource_name> {
+net {
+	rr-conflict retry-connect;
+[...]
+}
+
+options {
+	quorum majority; # or explicit value
+	on-no-quorum suspend-io;
+	on-no-data-accessible suspend-io;
+	on-suspended-primary-outdated force-secondary;
+[...]
+}
+[...]
+}
+----
+

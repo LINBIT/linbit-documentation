@@ -1,0 +1,708 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2023-03-07 03:54+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#, no-wrap
+msgid "Troubleshooting and Error Recovery"
+msgstr "トラブルシューティングとエラーからの回復"
+
+#. type: Plain text
+msgid ""
+"This chapter describes tasks to be performed in case of hardware or system "
+"failures."
+msgstr ""
+"この章では、ハードウェアやシステムに障害が発生した場合に必要な手順について説"
+"明します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Dealing with Hard Disk Failure"
+msgstr "ハードドライブの障害の場合"
+
+#. type: Plain text
+msgid ""
+"indexterm:[hard disk failure]indexterm:[disk failure]How to deal with hard "
+"disk failure depends on the way DRBD is configured to handle disk I/O errors "
+"(see <<s-handling-disk-errors>>), and on the type of metadata configured "
+"(see <<s-metadata>>)."
+msgstr ""
+"indexterm:[drive failure]indexterm:[disk failure]ハードドライブの障害への対処"
+"方法は、DRBDがディスクI/Oエラーを処理する方法(<<s-handling-disk-errors>>参"
+"照)、また設定されているメタデータの種類(<<s-metadata>>参照)によって異なりま"
+"す。"
+
+#. type: delimited block =
+msgid ""
+"For the most part, the steps described here apply only if you run DRBD "
+"directly on top of physical hard disks. They generally do not apply in case "
+"you are running DRBD layered on top of"
+msgstr ""
+"ほとんどの場合、ここで取り上げる手順はDRBDを直接物理ハードドライブ上で実行し"
+"ている場合にのみ適用されます。次に示す層の上でDRBDを実行している場合には通常"
+"は適用されません。"
+
+#. type: delimited block =
+msgid ""
+"an MD software RAID set (in this case, use `mdadm` to manage disk "
+"replacement),"
+msgstr "MDソフトウェアRAIDセット( `mdadm` を使用してドライブ交換を管理)"
+
+#. type: delimited block =
+msgid "device-mapper RAID (use `dmraid`),"
+msgstr "デバイスマッパRAID( `dmraid` 使用)"
+
+#. type: delimited block =
+msgid ""
+"a hardware RAID appliance (follow the vendor's instructions on how to deal "
+"with failed disks),"
+msgstr ""
+"ハードウェアRAID機器 (障害が発生したドライブの扱いについてはベンダーの指示に"
+"従ってください)"
+
+#. type: delimited block =
+msgid ""
+"some non-standard device-mapper virtual block devices (see the device mapper "
+"documentation)."
+msgstr ""
+"一部の非標準デバイスマッパ仮想ブロックデバイス(デバイスマッパのマニュアルを参"
+"照してください)"
+
+#. type: Title ====
+#, no-wrap
+msgid "Manually Detaching DRBD from Your Hard Disk"
+msgstr "手動でDRBDをハードドライブから切り離す"
+
+#. type: Plain text
+msgid ""
+"indexterm:[drbdadm, detach]If DRBD is <<fp-io-error-pass-on,configured to "
+"pass on I/O errors>> (not recommended), you must first detach the DRBD "
+"resource, that is, disassociate it from its backing storage:"
+msgstr ""
+"indexterm:[drbdadm]DRBDが<<fp-io-error-pass-on,I/Oエラーを伝えるように設定"
+">>(非推奨)している場合、まずDRBDリソースを切り離すとよいでしょう。つまり、下"
+"位デバイスからの切り離しです。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdadm detach <resource>\n"
+msgstr "# drbdadm detach <resource>\n"
+
+#. type: Plain text
+msgid ""
+"By running the `drbdadm status` or the `drbdadm dstate` command, you will "
+"now be able to verify that the resource is now in indexterm:[diskless "
+"mode]indexterm:[diskless (disk state)]indexterm:[disk state, "
+"Diskless]_diskless mode_:"
+msgstr ""
+"`drbdadm status` footnote:[以前は `drbdadm dstate` コマンドを推奨していまし"
+"た]コマンドを実行することで、現在の状態を確認することができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdadm status <resource>\n"
+"<resource> role:Primary\n"
+"  volume:0 disk:Diskless\n"
+"  <peer> role:Secondary\n"
+"    volume:0 peer-disk:UpToDate\n"
+"# drbdadm dstate <resource>\n"
+"Diskless/UpToDate\n"
+msgstr ""
+"# drbdadm status <resource>\n"
+"<resource> role:Primary\n"
+"  volume:0 disk:Diskless\n"
+"  <peer> role:Secondary\n"
+"    volume:0 peer-disk:UpToDate\n"
+"# drbdadm dstate <resource>\n"
+"Diskless/UpToDate\n"
+
+#. type: Plain text
+msgid ""
+"If the disk failure has occurred on your primary node, you may combine this "
+"step with a switch-over operation."
+msgstr ""
+"ディスク障害がプライマリノードで発生した場合、スイッチオーバーと、この手順を"
+"組み合わせることもできます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Automatically Detaching on I/O Error"
+msgstr "I/Oエラー時の自動切り離し"
+
+#. type: Plain text
+msgid ""
+"If DRBD is <<fp-io-error-detach,configured to automatically detach upon I/O "
+"error>> (the recommended option), DRBD should have automatically detached "
+"the resource from its backing storage already, without manual intervention. "
+"You may still use the `drbdadm status` command to verify that the resource "
+"is in fact running in diskless mode."
+msgstr ""
+"DRBDが<<fp-io-error-detach,I/Oエラー時に自動的に切り離しを行うように設定>>(推"
+"奨オプション)されている場合、 手動での操作なしで、DRBDはすでにリソースを下位"
+"ストレージから自動的に切り離しているはずです。その場合でも `drbdadm status` "
+"コマンドを使用して、リソースが実際にディスクレスモードで実行されているか確認"
+"します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Replacing a Failed Disk When Using Internal Metadata"
+msgstr "障害が発生したディスクの交換(内部メタデータを使用している場合)"
+
+#. type: Plain text
+msgid ""
+"If using <<s-internal-meta-data,internal metadata>>, it is sufficient to "
+"bind the DRBD device to the new hard disk. If the new hard disk has to be "
+"addressed by another Linux device name than the defective disk, the DRBD "
+"configuration file has to be modified accordingly."
+msgstr ""
+"<<s-internal-meta-data,内部メタデータ>>を使用している場合、新しいハードディス"
+"クでDRBDデバイスを再構成するだけで十分です。交換したハードディスクのデバイス"
+"名が交換前と異なる場合は、DRBD設定ファイルを適切に変更してください。"
+
+#. type: Plain text
+msgid ""
+"This process involves creating a new metadata set, then reattaching the "
+"resource: indexterm:[drbdadm, create-md]"
+msgstr ""
+"新しいメタデータを作成してから、リソースを再接続します。 indexterm:[drbdadm]"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdadm create-md <resource>\n"
+"v08 Magic number not found\n"
+"Writing meta data...\n"
+"initialising activity log\n"
+"NOT initializing bitmap\n"
+"New drbd meta data block successfully created.\n"
+msgstr ""
+"# drbdadm create-md <resource>\n"
+"v08 Magic number not found\n"
+"Writing meta data...\n"
+"initialising activity log\n"
+"NOT initializing bitmap\n"
+"New drbd meta data block successfully created.\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# drbdadm attach <resource>\n"
+msgstr "# drbdadm attach <resource>\n"
+
+#. type: Plain text
+msgid ""
+"Full synchronization of the new hard disk starts instantaneously and "
+"automatically. You will be able to monitor the synchronization's progress "
+"using the `drbdadm status --verbose` command, as with any background "
+"synchronization."
+msgstr ""
+"新しいハードディスクの完全同期がただちに自動的に始まります。通常のバックグラ"
+"ウンド同期と同様、同期の進行状況を `drbdadm status --verbose` で監視すること"
+"ができます。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Replacing a Failed Disk When Using External Metadata"
+msgstr "障害の発生したディスクの交換(外部メタデータを使用している場合)"
+
+#. type: Plain text
+msgid ""
+"When using <<s-external-meta-data,external metadata>>, the procedure is "
+"basically the same. However, DRBD is not able to recognize independently "
+"that the hard disk was swapped, therefore an additional step is required."
+msgstr ""
+"<<s-external-meta-data,外部メタデータ>>を使用している場合でも、手順は基本的に"
+"同じです。ただし、DRBDだけではハードドライブが交換されたことを認識できないた"
+"め、追加の手順が必要です。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdadm attach <resource>\n"
+"# drbdadm invalidate <resource>\n"
+msgstr ""
+"# drbdadm attach <resource>\n"
+"# drbdadm invalidate <resource>\n"
+
+#. type: Plain text
+msgid ""
+"Be sure to run `drbdadm invalidate` on the node __*without*__ good data; "
+"this command will cause the local contents to be overwritten with data from "
+"the peers, so running this command on the wrong node might lose data!"
+msgstr ""
+"`drbdadm invalidate` は、必ず破棄するデータのある側のノードでを実行してくださ"
+"い。 このコマンドはローカルのデータを対向ノードからのデータで上書きさせます。"
+"つまり、このコマンドを実行すると破棄する側のノードのデータが失われます。"
+
+#. type: Plain text
+msgid ""
+"Here, the `drbdadm invalidate` command triggers synchronization. Again, sync "
+"progress may be observed using the `drbdadm status --verbose` command."
+msgstr ""
+"上記の `drbdadm invalidate` コマンドが同期をトリガーします。この場合でも、同"
+"期の進行状況は `drbdadm status --verbose` で確認できます。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Dealing with Node Failure"
+msgstr "ノード障害に対処する"
+
+#. type: Plain text
+msgid ""
+"indexterm:[node failure]When DRBD detects that its peer node is down (either "
+"by true hardware failure or manual intervention), DRBD changes its "
+"connection state from _Connected_ to _Connecting_ and waits for the peer "
+"node to reappear. The DRBD resource is then said to operate in _disconnected "
+"mode_. In disconnected mode, the resource and its associated block device "
+"are fully usable, and may be promoted and demoted as necessary, but no block "
+"modifications are being replicated to the peer node. Instead, DRBD stores "
+"which blocks are being modified while disconnected, on a per-peer basis."
+msgstr ""
+"indexterm:[node failure]DRBDが(実際のハードウェア障害であれ手動による介入であ"
+"れ)対向ノードがダウンしていることを検出すると、DRBDは自身のコネクションステー"
+"タスを `Connected` から `WFConnection` に変更し、対向ノードが再び現れるのを待"
+"ちます。その後、DRBDリソースは _disconnected mode(切断モード)_ で動作します。"
+"切断モードでは、リソースおよびリソースに関連付けられたブロックデバイスが完全"
+"に利用可能で、必要に応じて昇格したり降格したりします。ただし、ブロックの変更"
+"は対向ノードにレプリケートされません。切断中に変更されたブロックについての内"
+"部情報は対向ノードごとにDRBDが格納します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Dealing with Temporary Secondary Node Failure"
+msgstr "一時的なセカンダリノードの障害に対処する"
+
+#. type: Plain text
+msgid ""
+"indexterm:[node failure]If a node that currently has a resource in the "
+"secondary role fails temporarily (due to, for example, a memory problem that "
+"is subsequently rectified by replacing RAM), no further intervention is "
+"necessary — besides the obvious necessity to repair the failed node and "
+"bring it back online. When that happens, the two nodes will simply re-"
+"establish connectivity upon system start-up. After this, DRBD synchronizes "
+"all modifications made on the primary node in the meantime to the secondary "
+"node."
+msgstr ""
+"indexterm:[node failure]セカンダリロールでリソースを持っているノードに一時的"
+"に障害が生じた場合(たとえばメモリ交換で直るようなメモリの問題)には、障害が発"
+"生したノードを修復してオンラインに戻すだけで十分です。修正したノードを起動す"
+"ると、ノード間の接続が再確立され、停止中にプライマリノードに加えられた変更内"
+"容すべてがセカンダリノードに同期されます。"
+
+#. type: Plain text
+msgid ""
+"At this point, due to the nature of DRBD's re-synchronization algorithm, the "
+"resource is briefly inconsistent on the secondary node. During that short "
+"time window, the secondary node can not switch to the Primary role if the "
+"peer is unavailable. Therefore, the period in which your cluster is not "
+"redundant consists of the actual secondary node down time, plus the "
+"subsequent re-synchronization."
+msgstr ""
+"この時点で、DRBDの再同期アルゴリズムの性質により、セカンダリノードのリソース"
+"の一貫性が一時的に失われます。この短時間の再同期の間は、対向ホストが使用でき"
+"ない場合でも、セカンダリノードをプライマリロールに切り替えることができませ"
+"ん。したがって、セカンダリノードの実際のダウンタイムとその後の再同期の間は、"
+"クラスタが冗長性を持たない期間になります。"
+
+#. type: Plain text
+msgid ""
+"Please note that with DRBD 9 more than two nodes can be connected for each "
+"resource. So, for example, in the case of four nodes, a single failing "
+"secondary still leaves two other secondaries available for failover."
+msgstr ""
+"DRBD9では各リソースに3ノード以上が接続することができます。そのため、例えば4"
+"ノードでは一度フェイルオーバーしてもまだ2回フェイルオーバーすることができま"
+"す。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Dealing with Temporary Primary Node Failure"
+msgstr "一時的なプライマリノードの障害に対処する"
+
+#. type: Plain text
+msgid ""
+"indexterm:[node failure]From DRBD's standpoint, failure of the primary node "
+"is almost identical to a failure of the secondary node. The surviving node "
+"detects the peer node's failure, and switches to disconnected mode. DRBD "
+"does _not_ promote the surviving node to the primary role; it is the cluster "
+"management application's responsibility to do so."
+msgstr ""
+"indexterm:[node failure]DRBDからみると、プライマリノードの障害とセカンダリ"
+"ノードの障害はほぼ同じです。生き残ったノードが対向ノードの障害を検出し、切断"
+"モードに切り替わります。DRBDは生き残ったノードをプライマリロールに _昇格しま"
+"せん_ 。これはクラスタ管理システムが管理します。"
+
+#. type: Plain text
+msgid ""
+"When the failed node is repaired and returns to the cluster, it does so in "
+"the secondary role, therefore, as outlined in the previous section, no "
+"further manual intervention is necessary. Again, DRBD does not change the "
+"resource role back, it is up to the cluster manager to do so (if so "
+"configured)."
+msgstr ""
+"障害が発生したノードが修復されてクラスタに戻る際に、セカンダリロールになりま"
+"す。すでに述べたように、それ以上の手動による介入は必要ありません。このときも"
+"DRBDはリソースのロールを元に戻しません。変更を行うように設定されている場合"
+"は、クラス管理システムがこの変更を行います。"
+
+#. type: Plain text
+msgid ""
+"DRBD ensures block device consistency in case of a primary node failure by "
+"way of a special mechanism. For a detailed discussion, refer to <<s-activity-"
+"log>>."
+msgstr ""
+"プライマリノードに障害が発生すると、DRBDはアクティビティログというメカニズム"
+"によってブロックデバイスの整合性を確保します。詳細は<<s-activity-log>>を参照"
+"ください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Dealing with Permanent Node Failure"
+msgstr "永続的なノード障害に対処する"
+
+#. type: Plain text
+msgid ""
+"indexterm:[node failure]If a node suffers an unrecoverable problem or "
+"permanent destruction, you must follow the following steps:"
+msgstr ""
+"indexterm:[node failure]ノードに回復不能な問題が発生した場合やノードが永久的"
+"に破損した場合は、次の手順を行う必要があります。"
+
+#. type: Plain text
+msgid ""
+"Replace the failed hardware with one with similar performance and disk "
+"capacity."
+msgstr ""
+"障害が発生したハードウェアを同様のパフォーマンスと ディスク容量を持つハード"
+"ウェアと交換します。"
+
+#. type: Plain text
+msgid ""
+"Replacing a failed node with one with worse performance characteristics is "
+"possible, but not recommended. Replacing a failed node with one with less "
+"disk capacity is not supported, and will cause DRBD to refuse to connect to "
+"the replaced nodefootnote:[It couldn't replicate the data, anyway!]."
+msgstr ""
+"障害が発生したノードを、それよりパフォーマンスが低いものと置き換えることも可"
+"能ですが、お勧めはできません。障害が発生したノードを、それよりディスク容量が"
+"小さいものと置き換えることはできません。このような場合には、DRBDを置き換えた"
+"ノードへの接続は拒否されます。footnote:[結局はレプリケーションできません]"
+
+#. type: Plain text
+msgid "Install the base system and applications."
+msgstr "OSとアプリケーションをインストールします。"
+
+#. type: Plain text
+msgid ""
+"Install DRBD and copy `/etc/drbd.conf` and all of `/etc/drbd.d/` from one of "
+"the surviving nodes."
+msgstr ""
+"DRBDをインストールし、生き残ったノードから `/etc/drbd.conf` と、全ての `/etc/"
+"drbd.d/` を コピーします。"
+
+#. type: Plain text
+msgid ""
+"Follow the steps outlined in <<ch-configure>>, but stop short of <<s-initial-"
+"full-sync>>."
+msgstr ""
+"<<ch-configure>> に記載された手順を <<s-initial-full-sync>> の前まで実行しま"
+"す。"
+
+#. type: Plain text
+msgid ""
+"Manually starting a full device synchronization is not necessary at this "
+"point. The synchronization will commence automatically upon connection to "
+"the surviving primary or secondary node(s), or both."
+msgstr ""
+"この時点で、デバイスの完全同期を手動で開始する必要はありません。生き残ったプ"
+"ライマリノードへの接続時に、同期が自動的に開始します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Manual Split Brain Recovery"
+msgstr "スプリットブレインからの手動回復"
+
+#. type: Plain text
+msgid ""
+"indexterm:[split brain]DRBD detects split brain at the time connectivity "
+"becomes available again and the peer nodes exchange the initial DRBD "
+"protocol handshake. If DRBD detects that both nodes are (or were at some "
+"point, while disconnected) in the primary role, it immediately tears down "
+"the replication connection. The tell-tale sign of this is a message like the "
+"following appearing in the system log:"
+msgstr ""
+"indexterm:[split brain]ノード間の接続が可能になると、ノード間で初期ハンドシェ"
+"イクのプロトコルが交換されます。この時点でDRBDはスプリットブレインが発生した"
+"かどうかを判断できます。両方のノードがプライマリロールであるか、もしくは切断"
+"中に両方がプライマリロールになったことを検出すると、DRBDは即座にレプリケー"
+"ション接続を切断します。その場合、システムログにたとえば次のようなメッセージ"
+"が記録されます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "Split-Brain detected, dropping connection!\n"
+msgstr "Split-Brain detected, dropping connection!\n"
+
+#. type: Plain text
+msgid ""
+"After split brain has been detected, one node will always have the resource "
+"in a indexterm:[StandAlone (connection state)]indexterm:[connection "
+"state]_StandAlone_ connection state. The other might either also be in the "
+"_StandAlone_ state (if both nodes detected the split brain simultaneously), "
+"or in indexterm:[Connecting (connection state)] indexterm:[connection "
+"state]_Connecting_ (if the peer tore down the connection before the other "
+"node had a chance to detect split brain)."
+msgstr ""
+"スプリットブレインが検出されると、1つのノードは常にindexterm:[StandAlone "
+"(connection state)]indexterm:[connection state]_StandAlone_ の状態でリソース"
+"を保持します。もう一方のノードもまた _StandAlone_ 状態になる(両方のノードが同"
+"時にスプリットブレインを検出した場合)、または indexterm:[WFConnection "
+"(connection state)] indexterm:[connection state] _WFConnection_ 状態になりま"
+"す(一方のノードがスプリットブレインを検出する前に対向ノードが切断をした場"
+"合)。"
+
+#. type: Plain text
+msgid ""
+"At this point, unless you configured DRBD to automatically recover from "
+"split brain, you must manually intervene by selecting one node whose "
+"modifications will be discarded (this node is referred to as the indexterm:"
+"[split brain]_split brain victim_). This intervention is made with the "
+"following commands:"
+msgstr ""
+"DRBDがスプリットブレインから自動的に回復するように設定されていない場合は、こ"
+"の時点で手動で介入して、変更内容を破棄するほうのノードを選択する必要がありま"
+"す(このノードは _スプリットブレインの犠牲ノード_ と呼ばれる)。indexterm:"
+"[split brain]この介入は次のコマンドで行います。"
+
+#. [NOTE]
+#. ===========================
+#. The split brain victim needs to be in the connection state of
+#. _StandAlone_ or the following commands will return an error.
+#. You can ensure it is standalone by issuing:
+#. ----------
+#. # drbdadm disconnect <resource>
+#. ----------
+#. ===========================
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdadm disconnect <resource>\n"
+"# drbdadm secondary <resource>\n"
+"# drbdadm connect --discard-my-data <resource>\n"
+msgstr ""
+"# drbdadm disconnect <resource>\n"
+"# drbdadm secondary <resource>\n"
+"# drbdadm connect --discard-my-data <resource>\n"
+
+#. type: Plain text
+msgid ""
+"On the other node (the indexterm:[split brain]_split brain survivor_), if "
+"its connection state is also _StandAlone_, you would enter:"
+msgstr ""
+"他方のノード(スプリットブレインのindexterm:[split brain]生存ノード)のコネク"
+"ションステータスも `StandAlone` の場合には、次のコマンド実行します。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# drbdadm disconnect <resource>\n"
+"# drbdadm connect <resource>\n"
+msgstr ""
+"# drbdadm disconnect <resource>\n"
+"# drbdadm connect <resource>\n"
+
+#. type: Plain text
+msgid ""
+"You may omit this step if the node is already in the _Connecting_ state; it "
+"will then reconnect automatically."
+msgstr ""
+"ノードがすでに _Connecting_ の状態の場合は自動的に再接続するので、この手順は"
+"省略できます。"
+
+#. type: Plain text
+msgid ""
+"Upon connection, your split brain victim immediately changes its connection "
+"state to _SyncTarget_, and gets its modifications overwritten by the other "
+"node(s)."
+msgstr ""
+"接続すると、スプリットブレインの犠牲ノードのコネクションステータスがすぐに "
+"_SyncTarget_ に変化し、他のノードによって変更内容が上書きされます。"
+
+#. type: Plain text
+msgid ""
+"The split brain victim is not subjected to a full device synchronization. "
+"Instead, it has its local modifications rolled back, and any modifications "
+"made on the split brain survivor(s) propagate to the victim."
+msgstr ""
+"スプリットブレインの犠牲ノードは、デバイスのフル同期の対象にはなりません。代"
+"わりに、ローカル側での変更がロールバックされ、スプリットブレインの生存ノード"
+"に対して加えられた変更が犠牲ノードに伝播されます。"
+
+#. type: Plain text
+msgid ""
+"After re-synchronization has completed, the split brain is considered "
+"resolved and the nodes form a fully consistent, redundant replicated storage "
+"system again."
+msgstr ""
+"再同期が完了すると、スプリットブレインが解決したとみなされ、2つのノードが再び"
+"完全に一致した冗長レプリケーションストレージシステムとして機能します。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Recovering a Primary Node that Lost Quorum"
+msgstr "クォーラムを失ったプライマリノードの回復"
+
+#. type: Plain text
+msgid ""
+"The following instructions apply to cases where the DRBD on-loss-of-quorum "
+"action has been set to suspend I/O operations. In cases where the action has "
+"been set to generate I/O errors, the instructions are unnecessary."
+msgstr ""
+"次の手順は、DRBD のクォーラム喪失時のアクションが I/O 操作を一時停止するよう"
+"に設定されている場合に適用されます。アクションが I/O エラーを生成するように設"
+"定されている場合は必要ありません。"
+
+#. type: Plain text
+msgid ""
+"The DRBD administration tool, `drbdadm`, includes a force secondary option, "
+"`secondary --force`.  If DRBD quorum was configured to suspend DRBD resource "
+"I/O operations upon loss of quorum, the force secondary option will allow "
+"you to gracefully recover the node that lost quorum and reintegrate it with "
+"the other nodes."
+msgstr ""
+"DRBD 管理ツール `drbdadm` には、強制セカンダリオプション `secondary --force` "
+"が含まれています。 DRBD クォーラム喪失時のアクションが I/O 操作を一時停止する"
+"ように構成されている場合、force secondary オプションを使用すると、クォーラム"
+"を失ったノードを正常に回復し、他のノードと再統合できます。"
+
+#. type: Plain text
+msgid "Requirements:"
+msgstr "要件:"
+
+#. type: Plain text
+msgid "DRBD version 9.1.7 or newer"
+msgstr "DRBD バージョン 9.1.7 以降"
+
+#. type: Plain text
+msgid "`drbd-utils` version 9.21 or newer"
+msgstr "`drbd-utils` バージョン 9.21 以降"
+
+#. type: Plain text
+msgid ""
+"You can use the command `drbdadm secondary --force <all|resource_name>` to "
+"demote a primary node to secondary, in cases where you are trying to recover "
+"a primary node that lost quorum. The argument to this command can be either "
+"a single DRBD resource name or `all` to demote the node to a secondary role "
+"for all its DRBD resources."
+msgstr ""
+"クォーラムを失ったプライマリノードを回復させる場合、コマンド `drbdadm "
+"secondary --force <all|resource_name>` を使用して、プライマリノードをセカンダ"
+"リに降格できます。このコマンドの引数は、単一の DRBD リソース名か、すべての "
+"DRBD リソースをセカンダリロールにノードを降格させる `all` のいずれかです。"
+
+#. type: Plain text
+msgid ""
+"By using this command on the primary node that lost quorum with suspended I/"
+"O operations, all the suspended I/O requests and newly submitted I/O "
+"requests will terminate with I/O errors. You can then usually unmount the "
+"file system and reconnect the node to the other nodes in your cluster. An "
+"edge case is a file system opener that does not do any I/O and just idles "
+"around. Such processes need to be removed manually before unmounting will "
+"succeed or with the help of external tools such as `fuser -k`, or the OCF "
+"file system resource agent in clustered setups."
+msgstr ""
+"クォーラムを失い中断された I/O 操作を伴うプライマリノードでこのコマンドを使用"
+"すると、中断されたすべての I/O 要求と新しく送信された I/O 要求が I/O エラーで"
+"終了します。その後、通常はファイル システムをアンマウントし、ノードをクラス"
+"ター内の他のノードに再接続できます。例外は、I/O をまったく行わずにアイドル状"
+"態になるだけのファイルシステムオープナーです。このようなプロセスは、アンマウ"
+"ントが成功する前に手動で削除するか、 `fuser -k` などの外部ツールやクラスター"
+"化されたセットアップの OCF ファイル システム リソースエージェントを使用して削"
+"除する必要があります。"
+
+#. type: Plain text
+msgid ""
+"Along with the DRBD administration tool's force secondary option, you can "
+"also add the `on-suspended-primary-outdated` option to a DRBD resource "
+"configuration file and set it to the keyword value `force-secondary`. You "
+"will also need to add the resource role conflict (`rr-conflict`) option to "
+"the DRBD resource configuration file's `net` section, and set it to `retry-"
+"connect`. This enables DRBD to automatically recover a primary node that "
+"loses quorum with suspended I/O operations. With these options configured, "
+"when such a node connects to a cluster partition that has a more recent data "
+"set, DRBD automatically demotes the primary node that lost quorum and has "
+"suspended I/O operations.  Additional configurations, for example in a "
+"`handlers` section of the resource configuration file, as well as additional "
+"configurations within a cluster manager, may also be necessary to complete a "
+"fully automatic recovery setup."
+msgstr ""
+"DRBD 管理ツールの強制セカンダリオプションに加えて、 `on-suspended-primary-"
+"outdated` オプションを DRBD リソース構成ファイルに追加し、キーワード値 "
+"`force-secondary` を設定することもできます。また、リソースロールの競合 (`rr-"
+"conflict`) オプションを DRBD リソース構成ファイルの `net` セクションに追加し "
+"`retry-connect` に設定することも必要です。これにより、DRBD は、中断された I/"
+"O 操作でクォーラムを失ったプライマリ ノードを自動的に回復できます。これらのオ"
+"プションを設定すると、そのようなノードがより新しいデータセットを持つクラス"
+"ターパーティションに接続すると、DRBD はクォーラムを失い、I/O 操作を中断したプ"
+"ライマリノードを自動的に降格させます。リソース構成ファイルの `handlers` セク"
+"ションなどの追加構成や、クラスターマネージャー内の追加構成も、完全に自動化さ"
+"れた復旧セットアップを完了するために必要になる場合があります。"
+
+#. type: Plain text
+msgid ""
+"Settings within a DRBD resource configuration file's `options` section that "
+"cover this scenario could look like this:"
+msgstr ""
+"このシナリオをカバーする DRBD リソース構成ファイルの `options` セクション内の"
+"設定は、次のようになります。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"resource <resource_name> {\n"
+"net {\n"
+"\trr-conflict retry-connect;\n"
+"[...]\n"
+"}\n"
+msgstr ""
+"resource <resource_name> {\n"
+"net {\n"
+"\trr-conflict retry-connect;\n"
+"[...]\n"
+"}\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"options {\n"
+"\tquorum majority; # or explicit value\n"
+"\ton-no-quorum suspend-io;\n"
+"\ton-no-data-accessible suspend-io;\n"
+"\ton-suspended-primary-outdated force-secondary;\n"
+"[...]\n"
+"}\n"
+"[...]\n"
+"}\n"
+msgstr ""
+"options {\n"
+"\tquorum majority; # or explicit value\n"
+"\ton-no-quorum suspend-io;\n"
+"\ton-no-data-accessible suspend-io;\n"
+"\ton-suspended-primary-outdated force-secondary;\n"
+"[...]\n"
+"}\n"
+"[...]\n"
+"}\n"

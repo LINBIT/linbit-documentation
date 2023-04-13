@@ -63,7 +63,7 @@ To prepare your DRBD resource, include the following lines in the resource
 configuration: indexterm:[drbd.conf]
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
   net {
     allow-two-primaries;
@@ -74,7 +74,7 @@ resource <resource> {
   }
   ...
 }
-----------------------------
+----
 
 [WARNING]
 ===============================
@@ -100,7 +100,7 @@ the resource>> to the primary role on both nodes.
 In order to enable Resource fencing in DRBD you will need the sections indexterm:[drbd.conf]
 
 [source,drbd]
-----------------------------
+----
   disk {
 	fencing resource-and-stonith;
   }
@@ -109,7 +109,7 @@ In order to enable Resource fencing in DRBD you will need the sections indexterm
 	fence-peer		"/usr/lib/drbd/crm-fence-peer.sh";
 	after-resync-target	"/usr/lib/drbd/crm-unfence-peer.sh";
   }
-----------------------------
+----
 
 in your DRBD configuration. These scripts should come with your DRBD installation.
 
@@ -149,7 +149,7 @@ This is done by setting
 Next create a `cman` cluster configuration in `/etc/cluster/cluster.conf`:
 
 [source,drbd]
-----------------------------
+----
 <?xml version="1.0"?>
 <cluster name="my-cluster" config_version="1">
 	<logging debug="off"/>
@@ -173,7 +173,7 @@ Next create a `cman` cluster configuration in `/etc/cluster/cluster.conf`:
 		<fencedevice name="pcmk" agent="fence_pcmk"/>
 	</fencedevices>
 </cluster>
-----------------------------
+----
 
 This tells `cman` that the clustername is `my-cluster`, the cluster node names are `gfs-machine1` and
 `gfs-machine2`, and that fencing will be done by `pacemaker`.
@@ -187,9 +187,9 @@ In order to create a GFS filesystem on your dual-primary DRBD
 resource, issue this command on (only) *one* (!) node (which must be _Primary_):
 
 indexterm:[GFS]
-----------------------------
+----
 mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name> /dev/<drbd-resource>
-----------------------------
+----
 
 The `-j` option in this command refers to the number of journals to
 keep for GFS. This must be identical to the number of nodes in the GFS
@@ -254,17 +254,17 @@ For Pacemaker configuration make a setup as described in
 
 Since it is a dual-primary setup consider the following changes to the Master-Slave set:
 
-----------------------------
+----
 crm(live)configure# ms ms_drbd_xyz drbd_xyz \
                     meta master-max="2" master-node-max="1" \
                          clone-max="2" clone-node-max="1" \
                          notify="true"
-----------------------------
+----
 
 Notice that `master-max` is set to *2*, which will cause the DRBD resource to be promoted on both cluster nodes.
 
 Furthermore we want the GFS filesystem also to be started on both nodes, so we simply add a clone of the filesystem primitive:
 
-----------------------------
+----
 crm(live)configure# clone cl_fs_xyz p_fs_xyz meta interleave="true"
-----------------------------
+----

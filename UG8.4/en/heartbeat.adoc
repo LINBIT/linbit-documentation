@@ -177,7 +177,7 @@ indexterm:[ha.cf (Heartbeat configuration file)]The following example
 is a small and simple `ha.cf` file:
 
 [source,drbd]
-----------------------------
+----
 autojoin none
 mcast bond0 239.0.0.43 694 1 0
 bcast eth2
@@ -187,7 +187,7 @@ initdead 60
 keepalive 2
 node alice
 node bob
-----------------------------
+----
 
 Setting `autojoin` to `none` disables cluster node auto-discovery and
 requires that cluster nodes be listed explicitly, using the
@@ -227,10 +227,10 @@ cluster node authentication. It should only be readable by `root` and
 follows this format:
 
 [source,drbd]
-----------------------------
+----
 auth <num>
 <num> <algorithm> <secret>
-----------------------------
+----
 
 
 _<num>_ is a simple key index, starting with 1. Usually, you will only
@@ -246,12 +246,12 @@ You may create an `authkeys` file, using a generated secret, with the
 following shell hack:
 
 [source,bash]
-----------------------------
+----
 ( echo -ne "auth 1\n1 sha1 "; \
   dd if=/dev/urandom bs=512 count=1 | openssl md5 ) \
   > /etc/ha.d/authkeys
 chmod 0600 /etc/ha.d/authkeys
-----------------------------
+----
 
 [[s-heartbeat-ha-propagate]]
 ==== Propagating the cluster configuration to cluster nodes
@@ -260,15 +260,15 @@ In order to propagate the contents of the `ha.cf` and `authkeys`
 configuration files, you may use the `ha_propagate` command, which you
 would invoke using either
 
-----------------------------
+----
 /usr/lib/heartbeat/ha_propagate
-----------------------------
+----
 
 or
 
-----------------------------
+----
 /usr/lib64/heartbeat/ha_propagate
-----------------------------
+----
 
 
 This utility will copy the configuration files over to any `node`
@@ -334,10 +334,10 @@ an example of a Heartbeat R1-compatible resource configuration
 involving a MySQL database backed by DRBD:
 
 [source,drbd]
-----------------------------
+----
 bob drbddisk::mysql Filesystem::/dev/drbd0::/var/lib/mysql::ext3 \
     10.9.42.1 mysql
-----------------------------
+----
 
 
 This resource configuration contains one resource group whose _home
@@ -395,11 +395,11 @@ _and_ the stacked resource. Consider the following `haresources`
 example, which would replace the one given in the previous section:
 
 [source,drbd]
-----------------------------
+----
 bob 192.168.42.1 \
   drbdupper::mysql-U Filesystem::/dev/drbd1::/var/lib/mysql::ext3 \
   mysql
-----------------------------
+----
 
 Note the following differences to the earlier example:
 
@@ -432,15 +432,15 @@ resource migration, or assume control of resources for any reason
 other than the peer having to leave the cluster. This operation is
 performed using the following command:
 
-----------------------------
+----
 `/usr/lib/heartbeat/hb_takeover`
-----------------------------
+----
 
 On some distributions and architectures, you may be required to enter:
 
-----------------------------
+----
 `/usr/lib64/heartbeat/hb_takeover`
-----------------------------
+----
 
 
 [[s-heartbeat-r1-relinquish-resources]]
@@ -454,13 +454,13 @@ This is the approach normally taken if one simply wishes to test
 resource migration, or perform some other activity that does not
 require the node to leave the cluster. This operation is performed
 using the following command:
-----------------------------
+----
 /usr/lib/heartbeat/hb_standby
-----------------------------
+----
 On some distributions and architectures, you may be required to enter:
-----------------------------
+----
 /usr/lib64/heartbeat/hb_standby
-----------------------------
+----
 
 [[fp-heartbeat-r1-shutdown-local-cluster-manager]]
 .Shutting down the local cluster manager instance
@@ -470,9 +470,9 @@ software updates which require that the node be temporarily removed
 from the cluster, but which do not necessitate a system reboot. It
 involves shutting down all processes associated with the local cluster
 manager instance:
-----------------------------
+----
 /etc/init.d/heartbeat stop
-----------------------------
+----
 
 Prior to stopping its services, Heartbeat will gracefully migrate any
 currently running resources to the peer node. This is the approach to
@@ -484,13 +484,13 @@ without also upgrading your kernel.
 For hardware maintenance or other interventions that require a system
 shutdown or reboot, use a simple graceful shutdown command, such as
 
-----------------------------
+----
 reboot
-----------------------------
+----
 or
-----------------------------
+----
 poweroff
-----------------------------
+----
 
 Since Heartbeat services will be shut down gracefully in the process
 of a normal system shutdown, the previous paragraph applies to this
@@ -557,9 +557,9 @@ following configuration files:
 as described in <<s-heartbeat-hacf>>. You must include the following
 line in this configuration file to enable CRM mode:
 [source,drbd]
-----------------------------
+----
 crm yes
-----------------------------
+----
 
 * indexterm:[authkeys (Heartbeat configuration
   file)]`/etc/ha.d/authkeys`. The contents of this file are the same
@@ -597,7 +597,7 @@ intra-cluster communications -- new, empty CIB is created
 automatically. Its contents will be similar to this:
 
 [source,xml]
-----------------------------
+----
 <cib>
    <configuration>
      <crm_config>
@@ -615,7 +615,7 @@ automatically. Its contents will be similar to this:
      <constraints/>
    </configuration>
  </cib>
-----------------------------
+----
 
 The exact format and contents of this file are documented at length
 http://www.linux-ha.org/ClusterInformationBase/UserGuide[on the
@@ -654,7 +654,7 @@ a Heartbeat CRM cluster with `drbddisk`, you would use a configuration
 like this:
 
 [source,xml]
-----------------------------
+----
 <group ordered="true" collocated="true" id="rg_mysql">
   <primitive class="heartbeat" type="drbddisk"
              provider="heartbeat" id="drbddisk_mysql">
@@ -692,16 +692,16 @@ like this:
   <primitive class="lsb" type="mysqld"
              provider="heartbeat" id="mysqld"/>
 </group>
-----------------------------
+----
 
 
 Assuming you created this configuration in a temporary file named
 `/tmp/hb_mysql.xml`, you would add this resource group to the cluster
 configuration using the following command (on any cluster node):
 indexterm:[Heartbeat]indexterm:[cibadmin (Heartbeat command)]
-----------------------------
+----
 cibadmin -o resources -C -x /tmp/hb_mysql.xml
-----------------------------
+----
 
 After this, Heartbeat will automatically propagate the
 newly-configured resource group to all cluster nodes.
@@ -724,25 +724,25 @@ resource. It is recommended that you start with the constraints, such
 as shown in this example:
 
 [source,xml]
-----------------------------
+----
 <constraints>
   <rsc_order id="mysql_after_drbd" from="rg_mysql" action="start"
              to="ms_drbd_mysql" to_action="promote" type="after"/>
   <rsc_colocation id="mysql_on_drbd" to="ms_drbd_mysql"
                   to_role="master" from="rg_mysql" score="INFINITY"/>
 </constraints>
-----------------------------
+----
 
 Assuming you put these settings in a file named
 `/tmp/constraints.xml`, here is how you would enable them:
-----------------------------
+----
 cibadmin -U -x /tmp/constraints.xml
-----------------------------
+----
 
 Subsequently, you would create your relevant resources:
 
 [source,xml]
-----------------------------
+----
 <resources>
   <master_slave id="ms_drbd_mysql">
     <meta_attributes id="ms_drbd_mysql-meta_attributes">
@@ -792,14 +792,14 @@ Subsequently, you would create your relevant resources:
                provider="heartbeat" id="mysqld"/>
   </group>
 </resources>
-----------------------------
+----
 
 Assuming you put these settings in a file named `/tmp/resources.xml`,
 here is how you would enable them:
 
-----------------------------
+----
 cibadmin -U -x /tmp/resources.xml
-----------------------------
+----
 
 After this, your configuration should be enabled. Heartbeat now
 selects a node on which it promotes the DRBD resource, and then starts
@@ -821,9 +821,9 @@ manual load balancing. This operation is performed using the following
 command: indexterm:[Heartbeat]indexterm:[crm_resource (Heartbeat
 command)]
 
-----------------------------
+----
 crm_resource -r <resource> -M -H uname -n
-----------------------------
+----
 
 [[n-heartbeat-crm-migrate]]
 NOTE: The `-M` (or `--migrate`) option for the `crm_resource` command,
@@ -841,9 +841,9 @@ is prudent to immediately "un-migrate" resources after successful
 migration, using the following command:
 indexterm:[Heartbeat]indexterm:[crm_resource (Heartbeat command)]
 
-----------------------------
+----
 crm_resource -r <resource> -U
-----------------------------
+----
 
 Finally, it is important to know that during resource migration,
 Heartbeat may simultaneously migrate resources other than the one
@@ -855,9 +855,9 @@ This procedure involves switching the peer node to standby mode (where
 _<hostname>_ is the peer node's host name):
 indexterm:[Heartbeat]indexterm:[crm_standby (Heartbeat command)]
 
-----------------------------
+----
 crm_standby -U <hostname> -v on
-----------------------------
+----
 
 
 [[s-heartbeat-crm-relinquish-resources]]
@@ -872,15 +872,15 @@ command (note that <<n-heartbeat-crm-migrate,the considerations
 outlined in the previous section>>apply here, too):
 indexterm:[Heartbeat]indexterm:[crm_resource (Heartbeat command)]
 
-----------------------------
+----
 crm_resource -r resource -M
-----------------------------
+----
 
 If you want to migrate to a specific host, use this variant:
 
-----------------------------
+----
 crm_resource -r resource -M -H hostname
-----------------------------
+----
 
 However, the latter syntax is usually of little relevance to CRM
 clusters using DRBD, DRBD being limited to two nodes (so the two
@@ -893,9 +893,9 @@ require the node to leave the cluster. This operation is performed
 using the following command:
 indexterm:[Heartbeat]indexterm:[crm_standby (Heartbeat command)]
 
-----------------------------
+----
 crm_standby -U `uname -n` -v on
-----------------------------
+----
 
 .Shutting down the local cluster manager instance
 This approach is suited for local maintenance operations such as
@@ -934,10 +934,10 @@ To enable dopd, you must add these lines to your indexterm:[ha.cf
 (Heartbeat configuration file)]`/etc/ha.d/ha.cf` file:
 
 [source,drbd]
-----------------------------
+----
 respawn hacluster /usr/lib/heartbeat/dopd
 apiauth dopd gid=haclient uid=hacluster
-----------------------------
+----
 
 You may have to adjust ``dopd``'s path according to your preferred
 distribution. On some distributions and architectures, the correct
@@ -959,7 +959,7 @@ dopd` or by issuing `killall -0 dopd`.
 Then, add these items to your DRBD resource configuration:
 
 [source,drbd]
-----------------------------
+----
 resource <resource> {
     handlers {
         fence-peer "/usr/lib/heartbeat/drbd-peer-outdater -t 5";
@@ -971,7 +971,7 @@ resource <resource> {
     }
     ...
 }
-----------------------------
+----
 
 As with `dopd`, your distribution may place the `drbd-peer-outdater`
 binary in `/usr/lib64/heartbeat` depending on your system

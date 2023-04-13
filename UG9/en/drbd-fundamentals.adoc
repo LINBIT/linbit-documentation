@@ -1,0 +1,235 @@
+[[ch-fundamentals]]
+== DRBD Fundamentals
+
+DRBD is a software-based,
+shared-nothing, replicated storage solution mirroring the content of
+block devices (hard disks, partitions, logical volumes, and so on) between
+hosts.
+
+DRBD mirrors data
+
+* *in real time*. Replication occurs continuously while applications
+  modify the data on the device.
+
+* *transparently*. Applications need not be aware that the data is stored on
+  multiple hosts.
+
+* *synchronously* or *asynchronously*. With synchronous mirroring, applications
+  are notified of write completions after the writes have been carried out on
+  all (connected) hosts. With asynchronous mirroring, applications are notified of write
+  completions when the writes have completed locally, which usually is before
+  they have propagated to the other hosts.
+
+
+[[s-kernel-module]]
+=== Kernel Module
+
+DRBD's core functionality is implemented by way of a Linux kernel
+module. Specifically, DRBD constitutes a driver for a virtual block
+device, so DRBD is situated right near the bottom of a system's I/O
+stack. Because of this, DRBD is extremely flexible and versatile,
+which makes it a replication solution suitable for adding high
+availability to just about any application.
+
+DRBD is, by definition and as mandated by the Linux kernel
+architecture, agnostic of the layers above it. Therefore, it is impossible
+for DRBD to miraculously add features to upper layers that these do
+not possess. For example, DRBD cannot auto-detect file system
+corruption or add active-active clustering capability to file systems
+like ext3 or XFS.
+
+[[f-drbd-linux-io-stack]]
+.DRBD's position within the Linux I/O stack
+image::images/drbd-in-kernel.svg[]
+
+[[s-userland]]
+=== User Space Administration Tools
+
+DRBD includes a set of administration tools which communicate with the
+kernel module to configure and administer DRBD resources. From
+top-level to bottom-most these are:
+
+.`drbdadm`
+The high-level administration tool of the DRBD-utils program suite. Obtains all DRBD
+configuration parameters from the configuration file `/etc/drbd.conf` and acts
+as a front-end for `drbdsetup` and `drbdmeta`.  `drbdadm` has a _dry-run_ mode,
+invoked with the `-d` option, that shows which `drbdsetup` and `drbdmeta` calls
+`drbdadm` would issue without actually calling those commands.
+
+.`drbdsetup`
+Configures the DRBD module that was loaded into the kernel. All parameters to
+`drbdsetup` must be passed on the command line. The separation between
+`drbdadm` and `drbdsetup` allows for maximum flexibility. Most users will
+rarely need to use `drbdsetup` directly, if at all.
+
+.`drbdmeta`
+Allows to create, dump, restore, and modify DRBD meta data structures. Like
+`drbdsetup`, most users will only rarely need to use `drbdmeta` directly.
+
+[[s-resources]]
+=== Resources
+
+In DRBD, _resource_ is the collective term that refers to all aspects of
+a particular replicated data set. These include:
+
+.Resource name
+This can be any arbitrary, US-ASCII name not containing white space by
+which the resource is referred to.
+
+IMPORTANT: Beginning with DRBD 9.2.0, there is a stricter naming convention for resources. DRBD
+9.2.x accepts only alphanumeric, `.`, `+`, `_`, and `-` characters in resource names (regular expression: `[0-9A-Za-z.+_-]*`). If you depend on the old behavior, it
+can be brought back by disabling strict name checking: `echo 0 > /sys/module/drbd/parameters/strict_names`.
+
+.Volumes
+Any resource is a replication group consisting of one or more
+_volumes_ that share a common replication stream. DRBD ensures write
+fidelity across all volumes in the resource. Volumes are numbered
+starting with `0`, and there may be up to 65,535 volumes in one
+resource. A volume contains the replicated data set, and a set of
+metadata for DRBD internal use.
+
+At the `drbdadm` level, a volume within a resource can be addressed by the
+resource name and volume number as `__resource__/__volume__`.
+
+// At the `drbdsetup` level, a volume is addressed by its device minor number.
+// At the `drbdmeta` level, a volume is addressed by the name of the underlying
+// device.
+
+// FIXME: Users don't care which major device number is assigned to DRBD.
+// Likewise, they don't care about minor device numbers if they don't have to.
+// We refer to device as /dev/drbdX almost everywhere, so do we have to mention
+// minors here at all?
+
+.DRBD device
+This is a virtual block device managed by DRBD. It has a device major
+number of 147, and its minor numbers are numbered from 0 onwards, as
+is customary. Each DRBD device corresponds to a volume in a
+resource. The associated block device is usually named
+`/dev/drbd__X__`, where `_X_` is the device minor number. `udev` will typically
+also create symlinks containing the resource name and volume number, as in
+`/dev/drbd/by-res/__resource__/__vol-nr__`.
+
+NOTE: Depending on how you installed DRBD, you might need to install the `drbd-udev` package on
+RPM based systems to install the DRBD udev rules. If your DRBD resources were created before the
+DRBD udev rules were installed, you will need to manually trigger the udev rules to generate
+the udev symlinks for DRBD resources, by using the `udevadm trigger` command.
+
+NOTE: Very early DRBD versions hijacked NBD's device major number 43.
+This is long obsolete; 147 is the
+https://www.kernel.org/doc/html/latest/admin-guide/devices.html[allocated] DRBD device
+major.
+
+.Connection
+A _connection_ is a communication link between two hosts that share a
+replicated data set. With DRBD 9 each resource can be defined on
+multiple hosts; with the current versions this requires
+a full-meshed connection setup between these hosts (that is, each host connected to
+every other for that resource).
+
+At the `drbdadm` level, a connection is addressed by the resource and the
+connection name (the latter defaulting to the peer hostname), like
+`__resource__:__connection__`.
+
+// At the `drbdsetup` level, a connection is addressed by its two replication
+// endpoints identified by address family (optional), address (required), and
+// port (optional).
+
+[[s-resource-roles]]
+=== Resource Roles
+
+indexterm:[Primary]indexterm:[Secondary]indexterm:[role]In DRBD, every <<s-resources,resource>> has a role, which may be
+_Primary_ or _Secondary_.
+
+NOTE: The choice of terms here is not arbitrary. These roles were
+deliberately not named "Active" and "Passive" by DRBD's
+creators. _Primary_ compared to _Secondary_ refers to a concept related to
+availability of *storage*, whereas _active_ compared to _passive_ refers to the
+availability of an *application*. It is usually the case in a
+high-availability environment that the _primary_ node is also the _active_
+one, but this is by no means necessary.
+
+* A DRBD device in the _primary_ role can be used unrestrictedly for
+  read and write operations. It may be used for creating and mounting
+  file systems, raw or direct I/O to the block device, and so on.
+
+* A DRBD device in the _secondary_ role receives all updates from the
+  peer node's device, but otherwise disallows access completely. It
+  can not be used by applications, neither for read nor write
+  access. The reason for disallowing even read-only access to the
+  device is the necessity to maintain cache coherency, which would be
+  impossible if a secondary resource were made accessible in any way.
+
+The resource's role can, of course, be changed, either by
+<<s-switch-resource-roles,manual intervention>>, by way of some
+automated algorithm by a cluster management application. Changing the
+resource role from secondary to primary is referred to as _promotion_,
+whereas the reverse operation is termed _demotion_.
+
+[[s-drbd-hardware-requirements]]
+=== Hardware and Environment Requirements
+
+DRBD's hardware and environment requirements and limitations are mentioned below. DRBD can work
+with just a few KiBs of physical storage and memory, or it can scale up to work with several
+TiBs of storage and many MiBs of memory.
+
+==== Maximum Device Size
+
+DRBD's maximum device size is 1PiB (1024TiB).
+
+==== Required Memory
+
+DRBD needs about 32MiB of RAM per 1TiB of storagefootnote:[To calculate DRBD's exact or
+approximate memory requirements for your environment, refer to the formulas in
+<<s-meta-data-size,this section>> of the DRBD 9 User's Guide]. So, for DRBD's maximum amount of
+storage (1PiB), you would need 32GiB of RAM for the DRBD bitmap alone, even before operating
+system, userspace, and buffer cache considerations.
+
+==== CPU Requirements
+
+DRBD 9 is tested to build for the following CPU architectures:
+
+* amd64
+* arm64
+* ppc64le
+* s390x
+
+Recent versions of DRBD 9 are only tested to build on 64 bit CPU architecture. Building DRBD
+on 32 bit CPU architecture is unsupported and may or may not work.
+
+==== Minimum Linux Kernel Version
+
+The minimum Linux kernel version supported in DRBD 9.0 is 2.6.32. Starting with DRBD 9.1, the
+minimum Linux kernel version supported is 3.10.
+
+==== Maximum Number of DRBD Volumes on a Node
+
+Due to the 20 bit constraint on minor numbers, the maximum number of DRBD volumes that you can
+have on a node is 1048576.
+
+==== Maximum Number of Volumes per DRBD Resource
+
+The maximum number of volumes per DRBD resource is 65535, numbered 0 through 65534.
+
+==== Maximum Number of Nodes Accessing a Resource
+
+There is a limit of 32 nodes that can access the same DRBD resource concurrently. In practice,
+clusters of more than five nodes are not recommended.
+
+[[s-drbd-fips-compliance]]
+=== FIPS Compliance
+
+"This standard shall be used in designing and implementing cryptographic modules..."
+-- https://csrc.nist.gov/publications/detail/fips/140/3/final[NIST's _FIPS 140-3_ publication]
+
+DRBD does not use nor implement any cryptographic modules in its code base and is therefore
+outside the scope of FIPS compliance. If the data that you are replicating has requirements that
+need the use of cryptographic modules, for example, encryption, this is implemented in a
+different block layer, and not by DRBD itself. Linux Unified Key Setup (LUKS) is an example of
+such an implementation. You can refer to details in the
+https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/#s-linstor-without-drbd[_LINSTOR User's
+Guide_] about using LINSTOR as a way that you can layer LUKS below the DRBD layer.
+
+WARNING: If you are using DRBD outside of LINSTOR, it is possible to layer LUKS above the DRBD
+layer. However, this implementation is not recommended because DRBD would no longer be able to
+disklessly attach or auto-promote resources.
+

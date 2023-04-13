@@ -1,0 +1,543 @@
+[[ch-lvm]]
+== Using LVM with DRBD
+
+indexterm:[LVM]indexterm:[Logical Volume Management]This chapter deals with managing DRBD for
+use with LVM2. In particular, this chapter covers how to:
+
+* Use LVM Logical Volumes as backing devices for DRBD.
+
+* Use DRBD devices as Physical Volumes for LVM.
+
+* Combine these two concepts to implement a layered LVM approach using DRBD.
+
+If you are unfamiliar with these terms, the next section, <<s-lvm-primer>>, may serve as a
+starting point to learn about LVM concepts. However, you are also encouraged to familiarize
+yourself with LVM in more detail than this section provides.
+
+[[s-lvm-primer]]
+=== Introduction to LVM
+
+LVM2 is an implementation of logical volume management in the context
+of the Linux device mapper framework. It has practically nothing in
+common, other than the name and acronym, with the original LVM
+implementation. The old implementation (now retroactively named
+"LVM1") is considered obsolete; it is not covered in this section.
+
+When working with LVM, it is important to understand its most basic
+concepts:
+
+.Physical Volume (PV)
+indexterm:[LVM]indexterm:[Physical Volume (LVM)]A PV is an underlying
+block device exclusively managed by LVM. PVs can either be entire hard
+disks or individual partitions. It is common practice to create a
+partition table on the hard disk where one partition is dedicated to
+the use by the Linux LVM.
+
+NOTE: The partition type "Linux LVM" (signature `0x8E`) can be used to
+identify partitions for exclusive use by LVM. This, however, is not
+required -- LVM recognizes PVs by way of a signature written to the
+device upon PV initialization.
+
+.Volume Group (VG)
+indexterm:[LVM]indexterm:[Volume Group (LVM)]A VG is the basic
+administrative unit of the LVM. A VG may include one or more several
+PVs. Every VG has a unique name. A VG may be extended during runtime
+by adding additional PVs, or by enlarging an existing PV.
+
+.Logical Volume (LV)
+indexterm:[LVM]indexterm:[Logical Volume (LVM)]LVs may be created
+during runtime within VGs and are available to the other parts of the
+kernel as regular block devices. As such, they may be used to hold a
+file system, or for any other purpose block devices may be used
+for. LVs may be resized while they are online, and they may also be
+moved from one PV to another (provided that the PVs are part of the same
+VG).
+
+.Snapshot Logical Volume (SLV)
+indexterm:[snapshots (LVM)]indexterm:[LVM]Snapshots are temporary
+point-in-time copies of LVs. Creating snapshots is an operation that
+completes almost instantly, even if the original LV (the _origin
+volume_) has a size of several hundred GiByte. Usually, a snapshot
+requires significantly less space than the original LV.
+
+[[f-lvm-overview]]
+.LVM overview
+image::images/lvm.svg[]
+
+
+[[s-lvm-lv-as-drbd-backing-dev]]
+=== Using a Logical Volume as a DRBD Backing Device
+
+indexterm:[LVM]indexterm:[Logical Volume (LVM)]Since an existing
+Logical Volume is simply a block device in Linux terms, you may of
+course use it as a DRBD backing device. To use LV's in this manner,
+you simply create them, and then initialize them for DRBD as you
+normally would.
+
+This example assumes that a Volume Group named `foo` already exists on
+both nodes of on your LVM-enabled system, and that you want to create
+a DRBD resource named `r0` using a Logical Volume in that Volume
+Group.
+
+First, you create the Logical Volume:
+indexterm:[LVM]indexterm:[lvcreate (LVM command)]
+----
+# lvcreate --name bar --size 10G foo
+Logical volume "bar" created
+----
+
+Of course, you must complete this command on both nodes of your DRBD
+cluster. After this, you should have a block device named
+`/dev/foo/bar` on either node.
+
+Then, you can simply enter the newly created volumes in your resource
+configuration:
+
+[source,drbd]
+----
+resource r0 {
+  ...
+  on alice {
+    device /dev/drbd0;
+    disk   /dev/foo/bar;
+    ...
+  }
+  on bob {
+    device /dev/drbd0;
+    disk   /dev/foo/bar;
+    ...
+  }
+}
+----
+
+Now you can <<s-first-time-up,continue to bring your resource up>>,
+just as you would if you were using non-LVM block devices.
+
+[[s-lvm-snapshots]]
+=== Using Automated LVM Snapshots During DRBD Synchronization
+
+While DRBD is synchronizing, the __SyncTarget__'s state is
+_Inconsistent_ until the synchronization completes. If in this
+situation the _SyncSource_ happens to fail (beyond repair), this puts
+you in an unfortunate position: the node with good data is dead, and
+the surviving node has bad (inconsistent) data.
+
+When serving DRBD off an LVM Logical Volume, you can mitigate this
+problem by creating an automated snapshot when synchronization starts,
+and automatically removing that same snapshot once synchronization has
+completed successfully.
+
+To enable automated snapshotting during resynchronization,
+add the following lines to your resource configuration:
+
+.Automating snapshots before DRBD synchronization
+----
+resource r0 {
+  handlers {
+    before-resync-target "/usr/lib/drbd/snapshot-resync-target-lvm.sh";
+    after-resync-target "/usr/lib/drbd/unsnapshot-resync-target-lvm.sh";
+  }
+}
+----
+
+The two scripts parse the `$DRBD_RESOURCE` environment variable which
+DRBD automatically passes to any `handler` it invokes. The
+`snapshot-resync-target-lvm.sh` script then creates an LVM snapshot for
+any volume the resource contains, then synchronization
+kicks off. In case the script fails, the synchronization _does not
+commence_.
+
+Once synchronization completes, the `unsnapshot-resync-target-lvm.sh`
+script removes the snapshot, which is then no longer needed. In case
+unsnapshotting fails, the snapshot continues to linger around.
+
+IMPORTANT: You should review dangling snapshots as soon as
+possible. A full snapshot causes both the snapshot itself _and its
+origin volume_ to fail.
+
+If at any time your _SyncSource_ does fail beyond repair and you
+decide to revert to your latest snapshot on the peer, you may do so by
+issuing the `lvconvert -M` command.
+
+[[s-lvm-drbd-as-pv]]
+=== Configuring a DRBD Resource as a Physical Volume
+
+indexterm:[LVM]indexterm:[Physical Volume (LVM)]To prepare a
+DRBD resource for use as a Physical Volume, it is necessary to create
+a PV signature on the DRBD device. To do this, issue one of the
+following commands on the node where the resource is currently in the
+primary role: indexterm:[LVM]indexterm:[pvcreate (LVM command)]
+
+----
+# pvcreate /dev/drbdX
+----
+
+or
+
+----
+# pvcreate /dev/drbd/by-res/<resource>/0
+----
+
+NOTE: This example assumes a single-volume resource.
+
+Now, it is necessary to include this device in the list of devices LVM
+scans for PV signatures. To do this, you must edit the LVM
+configuration file, normally named
+indexterm:[LVM]`/etc/lvm/lvm.conf`. Find the line in the
+`devices` section that contains the `filter` keyword and edit it
+accordingly. If _all_ your PVs are to be stored on DRBD devices, the
+following is an appropriate `filter` option:
+indexterm:[LVM]indexterm:[filter expression (LVM)]
+
+[source,drbd]
+----
+filter = [ "a|drbd.*|", "r|.*|" ]
+----
+
+This filter expression accepts PV signatures found on any DRBD
+devices, while rejecting (ignoring) all others.
+
+NOTE: By default, LVM scans all block devices found in `/dev` for PV
+signatures. This is equivalent to `filter = [ "a|.*|" ]`.
+
+If you want to use stacked resources as LVM PVs, then you will need a
+more explicit filter configuration. You need to verify that LVM
+detects PV signatures on stacked resources, while ignoring them on the
+corresponding lower-level resources and backing devices. This example
+assumes that your lower-level DRBD resources use device minors 0
+through 9, whereas your stacked resources are using device minors from
+10 upwards:
+
+[source,drbd]
+----
+filter = [ "a|drbd1[0-9]|", "r|.*|" ]
+----
+
+This filter expression accepts PV signatures found only on the DRBD
+devices `/dev/drbd10` through `/dev/drbd19`, while rejecting
+(ignoring) all others.
+
+After modifying the `lvm.conf` file, you must run the
+indexterm:[LVM]indexterm:[vgscan (LVM command)]`vgscan` command so LVM
+discards its configuration cache and re-scans devices for PV
+signatures.
+
+You may of course use a different `filter` configuration to match your
+particular system configuration. What is important to remember,
+however, is that you need to:
+
+* Accept (include) the DRBD devices that you want to use as PVs.
+
+* Reject (exclude) the corresponding lower-level devices, so as to avoid LVM finding duplicate
+PV signatures.
+
+In addition, you should disable the LVM cache by setting:
+
+[source,drbd]
+----
+write_cache_state = 0
+----
+
+After disabling the LVM cache, remove any stale cache
+entries by deleting `/etc/lvm/cache/.cache`.
+
+You must repeat the above steps on the peer nodes, too.
+
+IMPORTANT: If your system has its root filesystem on LVM, Volume
+Groups will be activated from your initial RAM disk (initrd) during
+boot. In doing so, the LVM tools will evaluate an `lvm.conf` file
+included in the initrd image. Therefore, after you make any changes to your
+`lvm.conf`, you should be certain to update your initrd with the
+utility appropriate for your distribution (`mkinitrd`,
+`update-initramfs`, and so on).
+
+When you have configured your new PV, you may proceed to add it to a
+Volume Group, or create a new Volume Group from it. The DRBD resource
+must, of course, be in the primary role while doing
+so. indexterm:[LVM]indexterm:[vgcreate (LVM command)]
+
+----
+# vgcreate <name> /dev/drbdX
+----
+
+NOTE: While it is possible to mix DRBD and non-DRBD Physical Volumes
+within the same Volume Group, doing so is not recommended and unlikely
+to be of any practical value.
+
+When you have created your VG, you may start carving Logical Volumes
+out of it, using the indexterm:[LVM]indexterm:[lvcreate (LVM
+command)]`lvcreate` command (as with a non-DRBD-backed Volume Group).
+
+[[s-lvm-add-pv]]
+=== Adding a New DRBD Volume to an Existing Volume Group
+
+Occasionally, you may want to add new DRBD-backed Physical Volumes to
+a Volume Group. Whenever you do so, a new volume should be added to an
+existing resource configuration. This preserves the replication stream
+and ensures write fidelity across all PVs in the VG.
+
+ifndef::drbd-only[]
+IMPORTANT: if your LVM volume group is managed by Pacemaker as
+explained in <<s-lvm-pacemaker>>, it is _imperative_ to place the
+cluster in maintenance mode prior to making changes to the DRBD
+configuration.
+endif::drbd-only[]
+
+Extend your resource configuration to include an additional volume, as
+in the following example:
+
+----
+resource r0 {
+  volume 0 {
+    device    /dev/drbd1;
+    disk      /dev/sda7;
+    meta-disk internal;
+  }
+  volume 1 {
+    device    /dev/drbd2;
+    disk      /dev/sda8;
+    meta-disk internal;
+  }
+  on alice {
+    address   10.1.1.31:7789;
+  }
+  on bob {
+    address   10.1.1.32:7789;
+  }
+}
+----
+
+Verify that your DRBD configuration is identical across nodes, then
+issue:
+
+----
+# drbdadm adjust r0
+----
+
+This will implicitly call `drbdsetup new-minor r0 1` to enable the new volume `1` in the resource `r0`. Once the new
+volume has been added to the replication stream, you may initialize
+and add it to the volume group:
+
+----
+# pvcreate /dev/drbd/by-res/<resource>/1
+# vgextend <name> /dev/drbd/by-res/<resource>/1
+----
+
+This will add the new PV `/dev/drbd/by-res/<resource>/1` to the
+`<name>` VG, preserving write fidelity across the entire VG.
+
+
+[[s-nested-lvm]]
+=== Nested LVM Configuration with DRBD
+
+It is possible, if slightly advanced, to both use
+indexterm:[LVM]indexterm:[Logical Volume (LVM)]Logical Volumes as
+backing devices for DRBD _and_ at the same time use a DRBD device
+itself as a indexterm:[LVM]indexterm:[Physical Volume (LVM)]Physical
+Volume. To provide an example, consider the following configuration:
+
+* We have two partitions, named `/dev/sda1`, and `/dev/sdb1`, which we
+  intend to use as Physical Volumes.
+
+* Both of these PVs are to become part of a Volume Group named
+  `local`.
+
+* We want to create a 10-GiB Logical Volume in this VG, to be named `r0`.
+
+* This LV will become the local backing device for our DRBD resource,
+  also named `r0`, which corresponds to the device `/dev/drbd0`.
+
+* This device will be the sole PV for another Volume Group, named
+  `replicated`.
+
+* This VG is to contain two more logical volumes named `foo`(4 GiB)
+  and `bar`(6 GiB).
+
+To enable this configuration, follow these steps:
+
+* Set an appropriate `filter` option in your `/etc/lvm/lvm.conf`:
++
+
+--
+indexterm:[LVM]indexterm:[filter expression (LVM)]
+[source,drbd]
+----
+filter = ["a|sd.*|", "a|drbd.*|", "r|.*|"]
+----
+
+This filter expression accepts PV signatures found on any SCSI and
+DRBD devices, while rejecting (ignoring) all others.
+
+After modifying the `lvm.conf` file, you must run the
+indexterm:[LVM]indexterm:[vgscan (LVM command)]`vgscan` command so LVM
+discards its configuration cache and re-scans devices for PV
+signatures.
+--
+
+
+* Disable the LVM cache by setting:
++
+--
+[source,drbd]
+----
+write_cache_state = 0
+----
+
+After disabling the LVM cache, remove any stale cache
+entries by deleting `/etc/lvm/cache/.cache`.
+--
+
+* Now, you may initialize your two SCSI partitions as PVs:
+  indexterm:[LVM]indexterm:[pvcreate (LVM command)]
++
+--
+----
+# pvcreate /dev/sda1
+Physical volume "/dev/sda1" successfully created
+# pvcreate /dev/sdb1
+Physical volume "/dev/sdb1" successfully created
+----
+--
+
+
+* The next step is creating your low-level VG named `local`,
+consisting of the two PVs you just initialized:
+indexterm:[LVM]indexterm:[vgcreate (LVM command)]
++
+----
+# vgcreate local /dev/sda1 /dev/sda2
+Volume group "local" successfully created
+----
+
+* Now you may create your Logical Volume to be used as DRBD's backing
+  device: indexterm:[LVM]indexterm:[lvcreate (LVM command)]
++
+----
+# lvcreate --name r0 --size 10G local
+Logical volume "r0" created
+----
+
+* Repeat all steps, up to this point, on the peer node.
+
+* Then, edit your `/etc/drbd.conf` to create a new resource named `r0`:
+  indexterm:[drbd.conf]
++
+--
+[source,drbd]
+----
+resource r0 {
+  device /dev/drbd0;
+  disk /dev/local/r0;
+  meta-disk internal;
+  on <host> { address <address>:<port>; }
+  on <host> { address <address>:<port>; }
+}
+----
+
+After you have created your new resource configuration, be sure to
+copy your `drbd.conf` contents to the peer node.
+--
+
+* After this, initialize your resource as described in
+  <<s-first-time-up>>(on both nodes).
+
+* Then, promote your resource (on one node): indexterm:[drbdadm, primary]
++
+----
+# drbdadm primary r0
+----
+
+* Now, on the node where you just promoted your resource, initialize
+your DRBD device as a new Physical Volume: indexterm:[LVM]indexterm:[pvcreate (LVM command)]
++
+--
+----
+# pvcreate /dev/drbd0
+Physical volume "/dev/drbd0" successfully created
+----
+--
+
+* Create your VG named `replicated`, using the PV you just
+  initialized, on the same node: indexterm:[LVM]indexterm:[vgcreate
+  (LVM command)]
++
+--
+----
+# vgcreate replicated /dev/drbd0
+Volume group "replicated" successfully created
+----
+--
+
+* Finally, create your new Logical Volumes within this newly created VG using the `lvcreate` command: indexterm:[LVM]indexterm:[lvcreate (LVM command)]
++
+--
+----
+# lvcreate --name foo --size 4G replicated
+Logical volume "foo" created
+# lvcreate --name bar --size 6G replicated
+Logical volume "bar" created
+----
+--
+
+The Logical Volumes `foo` and `bar` will now be available as
+`/dev/replicated/foo` and `/dev/replicated/bar` on the local node.
+
+[[s-switching_the_vg_to_the_other_node]]
+==== Switching the Volume Group to the Other Node
+
+To make them available on the other node, first issue the following
+sequence of commands on the primary node:
+indexterm:[LVM]indexterm:[vgchange (LVM command)]
+
+----
+# vgchange -a n replicated
+0 logical volume(s) in volume group "replicated" now active
+# drbdadm secondary r0
+----
+
+
+Then, issue these commands on the other (still secondary) node:
+indexterm:[drbdadm, primary]indexterm:[LVM]indexterm:[vgchange (LVM command)]
+
+----
+# drbdadm primary r0
+# vgchange -a y replicated
+2 logical volume(s) in volume group "replicated" now active
+----
+
+After this, the block devices `/dev/replicated/foo` and
+`/dev/replicated/bar` will be available on the other (now primary) node.
+
+ifndef::drbd-only[]
+[[s-lvm-pacemaker]]
+
+=== Highly Available LVM with Pacemaker
+
+The process of transferring volume groups between peers and making the
+corresponding logical volumes available can be automated. The
+Pacemaker LVM resource agent is designed for exactly that purpose.
+
+To put an existing, DRBD-backed volume group under Pacemaker
+management, run the following commands in the `crm` shell:
+
+.Pacemaker configuration for DRBD-backed LVM Volume Group
+----
+primitive p_drbd_r0 ocf:linbit:drbd \
+  params drbd_resource="r0" \
+  op monitor interval="29s" role="Master" \
+  op monitor interval="31s" role="Slave"
+ms ms_drbd_r0 p_drbd_r0 \
+  meta master-max="1" master-node-max="1" \
+       clone-max="2" clone-node-max="1" \
+       notify="true"
+primitive p_lvm_r0 ocf:heartbeat:LVM \
+  params volgrpname="r0"
+colocation c_lvm_on_drbd inf: p_lvm_r0 ms_drbd_r0:Master
+order o_drbd_before_lvm inf: ms_drbd_r0:promote p_lvm_r0:start
+commit
+----
+
+After you have committed this configuration, Pacemaker will
+automatically make the `r0` volume group available on whichever node
+currently has the Primary (Master) role for the DRBD resource.
+endif::drbd-only[]
