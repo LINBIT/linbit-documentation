@@ -1,0 +1,66 @@
+=== The LINSTOR Gateway Server
+
+LINSTOR Gateway’s central component is a REST API server that acts as a relay to the LINSTOR API.
+
+The LINSTOR Gateway server *does not carry any state information* of its own.
+This means that you can run an arbitrary number of server instances in your cluster.
+It does not matter which LINSTOR Gateway server you send commands to, as long as that server can communicate with the LINSTOR controller.
+
+However, it makes sense to strategically choose the location(s) of the LINSTOR Gateway Server(s) so that it stays reachable in case of node failure.
+
+==== General Guidelines for Deploying a LINSTOR Gateway Server
+
+Here are two guidelines for all LINSTOR Gateway deployments:
+
+1. On every node where a LINSTOR controller could potentially run, also run a LINSTOR Gateway server.
+2. Configure every LINSTOR Gateway server so that it knows the location of every _potential_ LINSTOR controller node.
+
+Some example real-world deployment scenarios follow to show how these rules apply.
+
+==== Fixed LINSTOR Controller
+
+This is the simplest possible setup for a LINSTOR cluster.
+There is one node that is chosen to be the LINSTOR controller node, and the LINSTOR controller service can only run on this particular node.
+
+image::images/linstorgw-single-controller.svg[Fixed Controller Cluster]
+
+NOTE: `C` in the diagram above stands for "__(LINSTOR)__ Controller", while `S` stands for "__(LINSTOR)__ Satellite".
+
+In this case, the rules from above boil down to one trivial instruction:
+
+1. Run the LINSTOR Gateway server on `node-1`.
+
+You can omit the second rule because the only possible node that the LINSTOR controller can run on is `node-1`.
+From the perspective of
+`node-1`, this is equivalent to `localhost`.
+As it so happens, the default place the LINSTOR Gateway server searches for the LINSTOR controller is `localhost`, so the default configuration is sufficient here.
+
+This setup is very simple to implement, but it has an important drawback: the LINSTOR controller on `node-1` is the single point of failure for the cluster's _control plane_.
+If `node-1` were to go offline, you would lose the ability to control the storage in your cluster.
+
+NOTE: It is important to distinguish between the _control plane_ and the _data plane_.
+Even in this situation, with the sole controller node offline, your data stays available.
+It is the ability to create, modify, and delete storage resources that is lost.
+
+To address this issue and make the cluster more robust against node failure, a highly available LINSTOR controller can be configured.
+
+==== Highly Available LINSTOR Controller
+
+image::images/linstorgw-multi-controller.svg[Multi Controller Cluster]
+
+Here, the picture is different: The LINSTOR controller is _currently_
+running on `node-1`.
+However, if `node-1` should fail, one of the other nodes can take over.
+This configuration is more complex, but it makes sense in environments where it is critical that the LINSTOR controller stays available at all times.
+
+TIP: To learn more about how to configure this mode of operation, please refer to the https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/#s-linstor_ha["Creating a Highly Available LINSTOR Cluster"] section of the _LINSTOR
+User’s Guide_.
+
+In a cluster like this, the general rules outlined above resolve to these instructions:
+
+1. Run the LINSTOR Gateway Server on `node-1`, `node-2`, and
+`node-3`
+2. On each of the nodes, configure the LINSTOR Gateway Server such that it looks for the LINSTOR controller on `node-1`, `node-2`, or `node-3`.
+
+NOTE: When the LINSTOR Gateway server tries to contact the LINSTOR controller service, it first searches its list of configured potential LINSTOR controller nodes by sending a dummy request to each of the nodes.
+The first node that responds correctly is considered the currently active LINSTOR controller.
