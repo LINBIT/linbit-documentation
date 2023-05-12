@@ -1,122 +1,17 @@
 [[s-administrative-tasks-setup]]
 == Basic Administrative Tasks and System Setup
 
-LINSTOR is a configuration management system for storage on Linux systems.
-It manages LVM logical volumes, ZFS ZVOLs, or both, on a cluster of nodes. It
-leverages DRBD for replication between different nodes and to provide
-block storage devices to users and applications. It manages snapshots,
-encryption and caching of HDD backed data in SSDs using bcache.
+This is a how-to style chapter that covers basic LINSTOR administrative tasks, including
+installing LINSTOR and how to get started using LINSTOR.
 
-// Troubleshooting for LINSTOR guide?
-/////
-This chapter outlines typical administrative tasks encountered during
-day-to-day operations. It does not cover troubleshooting tasks, these
-are covered in detail in <<ch-troubleshooting>>.
-/////
+[[s-linstor-before-installing]]
+=== Before Installing LINSTOR
 
-[[s-concepts_and_terms]]
-=== Concepts and Terms
-This section goes over core concepts and terms that you will need to familiarize yourself
-with to understand how LINSTOR works and deploys storage. The section is laid out in a
-"ground up" approach.
-
-==== Installable Components
-
-===== linstor-controller
-A LINSTOR setup requires at least one active controller and one or more satellites.
-
-// Once the chapter on making your controller HA is done we need to link that here
-
-The _linstor-controller_ relies on a database that holds all configuration
-information for the whole cluster. It makes all decisions that need to have a
-view of the whole cluster. Multiple controllers can be used for LINSTOR but
-only one can be active.
-
-===== linstor-satellite
-The _linstor-satellite_ runs on each node where LINSTOR consumes local
-storage or provides storage to services. It is stateless; it receives
-all the information it needs from the controller. It runs programs
-like `lvcreate` and `drbdadm`. It acts like a node agent.
-
-===== linstor-client
-The _linstor-client_ is a command line utility that you use to issue
-commands to the system and to investigate the status of the system.
-
-==== Objects
-Objects are the end result which LINSTOR presents to the end-user or application,
-such as: Kubernetes/OpenShift, a replicated block device (DRBD), NVMeOF target, and others.
-
-===== Node
-Nodes are a server or container that participate in a LINSTOR cluster. The _Node_
-attribute defines:
-
-* Determines which LINSTOR cluster the node participates in
-* Sets the role of the node: Controller, Satellite, Auxiliary
-* *NetInterface* objects define the node's connectivity
-
-===== NetInterface
-As the name implies, this is how you define the interface/address of a node's network interface.
-
-===== Definitions
-Definitions define attributes of an object, and can be thought of as
-profiles or templates. Objects created will inherit the configuration
-defined in the definitions. A definition must be defined prior to creating
-the associated object. For example, you must create a _ResourceDefinition_
-prior to creating the _Resource_.
-
-StoragePoolDefinition :::
-* Defines the name of a storage pool
-
-ResourceDefinition :::
-Resource definitions define the following attributes of a resource:
-* The name of a DRBD resource
-* The TCP port for DRBD to use for the resource's connection
-
-VolumeDefinition :::
-Volume definitions define the following:
-
-* A volume of a DRBD resource
-* The size of the volume
-* The volume number of the DRBD resource's volume
-* The metadata properties of the volume
-* The minor number to use for the DRBD device associated with the DRBD volume
-
-===== StoragePool
-The _StoragePool_ identifies storage in the context of LINSTOR. It defines:
-
-* The configuration of a storage pool on a specific node
-* The storage back-end driver to use for the storage pool on the cluster node (LVM, ZFS, and
-others)
-* The parameters and configuration to pass to the storage backed driver
-
-===== Resource
-LINSTOR has now expanded its capabilities to manage a broader set of storage technologies
-outside of just DRBD. A _Resource_:
-
-* Represents the placement of a DRBD resource, as defined within the _ResourceDefinition_
-* Places a resource on a node in the cluster
-* Defines the placement of a _ResourceDefinition_ on a node
-
-===== Volume
-Volumes are a subset of a _Resource_. A _Resource_ could have multiple volumes, for example
-you may want to have your database stored on slower storage than your logs in your MySQL cluster.
-
-By keeping the _volumes_ under a single _resource_ you are essentially creating a consistency group.
-The _Volume_ attribute can define also define attributes on a more granular level.
-
-[[s-broader_context]]
-=== Broader Context
-
-While LINSTOR might be used to make the management of DRBD more
-convenient, it is often integrated with software stacks higher up.
-Such integration exist already for Kubernetes, OpenStack, OpenNebula
-and Proxmox. Chapters specific to deploying LINSTOR in these
-environments are included in this guide.
-
-The southbound drivers used by LINSTOR are LVM, thinLVM and ZFS.
+Before you install LINSTOR, there are a few things that you should be aware of that might affect
+how you install LINSTOR.
 
 [[s-packages]]
-=== Packages
+==== Packages
 
 LINSTOR is packaged in both the RPM and the DEB variants:
 
@@ -127,14 +22,14 @@ LINSTOR is packaged in both the RPM and the DEB variants:
 for the services. They depend on Java runtime environment (JRE) version 1.8
 (headless) or higher.
 
-For further detail about these packages see the
+For further details about these packages see the
 <<Installable Components,Installable Components>> section above.
 
-NOTE: If you have a support subscription to LINBIT(R), you will have access to
-our certified binaries through our repositories.
+NOTE: If you have a LINBIT(R) support subscription, you will have access to
+certified binaries through LINBIT customer-only repositories.
 
 [[s-linstor-fips-compliance]]
-=== FIPS Compliance
+==== FIPS Compliance
 
 "This standard shall be used in designing and implementing cryptographic modules..."
 -- https://csrc.nist.gov/publications/detail/fips/140/3/final[NIST's _FIPS 140-3_ publication]
@@ -188,10 +83,10 @@ Enabling LINBIT package repositories will give you access to LINBT software pack
 kernel modules, and other related software such as cluster managers and OCF scripts. You can
 then use a package manager to fetch, install, and manage updating installed packages.
 
-===== Downloading the LINBIT Manage Nodes Script
+===== Downloading the LINBIT Manage Node Script
 
 To register your cluster nodes with LINBIT, and configure LINBIT's repositories, first download
-and then run the manage nodes helper script by entering the following commands on all cluster
+and then run the manage node helper script by entering the following commands on all cluster
 nodes:
 
 ----
@@ -226,7 +121,7 @@ Before it closes, the script will show a message that suggests different package
 install for different use cases.
 
 IMPORTANT: On DEB based systems you can install a precompiled DRBD kernel module package,
-`drbd-module-$(uname -r)`, or a source version of the kernel module, `drbd-dkms`.  Install one
+`drbd-module-$(uname -r)`, or a source version of the kernel module, `drbd-dkms`. Install one
 or the other package but not both.
 
 [[s-linstor-installing-using-package-manager]]
@@ -273,7 +168,6 @@ The LINSTOR project's GitHub page is here: https://github.com/LINBIT/linstor-ser
 LINBIT also has downloadable archived files of source code for LINSTOR, DRBD, and more,
 available here:
 https://linbit.com/linbit-software-download-page-for-linstor-and-drbd-linux-driver/.
-
 
 [[s-upgrading]]
 === Upgrading LINSTOR
@@ -330,14 +224,14 @@ The containers available in this repository are:
 * drbd.io/linstor-client
 
 An up-to-date list of available images with versions can be retrieved by opening http://drbd.io in your
-browser. Be sure to access the image repository through "http", although the registry's images themselves are pulled through "https", using the associated `docker pull` command.
+browser. Be sure to browse the image repository through HTTP, although the registry's images themselves are pulled through HTTPS, using the associated `docker pull` command.
 
 To load the kernel module, needed only for LINSTOR satellites, you'll need to
 run a `drbd9-$dist` container in privileged mode. The kernel module containers
 either retrieve an official LINBIT package from a customer repository, use
 shipped packages, or they try to build the kernel modules from source. If you
 intend to build from source, you need to have the according kernel headers
-(e.g., `kernel-devel`) installed on the host. There are 4 ways to execute such
+(e.g., `kernel-devel`) installed on the host. There are four ways to execute such
 a module load container:
 
 * Building from shipped source
@@ -655,18 +549,7 @@ For more options and exact command usage please check the linstor-client help.
 [[s-linstor-resource-groups]]
 === Using Resource Groups to Deploy LINSTOR Provisioned Volumes
 
-A resource group is a parent object of a resource definition where all
-property changes made on a resource group will be inherited by its
-resource definition children. The resource group also stores settings
-for automatic placement rules and can spawn a resource definition
-depending on the stored rules.
-
-In simpler terms, resource groups are like templates that define
-characteristics of resources created from them. Changes to these
-pseudo templates will be applied to all resources that were created
-from the resource group, retroactively.
-
-TIP: Using resource groups to define how you'd like your resources
+Using resource groups to define how you would like your resources
 provisioned should be considered the de facto method for deploying
 volumes provisioned by LINSTOR. Chapters that follow which describe
 creating each _resource_ from a _resource-definition_ and
