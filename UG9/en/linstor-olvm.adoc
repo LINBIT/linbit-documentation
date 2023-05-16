@@ -1,0 +1,175 @@
+[[ch-olvm-linstor]]
+== LINSTOR Volumes in Oracle Linux Virtualization Manager
+
+indexterm:[oVirt]
+This chapter describes using LINSTOR to provision persistent, replicated, and
+high-performance block storage for
+link:https://docs.oracle.com/en/virtualization/oracle-linux-virtualization-manager/index.html[Oracle Linux Virtualization Manager].
+
+[[s-olvm-linstor-overview]]
+=== Introduction to Oracle Linux Virtualization Manager
+
+Oracle Linux Virtualization Manager (OLVM) is a server virtualization management platform
+based on link:https://www.ovirt.org/[oVirt]. It can configure, manage and monitor
+a Kernel-based Virtual Machine (KVM) environment based on Oracle Linux.
+
+OLVM supports multiple storage technologies that can be integrated with LINSTOR:
+
+- *iSCSI* or *NFS* storage are used for shared storage. In this setup, all OLVM nodes connect to a service host that
+  exports the storage volume, by using iSCSI or NFS. Here, LINSTOR Gateway can help you create and manage iSCSI targets
+  and NFS exports based on replicated DRBD volumes and make them highly available.
+- https://www.ovirt.org/develop/release-management/features/storage/managed-block-storage-copy.html[*Managed Block Storage*]
+  is another feature available in OLVM. Disks for VMs are managed as separate volumes, rather than from within a pool
+  of storage on a service host. This makes it possible to directly attach a volume to a VM while avoiding the
+  performance overhead that a service host adds.
+
+[[s-olvm-linstor-gateway]]
+=== Using LINSTOR Gateway for OLVM Storage
+
+<<ch-linstor-gateway,LINSTOR Gateway>> creates highly available iSCSI targets and NFS exports, which OLVM can consume as
+data domains. All volume access is routed through the LINSTOR Gateway host exporting the volume. Volume access includes
+reads and writes by any VM using the storage domain.
+
+As prerequisites, you need:
+
+* A working <<s-installation,LINSTOR Cluster>>, with <<s-linstor_ha, High Availability>> enabled.
+* A working <<ch-linstor-gateway,LINSTOR Gateway>> installation.
+
+NOTE: LINSTOR and LINSTOR Gateway don't need to run on the same nodes as OLVM, provided that the Gateway nodes are
+reachable from the OLVM hosts.
+
+[[s-olvm-linstor-gateway-data-domains]]
+==== Using LINSTOR Gateway for Data Domains
+
+Data Domains are the primary storage for your VMs in OLVM. With LINSTOR Gateway, you can create both iSCSI targets and
+NFS exports, to use as Data Domains in OLVM.
+
+Use the `linstor-gateway` command to create iSCSI or NFS exports. Choose a service IP that is reachable from the OLVM
+nodes. The following example creates an iSCSI export of 60GB reachable under `192.168.0.100` and a NFS export of 50GB,
+available at `192.168.0.101:/srv/gateway-exports/nfs-data`
+
+----
+$ linstor-gateway iscsi create iqn.2019-08.com.linbit:data-domain 192.168.0.100/24 60G
+Created iSCSI target 'iqn.2019-08.com.linbit:data-domain'
+$ linstor-gateway nfs create nfs-data 192.168.0.101/24 50G
+Created export 'nfs-data' at 192.168.0.101:/srv/gateway-exports/nfs-data
+----
+
+To configure the storage domains, navigate to the OLVM Administration Portal and open the `Storage > Domains` page.
+Click `New Domain` and choose a name for the new storage domain. Then, select the Domain function (either `Data` or
+`ISO`) and the matching storage type (either `iSCSI` or `NFS`). Enter the required connection parameters to complete
+the configuration.
+
+[[s-olvm-linstor-gateway-hosted-engine]]
+==== Using LINSTOR Gateway to Deploy the OLVM Self-Hosted Engine
+
+LINSTOR Gateway iSCSI Targets can be used to create the initial data domain used when deploying the
+link:https://docs.oracle.com/en/virtualization/oracle-linux-virtualization-manager/getstart/getstarted-hosted-engine-deploy.html[OLVM self-hosted engine].
+
+Use a separate data domain for the self-hosted engine to reduce the risk of adverse interference with your VMs. Create
+a iSCSI target with at least 60GB to use for the management VM. The following example creates a 60GB volume exported as
+`iqn.2019-08.com.linbit:olvm-engine`, available at the IP `192.168.0.200`. Change the IP and iSCSI target name to
+appropriate values for your setup.
+
+----
+$ linstor-gateway iscsi create iqn.2019-08.com.linbit:engine-data 192.168.0.200/24 60G
+----
+
+While setting up the OLVM self-hosted engine, you will be asked to provide details for the storage of the Manager
+virtual machine. You only need to provide the storage type `iscsi` and the IP address `192.168.0.200`. All other
+information will be discovered automatically.
+
+----
+Please specify the storage you would like to use (glusterfs, iscsi, fc,
+nfs)[nfs]: iscsi
+Please specify the iSCSI portal IP address: 192.168.0.200
+  Please specify the iSCSI portal port [3260]:
+  Please specify the iSCSI discover user:
+  Please specify the iSCSI discover password:
+  Please specify the iSCSI portal login user:
+  Please specify the iSCSI portal login password:
+  The following targets have been found:
+    [1] iqn.2019-08.com.linbit:engine-data
+        TPGT: 1, portals:
+            192.168.0.200:3260
+  Please select a target (1) [1]: 1
+  Please select the destination LUN (1) [1]:
+----
+
+After the setup completes, the iSCSI target is added as a data domain to OLVM. Use separate data domains for your VMs
+to avoid interference with the self-hosted engine's storage.
+
+=== Using LINSTOR Cinder for Managed Block Storage
+
+OLVM can be configured to use the LINSTOR Cinder driver to attach LINSTOR managed volumes directly on the VM host. In
+contrast to using LINSTOR Gateway, storage access and replication happens directly from the host the VM is running on.
+
+Using LINSTOR Cinder requires several additional steps to set up for OLVM:
+
+* All OLVM hosts, including the engine host, need to be registered with LINBIT and the `ovirt` repository enabled:
++
+----
+# curl -O https://my.linbit.com/linbit-manage-node.py
+# chmod +x ./linbit-manage-node.py
+# ./linbit-manage-node.py
+...
+    1) pacemaker-2(Disabled)
+    2) ovirt(Enabled)
+    3) drbd-9.0(Disabled)
+    4) drbd-9(Enabled)
+...
+----
+* OLVM hosts as well as the management engine need to be part of the LINSTOR cluster. Ensure that the
+  `linstor-satellite` service is installed and configured on all hosts.
+* OLVM needs to have `CinderLib` support enabled. It is disabled by default. To enable it, run `engine-setup` on the
+  engine host:
++
+----
+$ engine-setup --reconfigure-optional-components
+...
+--== PRODUCT OPTIONS ==--
+
+Configure Cinderlib integration (Currently in tech preview) (Yes, No) [No]: Yes
+...
+----
+* The engine hosts need to have the LINBIT version of `python3-cinder-common` installed, which can be identified by the
+  `linbit1` string in the version number:
++
+----
+$ dnf install --enablerepo=ovirt python3-cinder-common
+$ dnf list --installed python3-cinder-common
+Installed Packages
+python3-cinder-common.noarch   1:17.2.0-1.el8.linbit1   @linbit-ovirt
+----
+* The engine hosts need to have the `linstor-cinder` package installed:
++
+----
+$ dnf install --enablerepo=ovirt linstor-cinder
+----
+* All OLVM hosts need to have the LINBIT version of `vdsm` and `python3-osbrick` installed, which can be identified by
+  the `linbit1` string in the version number:
++
+----
+$ dnf install --enablerepo=ovirt vdsm python3-os-brick
+$ dnf list --installed vdsm python3-os-brick
+Installed Packages
+python3-os-brick.noarch   4.0.4-1.el8.linbit1             @linbit-ovirt
+vdsm.x86_64               4.40.100.2-1.0.13.el8.linbit1   @linbit-ovirt
+----
+
+To configure LINSTOR Cinder for Managed Block Storage, navigate to the OLVM Administration Portal and open the
+`Storage > Domains` page. Click `New Domain` and select Domain Function "Managed Block Storage". Choose a name, and set
+the following driver options:
+
+[cols=">1,<5"]
+|===
+| Driver Option | Value
+| `volume_driver` | `linstor_cinder.LinstorDrbdDriver`
+| `linstor_uris` | URL of the LINSTOR Controller Endpoint(s). Separate multiple endpoints by using a comma (`,`).
+| `linstor_default_resource_group_name` | LINSTOR resource group to use. Volumes created in this data domain will inherit all settings on the resource group.
+|===
+
+NOTE: OLVM 4.4 does not support creating VMs using Managed Block Storage from the VM Portal, only through the
+Administration Portal.
+
+// Keep the empty line before this comment, otherwise the next chapter is folded into this
