@@ -72,7 +72,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: linbit-sds
 resources:
-  - https://github.com/LINBIT/linstor-operator-builder//deploy/default?ref=v2.0.1
+  - https://github.com/LINBIT/linstor-operator-builder//deploy/default?ref=v2.0.1&timeout=90s <1>
 generatorOptions:
   disableNameSuffixHash: true
 secretGenerator:
@@ -81,6 +81,10 @@ secretGenerator:
     literals:
       - .dockerconfigjson={"auths":{"drbd.io":{"username":"MY_LINBIT_USER","password":"MY_LINBIT_PASSWORD"}}}
 ----
+<1> Depending on your internet connection, you can adjust the timeout value higher if you are
+having issues pulling the LINSTOR Operator when you apply the YAML file. For example, if you get
+an "accumulation err" error message about exceeding a timeout when accumulating resources from
+the `linbit-operator-builder` GitHub repository.
 
 Then, apply the `kustomization.yaml` file, by using `kubectl` command, and wait for the Operator to start:
 
