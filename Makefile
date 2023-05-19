@@ -33,7 +33,7 @@ README.html-docker: dockerimage
 define dockerfile=
 FROM asciidoctor/docker-asciidoctor:1
 LABEL maintainers="Roland Kammerer <roland.kammerer@linbit.com>, Michael Troutman <michael.troutman@linbit.com>"
-# po4a and related packages needed for documenation translation commands
+# po4a and related packages needed for documentation translation commands
 # zip needed for extracting LINBIT fonts package below
 # font-noto-cjk needed for Japanese and Chinese EPUB rendering (one day)
 # lftp and openssh-client needed for some GitLab pipeline preview actions
@@ -79,7 +79,7 @@ dockerimage: Dockerfile
 	fi
 
 # Create UG 9 (PDF version)
-.PHONY: UG9-pdf-finalize UG9-pdf-finalize-docker UG9-html-finalize UG9-html-finalize-docker UG9-pot UG9-pot-docker
+.PHONY: UG9-pdf-finalize UG9-pdf-finalize-docker UG9-html-finalize UG9-html-finalize-docker
 UG9-pdf-finalize:
 	make -C UG9 pdf-finalize lang=$(lang)
 
@@ -93,11 +93,37 @@ UG9-html-finalize:
 UG9-html-finalize-docker: dockerimage
 	$(run-in-docker)
 
-# Create UG 9 translation `pot` files
+# Create UG 9 translation `pot` and update (or create them if they don't exist) `po` files
+# `--force` flag used because some of the `.adoc` files have `include` files (see `po4a --help`)
+.PHONY: UG9-pot UG9-pot-docker
 UG9-pot:
-	make -C UG9 pot lang=en
+ifeq (${lang},en)
+	@echo "Generating .pot and .po files. lang=en, so generating .po files for all languages."
+	po4a --force --no-translations po4a.cfg
+else
+	@echo Language specified: $(lang)
+	sed 's/\$$lang/\$$\(lang\)/g' po4a.cfg > /tmp/po4a-tmp.cfg
+	po4a --force --no-translations --variable lang=$(lang) /tmp/po4a-tmp.cfg
+	rm /tmp/po4a-tmp.cfg
+endif
 
 UG9-pot-docker: dockerimage
+	$(run-in-docker)
+
+.PHONY: UG9-translate UG9-translate-docker
+UG9-translate:
+ifeq (${lang},en)
+	@echo "lang=en, nothing to do."
+	@echo "HINT: You can use this target to translate English adoc files by specifying lang=xx."
+else
+	@echo Language specified: $(lang)
+	sed 's/\$$lang/\$$\(lang\)/g' po4a.cfg > /tmp/po4a-tmp.cfg
+	po4a --force --variable lang=$(lang) /tmp/po4a-tmp.cfg
+	rm /tmp/po4a-tmp.cfg
+	make -C UG9/$(lang) patch-drbd-ug
+endif
+
+UG9-translate-docker: dockerimage
 	$(run-in-docker)
 
 # Create UG 8.4 (PDF version)

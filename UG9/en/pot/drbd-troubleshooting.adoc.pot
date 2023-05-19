@@ -1,0 +1,601 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: UG9/en/drbd-troubleshooting.adoc:2
+#, no-wrap
+msgid "Troubleshooting and Error Recovery"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:6
+msgid ""
+"This chapter describes tasks to be performed in case of hardware or system "
+"failures."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-troubleshooting.adoc:9
+#, no-wrap
+msgid "Dealing with Hard Disk Failure"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:15
+msgid ""
+"indexterm:[hard disk failure]indexterm:[disk failure]How to deal with hard "
+"disk failure depends on the way DRBD is configured to handle disk I/O errors "
+"(see <<s-handling-disk-errors>>), and on the type of metadata configured "
+"(see <<s-metadata>>)."
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-troubleshooting.adoc:21
+msgid ""
+"For the most part, the steps described here apply only if you run DRBD "
+"directly on top of physical hard disks. They generally do not apply in case "
+"you are running DRBD layered on top of"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-troubleshooting.adoc:24
+msgid ""
+"an MD software RAID set (in this case, use `mdadm` to manage disk "
+"replacement),"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-troubleshooting.adoc:25
+msgid "device-mapper RAID (use `dmraid`),"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-troubleshooting.adoc:27
+msgid ""
+"a hardware RAID appliance (follow the vendor's instructions on how to deal "
+"with failed disks),"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-troubleshooting.adoc:29
+msgid ""
+"some non-standard device-mapper virtual block devices (see the device mapper "
+"documentation)."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-troubleshooting.adoc:32
+#, no-wrap
+msgid "Manually Detaching DRBD from Your Hard Disk"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:37
+msgid ""
+"indexterm:[drbdadm, detach]If DRBD is <<fp-io-error-pass-on,configured to "
+"pass on I/O errors>> (not recommended), you must first detach the DRBD "
+"resource, that is, disassociate it from its backing storage:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:40
+#, no-wrap
+msgid "# drbdadm detach <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:46
+msgid ""
+"By running the `drbdadm status` or the `drbdadm dstate` command, you will "
+"now be able to verify that the resource is now in indexterm:[diskless "
+"mode]indexterm:[diskless (disk state)]indexterm:[disk state, "
+"Diskless]_diskless mode_:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:55
+#, no-wrap
+msgid ""
+"# drbdadm status <resource>\n"
+"<resource> role:Primary\n"
+"  volume:0 disk:Diskless\n"
+"  <peer> role:Secondary\n"
+"    volume:0 peer-disk:UpToDate\n"
+"# drbdadm dstate <resource>\n"
+"Diskless/UpToDate\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:59
+msgid ""
+"If the disk failure has occurred on your primary node, you may combine this "
+"step with a switch-over operation."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-troubleshooting.adoc:61
+#, no-wrap
+msgid "Automatically Detaching on I/O Error"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:69
+msgid ""
+"If DRBD is <<fp-io-error-detach,configured to automatically detach upon I/O "
+"error>> (the recommended option), DRBD should have automatically detached "
+"the resource from its backing storage already, without manual intervention. "
+"You may still use the `drbdadm status` command to verify that the resource "
+"is in fact running in diskless mode."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-troubleshooting.adoc:71
+#, no-wrap
+msgid "Replacing a Failed Disk When Using Internal Metadata"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:77
+msgid ""
+"If using <<s-internal-meta-data,internal metadata>>, it is sufficient to "
+"bind the DRBD device to the new hard disk. If the new hard disk has to be "
+"addressed by another Linux device name than the defective disk, the DRBD "
+"configuration file has to be modified accordingly."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:80
+msgid ""
+"This process involves creating a new metadata set, then reattaching the "
+"resource: indexterm:[drbdadm, create-md]"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:88 UG9/en/drbd-troubleshooting.adoc:111
+#, no-wrap
+msgid ""
+"# drbdadm create-md <resource>\n"
+"v08 Magic number not found\n"
+"Writing meta data...\n"
+"initialising activity log\n"
+"NOT initializing bitmap\n"
+"New drbd meta data block successfully created.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:90
+#, no-wrap
+msgid "# drbdadm attach <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:95
+msgid ""
+"Full synchronization of the new hard disk starts instantaneously and "
+"automatically. You will be able to monitor the synchronization's progress "
+"using the `drbdadm status --verbose` command, as with any background "
+"synchronization."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-troubleshooting.adoc:97
+#, no-wrap
+msgid "Replacing a Failed Disk When Using External Metadata"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:103
+msgid ""
+"When using <<s-external-meta-data,external metadata>>, the procedure is "
+"basically the same. However, DRBD is not able to recognize independently "
+"that the hard disk was swapped, therefore an additional step is required."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:114
+#, no-wrap
+msgid ""
+"# drbdadm attach <resource>\n"
+"# drbdadm invalidate <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:119
+msgid ""
+"Be sure to run `drbdadm invalidate` on the node __*without*__ good data; "
+"this command will cause the local contents to be overwritten with data from "
+"the peers, so running this command on the wrong node might lose data!"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:122
+msgid ""
+"Here, the `drbdadm invalidate` command triggers synchronization. Again, sync "
+"progress may be observed using the `drbdadm status --verbose` command."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-troubleshooting.adoc:124
+#, no-wrap
+msgid "Dealing with Node Failure"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:135
+msgid ""
+"indexterm:[node failure]When DRBD detects that its peer node is down (either "
+"by true hardware failure or manual intervention), DRBD changes its "
+"connection state from _Connected_ to _Connecting_ and waits for the peer "
+"node to reappear. The DRBD resource is then said to operate in _disconnected "
+"mode_. In disconnected mode, the resource and its associated block device "
+"are fully usable, and may be promoted and demoted as necessary, but no block "
+"modifications are being replicated to the peer node. Instead, DRBD stores "
+"which blocks are being modified while disconnected, on a per-peer basis."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-troubleshooting.adoc:137
+#, no-wrap
+msgid "Dealing with Temporary Secondary Node Failure"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:147
+msgid ""
+"indexterm:[node failure]If a node that currently has a resource in the "
+"secondary role fails temporarily (due to, for example, a memory problem that "
+"is subsequently rectified by replacing RAM), no further intervention is "
+"necessary — besides the obvious necessity to repair the failed node and "
+"bring it back online. When that happens, the two nodes will simply re-"
+"establish connectivity upon system start-up. After this, DRBD synchronizes "
+"all modifications made on the primary node in the meantime to the secondary "
+"node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:155
+msgid ""
+"At this point, due to the nature of DRBD's re-synchronization algorithm, the "
+"resource is briefly inconsistent on the secondary node. During that short "
+"time window, the secondary node can not switch to the Primary role if the "
+"peer is unavailable. Therefore, the period in which your cluster is not "
+"redundant consists of the actual secondary node down time, plus the "
+"subsequent re-synchronization."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:159
+msgid ""
+"Please note that with DRBD 9 more than two nodes can be connected for each "
+"resource. So, for example, in the case of four nodes, a single failing "
+"secondary still leaves two other secondaries available for failover."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-troubleshooting.adoc:161
+#, no-wrap
+msgid "Dealing with Temporary Primary Node Failure"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:169
+msgid ""
+"indexterm:[node failure]From DRBD's standpoint, failure of the primary node "
+"is almost identical to a failure of the secondary node. The surviving node "
+"detects the peer node's failure, and switches to disconnected mode. DRBD "
+"does _not_ promote the surviving node to the primary role; it is the cluster "
+"management application's responsibility to do so."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:175
+msgid ""
+"When the failed node is repaired and returns to the cluster, it does so in "
+"the secondary role, therefore, as outlined in the previous section, no "
+"further manual intervention is necessary. Again, DRBD does not change the "
+"resource role back, it is up to the cluster manager to do so (if so "
+"configured)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:179
+msgid ""
+"DRBD ensures block device consistency in case of a primary node failure by "
+"way of a special mechanism. For a detailed discussion, refer to <<s-activity-"
+"log>>."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-troubleshooting.adoc:181
+#, no-wrap
+msgid "Dealing with Permanent Node Failure"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:185
+msgid ""
+"indexterm:[node failure]If a node suffers an unrecoverable problem or "
+"permanent destruction, you must follow the following steps:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:188
+msgid ""
+"Replace the failed hardware with one with similar performance and disk "
+"capacity."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:194
+msgid ""
+"Replacing a failed node with one with worse performance characteristics is "
+"possible, but not recommended. Replacing a failed node with one with less "
+"disk capacity is not supported, and will cause DRBD to refuse to connect to "
+"the replaced nodefootnote:[It couldn't replicate the data, anyway!]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:196
+msgid "Install the base system and applications."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:198
+msgid ""
+"Install DRBD and copy `/etc/drbd.conf` and all of `/etc/drbd.d/` from one of "
+"the surviving nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:200
+msgid ""
+"Follow the steps outlined in <<ch-configure>>, but stop short of <<s-initial-"
+"full-sync>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:204
+msgid ""
+"Manually starting a full device synchronization is not necessary at this "
+"point. The synchronization will commence automatically upon connection to "
+"the surviving primary or secondary node(s), or both."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-troubleshooting.adoc:206
+#, no-wrap
+msgid "Manual Split Brain Recovery"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:214
+msgid ""
+"indexterm:[split brain]DRBD detects split brain at the time connectivity "
+"becomes available again and the peer nodes exchange the initial DRBD "
+"protocol handshake. If DRBD detects that both nodes are (or were at some "
+"point, while disconnected) in the primary role, it immediately tears down "
+"the replication connection. The tell-tale sign of this is a message like the "
+"following appearing in the system log:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:217
+#, no-wrap
+msgid "Split-Brain detected, dropping connection!\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:227
+msgid ""
+"After split brain has been detected, one node will always have the resource "
+"in a indexterm:[StandAlone (connection state)]indexterm:[connection "
+"state]_StandAlone_ connection state. The other might either also be in the "
+"_StandAlone_ state (if both nodes detected the split brain simultaneously), "
+"or in indexterm:[Connecting (connection state)] indexterm:[connection "
+"state]_Connecting_ (if the peer tore down the connection before the other "
+"node had a chance to detect split brain)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:233
+msgid ""
+"At this point, unless you configured DRBD to automatically recover from "
+"split brain, you must manually intervene by selecting one node whose "
+"modifications will be discarded (this node is referred to as the indexterm:"
+"[split brain]_split brain victim_). This intervention is made with the "
+"following commands:"
+msgstr ""
+
+#
+#. [NOTE]
+#. ===========================
+#. The split brain victim needs to be in the connection state of
+#. _StandAlone_ or the following commands will return an error.
+#. You can ensure it is standalone by issuing:
+#. ----
+#. # drbdadm disconnect <resource>
+#. ----
+#. ===========================
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:252
+#, no-wrap
+msgid ""
+"# drbdadm disconnect <resource>\n"
+"# drbdadm secondary <resource>\n"
+"# drbdadm connect --discard-my-data <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:256
+msgid ""
+"On the other node (the indexterm:[split brain]_split brain survivor_), if "
+"its connection state is also _StandAlone_, you would enter:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:260
+#, no-wrap
+msgid ""
+"# drbdadm disconnect <resource>\n"
+"# drbdadm connect <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:264
+msgid ""
+"You may omit this step if the node is already in the _Connecting_ state; it "
+"will then reconnect automatically."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:268
+msgid ""
+"Upon connection, your split brain victim immediately changes its connection "
+"state to _SyncTarget_, and gets its modifications overwritten by the other "
+"node(s)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:273
+msgid ""
+"The split brain victim is not subjected to a full device synchronization. "
+"Instead, it has its local modifications rolled back, and any modifications "
+"made on the split brain survivor(s) propagate to the victim."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:277
+msgid ""
+"After re-synchronization has completed, the split brain is considered "
+"resolved and the nodes form a fully consistent, redundant replicated storage "
+"system again."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-troubleshooting.adoc:279
+#, no-wrap
+msgid "Recovering a Primary Node that Lost Quorum"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:284
+msgid ""
+"The following instructions apply to cases where the DRBD on-loss-of-quorum "
+"action has been set to suspend I/O operations. In cases where the action has "
+"been set to generate I/O errors, the instructions are unnecessary."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:289
+msgid ""
+"The DRBD administration tool, `drbdadm`, includes a force secondary option, "
+"`secondary --force`.  If DRBD quorum was configured to suspend DRBD resource "
+"I/O operations upon loss of quorum, the force secondary option will allow "
+"you to gracefully recover the node that lost quorum and reintegrate it with "
+"the other nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:291
+msgid "Requirements:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:293
+msgid "DRBD version 9.1.7 or newer"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:295
+msgid "`drbd-utils` version 9.21 or newer"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:297
+msgid ""
+"You can use the command `drbdadm secondary --force <all|resource_name>` to "
+"demote a primary node to secondary, in cases where you are trying to recover "
+"a primary node that lost quorum. The argument to this command can be either "
+"a single DRBD resource name or `all` to demote the node to a secondary role "
+"for all its DRBD resources."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:304
+msgid ""
+"By using this command on the primary node that lost quorum with suspended I/"
+"O operations, all the suspended I/O requests and newly submitted I/O "
+"requests will terminate with I/O errors. You can then usually unmount the "
+"file system and reconnect the node to the other nodes in your cluster. An "
+"edge case is a file system opener that does not do any I/O and just idles "
+"around. Such processes need to be removed manually before unmounting will "
+"succeed or with the help of external tools such as `fuser -k`, or the OCF "
+"file system resource agent in clustered setups."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:315
+msgid ""
+"Along with the DRBD administration tool's force secondary option, you can "
+"also add the `on-suspended-primary-outdated` option to a DRBD resource "
+"configuration file and set it to the keyword value `force-secondary`. You "
+"will also need to add the resource role conflict (`rr-conflict`) option to "
+"the DRBD resource configuration file's `net` section, and set it to `retry-"
+"connect`. This enables DRBD to automatically recover a primary node that "
+"loses quorum with suspended I/O operations. With these options configured, "
+"when such a node connects to a cluster partition that has a more recent data "
+"set, DRBD automatically demotes the primary node that lost quorum and has "
+"suspended I/O operations.  Additional configurations, for example in a "
+"`handlers` section of the resource configuration file, as well as additional "
+"configurations within a cluster manager, may also be necessary to complete a "
+"fully automatic recovery setup."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-troubleshooting.adoc:318
+msgid ""
+"Settings within a DRBD resource configuration file's `options` section that "
+"cover this scenario could look like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:325
+#, no-wrap
+msgid ""
+"resource <resource_name> {\n"
+"net {\n"
+"\trr-conflict retry-connect;\n"
+"[...]\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-troubleshooting.adoc:335
+#, no-wrap
+msgid ""
+"options {\n"
+"\tquorum majority; # or explicit value\n"
+"\ton-no-quorum suspend-io;\n"
+"\ton-no-data-accessible suspend-io;\n"
+"\ton-suspended-primary-outdated force-secondary;\n"
+"[...]\n"
+"}\n"
+"[...]\n"
+"}\n"
+msgstr ""

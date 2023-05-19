@@ -1,0 +1,483 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#.  Keep the empty line before this comment, otherwise the next chapter is folded into this
+#. type: Title ==
+#: UG9/en/linstor-proxmox.adoc:2
+#, no-wrap
+msgid "LINSTOR Volumes in Proxmox VE"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:6
+msgid ""
+"indexterm:[Proxmox]This chapter describes DRBD in Proxmox Virtual "
+"Environment (VE) using the https://github.com/linbit/linstor-proxmox[LINSTOR "
+"Proxmox Plug-in]."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:8
+#, no-wrap
+msgid "Introduction to Proxmox VE"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:12
+msgid ""
+"http://www.proxmox.com/en/[Proxmox VE] is an easy to use, complete server "
+"virtualization environment with KVM, Linux Containers and HA."
+msgstr ""
+
+#. (LVM volumes on DRBD)
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:14
+msgid ""
+"'linstor-proxmox' is a Perl plug-in for Proxmox that, in combination with "
+"LINSTOR, allows you to replicate VM"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:18
+msgid ""
+"disks on several Proxmox VE nodes. This allows to live-migrate active VMs "
+"within a few seconds and with no downtime without needing a central SAN, as "
+"the data is already replicated to multiple nodes."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:20
+#, no-wrap
+msgid "Upgrading Proxmox"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:22
+msgid ""
+"If this is a fresh installation, skip this section and continue with <<s-"
+"proxmox-ls-install>>."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:24
+#, no-wrap
+msgid "Upgrading Plug-in to 7.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:27
+msgid ""
+"Version 7 of the plugin uses a LINSTOR controller API that is available from "
+"LINSTOR version 1.21.1 onwards.  Make sure that your LINSTOR setup "
+"(controller and satellites) use at least that version."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:29
+#, no-wrap
+msgid "Upgrading Plug-in from 4.x to 5.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:33
+msgid ""
+"Version 5 of the plug-in drops compatibility with the legacy configuration "
+"options \"storagepool\" and \"redundancy\". Version 5 *requires* a "
+"\"resourcegroup\" option, and obviously a LINSTOR resource group. The old "
+"options should be removed from the configuration."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:35
+msgid ""
+"Configuring LINSTOR is described in Section <<s-proxmox-ls-ls-"
+"configuration>>, a typical example follows:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:37
+msgid "Let's assume the pool was set to \"mypool\", and redundancy to 3."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:45
+#, no-wrap
+msgid ""
+"# linstor resource-group create --storage-pool=mypool --place-count=3 drbdMypoolThree\n"
+"# linstor volume-group create drbdMypoolThree\n"
+"# vi /etc/pve/storage.cfg\n"
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup drbdMypoolThree\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:48
+#, no-wrap
+msgid "Upgrading Plug-in from 5.x to 6.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:51
+msgid ""
+"Version 6.0.0 of the plug-in drops all code related to the `redundancy` "
+"setting. This is handled by LINSTOR resource groups (`resourcegroup` "
+"setting) for a very long time. No change should be required."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:54
+msgid ""
+"The `controllervm` setting, which was intended for executing a LINSTOR "
+"controller in a VM manged by LINSTOR is gone. Using `drbd-reactor` to "
+"realize a highly available LINSTOR controller is what we suggest."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:56
+msgid ""
+"The settings `statuscache` and `preferlocal` are now enabled by default."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:58
+#, no-wrap
+msgid "Upgrading PVE from 5.x to 6.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:62
+msgid ""
+"With version 6 PVE added additional parameters to some functions and "
+"rightfully reset their \"APIAGE\". This means that old plug-ins, while "
+"actually usable as they don't use any of these changed functions do not work "
+"anymore. Please upgrade to plug-in version 5.2.1 at least."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:64
+#, no-wrap
+msgid "Installing the LINSTOR Proxmox Plug-in"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:67
+msgid ""
+"To use LINSTOR in Proxmox, you will need to install the LINSTOR Proxmox plug-"
+"in."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:69
+#, no-wrap
+msgid "Installing the Proxmox VE Kernel Headers"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:76
+msgid ""
+"To use LINSTOR in Proxmox, you will need to install the DRBD kernel module. "
+"The DRBD 9 kernel module is installed as a kernel module source package "
+"(`drbd-dkms`).  Therefore, you will have to install the Proxmox VE kernel "
+"headers package, `pve-headers`, before you install the DRBD kernel module "
+"from LINBIT's repositories. Following that order ensures that the kernel "
+"module will build properly for your kernel."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:82
+msgid ""
+"If you do not plan to install the latest Proxmox kernel, you have to install "
+"kernel headers matching your current running kernel (for example, `pve-"
+"headers-$(uname -r)`). If you missed this step, then you can still rebuild "
+"the `drbd-dkms` package against your current kernel (so long as you have "
+"installed kernel headers in advance) by entering the `apt install --"
+"reinstall drbd-dkms` command."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:88
+msgid ""
+"You will need to add the Proxmox PVE repository to your APT sources list, `/"
+"etc/apt/sources.list`, and then enter `apt update`, before you can install "
+"the `pve-headers` package. Refer to https://pve.proxmox.com/wiki/"
+"Package_Repositories#_repositories_in_proxmox_vei[the Proxmox wiki] for "
+"instructions."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:91
+#, no-wrap
+msgid "Installing the Proxmox Plug-in By Using LINBIT Customer Repositories"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:96
+msgid ""
+"If you are a LINBIT customer, or you have an evaluation account, you can "
+"enable LINBIT's `drbd-9` repository on your node and then update your "
+"repositories by using an `apt update` command."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:99
+msgid ""
+"You can then install the DRBD kernel module, DRBD utilities, and the LINSTOR "
+"Proxmox plug-in by entering:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:102
+#, no-wrap
+msgid "# apt install drbd-utils linstor-proxmox drbd-dkms\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:107
+msgid ""
+"Refer to the <<linstor-administration.adoc#s-linbit-manage-nodes-script,"
+"Using a Script to Manage LINBIT Cluster Nodes>> for instructions on "
+"registering a node with LINBIT and enabling LINBIT repositories."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:110
+#, no-wrap
+msgid "Installing the Proxmox Plug-in By Using LINBIT Public Repositories"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:113
+msgid ""
+"LINBIT provides a dedicated public repository for Proxmox VE users. This "
+"repository not only contains the Proxmox plug-in, but the whole DRBD SDS "
+"stack including a DRBD SDS kernel module and user-space utilities."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:116
+msgid ""
+"LINBIT's repository can be enabled as follows, where \"$PVERS\" should be "
+"set to your Proxmox VE *major version* (for example, \"7\", not \"7.1\"):"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:122
+#, no-wrap
+msgid ""
+"# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
+"# PVERS=7 && echo \"deb http://packages.linbit.com/public/ proxmox-$PVERS drbd-9\" > \\\n"
+"/etc/apt/sources.list.d/linbit.list\n"
+"# apt update && apt -y install linstor-proxmox\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:125
+#, no-wrap
+msgid "Configuring LINSTOR"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:131
+msgid ""
+"For the rest of this guide we assume that you have a LINSTOR cluster "
+"configured as described in <<s-linstor-init-cluster>>. Start the \"linstor-"
+"controller\" on one node, and the \"linstor-satellite\" on all nodes. The "
+"\"linstor-satellite\" service needs some extra configuration which should be "
+"done via `systemctl edit linstor-satellite.service`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:136
+#, no-wrap
+msgid ""
+"[Service]\n"
+"Type=notify\n"
+"TimeoutStartSec=infinity\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:142
+msgid ""
+"The preferred way to use the plug-in, starting from version 4.1.0, is "
+"through LINSTOR resource groups and a single volume group within every "
+"resource group. LINSTOR resource groups are described in <<s-linstor-"
+"resource-groups>>. All the required LINSTOR configuration (e.g., redundancy "
+"count) has to be set on the resource group."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:144
+#, no-wrap
+msgid "Configuring the Proxmox Plug-in"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:147
+msgid ""
+"The final step is to provide a configuration for Proxmox itself. This can be "
+"done by adding an entry in the `/etc/pve/storage.cfg` file, with a content "
+"similar to the following."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:153 UG9/en/linstor-proxmox.adoc:173
+#, no-wrap
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup defaultpool\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:165
+msgid ""
+"The \"drbd\" entry is fixed and you are not allowed to modify it, as it "
+"tells to Proxmox to use DRBD as storage back end. The \"drbdstorage\" entry "
+"can be modified and is used as a friendly name that will be shown in the PVE "
+"web GUI to locate the DRBD storage. The \"content\" entry is also fixed, so "
+"do not change it. The redundancy (specified in the resource group) specifies "
+"how many replicas of the data will be stored in the cluster. The "
+"recommendation is to set it to 2 or 3 depending on your setup. The data is "
+"accessible from all nodes, even if some of them do not have local copies of "
+"the data. For example, in a 5 node cluster, all nodes will be able to access "
+"3 copies of the data, no matter where they are stored in. The \"controller\" "
+"parameter must be set to the IP of the node that runs the LINSTOR controller "
+"service. Only one node can be set to run as LINSTOR controller at the same "
+"time. If that node fails, start the LINSTOR controller on another node and "
+"change that value to its IP address."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:167
+msgid ""
+"A configuration using different storage pools in different resource groups "
+"would look like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:178
+#, no-wrap
+msgid ""
+"drbd: fastdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup ssd\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:183
+#, no-wrap
+msgid ""
+"drbd: slowdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup backup\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:187
+msgid ""
+"By now, you should be able to create VMs using Proxmox's web GUI by "
+"selecting \"__drbdstorage__\", or any other of the defined pools as storage "
+"location."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:193
+msgid ""
+"Starting from version 5 of the plug-in, you can set the option \"preferlocal "
+"yes\". If it is set, the plug-in tries to create a diskful assignment on the "
+"node that issued the storage create command. With this option you can ensure "
+"that the VM gets local storage if possible. Without that option LINSTOR "
+"might place the storage on nodes 'B' and 'C', while the VM is initially "
+"started on node 'A'. This would still work as node 'A' then would get a "
+"diskless assignment, but having local storage might be preferred."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-proxmox.adoc:194
+#, no-wrap
+msgid "NOTE: DRBD supports only the **raw** disk format at the moment."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:200
+msgid ""
+"At this point you can try to live migrate the VM - as all data is accessible "
+"on all nodes (even on Diskless nodes) - it will take just a few seconds. The "
+"overall process might take a bit longer if the VM is under load and if there "
+"is a significant amount of RAM being dirtied all the time. But in any case, "
+"the downtime should be minimal and you will see no interruption at all."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-proxmox.adoc:201
+#, no-wrap
+msgid "Table Configuration Options"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-proxmox.adoc:212
+#, no-wrap
+msgid ""
+"| Option | Meaning\n"
+"\n"
+"| `controller`    | The IP of the LINSTOR controller (',' separated list allowed)\n"
+"| `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above\n"
+"| `preferlocal`   | Prefer to create local storage (yes/no). As decribed above \n"
+"| `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storages in `/etc/pve/storage.cfg` to take effect.\n"
+"| `apicrt`        | Path to the client certificate\n"
+"| `apikey`        | Path to the client private key\n"
+"| `apica`         | Path to the CA certificate\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:215
+#, no-wrap
+msgid "Making the Controller Highly Available (Optional Configuration)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:218
+msgid ""
+"Making LINSTOR highly available is a matter of making the LINSTOR controller "
+"highly-available. This step is described in Section <<s-linstor_ha>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:223
+msgid ""
+"The last -- but crucial -- step is to configure the Proxmox plug-in to be "
+"able to connect to multiple LINSTOR controllers. It will use the first one "
+"it receives an answer from. This is done by adding a comma-separated list of "
+"controllers in the `controller` section of the plug-in like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:229
+#, no-wrap
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13,10.11.12.14,10.11.12.15\n"
+"   resourcegroup defaultpool\n"
+msgstr ""

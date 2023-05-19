@@ -1,0 +1,427 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: UG9/en/drbd-xen.adoc:2
+#, no-wrap
+msgid "Using Xen with DRBD"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:7
+msgid ""
+"indexterm:[Xen]This chapter outlines the use of DRBD as a Virtual Block "
+"Device (VBD) for virtualization environments using the Xen hypervisor."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-xen.adoc:9
+#, no-wrap
+msgid "Introduction to Xen"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:17
+msgid ""
+"Xen is a virtualization framework originally developed at the University of "
+"Cambridge (UK), and later being maintained by XenSource, Inc. (now a part of "
+"Citrix). It is included in reasonably recent releases of most Linux "
+"distributions, such as Debian GNU/Linux (since version 4.0), SUSE Linux "
+"Enterprise Server (since release 10), Red Hat Enterprise Linux (since "
+"release 5), and many others."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:26
+msgid ""
+"Xen uses paravirtualization — a virtualization method involving a high "
+"degree of cooperation between the virtualization host and guest virtual "
+"machines — with selected guest operating systems for improved performance in "
+"comparison to conventional virtualization solutions (which are typically "
+"based on hardware emulation). Xen also supports full hardware emulation on "
+"CPUs that support the appropriate virtualization extensions; in Xen "
+"parlance, this is known as HVM ( \"hardware-assisted virtual machine\")."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:31
+msgid ""
+"At the time of writing, CPU extensions supported by Xen for HVM are Intel's "
+"Virtualization Technology (VT, formerly codenamed \"Vanderpool\"), and AMD's "
+"Secure Virtual Machine (SVM, formerly known as \"Pacifica\")."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:35
+msgid ""
+"Xen supports indexterm:[Xen, live migration]_live migration_, which refers "
+"to the capability of transferring a running guest operating system from one "
+"physical host to another, without interruption."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:44
+msgid ""
+"When a DRBD resource is used as a replicated Virtual Block Device (VBD) for "
+"Xen, it serves to make the entire contents of a DomU's virtual disk "
+"available on two servers, which can then be configured for automatic "
+"failover. That way, DRBD does not only provide redundancy for Linux servers "
+"(as in non-virtual DRBD deployment scenarios), but also for any other "
+"operating system that can run virtually under Xen — which, in essence, "
+"includes any operating system available on 32- or 64-bit Intel compatible "
+"architectures."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-xen.adoc:46
+#, no-wrap
+msgid "Setting DRBD Module Parameters for Use with Xen"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:51
+msgid ""
+"For Xen Domain-0 kernels, it is recommended to load the DRBD module with the "
+"parameter `disable_sendpage` set to `1`. To do so, create (or open) the file "
+"`/etc/modprobe.d/drbd.conf` and enter the following line:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-xen.adoc:55
+#, no-wrap
+msgid "options drbd disable_sendpage=1\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-xen.adoc:58
+#, no-wrap
+msgid "Creating a DRBD Resource Suitable to Act as a Xen Virtual Block Device"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:66
+msgid ""
+"Configuring a DRBD resource that is to be used as a Virtual Block Device "
+"(VBD) for Xen is fairly straightforward -- in essence, the typical "
+"configuration matches that of a DRBD resource being used for any other "
+"purpose. However, if you want to enable live migration for your guest "
+"instance, you need to enable indexterm:[Dual-Primary mode]<<s-dual-primary-"
+"mode,dual-primary mode>>for this resource:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-xen.adoc:76
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    allow-two-primaries yes;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:82
+msgid ""
+"Enabling dual-primary mode is necessary because Xen, before initiating live "
+"migration, checks for write access on all VBDs a resource is configured to "
+"use on both the source and the destination host for the migration."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-xen.adoc:84
+#, no-wrap
+msgid "Using DRBD Virtual Block Devices"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:89
+msgid ""
+"To use a DRBD resource as the virtual block device, you must add a line like "
+"the following to your Xen DomU configuration: indexterm:[Xen]"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-xen.adoc:93
+#, no-wrap
+msgid "disk = [ 'drbd:<resource>,xvda,w' ]\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:97
+msgid ""
+"This example configuration makes the DRBD resource named _resource_ "
+"available to the DomU as `/dev/xvda` in read/write mode (`w`)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:101
+msgid ""
+"Of course, you may use multiple DRBD resources with a single DomU. In that "
+"case, simply add more entries like the one provided in the example to the "
+"`disk` option, separated by commas."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:105
+msgid ""
+"There are three sets of circumstances under which you cannot use this "
+"approach:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:107
+msgid "You are configuring a fully virtual (HVM) DomU."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:110
+msgid ""
+"You are installing your DomU using a graphical installation utility, _and_ "
+"that graphical installer does not support the `drbd:` syntax."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:115
+msgid ""
+"You are configuring a DomU without the `kernel`, `initrd`, and `extra` "
+"options, relying instead on `bootloader` and `bootloader_args` to use a Xen "
+"pseudo-bootloader, _and_ that pseudo-bootloader does not support the `drbd:` "
+"syntax."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:120
+msgid ""
+"pygrub+ (prior to Xen 3.3) and `domUloader.py` (shipped with Xen on SUSE "
+"Linux Enterprise Server 10) are two examples of pseudo-bootloaders that do "
+"not support the `drbd:` virtual block device configuration syntax."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:123
+msgid ""
+"`pygrub` from Xen 3.3 forward, and the `domUloader.py` version that ships "
+"with SLES 11 _do_ support this syntax."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:129
+msgid ""
+"Under these circumstances, you must use the traditional `phy:` device syntax "
+"and the DRBD device name that is associated with your resource, not the "
+"resource name. That, however, requires that you manage DRBD state "
+"transitions outside Xen, which is a less flexible approach than that "
+"provided by the `drbd` resource type."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-xen.adoc:131
+#, no-wrap
+msgid "Starting, Stopping, and Migrating DRBD-backed DomUs"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-xen.adoc:133
+#, no-wrap
+msgid "Starting the DomU"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:136
+msgid ""
+"Once you have configured your DRBD-backed DomU, you may start it as you "
+"would any other DomU:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-xen.adoc:141
+#, no-wrap
+msgid ""
+"# xm create <domU>\n"
+"Using config file \"/etc/xen/<domU>\".\n"
+"Started domain <domU>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:145
+msgid ""
+"In the process, the DRBD resource you configured as the VBD will be promoted "
+"to the primary role, and made accessible to Xen as expected."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-xen.adoc:147
+#, no-wrap
+msgid "Stopping the DomU"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:149
+msgid "This is equally straightforward:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-xen.adoc:153
+#, no-wrap
+msgid ""
+"# xm shutdown -w <domU>\n"
+"Domain <domU> terminated.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:157
+msgid ""
+"Again, as you would expect, the DRBD resource is returned to the secondary "
+"role after the DomU is successfully shut down."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-xen.adoc:159
+#, no-wrap
+msgid "Migrating the DomU"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:161
+msgid "This, too, is done using the usual Xen tools:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-xen.adoc:164
+#, no-wrap
+msgid "# xm migrate --live <domU> <destination-host>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:168
+msgid ""
+"In this case, several administrative steps are automatically taken in rapid "
+"succession:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:169
+msgid "The resource is promoted to the primary role on _destination-host_."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:170
+msgid "Live migration of _DomU_ is initiated on the local host."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:172
+msgid ""
+"When migration to the destination host has completed, the resource is "
+"demoted to the secondary role locally."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:176
+msgid ""
+"The fact that both resources must briefly run in the primary role on both "
+"hosts is the reason for having to configure the resource in dual-primary "
+"mode in the first place."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-xen.adoc:179
+#, no-wrap
+msgid "Internals of DRBD/Xen Integration"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:182
+msgid "Xen supports two Virtual Block Device types natively:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-xen.adoc:183
+#, no-wrap
+msgid "`phy`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:187
+msgid ""
+"This device type is used to hand \"physical\" block devices, available in "
+"the host environment, off to a guest DomU in an essentially transparent "
+"fashion."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-xen.adoc:188
+#, no-wrap
+msgid "`file`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:193
+msgid ""
+"This device type is used to make file-based block device images available to "
+"the guest DomU. It works by creating a loop block device from the original "
+"image file, and then handing that block device off to the DomU in much the "
+"same fashion as the `phy` device type does."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:199
+msgid ""
+"If a Virtual Block Device configured in the `disk` option of a DomU "
+"configuration uses any prefix other than `phy:`, `file:`, or no prefix at "
+"all (in which case Xen defaults to using the `phy` device type), Xen expects "
+"to find a helper script named ``block-``_prefix_ in the Xen scripts "
+"directory, commonly `/etc/xen/scripts`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:204
+msgid ""
+"The DRBD distribution provides such a script for the `drbd` device type, "
+"named `/etc/xen/scripts/block-drbd`. This script handles the necessary DRBD "
+"resource state transitions as described earlier in this chapter."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-xen.adoc:206
+#, no-wrap
+msgid "Integrating Xen with Pacemaker"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:212
+msgid ""
+"indexterm:[Xen]indexterm:[Heartbeat]To fully capitalize on the benefits "
+"provided by having a DRBD-backed Xen VBD's, it is recommended to have "
+"Pacemaker manage the associated DomUs as Pacemaker resources."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-xen.adoc:218
+msgid ""
+"You may configure a Xen DomU as a Pacemaker resource, and automate resource "
+"failover. To do so, use the Xen OCF resource agent. If you are using the "
+"`drbd` Xen device type described in this chapter, you will _not_ need to "
+"configure any separate `drbd` resource for use by the Xen cluster resource. "
+"Instead, the `block-drbd` helper script will do all the necessary resource "
+"transitions for you."
+msgstr ""

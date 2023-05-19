@@ -1,0 +1,1536 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1749 UG9/en/drbd-features.adoc:713
+msgid ""
+"Now, as your storage demands grow, you will encounter the need for "
+"additional servers. Rather than having to buy 3 more servers at the same "
+"time, you can _rebalance_ your data across a single additional node."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1751 UG9/en/drbd-features.adoc:714
+#, no-wrap
+msgid "DRBD data rebalancing"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:1752 UG9/en/drbd-features.adoc:715
+#, no-wrap
+msgid "images/rebalance.svg"
+msgstr ""
+
+#. [scaledwidth="75"]
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1757 UG9/en/drbd-features.adoc:722
+msgid ""
+"In the figure above you can see the _before_ and _after_ states: from 3 "
+"nodes with three 25TiB volumes each (for a net 75TiB), to 4 nodes, with net "
+"100TiB."
+msgstr ""
+
+#. type: Title ==
+#: UG9/en/drbd-features.adoc:2
+#, no-wrap
+msgid "DRBD Features"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:10
+msgid ""
+"This chapter discusses various useful DRBD features, and gives some "
+"background information about them. Some of these features will be important "
+"to most users, some will only be relevant in very specific deployment "
+"scenarios. <<p-work>> and <<ch-troubleshooting>> contain instructions on how "
+"to enable and use these features in day-to-day operation."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:12
+#, no-wrap
+msgid "Single-primary Mode"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:19
+msgid ""
+"In single-primary mode, a resource is, at any given time, in the primary "
+"role on only one cluster member. Since it is guaranteed that only one "
+"cluster node manipulates the data at any moment, this mode can be used with "
+"any conventional file system (ext3, ext4, XFS, and so on)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:22
+msgid ""
+"Deploying DRBD in single-primary mode is the canonical approach for High-"
+"Availability (fail-over capable) clusters."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:24
+#, no-wrap
+msgid "Dual-primary Mode"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:30
+msgid ""
+"In dual-primary mode a resource can be in the primary role on two nodes at a "
+"time. Since concurrent access to the data is therefore possible, this mode "
+"usually requires the use of a shared cluster file system that uses a "
+"distributed lock manager."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:32
+msgid "Examples include <<ch-gfs,GFS>> and <<ch-ocfs2,OCFS2>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:39
+msgid ""
+"Deploying DRBD in dual-primary mode is the preferred approach for load-"
+"balancing clusters which require concurrent data access from two nodes, for "
+"example, virtualization environments with a need for live-migration.  This "
+"mode is disabled by default, and must be enabled explicitly in DRBD's "
+"configuration file."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:42
+msgid ""
+"See <<s-enable-dual-primary>> for information about enabling dual-primary "
+"mode for specific resources."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:44
+#, no-wrap
+msgid "Replication Modes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:48
+msgid ""
+"DRBD supports three distinct replication modes, allowing three degrees of "
+"replication synchronicity."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:50
+#, no-wrap
+msgid "Protocol A"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:58
+msgid ""
+"Asynchronous replication protocol. Local write operations on the primary "
+"node are considered completed as soon as the local disk write has finished, "
+"and the replication packet has been placed in the local TCP send buffer. In "
+"case of forced fail-over, data loss may occur. The data on the standby node "
+"is consistent after fail-over; however, the most recent updates performed "
+"prior to the fail-over could be lost. Protocol A is most often used in long "
+"distance replication scenarios."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:61
+msgid ""
+"When used in combination with DRBD Proxy it makes an effective disaster "
+"recovery solution. See <<s-drbd-proxy>>, for more information."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:65
+#, no-wrap
+msgid "Protocol B"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:73
+msgid ""
+"Memory synchronous (semi-synchronous) replication protocol. Local write "
+"operations on the primary node are considered completed as soon as the local "
+"disk write has occurred, and the replication packet has reached the peer "
+"node. Normally, no writes are lost in case of forced fail-over. However, in "
+"case of simultaneous power failure on both nodes *and* concurrent, "
+"irreversible destruction of the primary's data store, the most recent writes "
+"completed on the primary may be lost."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:75
+#, no-wrap
+msgid "Protocol C"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:83
+msgid ""
+"Synchronous replication protocol. Local write operations on the primary node "
+"are considered completed only after both the local and the remote disk "
+"write(s) have been confirmed. As a result, loss of a single node is "
+"guaranteed not to lead to any data loss. Data loss is, of course, inevitable "
+"even with this replication protocol if all nodes (respective of their "
+"storage subsystems) are irreversibly destroyed at the same time."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:86
+msgid ""
+"By far, the most commonly used replication protocol in DRBD setups is "
+"protocol C."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:90
+msgid ""
+"The choice of replication protocol influences two factors of your "
+"deployment: _protection_ and _latency_. _Throughput_, by contrast, is "
+"largely independent of the replication protocol selected."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:93
+msgid ""
+"See <<s-configure-resource>> for an example resource configuration which "
+"demonstrates replication protocol configuration."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:95
+#, no-wrap
+msgid "More than Two-way Redundancy"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:99
+msgid ""
+"With DRBD 9 it's possible to have the data stored simultaneously on more "
+"than two cluster nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:104
+msgid ""
+"While this has been possible before through <<s-three-way-repl,stacking>>, "
+"in DRBD 9 this is supported out-of-the-box for (currently) up to 16 nodes.  "
+"(In practice, using three-, four- or perhaps five-way redundancy through "
+"DRBD will make other things the leading cause of downtime.)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:107
+msgid ""
+"The major difference to the stacking solution is that there's less "
+"performance loss, because only one level of data replication is being used."
+msgstr ""
+
+#.  E.g. if availability for a single node is 99%, for two nodes it might
+#.  be 99.99%, for three nodes 99.999%
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:112
+#, no-wrap
+msgid "Automatic Promotion of Resources"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:119
+msgid ""
+"Prior to DRBD 9, promoting a resource would be done with the `drbdadm "
+"primary` command. With DRBD 9, DRBD will automatically promote a resource to "
+"primary role when the `auto-promote` option is enabled, and one of its "
+"volumes is mounted or opened for writing. As soon as all volumes are "
+"unmounted or closed, the role of the resource changes back to secondary."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:123
+msgid ""
+"Automatic promotion will only succeed if the cluster state allows it (that "
+"is, if an explicit `drbdadm primary` command would succeed). Otherwise, "
+"mounting or opening the device fails as it did prior to DRBD 9."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:126
+#, no-wrap
+msgid "Multiple Replication Transports"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:130
+msgid ""
+"DRBD supports multiple network transports. As of now two transport "
+"implementations are available: TCP and RDMA. Each transport implementation "
+"comes as its own kernel module."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-features.adoc:132
+#, no-wrap
+msgid "TCP Transport"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:137
+msgid ""
+"The `drbd_transport_tcp.ko` transport implementation is included with the "
+"distribution files of drbd itself.  As the name implies, this transport "
+"implementation uses the TCP/IP protocol to move data between machines."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:140
+msgid ""
+"DRBD's replication and synchronization framework socket layer supports "
+"multiple low-level transports:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:141
+#, no-wrap
+msgid "TCP over IPv4"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:144
+msgid ""
+"This is the canonical implementation, and DRBD's default. It may be used on "
+"any system that has IPv4 enabled."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:145
+#, no-wrap
+msgid "TCP over IPv6"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:150
+msgid ""
+"When configured to use standard TCP sockets for replication and "
+"synchronization, DRBD can use also IPv6 as its network protocol. This is "
+"equivalent in semantics and performance to IPv4, albeit using a different "
+"addressing scheme."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:151
+#, no-wrap
+msgid "SDP"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:157
+msgid ""
+"SDP is an implementation of BSD-style sockets for RDMA capable transports "
+"such as InfiniBand. SDP was available as part of the OFED stack of most "
+"distributions but is now *considered deprecated*. SDP uses an IPv4-style "
+"addressing scheme. Employed over an InfiniBand interconnect, SDP provides a "
+"high-throughput, low-latency replication network to DRBD."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:158
+#, no-wrap
+msgid "SuperSockets"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:165
+msgid ""
+"SuperSockets replace the TCP/IP portions of the stack with a single, "
+"monolithic, highly efficient and RDMA capable socket implementation. DRBD "
+"can use this socket type for very low latency replication. SuperSockets must "
+"run on specific hardware which is currently available from a single vendor, "
+"Dolphin Interconnect Solutions."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-features.adoc:167
+#, no-wrap
+msgid "RDMA Transport"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:170
+msgid ""
+"Since DRBD version 9.2.0, the `drbd_transport_rdma` kernel module is "
+"available as open source code."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:176
+msgid ""
+"You can download the open source code from LINBIT's https://linbit.com/"
+"linbit-software-download-page-for-linstor-and-drbd-linux-driver/#drbd-9[tar "
+"archived DRBD releases page], or through LINBIT's https://github.com/LINBIT/"
+"drbd/tree/master/drbd[DRBD GitHub repository]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:179
+msgid ""
+"Alternatively, if you are LINBIT customer, the `drbd_transport_rdma.ko` "
+"kernel module is available in LINBIT's customer software repositories."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:185
+msgid ""
+"This transport uses the verbs/RDMA API to move data over InfiniBand HCAs, "
+"iWARP capable NICs or RoCE capable NICs. In contrast to the BSD sockets API "
+"(used by TCP/IP) the verbs/RDMA API allows data movement with very little "
+"CPU involvement."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:190
+msgid ""
+"At high transfer rates it might be possible that the CPU load/memory "
+"bandwidth of the tcp transport becomes the limiting factor. You can probably "
+"achieve higher transfer rates using the RDMA transport with appropriate "
+"hardware."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:193
+msgid ""
+"A transport implementation can be configured for each connection of a "
+"resource. See <<s-configuring-transports>> for more details."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:195
+#, no-wrap
+msgid "Multiple Paths"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:201
+msgid ""
+"DRBD allows configuring multiple paths per connection. The TCP transport "
+"uses only one path at a time for a connection. The RDMA transport is capable "
+"of balancing the network traffic over multiple paths of a single connection. "
+"see <<s-configuring-multiple-paths>> for more details."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:203
+#, no-wrap
+msgid "Efficient Synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:209
+msgid ""
+"(Re-)synchronization is distinct from device replication. While replication "
+"occurs on any write event to a resource in the primary role, synchronization "
+"is decoupled from incoming writes. Rather, it affects the device as a whole."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:216
+msgid ""
+"Synchronization is necessary if the replication link has been interrupted "
+"for any reason, be it due to failure of the primary node, failure of the "
+"secondary node, or interruption of the replication link. Synchronization is "
+"efficient in the sense that DRBD does not synchronize modified blocks in the "
+"order they were originally written, but in linear order, which has the "
+"following consequences:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:219
+msgid ""
+"Synchronization is fast, since blocks in which several successive write "
+"operations occurred are only synchronized once."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:222
+msgid ""
+"Synchronization is also associated with few disk seeks, as blocks are "
+"synchronized according to the natural on-disk block layout."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:226
+msgid ""
+"During synchronization, the data set on the standby node is partly obsolete "
+"and partly already updated. This state of data is called _inconsistent_."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:229
+msgid ""
+"The service continues to run uninterrupted on the active node, while "
+"background synchronization is in progress."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:238
+msgid ""
+"A node with inconsistent data generally cannot be put into operation, "
+"therefore it is desirable to keep the time period during which a node is "
+"inconsistent as short as possible. DRBD does, however, include an LVM "
+"integration facility that automates the creation of LVM snapshots "
+"immediately before synchronization. This ensures that a _consistent_ copy of "
+"the data is always available on the peer, even while synchronization is "
+"running. See <<s-lvm-snapshots>> for details on using this facility."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-features.adoc:240
+#, no-wrap
+msgid "Variable-rate Synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:246
+msgid ""
+"In variable-rate synchronization (the default since 8.4), DRBD detects the "
+"available bandwidth on the synchronization network, compares it to incoming "
+"foreground application I/O, and selects an appropriate synchronization rate "
+"based on a fully automatic control loop."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:249
+msgid ""
+"See <<s-configure-sync-rate-variable>> for configuration suggestions with "
+"regard to variable-rate synchronization."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-features.adoc:251
+#, no-wrap
+msgid "Fixed-rate Synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:257
+msgid ""
+"In fixed-rate synchronization, the amount of data shipped to the "
+"synchronizing peer per second (the _synchronization rate_) has a "
+"configurable, static upper limit. Based on this limit, you may estimate the "
+"expected sync time based on the following simple formula:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:260
+#, no-wrap
+msgid "Synchronization time"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-features.adoc:261
+#, no-wrap
+msgid "images/resync-time.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:270
+msgid ""
+"_t~sync~_ is the expected sync time. _D_ is the amount of data to be "
+"synchronized, which you are unlikely to have any influence over (this is the "
+"amount of data that was modified by your application while the replication "
+"link was broken). _R_ is the rate of synchronization, which is configurable "
+"-- bounded by the throughput limitations of the replication network and I/O "
+"subsystem."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:273
+msgid ""
+"See <<s-configure-sync-rate>> for configuration suggestions with regard to "
+"fixed-rate synchronization."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-features.adoc:275
+#, no-wrap
+msgid "Checksum-based Synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:288
+msgid ""
+"The efficiency of DRBD's synchronization algorithm may be further enhanced "
+"by using data digests, also known as checksums. When using checksum-based "
+"synchronization, then rather than performing a brute-force overwrite of "
+"blocks marked out of sync, DRBD _reads_ blocks before synchronizing them and "
+"computes a hash of the contents currently found on disk. It then compares "
+"this hash with one computed from the same sector on the peer, and omits re-"
+"writing this block if the hashes match. This can dramatically cut down "
+"synchronization times in situations where a file system re-writes a sector "
+"with identical contents while DRBD is in disconnected mode."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:291
+msgid ""
+"See <<s-configure-checksum-sync>> for configuration suggestions with regard "
+"to synchronization."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:294
+#, no-wrap
+msgid "Suspended Replication"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:302
+msgid ""
+"If properly configured, DRBD can detect if the replication network is "
+"congested, and _suspend_ replication in this case. In this mode, the primary "
+"node \"pulls ahead\" of the secondary -- temporarily going out of sync, but "
+"still leaving a consistent copy on the secondary. When more bandwidth "
+"becomes available, replication automatically resumes and a background "
+"synchronization takes place."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:306
+msgid ""
+"Suspended replication is typically enabled over links with variable "
+"bandwidth, such as wide area replication over shared connections between "
+"data centers or cloud instances."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:309
+msgid ""
+"See <<s-configure-congestion-policy>> for details on congestion policies and "
+"suspended replication."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:311
+#, no-wrap
+msgid "Online Device Verification"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:315
+msgid ""
+"Online device verification enables users to do a block-by-block data "
+"integrity check between nodes in a very efficient manner."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:320
+msgid ""
+"Note that _efficient_ refers to efficient use of network bandwidth here, and "
+"to the fact that verification does not break redundancy in any way. Online "
+"verification is still a resource-intensive operation, with a noticeable "
+"impact on CPU utilization and load average."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:330
+msgid ""
+"It works by one node (the _verification source_) sequentially calculating a "
+"cryptographic digest of every block stored on the lower-level storage device "
+"of a particular resource. DRBD then transmits that digest to the peer "
+"node(s) (the _verification target(s)_), where it is checked against a digest "
+"of the local copy of the affected block. If the digests do not match, the "
+"block is marked out-of-sync and may later be synchronized. Because DRBD "
+"transmits just the digests, not the full blocks, online verification uses "
+"network bandwidth very efficiently."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:337
+msgid ""
+"The process is termed _online_ verification because it does not require that "
+"the DRBD resource being verified is unused at the time of verification. "
+"Therefore, though it does carry a slight performance penalty while it is "
+"running, online verification does not cause service interruption or system "
+"down time -- neither during the verification run nor during subsequent "
+"synchronization."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:342
+msgid ""
+"It is a common use case to have online verification managed by the local "
+"cron daemon, running it, for example, once a week or once a month. See <<s-"
+"use-online-verify>> for information about how to enable, invoke, and "
+"automate online verification."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:344
+#, no-wrap
+msgid "Replication Traffic Integrity Checking"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:348
+msgid ""
+"DRBD optionally performs end-to-end message integrity checking using "
+"cryptographic message digest algorithms such as MD5, SHA-1, or CRC-32C."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:353
+msgid ""
+"These message digest algorithms are *not* provided by DRBD, but by the Linux "
+"kernel crypto API; DRBD merely uses them. Therefore, DRBD is capable of "
+"using any message digest algorithm available in a particular system's kernel "
+"configuration."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:362
+msgid ""
+"With this feature enabled, DRBD generates a message digest of every data "
+"block it replicates to the peer, which the peer then uses to verify the "
+"integrity of the replication packet. If the replicated block can not be "
+"verified against the digest, the connection is dropped and immediately re-"
+"established; because of the bitmap the typical result is a retransmission. "
+"Therefore, DRBD replication is protected against several error sources, all "
+"of which, if unchecked, would potentially lead to data corruption during the "
+"replication process:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:367
+msgid ""
+"Bitwise errors (\"bit flips\") occurring on data in transit between main "
+"memory and the network interface on the sending node (which goes undetected "
+"by TCP checksumming if it is offloaded to the network card, as is common in "
+"recent implementations);"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:371
+msgid ""
+"Bit flips occurring on data in transit from the network interface to main "
+"memory on the receiving node (the same considerations apply for TCP checksum "
+"offloading);"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:374
+msgid ""
+"Any form of corruption due to a race conditions or bugs in network interface "
+"firmware or drivers;"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:378
+msgid ""
+"Bit flips or random corruption injected by some reassembling network "
+"component between nodes (if not using direct, back-to-back connections)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:381
+msgid ""
+"See <<s-configure-integrity-check>> for information about how to enable "
+"replication traffic integrity checking."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:383
+#, no-wrap
+msgid "Split Brain Notification and Automatic Recovery"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:393
+msgid ""
+"Split brain is a situation where, due to temporary failure of all network "
+"links between cluster nodes, and possibly due to intervention by a cluster "
+"management software or human error, both nodes switched to the _Primary_ "
+"role while disconnected. This is a potentially harmful state, as it implies "
+"that modifications to the data might have been made on either node, without "
+"having been replicated to the peer. Therefore, it is likely in this "
+"situation that two diverging sets of data have been created, which cannot be "
+"trivially merged."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:398
+msgid ""
+"DRBD split brain is distinct from cluster split brain, which is the loss of "
+"all connectivity between hosts managed by a distributed cluster management "
+"application such as Pacemaker. To avoid confusion, this guide uses the "
+"following convention:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:401
+msgid ""
+"_Split brain_ refers to DRBD split brain as described in the paragraph above."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:404
+msgid ""
+"Loss of all cluster connectivity is referred to as a _cluster partition_, an "
+"alternative term for cluster split brain."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:408
+msgid ""
+"DRBD allows for automatic operator notification (by email or other means) "
+"when it detects split brain. See <<s-split-brain-notification>> for details "
+"on how to configure this feature."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:414
+msgid ""
+"While the recommended course of action in this scenario is to <<s-resolve-"
+"split-brain,manually resolve>> the split brain and then eliminate its root "
+"cause, it may be desirable, in some cases, to automate the process. DRBD has "
+"several resolution algorithms available for doing so:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:419
+#, no-wrap
+msgid ""
+"*Discarding modifications made on the younger primary.* In this\n"
+"mode, when the network connection is re-established and split brain\n"
+"is discovered, DRBD will discard modifications made, in the\n"
+"meantime, on the node which switched to the primary role _last_.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:423
+#, no-wrap
+msgid ""
+"*Discarding modifications made on the older primary.* In this mode,\n"
+"DRBD will discard modifications made, in the meantime, on the node\n"
+"which switched to the primary role _first_.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:428
+#, no-wrap
+msgid ""
+"*Discarding modifications on the primary with fewer changes.* In\n"
+"this mode, DRBD will check which of the two nodes has recorded fewer\n"
+"modifications, and will then discard _all_ modifications made on\n"
+"that host.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:438
+#, no-wrap
+msgid ""
+"*Graceful recovery from split brain if one host has had no\n"
+"intermediate changes.* In this mode, if one of the hosts has made no\n"
+"modifications at all during split brain, DRBD will simply recover\n"
+"gracefully and declare the split brain resolved. Note that this is a\n"
+"fairly unlikely scenario. Even if both hosts only mounted the file\n"
+"system on the DRBD block device (even read-only), the device\n"
+"contents typically would be modified (for example, by file system journal\n"
+"replay), ruling out the possibility of automatic\n"
+"recovery.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:447
+msgid ""
+"Whether or not automatic split brain recovery is acceptable depends largely "
+"on the individual application. Consider the example of DRBD hosting a "
+"database. The discard modifications from host with fewer changes approach "
+"may be fine for a web application click-through database. By contrast, it "
+"may be totally unacceptable to automatically discard _any_ modifications "
+"made to a financial database, requiring manual recovery in any split brain "
+"event. Consider your application's requirements carefully before enabling "
+"automatic split brain recovery."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:450
+msgid ""
+"Refer to <<s-automatic-split-brain-recovery-configuration>> for details on "
+"configuring DRBD's automatic split brain recovery policies."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:452
+#, no-wrap
+msgid "Support for Disk Flushes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:461
+msgid ""
+"When local block devices such as hard drives or RAID logical disks have "
+"write caching enabled, writes to these devices are considered completed as "
+"soon as they have reached the volatile cache. Controller manufacturers "
+"typically refer to this as write-back mode, the opposite being write-"
+"through. If a power outage occurs on a controller in write-back mode, the "
+"last writes are never committed to the disk, potentially causing data loss."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:472
+msgid ""
+"To counteract this, DRBD makes use of disk flushes. A disk flush is a write "
+"operation that completes only when the associated data has been committed to "
+"stable (non-volatile) storage -- that is to say, it has effectively been "
+"written to disk, rather than to the cache. DRBD uses disk flushes for write "
+"operations both to its replicated data set and to its meta data. In effect, "
+"DRBD circumvents the write cache in situations it deems necessary, as in <<s-"
+"activity-log,activity log>> updates or enforcement of implicit write-after-"
+"write dependencies. This means additional reliability even in the face of "
+"power failure."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:479
+msgid ""
+"It is important to understand that DRBD can use disk flushes only when "
+"layered on top of backing devices that support them. Most reasonably recent "
+"kernels support disk flushes for most SCSI and SATA devices. Linux software "
+"RAID (md) supports disk flushes for RAID-1 provided that all component "
+"devices support them too. The same is true for device-mapper devices (LVM2, "
+"dm-raid, multipath)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:488
+msgid ""
+"Controllers with battery-backed write cache (BBWC) use a battery to back up "
+"their volatile storage. On such devices, when power is restored after an "
+"outage, the controller flushes all pending writes out to disk from the "
+"battery-backed cache, ensuring that all writes committed to the volatile "
+"cache are actually transferred to stable storage. When running DRBD on top "
+"of such devices, it may be acceptable to disable disk flushes, thereby "
+"improving DRBD's write performance. See <<s-disable-flushes>> for details."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:490
+#, no-wrap
+msgid "Trim and Discard Support"
+msgstr ""
+
+#.  mat - placeholder to come back and re-word ambiguous "recycled" below
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:500
+#, no-wrap
+msgid ""
+"_Trim_ and _Discard_ are two names for the same feature: a request to a storage system, telling it that some data range is not being used anymorefootnote:[For example, a deleted file's data.] and can be erased internally.\n"
+"This call originates in Flash-based storages (SSDs, FusionIO cards, and so on), which cannot easily _rewrite_ a sector but instead have to _erase_ and write the (new) data again (incurring some latency cost). For more details, see for example, the https://en.wikipedia.org/wiki/Trim_%28computing%29[wikipedia page]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:506
+msgid ""
+"Since 8.4.3 DRBD includes support for _Trim_/_Discard_. You don't need to "
+"configure or enable anything; if DRBD detects that the local (underlying) "
+"storage system allows using these commands, it will transparently enable "
+"them and pass such requests through."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:511
+msgid ""
+"The effect is that for example, a recent-enough `mkfs.ext4` on a multi-TB "
+"volume can shorten the initial sync time to a few seconds to minutes - just "
+"by telling DRBD (which will relay that information to all connected nodes) "
+"that most/all of the storage is now to be seen as invalidated."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:516
+msgid ""
+"Nodes that connect to that resource later on will not have seen the _Trim_/"
+"_Discard_ requests, and will therefore start a full resync; depending on "
+"kernel version and file system a call to `fstrim` might give the wanted "
+"result, though."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:520
+msgid ""
+"even if you don't have storage with _Trim_/_Discard_ support, some virtual "
+"block devices will provide you with the same feature, for example Thin LVM."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:523
+#, no-wrap
+msgid "Disk Error Handling Strategies"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:529
+msgid ""
+"If a hard disk that is used as a backing block device for DRBD on one of the "
+"nodes fails, DRBD may either pass on the I/O error to the upper layer "
+"(usually the file system) or it can mask I/O errors from upper layers."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:531
+#, no-wrap
+msgid "Passing on I/O errors"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:538
+msgid ""
+"If DRBD is configured to pass on I/O errors, any such errors occurring on "
+"the lower-level device are transparently passed to upper I/O layers. "
+"Therefore, it is left to upper layers to deal with such errors (this may "
+"result in a file system being remounted read-only, for example). This "
+"strategy does not ensure service continuity, and is therefore not "
+"recommended for most users."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:540
+#, no-wrap
+msgid "Masking I/O errors"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:550
+msgid ""
+"If DRBD is configured to _detach_ on lower-level I/O error, DRBD will do so, "
+"automatically, upon occurrence of the first lower-level I/O error. The I/O "
+"error is masked from upper layers while DRBD transparently fetches the "
+"affected block from a peer node, over the network. From then onwards, DRBD "
+"is said to operate in diskless mode, and carries out all subsequent I/O "
+"operations, read and write, on the peer node(s) only. Performance in this "
+"mode will be reduced, but the service continues without interruption, and "
+"can be moved to the peer node in a deliberate fashion at a convenient time."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:553
+msgid ""
+"See <<s-configure-io-error-behavior>> for information about configuring I/O "
+"error handling strategies for DRBD."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:555
+#, no-wrap
+msgid "Strategies for Handling Outdated Data"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:566
+msgid ""
+"DRBD distinguishes between _inconsistent_ and _outdated_ data. Inconsistent "
+"data is data that cannot be expected to be accessible and useful in any "
+"manner. The prime example for this is data on a node that is currently the "
+"target of an ongoing synchronization. Data on such a node is part obsolete, "
+"part up to date, and impossible to identify as either. Therefore, for "
+"example, if the device holds a file system (as is commonly the case), that "
+"file system would be unexpected to mount or even pass an automatic file "
+"system check."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:575
+msgid ""
+"Outdated data, by contrast, is data on a secondary node that is consistent, "
+"but no longer in sync with the primary node. This would occur in any "
+"interruption of the replication link, whether temporary or permanent. Data "
+"on an outdated, disconnected secondary node is expected to be clean, but it "
+"reflects a state of the peer node some time past. To avoid services using "
+"outdated data, DRBD disallows <<s-resource-roles,promoting a resource>> that "
+"is in the outdated state."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:580
+msgid ""
+"DRBD has interfaces that allow an external application to outdate a "
+"secondary node as soon as a network interruption occurs. DRBD will then "
+"refuse to switch the node to the primary role, preventing applications from "
+"using the outdated data."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:586
+msgid ""
+"A complete implementation of this functionality exists for the <<ch-"
+"pacemaker,Pacemaker cluster management framework>> (where it uses a "
+"communication channel separate from the DRBD replication link). However, the "
+"interfaces are generic and may be easily used by any other cluster "
+"management application."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:591
+msgid ""
+"Whenever an outdated resource has its replication link re-established, its "
+"outdated flag is automatically cleared. A <<s-resync,background "
+"synchronization>> then follows."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:593
+#, no-wrap
+msgid "Three-way Replication Using Stacking"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:598
+msgid ""
+"Available in DRBD version 8.3.0 and above; deprecated in DRBD version 9.x, "
+"as more nodes can be implemented on a single level. See <<s-drbdconf-conns>> "
+"for details."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:602
+msgid ""
+"When using three-way replication, DRBD adds a third node to an existing 2-"
+"node cluster and replicates data to that node, where it can be used for "
+"backup and disaster recovery purposes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:604
+msgid "This type of configuration generally involves <<s-drbd-proxy>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:609
+msgid ""
+"Three-way replication works by adding another, _stacked_ DRBD resource on "
+"top of the existing resource holding your production data, as seen in this "
+"illustration:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-features.adoc:610
+#, no-wrap
+msgid "DRBD resource stacking"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-features.adoc:611
+#, no-wrap
+msgid "images/drbd-resource-stacking.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:616
+msgid ""
+"The stacked resource is replicated using asynchronous replication (DRBD "
+"protocol A), whereas the production data would usually make use of "
+"synchronous replication (DRBD protocol C)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:623
+msgid ""
+"Three-way replication can be used permanently, where the third node is "
+"continuously updated with data from the production cluster. Alternatively, "
+"it may also be employed on demand, where the production cluster is normally "
+"disconnected from the backup site, and site-to-site synchronization is "
+"performed on a regular basis, for example by running a nightly cron job."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:626
+#, no-wrap
+msgid "Long-distance Replication through DRBD Proxy"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:633
+msgid ""
+"DRBD's <<s-replication-protocols,protocol A>> is asynchronous, but the "
+"writing application will block as soon as the socket output buffer is full "
+"(see the `sndbuf-size` option in the man page of `drbd.conf`). In that "
+"event, the writing application has to wait until some of the data written "
+"runs off through a possibly small bandwidth network link."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:637
+msgid ""
+"The average write bandwidth is limited by available bandwidth of the network "
+"link. Write bursts can only be handled gracefully if they fit into the "
+"limited socket output buffer."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:642
+msgid ""
+"You can mitigate this by DRBD Proxy's buffering mechanism. DRBD Proxy will "
+"place changed data from the DRBD device on the primary node into its "
+"buffers. DRBD Proxy's buffer size is freely configurable, only limited by "
+"the address room size and available physical RAM."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:648
+msgid ""
+"Optionally DRBD Proxy can be configured to compress and decompress the data "
+"it forwards. Compression and decompression of DRBD's data packets might "
+"slightly increase latency. However, when the bandwidth of the network link "
+"is the limiting factor, the gain in shortening transmit time outweighs the "
+"added latency of compression and decompression."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:651
+msgid ""
+"Compression and decompression were implemented with multi core SMP systems "
+"in mind, and can use multiple CPU cores."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:655
+msgid ""
+"The fact that most block I/O data compresses very well and therefore the "
+"effective bandwidth increases justifies the use of the DRBD Proxy even with "
+"DRBD protocols B and C."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:657
+msgid ""
+"See <<s-using-drbd-proxy>> for information about configuring DRBD Proxy."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:661
+msgid ""
+"DRBD Proxy is one of the few parts of the DRBD product family that is not "
+"published under an open source license. Please contact sales@linbit.com or "
+"sales_us@linbit.com for an evaluation license."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:664
+#, no-wrap
+msgid "Truck-based Replication"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:670
+msgid ""
+"Truck-based replication, also known as disk shipping, is a means of "
+"preseeding a remote site with data to be replicated, by physically shipping "
+"storage media to the remote site. This is particularly suited for situations "
+"where"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:673
+msgid ""
+"the total amount of data to be replicated is fairly large (more than a few "
+"hundreds of gigabytes);"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:676
+msgid ""
+"the expected rate of change of the data to be replicated is less than "
+"enormous;"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:679
+msgid "the available network bandwidth between sites is limited."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:686
+msgid ""
+"In such situations, without truck-based replication, DRBD would require a "
+"very long initial device synchronization (on the order of weeks, months, or "
+"years). Truck based replication allows shipping a data seed to the remote "
+"site, and so drastically reduces the initial synchronization time. See <<s-"
+"using-truck-based-replication>> for details on this use case."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:688
+#, no-wrap
+msgid "Floating Peers"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:691
+msgid "This feature is available in DRBD versions 8.3.2 and above."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:698
+msgid ""
+"A somewhat special use case for DRBD is the _floating peers_ configuration. "
+"In floating peer setups, DRBD peers are not tied to specific named hosts (as "
+"in conventional configurations), but instead have the ability to float "
+"between several hosts. In such a configuration, DRBD identifies peers by IP "
+"address, rather than by host name."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:702
+msgid ""
+"For more information about managing floating peer configurations, see <<s-"
+"pacemaker-floating-peers>>."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:705
+#, no-wrap
+msgid "Data Rebalancing (Horizontal Storage Scaling)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:709
+msgid ""
+"If your company's policy says that 3-way redundancy is needed, you need at "
+"least 3 servers for your setup."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:725
+msgid ""
+"DRBD 9 makes it possible to do an online, live migration of the data; please "
+"see <<s-rebalance-workflow>> for the exact steps needed."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:727
+#, no-wrap
+msgid "DRBD Client"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:731
+msgid ""
+"With the multiple-peer feature of DRBD, several interesting use cases have "
+"been added, for example the _DRBD client_."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:736
+msgid ""
+"The basic idea is that the DRBD _back end_ can consist of three, four, or "
+"more nodes (depending on the policy of required redundancy); but, as DRBD 9 "
+"can connect more nodes than that. DRBD works then as a storage access "
+"protocol in addition to storage replication."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:741
+msgid ""
+"All write requests executed on a primary _DRBD client_ gets shipped to all "
+"nodes equipped with storage. Read requests are only shipped to one of the "
+"server nodes. The _DRBD client_ will evenly distribute the read requests "
+"among all available server nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:743
+msgid "See <<s-permanently-diskless-nodes>> for more information."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:745
+#, no-wrap
+msgid "Quorum"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:750
+msgid ""
+"To avoid split brain or diverging data of replicas you have to configure "
+"fencing. It turns out that in real world deployments, node fencing is not "
+"popular because often mistakes happen in planning or deploying it."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:753
+msgid ""
+"In the moment a data-set has three replicas you can rely on the quorum "
+"implementation within DRBD rather than cluster manager level fencing."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:756
+msgid ""
+"Pacemaker gets informed about quorum or loss-of-quorum through the master "
+"score of the resource."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:763
+msgid ""
+"DRBD's quorum can be used with any kind of Linux based service. In case the "
+"service terminates in the moment it is exposed to an I/O error the on quorum "
+"loss behavior is very elegant.  If the service does not terminate upon I/O "
+"error, the system needs to be configured to reboot a primary node that loses "
+"quorum."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:765
+msgid "See <<s-configuring-quorum>> for more information."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-features.adoc:767
+#, no-wrap
+msgid "Tiebreaker"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-features.adoc:772
+msgid ""
+"The quorum tiebreaker feature is available in DRBD versions 9.0.18 and above."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:778
+msgid ""
+"The fundamental problem with two node clusters is that in the moment they "
+"lose connectivity we have two partitions and none of them has quorum, which "
+"results in the cluster halting the service. This problem can be mitigated by "
+"adding a third, diskless node to the cluster which will then act as a quorum "
+"tiebreaker."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:780
+msgid "See <<s-configuring-quorum-tiebreaker>> for more information."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:782
+#, no-wrap
+msgid "Resync-after"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:785
+msgid ""
+"DRBD runs all its necessary resync operations in parallel so that nodes are "
+"reintegrated with up-to-date data as soon as possible. This works well when "
+"there is one DRBD resource per backing disk."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:787
+msgid ""
+"However, when DRBD resources share a physical disk (or when a single "
+"resource spans multiple volumes), resyncing these resources (or volumes) in "
+"parallel results in a nonlinear access pattern. Hard disks perform much "
+"better with a linear access pattern. For such cases you can serialize "
+"resyncs using the `resync-after` keyword within a `disk` section of a DRBD "
+"resource configuration file."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:789
+msgid ""
+"See https://github.com/LINBIT/drbd-utils/blob/master/scripts/drbd.conf."
+"example#L30[here] for an example."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:791
+#, no-wrap
+msgid "Failover Clusters"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:796
+msgid ""
+"In many scenarios it is useful to combine DRBD with a failover cluster "
+"resource manager. DRBD can integrate with a cluster resource manager (CRM) "
+"such as DRBD Reactor and its promoter plug-in, or Pacemaker, to create "
+"failover clusters."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:801
+msgid ""
+"DRBD Reactor is an open source tool that monitors DRBD events and reacts to "
+"them. Its promoter plug-in manages services using systemd unit files or OCF "
+"resource agents. Since DRBD Reactor solely relies on DRBD's cluster "
+"communication, no configuration for its own communication is needed."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:809
+msgid ""
+"DRBD Reactor requires that quorum is enabled on the DRBD resources it is "
+"monitoring, so a failover cluster must have a minimum of three nodes. A "
+"limitation is that it supports ordering of services only for collocated "
+"services. One of its advantages is that it makes possible fully automatic "
+"recovery of clusters after a temporary network failure. This, together with "
+"its simplicity, make it the recommended failover cluster manager. "
+"Furthermore, DRBD Reactor is perfectly suitable for deployments on clouds as "
+"it needs no STONITH or redundant networks in deployments with three or more "
+"nodes (for quorum)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:816
+msgid ""
+"Pacemaker is the longest available open source cluster resource manager for "
+"high-availability clusters. It requires its own communication layer "
+"(Corosync) and it requires STONITH to deal with various scenarios. STONITH "
+"might require dedicated hardware and it can increase the impact radius of a "
+"service failure. Pacemaker probably has the most flexible system to express "
+"resource location and ordering constraints. However, with this flexibility, "
+"setups can become complex."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:819
+msgid ""
+"Finally, there are also proprietary solutions for failover clusters that "
+"work with DRBD, such as SIOS LifeKeeper for Linux, HPE Serviceguard for "
+"Linux, and Veritas Cluster Server."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-features.adoc:822
+#, no-wrap
+msgid "DRBD Integration for VCS"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-features.adoc:829
+msgid ""
+"Veritas Cluster Server (or Veritas InfoScale Availability) is a commercial "
+"alternative to the Pacemaker open source software. In case you need to "
+"integrate DRBD resources into a VCS setup please see the README in https://"
+"github.com/LINBIT/drbd-utils/tree/master/scripts/VCS[drbd-utils/scripts/VCS] "
+"on github."
+msgstr ""

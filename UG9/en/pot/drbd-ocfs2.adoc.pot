@@ -1,0 +1,615 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:21 UG9/en/drbd-ocfs2.adoc:13
+msgid ""
+"All cluster file systems _require_ fencing - not only through the DRBD "
+"resource, but STONITH! A faulty member _must_ be killed."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:184 UG9/en/drbd-lvm.adoc:182 UG9/en/drbd-ocfs2.adoc:218
+msgid "This example assumes a single-volume resource."
+msgstr ""
+
+#. type: Title ==
+#: UG9/en/drbd-ocfs2.adoc:2
+#, no-wrap
+msgid "Using OCFS2 with DRBD"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:7
+msgid ""
+"indexterm:[OCFS2]indexterm:[Oracle Cluster File System]This chapter outlines "
+"the steps necessary to set up a DRBD resource as a block device holding a "
+"shared Oracle Cluster File System, version 2 (OCFS2)."
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-ocfs2.adoc:15
+msgid "You'll want these settings:"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-ocfs2.adoc:24
+#, no-wrap
+msgid ""
+"\tnet {\n"
+"\t\tfencing resource-and-stonith;\n"
+"\t}\n"
+"\thandlers {\n"
+"\t\t# Make sure the other node is confirmed\n"
+"\t\t# dead after this!\n"
+"\t\toutdate-peer \"/sbin/kill-other-node.sh\";\n"
+"\t}\n"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-ocfs2.adoc:28
+msgid ""
+"There must be _no_ volatile caches! You might take a few hints of the page "
+"at https://fedorahosted.org/cluster/wiki/DRBD_Cookbook, although that's "
+"about GFS2, not OCFS2."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-ocfs2.adoc:33
+#, no-wrap
+msgid "Introduction to OCFS2"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:43
+msgid ""
+"The Oracle Cluster File System, version 2 (OCFS2) is a concurrent access "
+"shared storage file system developed by Oracle Corporation. Unlike its "
+"predecessor OCFS, which was specifically designed and only suitable for "
+"Oracle database payloads, OCFS2 is a general-purpose filesystem that "
+"implements most POSIX semantics. The most common use case for OCFS2 is "
+"arguably Oracle Real Application Cluster (RAC), but OCFS2 may also be used "
+"for load-balanced NFS clusters, for example."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:53
+msgid ""
+"Although originally designed for use with conventional shared storage "
+"devices, OCFS2 is equally well suited to be deployed on <<s-dual-primary-"
+"mode,dual-Primary DRBD>>. Applications reading from the filesystem may "
+"benefit from reduced read latency due to the fact that DRBD reads from and "
+"writes to local storage, as opposed to the SAN devices OCFS2 otherwise "
+"normally runs on. In addition, DRBD adds redundancy to OCFS2 by adding an "
+"additional copy to every filesystem image, as opposed to just a single "
+"filesystem image that is merely shared."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:61
+msgid ""
+"Like other shared cluster file systems such as <<ch-gfs,GFS>>, OCFS2 allows "
+"multiple nodes to access the same storage device, in read/write mode, "
+"simultaneously without risking data corruption. It does so by using a "
+"Distributed Lock Manager (DLM) which manages concurrent access from cluster "
+"nodes. The DLM itself uses a virtual file system (`ocfs2_dlmfs`) which is "
+"separate from the actual OCFS2 file systems present on the system."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:66
+msgid ""
+"OCFS2 may either use an intrinsic cluster communication layer to manage "
+"cluster membership and filesystem mount and unmount operation, or "
+"alternatively defer those tasks to the <<ch-pacemaker,Pacemaker>>cluster "
+"infrastructure."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:72
+msgid ""
+"OCFS2 is available in SUSE Linux Enterprise Server (where it is the "
+"primarily supported shared cluster file system), CentOS, Debian GNU/Linux, "
+"and Ubuntu Server Edition. Oracle also provides packages for Red Hat "
+"Enterprise Linux (RHEL). This chapter assumes running OCFS2 on a SUSE Linux "
+"Enterprise Server system."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-ocfs2.adoc:74
+#, no-wrap
+msgid "Creating a DRBD Resource Suitable for OCFS2"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:85
+msgid ""
+"Since OCFS2 is a shared cluster file system expecting concurrent read/write "
+"storage access from all cluster nodes, any DRBD resource to be used for "
+"storing a OCFS2 filesystem must be configured in <<s-dual-primary-mode,dual-"
+"primary mode>>. Also, it is recommended to use some of DRBD's <<s-automatic-"
+"split-brain-recovery-configuration,features for automatic recovery from "
+"split brain>>. To do all this, include the following lines in the resource "
+"configuration: indexterm:[drbd.conf]"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:98
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    # allow-two-primaries yes;\n"
+"    after-sb-0pri discard-zero-changes;\n"
+"    after-sb-1pri discard-secondary;\n"
+"    after-sb-2pri disconnect;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-ocfs2.adoc:103
+msgid ""
+"By setting auto-recovery policies, you are effectively configuring automatic "
+"data-loss! Be sure you understand the implications."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:109
+msgid ""
+"It is not recommended to set the `allow-two-primaries` option to `yes` upon "
+"initial configuration. You should do so after the initial resource "
+"synchronization has completed."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:116
+msgid ""
+"Once you have added these options to <<ch-configure,your freshly-configured "
+"resource>>, you may <<s-first-time-up,initialize your resource as you "
+"normally would>>. After you set the indexterm:[drbd.conf]`allow-two-"
+"primaries` option to `yes` for this resource, you will be able to <<s-switch-"
+"resource-roles,promote the resource>>to the primary role on both nodes."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-ocfs2.adoc:119
+#, no-wrap
+msgid "Creating an OCFS2 Filesystem"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:122
+msgid "Now, use OCFS2's `mkfs` implementation to create the file system:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:140
+#, no-wrap
+msgid ""
+"# mkfs -t ocfs2 -N 2 -L ocfs2_drbd0 /dev/drbd0\n"
+"mkfs.ocfs2 1.4.0\n"
+"Filesystem label=ocfs2_drbd0\n"
+"Block size=1024 (bits=10)\n"
+"Cluster size=4096 (bits=12)\n"
+"Volume size=205586432 (50192 clusters) (200768 blocks)\n"
+"7 cluster groups (tail covers 4112 clusters, rest cover 7680 clusters)\n"
+"Journal size=4194304\n"
+"Initial number of node slots: 2\n"
+"Creating bitmaps: done\n"
+"Initializing superblock: done\n"
+"Writing system files: done\n"
+"Writing superblock: done\n"
+"Writing backup superblock: 0 block(s)\n"
+"Formatting Journals: done\n"
+"Writing lost+found: done\n"
+"mkfs.ocfs2 successful\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:146
+msgid ""
+"This will create an OCFS2 file system with two node slots on `/dev/drbd0`, "
+"and set the filesystem label to `ocfs2_drbd0`. You may specify other options "
+"on `mkfs` invocation; please see the `mkfs.ocfs2` system manual page for "
+"details."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-ocfs2.adoc:148
+#, no-wrap
+msgid "Pacemaker OCFS2 Management"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-ocfs2.adoc:151
+#, no-wrap
+msgid "Adding a Dual-Primary DRBD Resource to Pacemaker"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:156
+msgid ""
+"An existing <<s-ocfs2-create-resource,Dual-Primary DRBD resource>>may be "
+"added to Pacemaker resource management with the following `crm` "
+"configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:163
+#, no-wrap
+msgid ""
+"primitive p_drbd_ocfs2 ocf:linbit:drbd \\\n"
+"  params drbd_resource=\"ocfs2\"\n"
+"ms ms_drbd_ocfs2 p_drbd_ocfs2 \\\n"
+"  meta master-max=2 clone-max=2 notify=true\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:170
+msgid ""
+"Note the `master-max=2` meta variable; it enables dual-Master mode for a "
+"Pacemaker master/slave set. This requires that `allow-two-primaries` is also "
+"set to `yes` in the DRBD configuration. Otherwise, Pacemaker will flag a "
+"configuration error during resource validation."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-ocfs2.adoc:172
+#, no-wrap
+msgid "Adding OCFS2 Management Capability to Pacemaker"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:176
+msgid ""
+"To manage OCFS2 and the kernel Distributed Lock Manager (DLM), Pacemaker "
+"uses a total of three different resource agents:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:178
+msgid "`ocf:pacemaker:controld` -- Pacemaker's interface to the DLM;"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:181
+msgid "`ocf:ocfs2:o2cb` -- Pacemaker's interface to OCFS2 cluster management;"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:185
+msgid ""
+"`ocf:heartbeat:Filesystem` -- the generic filesystem management resource "
+"agent which supports cluster file systems when configured as a Pacemaker "
+"clone."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:189
+msgid ""
+"You may enable all nodes in a Pacemaker cluster for OCFS2 management by "
+"creating a _cloned group_ of resources, with the following `crm` "
+"configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:196
+#, no-wrap
+msgid ""
+"primitive p_controld ocf:pacemaker:controld\n"
+"primitive p_o2cb ocf:ocfs2:o2cb\n"
+"group g_ocfs2mgmt p_controld p_o2cb\n"
+"clone cl_ocfs2mgmt g_ocfs2mgmt meta interleave=true\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:200
+msgid ""
+"Once this configuration is committed, Pacemaker will start instances of the "
+"`controld` and `o2cb` resource types on all nodes in the cluster."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-ocfs2.adoc:202
+#, no-wrap
+msgid "Adding an OCFS2 Filesystem to Pacemaker"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:208
+msgid ""
+"Pacemaker manages OCFS2 filesystems using the conventional `ocf:heartbeat:"
+"Filesystem` resource agent, albeit in clone mode. To put an OCFS2 filesystem "
+"under Pacemaker management, use the following `crm` configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:215
+#, no-wrap
+msgid ""
+"primitive p_fs_ocfs2 ocf:heartbeat:Filesystem \\\n"
+"  params device=\"/dev/drbd/by-res/ocfs2/0\" directory=\"/srv/ocfs2\" \\\n"
+"         fstype=\"ocfs2\" options=\"rw,noatime\"\n"
+"clone cl_fs_ocfs2 p_fs_ocfs2\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-ocfs2.adoc:220
+#, no-wrap
+msgid "Adding Required Pacemaker Constraints to Manage OCFS2 Filesystems"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:224
+msgid ""
+"To tie all OCFS2-related resources and clones together, add the following "
+"constraints to your Pacemaker configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:229
+#, no-wrap
+msgid ""
+"order o_ocfs2 ms_drbd_ocfs2:promote cl_ocfs2mgmt:start cl_fs_ocfs2:start\n"
+"colocation c_ocfs2 cl_fs_ocfs2 cl_ocfs2mgmt ms_drbd_ocfs2:Master\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-ocfs2.adoc:232
+#, no-wrap
+msgid "Legacy OCFS2 Management (Without Pacemaker)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:238
+msgid ""
+"The information presented in this section applies to legacy systems where "
+"OCFS2 DLM support is not available in Pacemaker. It is preserved here for "
+"reference purposes only. New installations should always use the <<s-ocfs2-"
+"pacemaker,Pacemaker>> approach."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-ocfs2.adoc:240
+#, no-wrap
+msgid "Configuring Your Cluster to Support OCFS2"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-ocfs2.adoc:243
+#, no-wrap
+msgid "Creating the Configuration File"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:246
+msgid "OCFS2 uses a central configuration file, `/etc/ocfs2/cluster.conf`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:253
+msgid ""
+"When creating your OCFS2 cluster, be sure to add both your hosts to the "
+"cluster configuration. The default port (7777) is usually an acceptable "
+"choice for cluster interconnect communications. If you choose any other port "
+"number, be sure to choose one that does not clash with an existing port used "
+"by DRBD (or any other configured TCP/IP)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:259
+msgid ""
+"If you feel less than comfortable editing the `cluster.conf` file directly, "
+"you may also use the `ocfs2console` graphical configuration utility which is "
+"usually more convenient. Regardless of the approach you selected, your `/etc/"
+"ocfs2/cluster.conf` file contents should look roughly like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:268
+#, no-wrap
+msgid ""
+"node:\n"
+"    ip_port = 7777\n"
+"    ip_address = 10.1.1.31\n"
+"    number = 0\n"
+"    name = alice\n"
+"    cluster = ocfs2\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:275
+#, no-wrap
+msgid ""
+"node:\n"
+"    ip_port = 7777\n"
+"    ip_address = 10.1.1.32\n"
+"    number = 1\n"
+"    name = bob\n"
+"    cluster = ocfs2\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:279
+#, no-wrap
+msgid ""
+"cluster:\n"
+"    node_count = 2\n"
+"    name = ocfs2\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:284
+msgid ""
+"When you have configured you cluster, use `scp` to distribute the "
+"configuration to both nodes in the cluster."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-ocfs2.adoc:286
+#, no-wrap
+msgid "Configuring the O2CB Driver in SUSE Linux Enterprise Systems"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:290
+msgid "On SLES, you may use the `configure` option of the `o2cb` init script:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:294
+#, no-wrap
+msgid ""
+"# /etc/init.d/o2cb configure\n"
+"Configuring the O2CB driver.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:300
+#, no-wrap
+msgid ""
+"This will configure the on-boot properties of the O2CB driver.\n"
+"The following questions will determine whether the driver is loaded on\n"
+"boot.  The current values will be shown in brackets ('[]').  Hitting\n"
+"<ENTER> without typing an answer will keep that current value.  Ctrl-C\n"
+"will abort.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:316
+#, no-wrap
+msgid ""
+"Load O2CB driver on boot (y/n) [y]:\n"
+"Cluster to start on boot (Enter \"none\" to clear) [ocfs2]:\n"
+"Specify heartbeat dead threshold (>=7) [31]:\n"
+"Specify network idle timeout in ms (>=5000) [30000]:\n"
+"Specify network keepalive delay in ms (>=1000) [2000]:\n"
+"Specify network reconnect delay in ms (>=2000) [2000]:\n"
+"Use user-space driven heartbeat? (y/n) [n]:\n"
+"Writing O2CB configuration: OK\n"
+"Loading module \"configfs\": OK\n"
+"Mounting configfs filesystem at /sys/kernel/config: OK\n"
+"Loading module \"ocfs2_nodemanager\": OK\n"
+"Loading module \"ocfs2_dlm\": OK\n"
+"Loading module \"ocfs2_dlmfs\": OK\n"
+"Mounting ocfs2_dlmfs filesystem at /dlm: OK\n"
+"Starting O2CB cluster ocfs2: OK\n"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-ocfs2.adoc:319
+#, no-wrap
+msgid "Configuring the O2CB Driver in Debian GNU/Linux Systems"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:323
+msgid ""
+"On Debian, the `configure` option to `/etc/init.d/o2cb` is not available. "
+"Instead, reconfigure the `ocfs2-tools` package to enable the driver:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:332
+#, no-wrap
+msgid ""
+"# dpkg-reconfigure -p medium -f readline ocfs2-tools\n"
+"Configuring ocfs2-tools\n"
+"Would you like to start an OCFS2 cluster (O2CB) at boot time? yes\n"
+"Name of the cluster to start at boot time: ocfs2\n"
+"The O2CB heartbeat threshold sets up the maximum time in seconds that a node\n"
+"awaits for an I/O operation. After it, the node \"fences\" itself, and you will\n"
+"probably see a crash.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:334
+#, no-wrap
+msgid "It is calculated as the result of: (threshold - 1) x 2.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:336
+#, no-wrap
+msgid "Its default value is 31 (60 seconds).\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:338
+#, no-wrap
+msgid "Raise it if you have slow disks and/or crashes with kernel messages like:\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:349
+#, no-wrap
+msgid ""
+"o2hb_write_timeout: 164 ERROR: heartbeat write timeout to device XXXX after NNNN\n"
+"milliseconds\n"
+"O2CB Heartbeat threshold: `31`\n"
+"\t\tLoading filesystem \"configfs\": OK\n"
+"Mounting configfs filesystem at /sys/kernel/config: OK\n"
+"Loading stack plugin \"o2cb\": OK\n"
+"Loading filesystem \"ocfs2_dlmfs\": OK\n"
+"Mounting ocfs2_dlmfs filesystem at /dlm: OK\n"
+"Setting cluster stack \"o2cb\": OK\n"
+"Starting O2CB cluster ocfs2: OK\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-ocfs2.adoc:352
+#, no-wrap
+msgid "Using Your OCFS2 Filesystem"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:356
+msgid ""
+"When you have completed cluster configuration and created your file system, "
+"you may mount it as any other file system:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:358
+#, no-wrap
+msgid "# mount -t ocfs2 /dev/drbd0 /shared\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:362
+msgid ""
+"Your kernel log (accessible by issuing the command `dmesg`) should then "
+"contain a line similar to this one:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-ocfs2.adoc:366
+#, no-wrap
+msgid "ocfs2: Mounting device (147,0) on (node 0, slot 0) with ordered data mode.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-ocfs2.adoc:369
+msgid ""
+"From that point forward, you should be able to simultaneously mount your "
+"OCFS2 filesystem on both your nodes, in read/write mode."
+msgstr ""

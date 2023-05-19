@@ -1,0 +1,334 @@
+# Language cn translations for PACKAGE package
+# Copyright (C) 2023 Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# Automatically generated, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"PO-Revision-Date: 2023-05-18 09:56-0400\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: cn\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Plain text
+#: UG9/en/drbd-install-packages.adoc:215 UG9/en/linstor-administration.adoc:312
+#: UG9/en/linstor-nomad.adoc:28 UG9/en/linstor-openshift.adoc:30
+msgid ""
+"LINBIT's container image repository (http://drbd.io) is only available to "
+"LINBIT customers or through LINBIT customer trial accounts.  link:https://"
+"linbit.com/contact-us/[Contact LINBIT for information on pricing or to begin "
+"a trial]. Alternatively, you may use LINSTOR SDS' upstream project named "
+"link:https://github.com/piraeusdatastore/piraeus-operator[Piraeus], without "
+"being a LINBIT customer."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-kubernetes.adoc:997 UG9/en/linstor-openshift.adoc:141
+#, fuzzy
+msgid ""
+"This should only be necessary for investigating problems and accessing "
+"advanced functionality.  Regular operation such as creating volumes should "
+"be achieved through the <<s-kubernetes-basic-configuration-and-deployment,"
+"Kubernetes integration>>."
+msgstr ""
+"这应该只是调研问题和访问高级功能所必需的。常规操作（如创建卷）应通过<<s-"
+"kubernetes-basic-configuration-and-deployment,Kubernetes integration>>实现。"
+
+#. type: Title ==
+#: UG9/en/linstor-openshift.adoc:2
+#, fuzzy, no-wrap
+#| msgid "LINSTOR volumes in Openstack"
+msgid "LINSTOR Volumes in OpenShift"
+msgstr "Openstack中的LINSTOR卷"
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:7
+#, fuzzy
+#| msgid ""
+#| "indexterm:[Kubernetes]This chapter describes the usage of LINSTOR in "
+#| "Kubernetes as managed by the operator and with volumes provisioned using "
+#| "the https://github.com/LINBIT/linstor-csi[LINSTOR CSI plugin]."
+msgid ""
+"This chapter describes the usage of LINBIT SDS in OpenShift as managed by "
+"the LINSTOR Operator and with volumes provisioned using the https://github."
+"com/LINBIT/linstor-csi[LINSTOR CSI plugin]."
+msgstr ""
+"indexterm:[Kubernetes]本章描述了在Kubernetes中由操作员管理的LINSTOR的使用，以"
+"及使用 https://github.com/LINBIT/linstor-csi[LINSTOR CSI plugin] 配置卷的情"
+"况。"
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:13
+msgid ""
+"_OpenShift_ is the official Red Hat developed and supported distribution of "
+"Kubernetes. The value of OpenShift is the strong integration of otherwise "
+"optional components, like network ingress and monitoring, all tied together "
+"with a Web UI to manage it all. LINSTOR Operator integrates with these "
+"components where possible."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-openshift.adoc:15
+#, fuzzy, no-wrap
+#| msgid "Deploying LINSTOR on Kubernetes"
+msgid "Deploying LINBIT SDS on OpenShift"
+msgstr "在Kubernetes上部署LINSTOR"
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:19
+msgid ""
+"Deploying LINBIT SDS on OpenShift is similar to deploying LINBIT SDS on "
+"other Kubernetes clusters. As prerequisites, you need:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:21
+msgid "https://helm.sh[Helm] installed."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:22
+msgid "Access to your OpenShift cluster through the `oc` utility."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:23
+msgid "Your LINBIT Customer Portal credentials for accessing `drbd.io`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:34
+msgid ""
+"First, create a new project for LINBIT SDS and configure your credentials "
+"for `drbd.io` (replace `$USERNAME` and `$PASSWORD` with your own LINBIT "
+"Customer Portal credentials):"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openshift.adoc:40
+#, fuzzy, no-wrap
+#| msgid "kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>\n"
+msgid ""
+"$ oc new-project storage\n"
+"Now using project \"storage\" on server ...\n"
+"$ oc create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=$USERNAME --docker-password=$PASSWORD\n"
+"secret/drbdiocred created\n"
+msgstr "kubectl create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>\n"
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:44
+msgid ""
+"Then, create a file to override some of the Helm chart's default values, "
+"named `override.yaml`:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-openshift.adoc:46
+#, no-wrap
+msgid "override.yaml"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openshift.adoc:57
+#, no-wrap
+msgid ""
+"global:\n"
+"  setSecurityContext: false <1>\n"
+"etcd:\n"
+"  enabled: false <2>\n"
+"operator:\n"
+"  controller:\n"
+"    dbConnectionURL: k8s <3>\n"
+"  satelliteSet:\n"
+"    kernelModuleInjectionImage: drbd.io/drbd9-rhel8:v9.1.6 <4>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:61
+msgid ""
+"Helm would set a https://kubernetes.io/docs/tasks/configure-pod-container/"
+"security-context/[SecurityContext] for all Pods that would conflict with the "
+"SecurityContext."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:63
+msgid ""
+"Use of etcd, although still the default, will be phased out in favor of the "
+"`k8s` backend for LINSTOR. New installations should not use etcd."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:66
+msgid ""
+"Use the new `k8s` backend for LINSTOR. The LINSTOR cluster state is stored "
+"inside CustomResources in the Kubernetes API. No additional database setup "
+"required."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:68
+msgid ""
+"OpenShift runs on Red Hat Core OS, which is based on Red Hat Enterprise "
+"Linux 8 and uses the same Linux kernel."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:72
+msgid ""
+"Make additional modifications to `override.yaml` based on your preference. "
+"Possible options are discussed in the <<s-kubernetes-advanced-deployments,"
+"Kubernetes advanced deployment section>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:74
+msgid ""
+"Finally, deploy LINBIT SDS using Helm and wait until all Pods are ready:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openshift.adoc:87
+#, no-wrap
+msgid ""
+"$ helm install linstor-op linstor/linstor --values override.yaml\n"
+"NAME: linstor-op\n"
+"NAMESPACE: storage\n"
+"STATUS: deployed\n"
+"...\n"
+"$ oc wait --for=condition=Ready pod --all\n"
+"...\n"
+"$ oc get pods\n"
+"NAME                                         READY   STATUS    RESTARTS   AGE\n"
+"linstor-op-cs-controller-6588445756-mh9vn    1/1     Running   0          5m48s\n"
+"...\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openshift.adoc:89
+#, no-wrap
+msgid "Using LINBIT SDS on OpenShift"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:92
+msgid "The next steps are exactly the same as in Kubernetes:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:94
+msgid "<<s-kubernetes-storage,Configuring storage pools>>"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:95
+msgid ""
+"<<s-kubernetes-basic-configuration-and-deployment,Adding a storage class to "
+"provision a PersistentVolume>>"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openshift.adoc:96
+#, fuzzy, no-wrap
+#| msgid "Configuring the Nodes"
+msgid "Configuring LINBIT GUI Access"
+msgstr "配置节点"
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:100
+msgid ""
+"The LINSTOR container images come with the LINBIT GUI preinstalled. To "
+"expose it on your cluster, configure an OpenShift Route resource:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openshift.adoc:106
+#, no-wrap
+msgid ""
+"$ oc create route edge --service linstor-op-cs\n"
+"$ oc get route\n"
+"NAME           HOST/PORT                                  PATH  SERVICES       PORT           TERMINATION  WILDCARD\n"
+"linstor-op-cs  linstor-op-cs-storage.apps.oc.example.com        linstor-op-cs  linstor-op-cs  edge         None\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:109
+msgid ""
+"The GUI is now accessible at `+https://linstor-op-cs-storage.apps.oc.example."
+"com/ui/+`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:113
+msgid ""
+"This may enable external access to LINBIT GUI and LINSTOR API.  Ensure that "
+"only authorized users can access it, for example by requiring client side "
+"TLS certificates on the route."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openshift.adoc:114
+#, fuzzy, no-wrap
+#| msgid "Configuring your cluster to support GFS"
+msgid "Configuring Cluster Monitoring"
+msgstr "配置集群以支持GFS"
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:119
+msgid ""
+"OpenShift includes a fully configured monitoring stack. While most of the "
+"monitoring stack is only intended for Openstack infrastructure, basic "
+"monitoring for LINBIT SDS is possible."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:123
+msgid ""
+"First, ensure that monitoring of user-defined projects is enabled in "
+"OpenShift by following the steps in https://docs.openshift.com/container-"
+"platform/4.6/monitoring/enabling-monitoring-for-user-defined-projects."
+"html[Red Hat documentation]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:128
+msgid ""
+"Once monitoring for user-defined projects is enabled, the LINSTOR Operator "
+"automatically detects the presence of OpenShift's Prometheus-based "
+"monitoring stack and configures the `ServiceMonitor` resources. The "
+"Prometheus instance will scrape metrics for DRBD and LINSTOR from all "
+"Cluster nodes."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-openshift.adoc:129
+#, fuzzy, no-wrap
+#| msgid "Interacting with LINSTOR in Kubernetes"
+msgid "Interacting with LINBIT SDS in OpenShift"
+msgstr "在Kubernetes中与LINSTOR互动"
+
+#. type: Plain text
+#: UG9/en/linstor-openshift.adoc:133
+#, fuzzy
+#| msgid ""
+#| "The Controller pod includes a LINSTOR Client, making it easy to interact "
+#| "directly with LINSTOR.  For instance:"
+msgid ""
+"The LINSTOR Controller pod includes a LINSTOR Client, making it easy to "
+"access LINSTOR's interactive mode. For instance:"
+msgstr "Controller pod包括LINSTOR客户端，使得直接与LINSTOR交互变得容易。例如："
+
+#. type: delimited block -
+#: UG9/en/linstor-openshift.adoc:137
+#, fuzzy, no-wrap
+#| msgid "kubectl exec linstor-op-cs-controller-0 -- linstor storage-pool list\n"
+msgid ""
+"$ oc exec -it deployment/linstor-op-cs-controller -- linstor interactive\n"
+"LINSTOR ==> ...\n"
+msgstr "kubectl exec linstor-op-cs-controller-0 -- linstor storage-pool list\n"

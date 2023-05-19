@@ -1,0 +1,1286 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1569 UG9/en/drbd-pacemaker.adoc:238
+msgid ""
+"Stacking is deprecated in DRBD version 9.x, as more nodes can be implemented "
+"on a single level. See <<s-drbdconf-conns>> for details."
+msgstr ""
+
+#.  FIXME
+#. type: Title ==
+#: UG9/en/drbd-pacemaker.adoc:3
+#, no-wrap
+msgid "Integrating DRBD with Pacemaker Clusters"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:9
+msgid ""
+"indexterm:[Pacemaker]Using DRBD in conjunction with the Pacemaker cluster "
+"stack is arguably DRBD's most frequently found use case. Pacemaker is also "
+"one of the applications that make DRBD extremely powerful in a wide variety "
+"of usage scenarios."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:11
+msgid "DRBD can be used in Pacemaker clusters in different ways:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:13
+msgid "DRBD running as a background-service, used like a SAN; or"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:14
+msgid ""
+"DRBD completely managed by Pacemaker through the DRBD OCF resource agent"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:16
+msgid ""
+"Both have a few advantages and disadvantages, these will be discussed below."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:23
+msgid ""
+"It's recommended to have either fencing configured or quorum enabled.  (But "
+"not both. External fencing handler results may interact in conflicting ways "
+"with DRBD internal quorum.)  If your cluster has communication issues (for "
+"example, a network switch loses power) and gets split, the parts might start "
+"the services (failover)  and cause a *Split-Brain* when the communication "
+"resumes again."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-pacemaker.adoc:25
+#, no-wrap
+msgid "Introduction to Pacemaker"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:31
+msgid ""
+"Pacemaker is a sophisticated, feature-rich, and widely deployed cluster "
+"resource manager for the Linux platform. It includes a rich set of "
+"documentation. To understand this chapter, reading the following documents "
+"is highly recommended:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:34
+msgid ""
+"https://www.clusterlabs.org/pacemaker/doc/2.1/Pacemaker_Explained/singlehtml/"
+"[Clusters From Scratch] , a step-by-step guide to configuring high-"
+"availability clusters;"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:38
+msgid ""
+"http://crmsh.github.io/documentation/index.html[CRM CLI (command line "
+"interface) tool], a manual for the CRM shell, a simple and intuitive command "
+"line interface bundled with Pacemaker;"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:42
+msgid ""
+"http://clusterlabs.org/doc/en-US/Pacemaker/1.1/html/Pacemaker_Explained/"
+"[Pacemaker Configuration Explained], a reference document explaining the "
+"concept and design behind Pacemaker."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-pacemaker.adoc:45
+#, no-wrap
+msgid "Using DRBD as a Background Service in a Pacemaker Cluster"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:50
+msgid ""
+"In this section you will see that using autonomous DRBD storage can look "
+"like local storage; so integrating in a Pacemaker cluster is done by "
+"pointing your mount points at DRBD."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:55
+msgid ""
+"First of all, we will use the `auto-promote` feature of DRBD, so that DRBD "
+"automatically sets itself _Primary_ when needed. This will probably apply to "
+"all of your resources, so setting that as a default \"yes\" in the `common` "
+"section makes sense:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:64
+#, no-wrap
+msgid ""
+"common {\n"
+"  options {\n"
+"    auto-promote yes;\n"
+"    ...\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:67
+msgid ""
+"Now you just need to use your storage, for example, through a filesystem:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-pacemaker.adoc:68
+#, no-wrap
+msgid "Pacemaker configuration for DRBD-backed MySQL service, using `auto-promote`"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:81
+#, no-wrap
+msgid ""
+"crm configure\n"
+"crm(live)configure# primitive fs_mysql ocf:heartbeat:Filesystem \\\n"
+"                    params device=\"/dev/drbd/by-res/mysql/0\" \\\n"
+"                      directory=\"/var/lib/mysql\" fstype=\"ext3\"\n"
+"crm(live)configure# primitive ip_mysql ocf:heartbeat:IPaddr2 \\\n"
+"                    params ip=\"10.9.42.1\" nic=\"eth0\"\n"
+"crm(live)configure# primitive mysqld lsb:mysqld\n"
+"crm(live)configure# group mysql fs_mysql ip_mysql mysqld\n"
+"crm(live)configure# commit\n"
+"crm(live)configure# exit\n"
+"bye\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:85
+msgid ""
+"Essentially all that is needed is a mountpoint (`/var/lib/mysql` in this "
+"example) where the DRBD resource gets mounted."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:88
+msgid ""
+"Provided that Pacemaker has control, it will only allow a single instance of "
+"that mount across your cluster."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:91
+msgid ""
+"See also <<s-pacemaker-drbd-attr>> for additional information about ordering "
+"constraints for system startup and more."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-pacemaker.adoc:93
+#, no-wrap
+msgid "Adding a DRBD-backed Service to the Cluster Configuration, Including a Master-Slave Resource"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:97
+msgid ""
+"This section explains how to enable a DRBD-backed service in a Pacemaker "
+"cluster."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:102
+msgid ""
+"If you are employing the DRBD OCF resource agent, it is recommended that you "
+"defer DRBD startup, shutdown, promotion, and demotion _exclusively_ to the "
+"OCF resource agent. That means that you should disable the DRBD init script:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:105
+#, no-wrap
+msgid "chkconfig drbd off\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:113
+msgid ""
+"The `ocf:linbit:drbd` OCF resource agent provides Master/Slave capability, "
+"allowing Pacemaker to start and monitor the DRBD resource on multiple nodes "
+"and promoting and demoting as needed. You must, however, understand that the "
+"DRBD RA disconnects and detaches all DRBD resources it manages on Pacemaker "
+"shutdown, and also upon enabling standby mode for a node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:122
+msgid ""
+"The OCF resource agent which ships with DRBD belongs to the `linbit` "
+"provider, and therefore installs as `/usr/lib/ocf/resource.d/linbit/drbd`. "
+"There is a legacy resource agent that is included with the OCF resource "
+"agents package, which uses the `heartbeat` provider and installs into `/usr/"
+"lib/ocf/resource.d/heartbeat/drbd`. The legacy OCF RA is deprecated and "
+"should no longer be used."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:129
+msgid ""
+"To enable a DRBD-backed configuration for a MySQL database in a Pacemaker "
+"CRM cluster with the `drbd` OCF resource agent, you must create both the "
+"necessary resources, and Pacemaker constraints to ensure your service only "
+"starts on a previously promoted DRBD resource. You may do so using the `crm` "
+"shell, as outlined in the following example:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-pacemaker.adoc:130
+#, no-wrap
+msgid "Pacemaker configuration for DRBD-backed MySQL service, using a `master-slave` resource"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:155
+#, no-wrap
+msgid ""
+"crm configure\n"
+"crm(live)configure# primitive drbd_mysql ocf:linbit:drbd \\\n"
+"                    params drbd_resource=\"mysql\" \\\n"
+"                    op monitor interval=\"29s\" role=\"Master\" \\\n"
+"                    op monitor interval=\"31s\" role=\"Slave\"\n"
+"crm(live)configure# ms ms_drbd_mysql drbd_mysql \\\n"
+"                    meta master-max=\"1\" master-node-max=\"1\" \\\n"
+"                         clone-max=\"2\" clone-node-max=\"1\" \\\n"
+"                         notify=\"true\"\n"
+"crm(live)configure# primitive fs_mysql ocf:heartbeat:Filesystem \\\n"
+"                    params device=\"/dev/drbd/by-res/mysql/0\" \\\n"
+"                      directory=\"/var/lib/mysql\" fstype=\"ext3\"\n"
+"crm(live)configure# primitive ip_mysql ocf:heartbeat:IPaddr2 \\\n"
+"                    params ip=\"10.9.42.1\" nic=\"eth0\"\n"
+"crm(live)configure# primitive mysqld lsb:mysqld\n"
+"crm(live)configure# group mysql fs_mysql ip_mysql mysqld\n"
+"crm(live)configure# colocation mysql_on_drbd \\\n"
+"                      inf: mysql ms_drbd_mysql:Master\n"
+"crm(live)configure# order mysql_after_drbd \\\n"
+"                      inf: ms_drbd_mysql:promote mysql:start\n"
+"crm(live)configure# commit\n"
+"crm(live)configure# exit\n"
+"bye\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:160
+msgid ""
+"After this, your configuration should be enabled. Pacemaker now selects a "
+"node on which it promotes the DRBD resource, and then starts the DRBD-backed "
+"resource group on that same node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:163
+msgid ""
+"See also <<s-pacemaker-drbd-attr>> for additional information about location "
+"contraints for placing the Master role."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-pacemaker.adoc:165
+#, no-wrap
+msgid "Using Resource-level Fencing in Pacemaker Clusters"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:172
+msgid ""
+"This section outlines the steps necessary to prevent Pacemaker from "
+"promoting a DRBD Master/Slave resource when its DRBD replication link has "
+"been interrupted. This keeps Pacemaker from starting a service with outdated "
+"data and causing an unwanted \"time warp\" in the process."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:175
+msgid ""
+"To enable any resource-level fencing for DRBD, you must add the following "
+"lines to your resource configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:184
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    fencing resource-only;\n"
+"    ...\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:188
+msgid ""
+"You will also have to make changes to the `handlers` section depending on "
+"the cluster infrastructure being used."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:191
+msgid ""
+"Corosync-based Pacemaker clusters can use the functionality explained in <<s-"
+"pacemaker-fencing-cib>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:196
+msgid ""
+"It is absolutely vital to configure at least two independent cluster "
+"communications channels for this functionality to work correctly. Corosync "
+"clusters should list at least two redundant rings in `corosync.conf`, "
+"respectively several paths for knet."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-pacemaker.adoc:199
+#, no-wrap
+msgid "Resource-level Fencing Using the Cluster Information Base (CIB)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:203
+msgid ""
+"To enable resource-level fencing for Pacemaker, you will have to set two "
+"options in `drbd.conf`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:221
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    fencing resource-only;\n"
+"    ...\n"
+"  }\n"
+"  handlers {\n"
+"    fence-peer \"/usr/lib/drbd/crm-fence-peer.9.sh\";\n"
+"    unfence-peer \"/usr/lib/drbd/crm-unfence-peer.9.sh\";\n"
+"    # Note: we used to abuse the after-resync-target handler to do the\n"
+"    # unfence, but since 2016 have a dedicated unfence-peer handler.\n"
+"    # Using the after-resync-target handler is wrong in some corner cases.\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:231
+msgid ""
+"Therefore, if the DRBD replication link becomes disconnected, the `crm-fence-"
+"peer.9.sh` script contacts the cluster manager, determines the Pacemaker "
+"Master/Slave resource associated with this DRBD resource, and ensures that "
+"the Master/Slave resource no longer gets promoted on any node other than the "
+"currently active one. Conversely, when the connection is re-established and "
+"DRBD completes its synchronization process, then that constraint is removed "
+"and the cluster manager is free to promote the resource on any node again."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-pacemaker.adoc:233
+#, no-wrap
+msgid "Using Stacked DRBD Resources in Pacemaker Clusters"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:243
+msgid ""
+"Stacked resources allow DRBD to be used for multi-level redundancy in "
+"multiple-node clusters, or to establish off-site disaster recovery "
+"capability. This section describes how to configure DRBD and Pacemaker in "
+"such configurations."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-pacemaker.adoc:246
+#, no-wrap
+msgid "Adding Off-site Disaster Recovery to Pacemaker Clusters"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:253
+msgid ""
+"In this configuration scenario, we would deal with a two-node high "
+"availability cluster in one site, plus a separate node which would "
+"presumably be housed off-site. The third node acts as a disaster recovery "
+"node and is a standalone server. Consider the following illustration to "
+"describe the concept."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-pacemaker.adoc:254 UG9/en/drbd-pacemaker.adoc:345
+#, no-wrap
+msgid "DRBD resource stacking in Pacemaker clusters"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-pacemaker.adoc:255
+#, no-wrap
+msgid "images/drbd-resource-stacking-pacemaker-3nodes.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:259
+msgid ""
+"In this example, 'alice' and 'bob' form a two-node Pacemaker cluster, "
+"whereas 'charlie' is an off-site node not managed by Pacemaker."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:263
+msgid ""
+"To create such a configuration, you would first configure and initialize "
+"DRBD resources as described in <<s-three-nodes>>. Then, configure Pacemaker "
+"with the following CRM configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:268
+#, no-wrap
+msgid ""
+"primitive p_drbd_r0 ocf:linbit:drbd \\\n"
+"\tparams drbd_resource=\"r0\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:271
+#, no-wrap
+msgid ""
+"primitive p_drbd_r0-U ocf:linbit:drbd \\\n"
+"\tparams drbd_resource=\"r0-U\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:274
+#, no-wrap
+msgid ""
+"primitive p_ip_stacked ocf:heartbeat:IPaddr2 \\\n"
+"\tparams ip=\"192.168.42.1\" nic=\"eth0\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:279
+#, no-wrap
+msgid ""
+"ms ms_drbd_r0 p_drbd_r0 \\\n"
+"\tmeta master-max=\"1\" master-node-max=\"1\" \\\n"
+"        clone-max=\"2\" clone-node-max=\"1\" \\\n"
+"        notify=\"true\" globally-unique=\"false\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:284
+#, no-wrap
+msgid ""
+"ms ms_drbd_r0-U p_drbd_r0-U \\\n"
+"\tmeta master-max=\"1\" clone-max=\"1\" \\\n"
+"        clone-node-max=\"1\" master-node-max=\"1\" \\\n"
+"        notify=\"true\" globally-unique=\"false\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:287
+#, no-wrap
+msgid ""
+"colocation c_drbd_r0-U_on_drbd_r0 \\\n"
+"        inf: ms_drbd_r0-U ms_drbd_r0:Master\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:290
+#, no-wrap
+msgid ""
+"colocation c_drbd_r0-U_on_ip \\\n"
+"        inf: ms_drbd_r0-U p_ip_stacked\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:293
+#, no-wrap
+msgid ""
+"colocation c_ip_on_r0_master \\\n"
+"        inf: p_ip_stacked ms_drbd_r0:Master\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:296
+#, no-wrap
+msgid ""
+"order o_ip_before_r0-U \\\n"
+"        inf: p_ip_stacked ms_drbd_r0-U:start\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:299
+#, no-wrap
+msgid ""
+"order o_drbd_r0_before_r0-U \\\n"
+"        inf: ms_drbd_r0:promote ms_drbd_r0-U:start\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:304 UG9/en/drbd-pacemaker.adoc:405
+msgid ""
+"Assuming you created this configuration in a temporary file named `/tmp/crm."
+"txt`, you may import it into the live cluster configuration with the "
+"following command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:307 UG9/en/drbd-pacemaker.adoc:408
+#, no-wrap
+msgid "crm configure < /tmp/crm.txt\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:311
+msgid ""
+"This configuration will ensure that the following actions occur in the "
+"correct order on the 'alice'/'bob' cluster:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:314
+msgid ""
+"Pacemaker starts the DRBD resource `r0` on both cluster nodes, and promotes "
+"one node to the Master (DRBD Primary) role."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:319
+msgid ""
+"Pacemaker then starts the IP address 192.168.42.1, which the stacked "
+"resource is to use for replication to the third node. It does so on the node "
+"it has previously promoted to the Master role for `r0` DRBD resource."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:324
+msgid ""
+"On the node which now has the Primary role for `r0` and also the replication "
+"IP address for `r0-U`, Pacemaker now starts the `r0-U` DRBD resource, which "
+"connects and replicates to the off-site node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:327
+msgid ""
+"Pacemaker then promotes the `r0-U` resource to the Primary role too, so it "
+"can be used by an application."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:331
+msgid ""
+"Therefore, this Pacemaker configuration ensures that there is not only full "
+"data redundancy between cluster nodes, but also to the third, off-site node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:334
+msgid ""
+"This type of setup is usually deployed together with <<s-drbd-proxy,DRBD "
+"Proxy>>."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-pacemaker.adoc:336
+#, no-wrap
+msgid "Using Stacked Resources to Achieve Four-way Redundancy in Pacemaker Clusters"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:342
+msgid ""
+"In this configuration, a total of three DRBD resources (two unstacked, one "
+"stacked) are used to achieve 4-way storage redundancy. This means that of a "
+"four-node cluster, up to three nodes can fail while still providing service "
+"availability."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:344
+msgid "Consider the following illustration to explain the concept."
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-pacemaker.adoc:346
+#, no-wrap
+msgid "images/drbd-resource-stacking-pacemaker-4nodes.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:354
+msgid ""
+"In this example, 'alice', 'bob', 'charlie', and 'daisy' form two two-node "
+"Pacemaker clusters. 'alice' and 'bob' form the cluster named `left` and "
+"replicate data using a DRBD resource between them, while 'charlie' and "
+"'daisy' do the same with a separate DRBD resource, in a cluster named "
+"`right`. A third, stacked DRBD resource connects the two clusters."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:360
+msgid ""
+"Due to limitations in the Pacemaker cluster manager as of Pacemaker version "
+"1.0.5, it is not possible to create this setup in a single four-node cluster "
+"without disabling CIB validation, which is an advanced process not "
+"recommended for general-purpose use. It is anticipated that this is being "
+"addressed in future Pacemaker releases."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:366
+msgid ""
+"To create such a configuration, you would first configure and initialize "
+"DRBD resources as described in <<s-three-nodes>> (except that the remote "
+"half of the DRBD configuration is also stacked, not just the local cluster). "
+"Then, configure Pacemaker with the following CRM configuration, starting "
+"with the cluster `left`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:371
+#, no-wrap
+msgid ""
+"primitive p_drbd_left ocf:linbit:drbd \\\n"
+"\tparams drbd_resource=\"left\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:374 UG9/en/drbd-pacemaker.adoc:435
+#, no-wrap
+msgid ""
+"primitive p_drbd_stacked ocf:linbit:drbd \\\n"
+"\tparams drbd_resource=\"stacked\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:377
+#, no-wrap
+msgid ""
+"primitive p_ip_stacked_left ocf:heartbeat:IPaddr2 \\\n"
+"\tparams ip=\"10.9.9.100\" nic=\"eth0\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:382
+#, no-wrap
+msgid ""
+"ms ms_drbd_left p_drbd_left \\\n"
+"\tmeta master-max=\"1\" master-node-max=\"1\" \\\n"
+"        clone-max=\"2\" clone-node-max=\"1\" \\\n"
+"        notify=\"true\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:387
+#, no-wrap
+msgid ""
+"ms ms_drbd_stacked p_drbd_stacked \\\n"
+"\tmeta master-max=\"1\" clone-max=\"1\" \\\n"
+"        clone-node-max=\"1\" master-node-max=\"1\" \\\n"
+"        notify=\"true\" target-role=\"Master\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:390
+#, no-wrap
+msgid ""
+"colocation c_ip_on_left_master \\\n"
+"        inf: p_ip_stacked_left ms_drbd_left:Master\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:393
+#, no-wrap
+msgid ""
+"colocation c_drbd_stacked_on_ip_left \\\n"
+"        inf: ms_drbd_stacked p_ip_stacked_left\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:396
+#, no-wrap
+msgid ""
+"order o_ip_before_stacked_left \\\n"
+"        inf: p_ip_stacked_left ms_drbd_stacked:start\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:399
+#, no-wrap
+msgid ""
+"order o_drbd_left_before_stacked_left \\\n"
+"        inf: ms_drbd_left:promote ms_drbd_stacked:start\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:412 UG9/en/drbd-pacemaker.adoc:464
+#: UG9/en/drbd-pacemaker.adoc:575 UG9/en/drbd-pacemaker.adoc:604
+msgid ""
+"After adding this configuration to the CIB, Pacemaker will execute the "
+"following actions:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:415
+msgid ""
+"Bring up the DRBD resource `left` replicating between 'alice' and 'bob' "
+"promoting the resource to the Master role on one of these nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:419
+msgid ""
+"Bring up the IP address 10.9.9.100 (on either 'alice' or 'bob', depending on "
+"which of these holds the Master role for the resource `left`)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:422 UG9/en/drbd-pacemaker.adoc:475
+msgid ""
+"Bring up the DRBD resource `stacked` on the same node that holds the just-"
+"configured IP address."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:424
+msgid "Promote the stacked DRBD resource to the Primary role."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:427
+msgid ""
+"Now, proceed on the cluster `right` by creating the following configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:432
+#, no-wrap
+msgid ""
+"primitive p_drbd_right ocf:linbit:drbd \\\n"
+"\tparams drbd_resource=\"right\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:438
+#, no-wrap
+msgid ""
+"primitive p_ip_stacked_right ocf:heartbeat:IPaddr2 \\\n"
+"\tparams ip=\"10.9.10.101\" nic=\"eth0\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:443
+#, no-wrap
+msgid ""
+"ms ms_drbd_right p_drbd_right \\\n"
+"\tmeta master-max=\"1\" master-node-max=\"1\" \\\n"
+"        clone-max=\"2\" clone-node-max=\"1\" \\\n"
+"        notify=\"true\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:448
+#, no-wrap
+msgid ""
+"ms ms_drbd_stacked p_drbd_stacked \\\n"
+"\tmeta master-max=\"1\" clone-max=\"1\" \\\n"
+"        clone-node-max=\"1\" master-node-max=\"1\" \\\n"
+"        notify=\"true\" target-role=\"Slave\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:451
+#, no-wrap
+msgid ""
+"colocation c_drbd_stacked_on_ip_right \\\n"
+"        inf: ms_drbd_stacked p_ip_stacked_right\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:454
+#, no-wrap
+msgid ""
+"colocation c_ip_on_right_master \\\n"
+"        inf: p_ip_stacked_right ms_drbd_right:Master\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:457
+#, no-wrap
+msgid ""
+"order o_ip_before_stacked_right \\\n"
+"        inf: p_ip_stacked_right ms_drbd_stacked:start\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:460
+#, no-wrap
+msgid ""
+"order o_drbd_right_before_stacked_right \\\n"
+"        inf: ms_drbd_right:promote ms_drbd_stacked:start\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:468
+msgid ""
+"Bring up the DRBD resource `right` replicating between 'charlie' and "
+"'daisy', promoting the resource to the Master role on one of these nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:472
+msgid ""
+"Bring up the IP address 10.9.10.101 (on either 'charlie' or 'daisy', "
+"depending on which of these holds the Master role for the resource `right`)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:478
+msgid ""
+"Leave the stacked DRBD resource in the Secondary role (due to `target-"
+"role=\"Slave\"`)."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-pacemaker.adoc:481
+#, no-wrap
+msgid "Configuring DRBD to Replicate Between Two SAN-backed Pacemaker Clusters"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:488
+msgid ""
+"indexterm:[IP address, floating peers]This is a somewhat advanced setup "
+"usually employed in split-site configurations. It involves two separate "
+"Pacemaker clusters, where each cluster has access to a separate Storage Area "
+"Network (SAN). DRBD is then used to replicate data stored on that SAN, "
+"across an IP link between sites."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:490
+msgid "Consider the following illustration to describe the concept."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-pacemaker.adoc:491
+#, no-wrap
+msgid "Using DRBD to replicate between SAN-based clusters"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-pacemaker.adoc:492
+#, no-wrap
+msgid "images/drbd-pacemaker-floating-peers.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:498
+msgid ""
+"Which of the individual nodes in each site currently acts as the DRBD peer "
+"is not explicitly defined -- the DRBD peers <<s-floating-peers,are said to "
+"_float_>>; that is, DRBD binds to virtual IP addresses not tied to a "
+"specific physical machine."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:503
+msgid ""
+"This type of setup is usually deployed together with <<s-drbd-proxy,DRBD "
+"Proxy>> or <<s-truck-based-replication,truck based replication>>, or both."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:506
+msgid ""
+"Since this type of setup deals with shared storage, configuring and testing "
+"STONITH is absolutely vital for it to work properly."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-pacemaker.adoc:509
+#, no-wrap
+msgid "DRBD Resource Configuration"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:513
+msgid ""
+"To enable your DRBD resource to float, configure it in `drbd.conf` in the "
+"following fashion:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:524
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  ...\n"
+"  device /dev/drbd0;\n"
+"  disk /dev/sda1;\n"
+"  meta-disk internal;\n"
+"  floating 10.9.9.100:7788;\n"
+"  floating 10.9.10.101:7788;\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:535
+msgid ""
+"The `floating` keyword replaces the `on <host>` sections normally found in "
+"the resource configuration. In this mode, DRBD identifies peers by IP "
+"address and TCP port, rather than by host name. It is important to note that "
+"the addresses specified must be virtual cluster IP addresses, rather than "
+"physical node IP addresses, for floating to function properly. As shown in "
+"the example, in split-site configurations the two floating addresses can be "
+"expected to belong to two separate IP networks -- it is therefore vital for "
+"routers and firewalls to properly allow DRBD replication traffic between the "
+"nodes."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-pacemaker.adoc:538
+#, no-wrap
+msgid "Pacemaker Resource Configuration"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:543
+msgid ""
+"A DRBD floating peers setup, in terms of Pacemaker configuration, involves "
+"the following items (in each of the two Pacemaker clusters involved):"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:545
+msgid "A virtual cluster IP address."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:547
+msgid "A master/slave DRBD resource (using the DRBD OCF resource agent)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:550
+msgid ""
+"Pacemaker constraints ensuring that resources are started on the correct "
+"nodes, and in the correct order."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:554
+msgid ""
+"To configure a resource named `mysql` in a floating peers configuration in a "
+"2-node cluster, using the replication address `10.9.9.100`, configure "
+"Pacemaker with the following `crm` commands:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:571
+#, no-wrap
+msgid ""
+"crm configure\n"
+"crm(live)configure# primitive p_ip_float_left ocf:heartbeat:IPaddr2 \\\n"
+"                    params ip=10.9.9.100\n"
+"crm(live)configure# primitive p_drbd_mysql ocf:linbit:drbd \\\n"
+"                    params drbd_resource=mysql\n"
+"crm(live)configure# ms ms_drbd_mysql drbd_mysql \\\n"
+"                    meta master-max=\"1\" master-node-max=\"1\" \\\n"
+"                         clone-max=\"1\" clone-node-max=\"1\" \\\n"
+"                         notify=\"true\" target-role=\"Master\"\n"
+"crm(live)configure# order drbd_after_left \\\n"
+"                      inf: p_ip_float_left ms_drbd_mysql\n"
+"crm(live)configure# colocation drbd_on_left \\\n"
+"                      inf: ms_drbd_mysql p_ip_float_left\n"
+"crm(live)configure# commit\n"
+"bye\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:577
+msgid "Bring up the IP address 10.9.9.100 (on either 'alice' or 'bob')."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:578 UG9/en/drbd-pacemaker.adoc:608
+msgid "Bring up the DRBD resource according to the IP address configured."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:579
+msgid "Promote the DRBD resource to the Primary role."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:583
+msgid ""
+"Then, to create the matching configuration in the other cluster, configure "
+"_that_ Pacemaker instance with the following commands:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:600
+#, no-wrap
+msgid ""
+"crm configure\n"
+"crm(live)configure# primitive p_ip_float_right ocf:heartbeat:IPaddr2 \\\n"
+"                    params ip=10.9.10.101\n"
+"crm(live)configure# primitive drbd_mysql ocf:linbit:drbd \\\n"
+"                    params drbd_resource=mysql\n"
+"crm(live)configure# ms ms_drbd_mysql drbd_mysql \\\n"
+"                    meta master-max=\"1\" master-node-max=\"1\" \\\n"
+"                         clone-max=\"1\" clone-node-max=\"1\" \\\n"
+"                         notify=\"true\" target-role=\"Slave\"\n"
+"crm(live)configure# order drbd_after_right \\\n"
+"                      inf: p_ip_float_right ms_drbd_mysql\n"
+"crm(live)configure# colocation drbd_on_right\n"
+"                      inf: ms_drbd_mysql p_ip_float_right\n"
+"crm(live)configure# commit\n"
+"bye\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:607
+msgid "Bring up the IP address 10.9.10.101 (on either 'charlie' or 'daisy')."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:610
+msgid ""
+"Leave the DRBD resource in the Secondary role (due to `target-"
+"role=\"Slave\"`)."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-pacemaker.adoc:613
+#, no-wrap
+msgid "Site Failover"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:619
+msgid ""
+"In split-site configurations, it may be necessary to transfer services from "
+"one site to another. This may be a consequence of a scheduled migration, or "
+"of a disastrous event. In case the migration is a normal, anticipated event, "
+"the recommended course of action is this:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:625
+msgid ""
+"Connect to the cluster on the site about to relinquish resources, and change "
+"the affected DRBD resource's `target-role` attribute from `Master` to "
+"`Slave`. This will shut down any resources depending on the Primary role of "
+"the DRBD resource, demote it, and continue to run, ready to receive updates "
+"from a new Primary."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:631
+msgid ""
+"Connect to the cluster on the site about to take over resources, and change "
+"the affected DRBD resource's `target-role` attribute from `Slave` to "
+"`Master`. This will promote the DRBD resources, start any other Pacemaker "
+"resources depending on the Primary role of the DRBD resource, and replicate "
+"updates to the remote site."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:633
+msgid "To fail back, simply reverse the procedure."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:637
+msgid ""
+"In case of a catastrophic outage on the active site, it can be expected that "
+"the site is offline and no longer replicated to the backup site. In such an "
+"event:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:643
+msgid ""
+"Connect to the cluster on the still-functioning site resources, and change "
+"the affected DRBD resource's `target-role` attribute from `Slave` to "
+"`Master`. This will promote the DRBD resources, and start any other "
+"Pacemaker resources depending on the Primary role of the DRBD resource."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:647
+msgid ""
+"When the original site is restored or rebuilt, you may connect the DRBD "
+"resources again, and subsequently fail back using the reverse procedure."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-pacemaker.adoc:649
+#, no-wrap
+msgid "Importing DRBD's Promotion Scores into the CIB"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:655
+msgid ""
+"Everything described in this section depends on the `drbd-attr` OCF resource "
+"agent. It is available since drbd-utils version 9.15.0. On Debian/Ubuntu "
+"systems this is part of the `drbd-utils` package. On RPM based Linux "
+"distributions you need to install the `drbd-pacemaker` package."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:662
+msgid ""
+"Every DRBD resource exposes a _promotion score_ on each node where it is "
+"configured. It is a numeric value that might be 0 or positive. The value "
+"reflects how desirable it is to promote the resource to master on this "
+"particular node. A node that has an _UpToDate_ disk and two _UpToDate_ "
+"replicas has a higher score than a node with an _UpToDate_ disk and just one "
+"_UpToDate_ replica."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:667
+msgid ""
+"During startup, the _promotion score_ is 0.  E.g., before the DRBD device "
+"has its backing device attached, or, if quorum is enabled, before quorum is "
+"gained. A value of 0 indicates that a promotion request will fail, and is "
+"mapped to a pacemaker score that indicates _must not run here_."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:670
+msgid ""
+"The `drbd-attr` OCF resource agent imports these promotion scores into node "
+"attributes of a Pacemaker cluster. It needs to be configured like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:675
+#, no-wrap
+msgid ""
+"primitive drbd-attr ocf:linbit:drbd-attr\n"
+"clone drbd-attr-clone drbd-attr\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:680
+msgid ""
+"These are _transient_ attributes (have a _lifetime_ of _reboot_ in pacemaker "
+"speak). That means, after a _reboot_ of the node, or local restart of "
+"pacemaker, those attributes will not exist until an instance of `drbd-attr` "
+"is started on that node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:682
+msgid "You can inspect the generated attributes with `crm_mon -A -1`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:686
+msgid ""
+"These attributed can be used in constraints for services that depend on the "
+"DRBD devices, or, when managing DRBD with the `ocf:linbit:drbd` resource "
+"agent, for the _Master_ role of that DRBD instance."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:688
+msgid ""
+"Here is an example location constraint for the example resource from <<s-"
+"pacemaker-drbd-background>>"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-pacemaker.adoc:693
+#, no-wrap
+msgid ""
+"location lo_fs_mysql fs_mysql \\\n"
+"        rule -inf: not_defined drbd-promotion-score-mysql \\\n"
+"        rule drbd-promotion-score-mysql: defined drbd-promotion-score-mysql\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:697
+msgid ""
+"This means, provided that the attribute is not defined, the fs_mysql file "
+"system cannot be mounted here. When the attribute is defined, its value "
+"becomes the score of the location constraint."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:702
+msgid ""
+"This can also be used to cause Pacemaker to migrate a service away when DRBD "
+"loses a local backing device. Because a failed backing block device causes "
+"the promotion score to drop, other nodes with working backing devices will "
+"expose higher promotion scores."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:705
+msgid ""
+"The attributes are updated live, independent of the resource-agent's monitor "
+"operation, with a dampening delay of 5 seconds by default."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:708
+msgid ""
+"The resource agent has these optional parameters, see also its man page "
+"`ocf_linbit_drbd-attr(7)`:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:710
+msgid "`dampening_delay`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:711
+msgid "`attr_name_prefix`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-pacemaker.adoc:712
+msgid "`record_event_details`"
+msgstr ""

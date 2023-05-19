@@ -1,0 +1,1266 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ===
+#: UG9/en/drbd-proxy.adoc:291 UG9/en/linstor-openstack.adoc:518
+#, no-wrap
+msgid "Troubleshooting"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-kubernetes.adoc:1356 UG9/en/linstor-openstack.adoc:472
+msgid ""
+"Do not place the resource on a node which has a resource with a name "
+"matching the regex."
+msgstr ""
+
+#. type: Title ==
+#: UG9/en/linstor-openstack.adoc:2
+#, no-wrap
+msgid "LINSTOR Volumes in OpenStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:7
+msgid ""
+"indexterm:[OpenStack]indexterm:[Cinder] This chapter describes using LINSTOR "
+"to provision persistent, replicated, and high-performance block storage for "
+"OpenStack."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-openstack.adoc:9
+#, no-wrap
+msgid "Introduction to OpenStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:17
+msgid ""
+"OpenStack consists of a wide range of individual services; The service "
+"responsible for provisioning and managing block storage is called https://"
+"docs.openstack.org/cinder/latest/[Cinder]. Other openstack services such as "
+"the compute instance service https://docs.openstack.org/nova/latest[Nova] "
+"can request volumes from Cinder. Cinder will then make a volume accessible "
+"to the requesting service."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:22
+msgid ""
+"LINSTOR can integrate with Cinder using a *volume driver*. The volume driver "
+"translates calls to the Cinder API to LINSTOR commands. For example: "
+"requesting a volume from Cinder will create new resources in LINSTOR, Cinder "
+"Volume snapshots translate to snapshots in LINSTOR and so on."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-openstack.adoc:24
+#, no-wrap
+msgid "Installing LINSTOR for OpenStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:28
+msgid ""
+"An initial installation and configuration of DRBD and LINSTOR must be "
+"completed prior to using the OpenStack driver."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:30
+msgid "A detailed installation guide can be found <<s-installation,here>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:32
+msgid "<<s-linstor-init-cluster,Initialize>> your cluster."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:34
+msgid "Learn how to use the <<s-using_the_linstor_client,LINSTOR client>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:36
+msgid ""
+"<<s-adding_nodes_to_your_cluster,Add all storage nodes>> to the LINSTOR "
+"cluster."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:39
+msgid ""
+"At this point you should be able to list your storage cluster nodes using "
+"the LINSTOR client:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:52
+#, no-wrap
+msgid ""
+"$ linstor node info\n"
+"╭────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ Node                      ┊ NodeType  ┊ Addresses                 ┊ State  ┊\n"
+"╞════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ cinder-01.openstack.test  ┊ COMBINED  ┊ 10.43.224.21:3366 (PLAIN) ┊ Online ┊\n"
+"┊ cinder-02.openstack.test  ┊ COMBINED  ┊ 10.43.224.22:3366 (PLAIN) ┊ Online ┊\n"
+"┊ storage-01.openstack.test ┊ SATELLITE ┊ 10.43.224.11:3366 (PLAIN) ┊ Online ┊\n"
+"┊ storage-02.openstack.test ┊ SATELLITE ┊ 10.43.224.12:3366 (PLAIN) ┊ Online ┊\n"
+"┊ storage-03.openstack.test ┊ SATELLITE ┊ 10.43.224.13:3366 (PLAIN) ┊ Online ┊\n"
+"╰────────────────────────────────────────────────────────────────────────────╯\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:57
+msgid ""
+"You should <<s-storage_pools,configure one or more storage pools>> per node. "
+"This guide assumes the storage pool is named `cinderpool`. LINSTOR should "
+"list the storage pool for each node, including the diskless storage pool "
+"created by default."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:73
+#, no-wrap
+msgid ""
+"$ linstor storage-pool list\n"
+"╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ StoragePool          ┊ Node                      ┊ Driver   ┊ PoolName        ┊ FreeCapacity ┊ TotalCapacity ┊ CanSnapshots ┊ State ┊\n"
+"╞═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ DfltDisklessStorPool ┊ cinder-01.openstack.test  ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ cinder-02.openstack.test  ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ storage-01.openstack.test ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ storage-02.openstack.test ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ DfltDisklessStorPool ┊ storage-03.openstack.test ┊ DISKLESS ┊                 ┊              ┊               ┊ False        ┊ Ok    ┊\n"
+"┊ cinderpool           ┊ storage-01.openstack.test ┊ LVM_THIN ┊ ssds/cinderpool ┊      100 GiB ┊       100 GiB ┊ True         ┊ Ok    ┊\n"
+"┊ cinderpool           ┊ storage-02.openstack.test ┊ LVM_THIN ┊ ssds/cinderpool ┊      100 GiB ┊       100 GiB ┊ True         ┊ Ok    ┊\n"
+"┊ cinderpool           ┊ storage-03.openstack.test ┊ LVM_THIN ┊ ssds/cinderpool ┊      100 GiB ┊       100 GiB ┊ True         ┊ Ok    ┊\n"
+"╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openstack.adoc:76
+#, no-wrap
+msgid "Upgrading the LINSTOR Driver"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:79
+msgid ""
+"If this is a fresh installation, skip this section and continue with <<s-"
+"install_the_linstor_driver>>."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-openstack.adoc:80
+#, no-wrap
+msgid "Upgrading From 1.x to 2.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:84
+msgid ""
+"Driver version 2 dropped some static configuration options in favour of "
+"managing these options at runtime using <<s-openstack-volume-types,volume "
+"types>>."
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-openstack.adoc:95
+#, no-wrap
+msgid ""
+"| Option in `cinder.conf` | Status | Replace with\n"
+"| `linstor_autoplace_count` | removed | Use the `linstor:redundancy` property on the volume type. Using a value of 0 for full cluster replication is not supported, use the advanced options of <<s-autoplace-linstor, the LINSTOR autoplacer>>\n"
+"| `linstor_controller_diskless` | removed | No replacement needed, the driver will create a diskless resource on the cinder host when required\n"
+"| `linstor_default_blocksize` | removed | This setting had no effect.\n"
+"| `linstor_default_storage_pool_name` | deprecated | This setting is deprecated for removal in a future version. Use the `linstor:storage_pool` property on the volume type instead.\n"
+"| `linstor_default_uri` | deprecated | Replaced by the more aptly named `linstor_uris`.\n"
+"| `linstor_default_volume_group_name` | removed | Creating nodes and storage pools was completely removed in Driver version 2. See <<s-openstack-linstor-install>>\n"
+"| `linstor_volume_downsize_factor` | removed | This setting served no purpose, it was removed without replacement.\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openstack.adoc:98
+#, no-wrap
+msgid "Installing the LINSTOR Driver"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:103
+msgid ""
+"Starting with OpenStack Stein, the LINSTOR driver is part of the Cinder "
+"project. While the driver can be used as is, it might be missing features or "
+"fixes available in newer version. Due to OpenStacks update policy for stable "
+"versions, most improvements to the driver will not get back-ported to older "
+"stable releases."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:106
+msgid ""
+"https://github.com/LINBIT/openstack-cinder[LINBIT maintains a fork] of the "
+"Cinder repository with all improvements to the LINSTOR driver backported to "
+"the supported stable versions. Currently, these are:"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-openstack.adoc:117
+#, no-wrap
+msgid ""
+"| OpenStack Release    | Included Version | LINBIT Version | LINBIT Branch\n"
+"| `yoga`               | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fyoga[`linstor/stable/yoga`]\n"
+"| `xena`               | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fxena[`linstor/stable/xena`]\n"
+"| `wallaby`            | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fwallaby[`linstor/stable/wallaby`]\n"
+"| `victoria`           | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fvictoria[`linstor/stable/victoria`]\n"
+"| `ussuri`             | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fussuri[`linstor/stable/ussuri`]\n"
+"| `train`              | 1.0.0            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Ftrain[`linstor/stable/train`]\n"
+"| `stein`              | 1.0.0            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2Fstein[`linstor/stable/stein`]\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:122
+msgid ""
+"The exact steps to enable the LINSTOR Driver depend on your OpenStack "
+"distribution. In general, the `python-linstor` package needs to be installed "
+"on all hosts running the Cinder volume service. The next section will cover "
+"the installation process for common OpenStack distributions."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-openstack.adoc:123
+#, no-wrap
+msgid "Installing on DevStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:127
+msgid ""
+"https://docs.openstack.org/devstack/latest/[DevStack] is a great way to try "
+"out OpenStack in a lab environment.  To use the most recent driver use the "
+"following DevStack configuration:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-openstack.adoc:128
+#, no-wrap
+msgid "local.conf"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:135
+#, no-wrap
+msgid ""
+"# This ensures the LINSTOR Driver has access to the 'python-linstor' package.\n"
+"#\n"
+"# This is needed even if using the included driver!\n"
+"USE_VENV=True\n"
+"ADDITIONAL_VENV_PACKAGES=python-linstor\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:140
+#, no-wrap
+msgid ""
+"# This is required to select the LINBIT version of the driver\n"
+"CINDER_REPO=https://github.com/LINBIT/openstack-cinder.git\n"
+"# Replace linstor/stable/victoria with the reference matching your OpenStack release.\n"
+"CINDER_BRANCH=linstor/stable/victoria\n"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-openstack.adoc:142
+#, no-wrap
+msgid "Installing on Kolla"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:147
+msgid ""
+"https://docs.openstack.org/kolla/latest/[Kolla] packages OpenStack "
+"components in containers. They can then be deployed, for example using "
+"https://docs.openstack.org/kolla-ansible/latest/[Kolla Ansible] You can take "
+"advantage of the available customisation options for kolla containers to set "
+"up the LINSTOR driver."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:149
+msgid ""
+"To ensure that the required `python-linstor` package is installed, use the "
+"following override file:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-openstack.adoc:150
+#, no-wrap
+msgid "template-override.j2"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:154
+#, no-wrap
+msgid "{% extends parent_template %}\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:157
+#, no-wrap
+msgid ""
+"# Cinder\n"
+"{% set cinder_base_pip_packages_append = ['python-linstor'] %}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:160
+msgid ""
+"To install the LINBIT version of the driver, update your `kolla-build.conf`"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-openstack.adoc:161
+#, no-wrap
+msgid "/etc/kolla/kolla-build.conf"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:168
+#, no-wrap
+msgid ""
+"[cinder-base]\n"
+"type = git\n"
+"location = https://github.com/LINBIT/openstack-cinder.git\n"
+"# Replace linstor/stable/victoria with the reference matching your OpenStack release.\n"
+"reference = linstor/stable/victoria\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:171
+msgid "To rebuild the Cinder containers, run:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:180
+#, no-wrap
+msgid ""
+"# A private registry used to store the kolla container images\n"
+"REGISTRY=deployment-registry.example.com\n"
+"# The image namespace in the registry\n"
+"NAMESPACE=kolla\n"
+"# The tag to apply to all images. Use the release name for compatibility with kolla-ansible\n"
+"TAG=victoria\n"
+"kolla-build -t source --template-override template-override.j2 cinder --registry $REGISTRY --namespace $NAMESPACE --tag $TAG\n"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-openstack.adoc:182
+#, no-wrap
+msgid "Kolla Ansible Deployment"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:185
+msgid "When deploying OpenStack using Kolla Ansible, you need to verify that:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:187
+msgid ""
+"the custom Cinder images, created in the section above, are used deployment "
+"of Cinder services is enabled."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-openstack.adoc:188
+#, no-wrap
+msgid "/etc/kolla/globals.yml"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:204
+#, no-wrap
+msgid ""
+"# use \"source\" images\n"
+"kolla_install_type: source\n"
+"# use the same registry as for running kolla-build above\n"
+"docker_registry: deployment-registry.example.com\n"
+"# use the same namespace as for running kolla-build above\n"
+"docker_namespace: kolla\n"
+"# deploy cinder block storage service\n"
+"enable_cinder: \"yes\"\n"
+"# disable verification of cinder back ends, kolla-ansible only supports a small subset of available back ends for this\n"
+"skip_cinder_backend_check: True\n"
+"# add the LINSTOR back end to the enabled back ends. For back end configuration see below\n"
+"cinder_enabled_backends:\n"
+"  - name: linstor-drbd\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:208
+msgid ""
+"You can place the LINSTOR driver configuration in one of the override "
+"directories for kolla-ansible. For more details on the available "
+"configuration options, see the section below."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-openstack.adoc:209
+#, no-wrap
+msgid "/etc/kolla/config/cinder/cinder-volume.conf"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:215
+#, no-wrap
+msgid ""
+"[linstor-drbd]\n"
+"volume_backend_name = linstor-drbd\n"
+"volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver\n"
+"linstor_uris = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test\n"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-openstack.adoc:217
+#, no-wrap
+msgid "OpenStack Ansible Deployment"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:222
+msgid ""
+"https://docs.openstack.org/openstack-ansible/[OpenStack Ansible] provides "
+"Ansible playbooks to configure and deploy of OpenStack environments. It "
+"allows for fine-grained customization of the deployment, letting you set up "
+"the LINSTOR driver directly."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-openstack.adoc:223
+#, no-wrap
+msgid "/etc/openstack_ansile/user_variables.yml"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:227
+#, no-wrap
+msgid ""
+"cinder_git_repo: https://github.com/LINBIT/openstack-cinder.git\n"
+"cinder_git_install_branch: linstor/stable/victoria\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:230
+#, no-wrap
+msgid ""
+"cinder_user_pip_packages:\n"
+"  - python-linstor\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:236
+#, no-wrap
+msgid ""
+"cinder_backends: <1>\n"
+"  linstor-drbd:\n"
+"   volume_backend_name: linstor-drbd\n"
+"   volume_driver: cinder.volume.drivers.linstordrv.LinstorDrbdDriver\n"
+"   linstor_uris: linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:240
+msgid ""
+"A detailed description of the available back end parameters can be found in "
+"the section below."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-openstack.adoc:241
+#, no-wrap
+msgid "Generic Cinder Deployment"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:244
+msgid ""
+"For other forms of OpenStack deployments, this guide can only provide non-"
+"specific hints."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:246
+msgid ""
+"To update the LINSTOR driver version, find your Cinder installation. Some "
+"likely paths are:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:250
+#, no-wrap
+msgid ""
+"/usr/lib/python*/dist-packages/cinder/\n"
+"/usr/lib/python*/site-packages/cinder/\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:253
+msgid ""
+"The LINSTOR driver consists of a single file called `linstordrv.py`, located "
+"in the Cinder directory:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:256
+#, no-wrap
+msgid "$CINDER_PATH/volume/drivers/linstordrv.py\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:259
+msgid ""
+"To update the driver, replace the file with one from the LINBIT repository"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:263
+#, no-wrap
+msgid ""
+"RELEASE=linstor/stable/victoria\n"
+"curl -fL \"https://raw.githubusercontent.com/LINBIT/openstack-cinder/$RELEASE/cinder/volume/drivers/linstordrv.py\" > $CINDER_PATH/volume/drivers/linstordrv.py\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:266
+msgid ""
+"You might also need to remove the Python cache for the update to be "
+"registered:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:269
+#, no-wrap
+msgid "rm -rf $CINDER_PATH/volume/drivers/__pycache__\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-openstack.adoc:271
+#, no-wrap
+msgid "Configuring a LINSTOR Back End for Cinder"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:275
+msgid ""
+"To use the LINSTOR driver, configure the Cinder volume service. This is done "
+"by editing the Cinder configuration file and then restarting the Cinder "
+"Volume service."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:278
+msgid ""
+"Most of the time, the Cinder configuration file is located at `/etc/cinder/"
+"cinder.conf`. Some deployment options allow manipulating this file in "
+"advance. See the section above for specifics."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:280
+msgid ""
+"To configure a new volume back end using LINSTOR, add the following section "
+"to `cinder.conf`"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:295
+#, no-wrap
+msgid ""
+"[linstor-drbd]\n"
+"volume_backend_name = linstor-drbd <1>\n"
+"volume_driver = cinder.volume.drivers.linstordrv.LinstorDrbdDriver <2>\n"
+"linstor_uris = linstor://cinder-01.openstack.test,linstor://cinder-02.openstack.test <3>\n"
+"linstor_trusted_ca = /path/to/trusted/ca.cert <4>\n"
+"linstor_client_key = /path/to/client.key <5>\n"
+"linstor_client_cert = /path/to/client.cert <5>\n"
+"# Deprecated or removed in 2.0.0\n"
+"linstor_default_storage_pool_name = cinderpool <6>\n"
+"linstor_autoplace_count = 2 <7>\n"
+"linstor_controller_diskless = true <8>\n"
+"# non-linstor-specific options\n"
+"... <9>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:301
+msgid ""
+"The parameters described here are based on the latest release provided by "
+"LINBIT. The driver included in OpenStack might not support all of these "
+"parameters. Consult the https://docs.openstack.org/cinder/latest/"
+"configuration/block-storage/drivers/linstor-driver.html[OpenStack driver "
+"documentation] to learn more."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:305
+msgid ""
+"The name of the volume back end. Needs to be unique in the Cinder "
+"configuration. The whole section should share the same name. This name is "
+"referenced again in `cinder.conf` in the `enabled_backends` setting and when "
+"creating a new volume type."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:307
+msgid "The version of the LINSTOR driver to use. There are two options:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:308
+msgid "`cinder.volume.drivers.linstordrv.LinstorDrbdDriver`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:309
+msgid "`cinder.volume.drivers.linstordrv.LinstorIscsiDriver`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:312
+msgid ""
+"Which driver you should use depends on your LINSTOR set up and requirements. "
+"Details on each choice are documented in <<s-openstack-linstor-transport-"
+"options, the section below.>>"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:314
+msgid ""
+"The URL(s) of the LINSTOR Controller(s). Multiple Controllers can be "
+"specified to make use of <<s-linstor_ha,Linstor High Availability>>. If not "
+"set, defaults to `linstor://localhost`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:316
+msgid ""
+"In driver versions prior to 2.0.0, this option is called "
+"`linstor_default_uri`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:318
+msgid ""
+"If <<s-linstor-rest-api-https,HTTPS is enabled>> the referenced certificate "
+"is used to verify the LINSTOR Controller authenticity."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:320
+msgid ""
+"If <<s-linstor-rest-api-https,HTTPS is enabled>> the referenced key and "
+"certificate will be presented to the LINSTOR Controller for authentication."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:322
+#, no-wrap
+msgid "*Deprecated in 2.0.0, use <<s-openstack-volume-types,volume types>> instead.* The storage pools to use when placing resources. Applies to all diskfull resources created. Defaults to `DfltStorPool`.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:324
+#, no-wrap
+msgid "*Removed in 2.0.0, use <<s-openstack-volume-types,volume types>> instead.* The number of replicas to create for the given volume. A value of `0` will create a replica on all nodes. Defaults to `0`.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:326
+#, no-wrap
+msgid "*Removed in 2.0.0, volumes are created on demand by the driver.* If set to true, ensures that at least one (diskless) replica is deployed on the Cinder Controller host. This is useful for ISCSI transports. Defaults to `true`.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:328
+msgid ""
+"You can specify more generic Cinder options here, for example `target_helper "
+"= tgtadm` for the ISCSI connector."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:330
+msgid ""
+"You can also configure multiple LINSTOR back ends, choosing a different name "
+"and configuration options for each."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:333
+msgid ""
+"After configuring the LINSTOR back end, it should also be enabled. Add it to "
+"the list of enabled back ends in `cinder.conf`, and optionally set is as the "
+"default back end:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:340
+#, no-wrap
+msgid ""
+"[DEFAULT]\n"
+"...\n"
+"default_volume_type = linstor-drbd-volume\n"
+"enabled_backends = lvm,linstor-drbd\n"
+"...\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:344
+msgid ""
+"As a last step, if you changed the Cinder configuration or updated the "
+"driver itself, you need to restart the Cinder service(s). Please check the "
+"documentation for your OpenStack Distribution on how to restart services."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openstack.adoc:346
+#, no-wrap
+msgid "Choosing a Transport Protocol"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:350
+msgid ""
+"The Transport Protocol in Cinder is how clients (for example nova-compute) "
+"access the actual volumes. With LINSTOR, you can choose between two "
+"different drivers that use different transports."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:352
+msgid ""
+"`cinder.volume.drivers.linstordrv.LinstorDrbdDriver`, which uses DRBD as "
+"transport"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:353
+msgid ""
+"`cinder.volume.drivers.linstordrv.LinstorIscsiDriver`, which uses ISCSI as "
+"transport"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-openstack.adoc:354
+#, no-wrap
+msgid "Using DRBD as the Transport Protocol"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:359
+msgid ""
+"The `LinstorDrbdDriver` works by ensuring a replica of the volume is "
+"available locally on the node where a client (that is, nova-compute) issued "
+"a request. This only works if _all_ compute nodes are also running LINSTOR "
+"Satellites that are part of the same LINSTOR cluster."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:361
+msgid "The advantages of this option are:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:363
+msgid ""
+"Once set up, the Cinder host is no longer involved in the data path. All "
+"read and write to the volume are handled by the local DRBD module, which "
+"will handle replication across its configured peers."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:365
+msgid ""
+"Since the Cinder host is not involved in the data path, any disruptions to "
+"the Cinder service do not affect volumes that are already attached."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:367
+msgid "Known limitations:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:369
+msgid ""
+"Not all hosts and hypervisors support using DRBD volumes. This restricts "
+"deployment to Linux hosts and `kvm` hypervisors."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:371
+msgid ""
+"Resizing of attached and in-use volumes does not fully work. While the "
+"resize itself is successful, the compute service will not propagate it to "
+"the VM until after a restart."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:373
+msgid ""
+"Multi-attach (attaching the same volume on multiple VMs) is not supported."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:375
+msgid ""
+"https://docs.openstack.org/cinder/latest/configuration/block-storage/volume-"
+"encryption.html#create-an-encrypted-volume-type[Encrypted volumes] only work "
+"if udev rules for DRBD devices are in place."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:377
+msgid ""
+"`udev` rules are either part of the `drbd-utils` package or have their own "
+"`drbd-udev` package."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-openstack.adoc:378
+#, no-wrap
+msgid "Using iSCSI as the Transport Protocol"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:383
+msgid ""
+"The default way to export Cinder volumes is through iSCSI. This has the "
+"advantage of maximum compatibility as iSCSI can be used with every "
+"hypervisor, be it VMWare, Xen, HyperV, or KVM."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:387
+msgid ""
+"The drawback is that all data has to be sent to a Cinder node, to be "
+"processed by an (userspace) iSCSI daemon; that means that the data needs to "
+"pass the kernel/userspace border, and these transitions will cost some "
+"performance."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:392
+msgid ""
+"Another drawback is the introduction of a single point of failure. If a "
+"Cinder node running the iSCSI daemon crashes, other nodes lose access to "
+"their volumes.  There are ways to configure Cinder for automatic fail-over "
+"to mitigate this, but it requires considerable effort."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:396
+msgid ""
+"In driver versions prior to 2.0.0, the Cinder host needs access to a local "
+"replica of every volume. This can be achieved by either setting "
+"`linstor_controller_diskless=True` or using `linstor_autoplace_count=0`. "
+"Newer driver versions will create such a volume on demand."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openstack.adoc:398
+#, no-wrap
+msgid "Verifying the Status of LINSTOR Back Ends"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:401
+msgid ""
+"To verify that all back ends are up and running, you can use the OpenStack "
+"command line client:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:412
+#, no-wrap
+msgid ""
+"$ openstack volume service list\n"
+"+------------------+----------------------------------------+------+---------+-------+----------------------------+\n"
+"| Binary           | Host                                   | Zone | Status  | State | Updated At                 |\n"
+"+------------------+----------------------------------------+------+---------+-------+----------------------------+\n"
+"| cinder-scheduler | cinder-01.openstack.test               | nova | enabled | up    | 2021-03-10T12:24:37.000000 |\n"
+"| cinder-volume    | cinder-01.openstack.test@linstor-drbd  | nova | enabled | up    | 2021-03-10T12:24:34.000000 |\n"
+"| cinder-volume    | cinder-01.openstack.test@linstor-iscsi | nova | enabled | up    | 2021-03-10T12:24:35.000000 |\n"
+"+------------------+----------------------------------------+------+---------+-------+----------------------------+\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:415
+msgid ""
+"If you have the Horizon GUI deployed, check `Admin > System Information > "
+"Block Storage Service` instead."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:418
+msgid ""
+"In the above example all configured services are `enabled` and `up`. If "
+"there are any issues, please check the logs of the Cinder Volume service."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-openstack.adoc:420
+#, no-wrap
+msgid "Creating a New Volume Type for LINSTOR"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:423
+msgid ""
+"Before creating volumes using Cinder, you have to create a volume type. This "
+"can be done using the command line:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:447
+#, no-wrap
+msgid ""
+"# Create a volume using the default back end\n"
+"$ openstack volume type create default\n"
+"+-------------+--------------------------------------+\n"
+"| Field       | Value                                |\n"
+"+-------------+--------------------------------------+\n"
+"| description | None                                 |\n"
+"| id          | 58365ffb-959a-4d91-8821-5d72e5c39c26 |\n"
+"| is_public   | True                                 |\n"
+"| name        | default                              |\n"
+"+-------------+--------------------------------------+\n"
+"# Create a volume using a specific back end\n"
+"$ openstack volume type create --property volume_backend_name=linstor-drbd linstor-drbd-volume\n"
+"+-------------+--------------------------------------+\n"
+"| Field       | Value                                |\n"
+"+-------------+--------------------------------------+\n"
+"| description | None                                 |\n"
+"| id          | 08562ea8-e90b-4f95-87c8-821ac64630a5 |\n"
+"| is_public   | True                                 |\n"
+"| name        | linstor-drbd-volume                  |\n"
+"| properties  | volume_backend_name='linstor-drbd'   |\n"
+"+-------------+--------------------------------------+\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:451
+msgid ""
+"Alternatively, you can create volume types using the Horizon GUI. Navigate "
+"to `Admin > Volume > Volume Types` and click \"Create Volume Type\". You can "
+"assign it a back end by adding the `volume_backend_name` as \"Extra Specs\" "
+"to it."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openstack.adoc:452
+#, no-wrap
+msgid "Advanced Configuration of Volume Types"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:455
+msgid ""
+"Each volume type can be customized by adding properties or \"Extra Specs\" "
+"as they are called in the Horizon GUI."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:457
+msgid "To add a property to a volume type on the command line use:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:459
+#, no-wrap
+msgid "openstack volume type set linstor_drbd_b --property linstor:redundancy=5\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:464
+msgid ""
+"Alternatively, you can set the property using the GUI by navigating tp "
+"`Admin > Volume > Volume Types`. In the `Actions` column, open the dropdown "
+"menu and click the `View Extra Specs` button. This opens a dialog you can "
+"use to create, edit and delete properties."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-openstack.adoc:465
+#, no-wrap
+msgid "Available Volume Type Properties"
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-openstack.adoc:467
+#, no-wrap
+msgid "linstor:diskless_on_remaining"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:469
+msgid "Create diskless replicas on non-selected nodes after auto-placing."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-openstack.adoc:470
+#, no-wrap
+msgid "linstor:do_not_place_with_regex"
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-openstack.adoc:473
+#, no-wrap
+msgid "linstor:layer_list"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:475
+msgid ""
+"Comma-separated list of layers to apply for resources. If empty, defaults to "
+"DRBD,Storage."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-openstack.adoc:476
+#, no-wrap
+msgid "linstor:provider_list"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:478
+msgid ""
+"Comma-separated list of providers to use. If empty, LINSTOR will "
+"automatically choose a suitable provider."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-openstack.adoc:479
+#, no-wrap
+msgid "linstor:redundancy"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:481
+msgid "Number of replicas to create. Defaults to two."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-openstack.adoc:482
+#, no-wrap
+msgid "linstor:replicas_on_different"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:485 UG9/en/linstor-openstack.adoc:489
+msgid ""
+"A comma-separated list of key or key=value items used as autoplacement "
+"selection labels when autoplace is used to determine where to provision "
+"storage."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-openstack.adoc:486
+#, no-wrap
+msgid "linstor:replicas_on_same"
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-openstack.adoc:490
+#, no-wrap
+msgid "linstor:storage_pool"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:492
+msgid "Comma-separated list of storage pools to use when auto-placing."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-openstack.adoc:494
+#, no-wrap
+msgid "linstor:property:__<key>__"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:497
+msgid ""
+"If a __<key>__ is prefixed by `linstor:property:`, it is interpreted as a "
+"LINSTOR property. The property gets set on the <<s-linstor-resource-groups,"
+"Resource Group>> created for the volume type."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:499
+msgid ""
+"OpenStack does not allow for `/` in property names. If a LINSTOR property "
+"name contains a `/` replace it with a `:`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:502
+msgid ""
+"For example: To change the <<s-linstor-auto-quorum,quorum policy>>, "
+"`DrbdOptions/auto-quorum` needs to be set. This can be done by setting the "
+"`linstor:property:DrbdOptions:auto-quorum` property in OpenStack."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-openstack.adoc:503
+#, no-wrap
+msgid "Using Volumes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:506
+msgid ""
+"Once you have a volume type configured, you can start using it to provision "
+"new volumes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:508
+msgid ""
+"For example, to create a simple 1Gb volume on the command line you can use:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-openstack.adoc:513
+#, no-wrap
+msgid ""
+"openstack volume create --type linstor-drbd-volume --size 1 \\\n"
+"  --availability-zone nova linstor-test-vol\n"
+"openstack volume list\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:517
+msgid ""
+"If you set `default_volume_type = linstor-drbd-volume` in your `/etc/cinder/"
+"cinder.conf`, you may omit the `--type linstor-drbd-volume` from the "
+"`openstack volume create ...` command above."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:521
+msgid ""
+"This section describes what to do in case you encounter problems with using "
+"LINSTOR volumes and snapshots."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openstack.adoc:522
+#, no-wrap
+msgid "Checking for Error Messages in Horizon"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:526
+msgid ""
+"Every volume and snapshot has a Messages tab in the Horizon dashboard. In "
+"case of errors, the list of messages can be used as a starting point for "
+"further investigation. Some common messages in case of errors:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:528
+#, no-wrap
+msgid "  create volume from backend storage:Driver failed to create the volume.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:530
+msgid ""
+"There was an error creating a new volume. Check the Cinder Volume service "
+"logs for more details"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:532
+#, no-wrap
+msgid "  schedule allocate volume:Could not find any available weighted backend.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:536
+msgid ""
+"If this is the only error message, this means the Cinder Scheduler could not "
+"find a volume back end suitable for creating the volume. This is most likely "
+"because:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:538
+msgid ""
+"The volume back end is offline. See <<s-openstack-linstor-backend-status>>"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:540
+msgid ""
+"The volume back end has not enough free capacity to fulfil the request. "
+"Check the output of `cinder get-pools --detail` and `linstor storage-pool "
+"list` to ensure that the requested capacity is available."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openstack.adoc:541
+#, no-wrap
+msgid "Checking the Cinder Volume Service"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:544
+msgid "The LINSTOR driver is called as part of the Cinder Volume service."
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-openstack.adoc:549
+#, no-wrap
+msgid ""
+"| Distribution | Log location or command\n"
+"| DevStack     | `journalctl -u devstack@c-vol`\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-openstack.adoc:551
+#, no-wrap
+msgid "Checking the Compute Service Logs"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-openstack.adoc:555
+msgid ""
+"Some issues will not be logged in the Cinder Service but in the actual "
+"consumer of the volumes, most likely the compute service (Nova). As with the "
+"volume service, the exact host and location to check depends on your "
+"OpenStack distribution:"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-openstack.adoc:560
+#, no-wrap
+msgid ""
+"| Distribution | Log location or command\n"
+"| DevStack     | `journalctl -u devstack@n-cpu`\n"
+msgstr ""
