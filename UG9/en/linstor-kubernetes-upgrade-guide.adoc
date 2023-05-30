@@ -1,7 +1,49 @@
 [[s-kubernetes-upgrade]]
 === Upgrading a LINSTOR Deployment on Kubernetes
 
-A LINSTOR Deployment on Kubernetes can be upgraded to a new release using Helm.
+A LINSTOR deployment on Kubernetes can be upgraded to a new release.
+
+During the upgrade process, attaching, detaching or provisioning of volumes will be paused. Existing
+volumes and volumes already in use by a pod will continue to work.
+
+==== Upgrading LINSTOR Operator v2
+
+If you deployed LINSTOR using Operator v2, you can upgrade LINBIT SDS by deploying the newer version of LINSTOR
+Operator.
+
+IMPORTANT: During the upgrade process, the LINSTOR satellite pods will restart. This will stop replication of DRBD
+devices, freezing any writes on volumes, until the satellite pods are online again.
+
+To upgrade, change the tag referenced in the kustomization file:
+
+.kustomization.yaml
+[source,yaml]
+----
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: linbit-sds
+resources:
+- https://github.com/LINBIT/linstor-operator-builder//deploy/default?ref=v2.1.1&depth=1&timeout=90s <1>
+generatorOptions:
+  disableNameSuffixHash: true
+secretGenerator:
+- name: drbdio-pull-secret
+  type: kubernetes.io/dockerconfigjson
+  literals:
+  - .dockerconfigjson={"auths":{"drbd.io":{"username":"MY_LINBIT_USER","password":"MY_LINBIT_PASSWORD"}}}
+----
+<1>: Change the tag specified in the `ref=` parameter to match the release number that you are upgrading to.
+
+Then, apply the `kustomization.yaml` file, by using the following `kubectl` command, and wait for the upgrade to complete:
+
+----
+$ kubectl apply -k .
+namespace/linbit-sds created
+[...]
+$ kubectl -n linbit-sds  wait pod --for=condition=Ready --all
+----
+
+==== Upgrading LINSTOR Operator v1
 
 Before upgrading to a new release, you should ensure you have an up-to-date backup of the LINSTOR database.
 If you are using the etcd database packaged in the LINSTOR Chart, see <<s-kubernetes-etcd-backup,here>>
@@ -54,9 +96,6 @@ $ helm upgrade linstor-op linstor/linstor -f orig.yaml
 
 This triggers the rollout of new pods. After a short wait, all pods should be running and ready.
 Check that no errors are listed in the status section of LinstorControllers, LinstorSatelliteSets and LinstorCSIDrivers.
-
-IMPORTANT: During the upgrade process, provisioning of volumes and attach/detach operations might not work. Existing
-volumes and volumes already in use by a pod will continue to work without interruption.
 
 [[s-kubernetes-upgrade-k8s-backend]]
 ==== Upgrading a LINSTOR Cluster with Kubernetes Back End

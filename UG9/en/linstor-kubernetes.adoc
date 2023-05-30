@@ -72,7 +72,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: linbit-sds
 resources:
-  - https://github.com/LINBIT/linstor-operator-builder//deploy/default?ref=v2.1.0&depth=1&timeout=90s <1>
+  - https://github.com/LINBIT/linstor-operator-builder//deploy/default?ref=v2.1.1&depth=1&timeout=90s <1>
 generatorOptions:
   disableNameSuffixHash: true
 secretGenerator:
@@ -715,7 +715,7 @@ etcd:
 stork:
   enabled: false
   storkImage: docker.io/openstorage/stork:2.8.2
-  schedulerImage: k8s.gcr.io/kube-scheduler-amd64
+  schedulerImage: registry.k8s.io/kube-scheduler
   schedulerTag: ""
   replicas: 1 <2>
   storkResources: {} # resources requirements for the stork plug-in containers <3>
@@ -723,13 +723,13 @@ stork:
   podsecuritycontext: {}
 csi:
   enabled: true
-  pluginImage: "drbd.io/linstor-csi:v0.20.0"
-  csiAttacherImage: k8s.gcr.io/sig-storage/csi-attacher:v4.0.0
-  csiLivenessProbeImage: k8s.gcr.io/sig-storage/livenessprobe:v2.7.0
-  csiNodeDriverRegistrarImage: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.5.1
-  csiProvisionerImage: k8s.gcr.io/sig-storage/csi-provisioner:v3.2.1
-  csiSnapshotterImage: k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1
-  csiResizerImage: k8s.gcr.io/sig-storage/csi-resizer:v1.6.0
+  pluginImage: "drbd.io/linstor-csi:v1.1.0"
+  csiAttacherImage: registry.k8s.io/sig-storage/csi-attacher:v4.3.0
+  csiLivenessProbeImage: registry.k8s.io/sig-storage/livenessprobe:v2.10.0
+  csiNodeDriverRegistrarImage: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.8.0
+  csiProvisionerImage: registry.k8s.io/sig-storage/csi-provisioner:v3.5.0
+  csiSnapshotterImage: registry.k8s.io/sig-storage/csi-snapshotter:v6.2.1
+  csiResizerImage: registry.k8s.io/sig-storage/csi-resizer:v1.8.0
   csiAttacherWorkerThreads: 10 <9>
   csiProvisionerWorkerThreads: 10 <9>
   csiSnapshotterWorkerThreads: 10 <9>
@@ -760,7 +760,7 @@ psp:
   unprivilegedRole: ""
 operator:
   replicas: 1 # <- number of replicas for the operator deployment <2>
-  image: "drbd.io/linstor-operator:v1.10.0"
+  image: "drbd.io/linstor-operator:v1.10.4"
   affinity: {} <4>
   tolerations: [] <4>
   resources: {} <3>
@@ -774,7 +774,7 @@ operator:
   extraVolumes: []
   controller:
     enabled: true
-    controllerImage: "drbd.io/linstor-controller:v1.20.0"
+    controllerImage: "drbd.io/linstor-controller:v1.23.0"
     dbConnectionURL: ""
     luksSecret: ""
     dbCertSecret: ""
@@ -800,17 +800,16 @@ operator:
     customAnnotations: {}
   satelliteSet:
     enabled: true
-    satelliteImage: "drbd.io/linstor-satellite:v1.20.0"
+    satelliteImage: "drbd.io/linstor-satellite:v1.23.0"
     storagePools: {}
     sslSecret: ""
     automaticStorageType: None
     affinity: {} <4>
     tolerations: [] <4>
     resources: {} <3>
-    monitoringImage: "drbd.io/drbd-reactor:v0.9.0"
+    monitoringImage: "drbd.io/drbd-reactor:v1.2.0"
     monitoringBindAddress: ""
-    mountDrbdResourceDirectoriesFromHost: false <10>
-    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.1.11"
+    kernelModuleInjectionImage: "drbd.io/drbd9-rhel7:v9.1.14"
     kernelModuleInjectionMode: ShippedModules
     kernelModuleInjectionAdditionalSourceDirectory: "" <8>
     kernelModuleInjectionResources: {} <3>
