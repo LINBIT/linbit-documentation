@@ -534,37 +534,34 @@ on each node.
 For example, one valid approach is to give all SSDs one name and
 all HDDs another.
 
+[[s-linstor-storage-pools-creating]]
+==== Creating Storage Pools
+
 On each host contributing storage, you need to create
-either an LVM VG or a ZFS zPool. The VGs and zPools identified with one
+either an LVM volume group (VG) or a ZFS zPool. The VGs and zPools identified with one
 LINSTOR storage pool name may have different VG or zPool names on the
-hosts, but do yourself a favor and use the same VG or zPool name on all
+hosts, but do yourself a favor, for coherency, use the same VG or zPool name on all
 nodes.
 
 ----
 # vgcreate vg_ssd /dev/nvme0n1 /dev/nvme1n1 [...]
 ----
 
-These then need to be registered with LINSTOR:
+After creating a volume group on each of your nodes, you can create a storage pool that is backed by the
+volume group on each of your nodes, by entering the following commands:
 
 ----
 # linstor storage-pool create lvm alpha pool_ssd vg_ssd
 # linstor storage-pool create lvm bravo pool_ssd vg_ssd
 ----
 
-NOTE: The storage pool name and common metadata is referred to as a
-_storage pool definition_.
-The listed commands create a storage pool definition implicitly.
-You can see that by using `linstor storage-pool-definition list`.
-Creating storage pool definitions explicitly is possible but
-not necessary.
-
-To list your storage-pools you can use:
+To list your storage pools you can enter:
 
 ----
 # linstor storage-pool list
 ----
 
-or using the short version
+or using LINSTOR abbreviated notation:
 
 ----
 # linstor sp l
@@ -585,16 +582,16 @@ or using the short version
 ----
 # linstor sp lo alpha pool_ssd
 ----
-////
 
 Should the deletion of the storage pool be prevented due to attached resources or snapshots with some of its
 volumes in another still functional storage pool, hints will be given in the 'status' column of the
 corresponding list-command (e.g. `linstor resource list`). After deleting the LINSTOR-objects in the lost storage pool
 manually, the lost-command can be executed again to ensure a complete deletion of the storage pool and its
 remaining objects.
+////
 
 [[s-a_storage_pool_per_backend_device]]
-==== Confining Failure Domains to a Single Back-end Device
+==== Using Storage Pools To Confine Failure Domains to a Single Back-end Device
 
 In clusters where you have only one kind of storage and the capability
 to hot swap storage devices, you may choose a model where you create
@@ -623,7 +620,7 @@ volume group UUID as the shared space identifier for a pool accessible by nodes 
 Exos pools will use the Exos pool serial number by default for the shared-space identifier.
 
 [[s-physical-storage-command]]
-==== Creating Storage Pools
+==== Creating Storage Pools by Using the Physical Storage Command
 
 Since linstor-server 1.5.2 and a recent linstor-client, LINSTOR can create LVM/ZFS pools on a satellite for you.
 The linstor-client has the following commands to list possible disks and create storage pools, but such LVM/ZFS pools
@@ -644,14 +641,14 @@ It will only show disks that pass the following filters:
 
 
 With the `create-device-pool` command you can create a LVM pool on a disk and also directly
-add it as a storage-pool in LINSTOR.
+add it as a storage pool in LINSTOR.
 
 ----
 # linstor physical-storage create-device-pool --pool-name lv_my_pool \
   LVMTHIN node_alpha /dev/vdc --storage-pool newpool
 ----
 
-If the `--storage-pool` option was provided, LINSTOR will create a storage-pool with the given name.
+If the `--storage-pool` option was provided, LINSTOR will create a storage pool with the given name.
 
 For more options and exact command usage please check the linstor-client help.
 
@@ -824,7 +821,7 @@ your `--auto-place` command arguments, then LINSTOR will reject your command wit
 message.
 
 In the following example, the value after the `--auto-place` option tells LINSTOR how many
-replicas you want to have. The storage-pool option should be obvious.
+replicas you want to have. The `--storage-pool` option should be obvious.
 
 ----
 # linstor resource create backups --auto-place 3 --storage-pool pool_hdd
@@ -1451,7 +1448,7 @@ network, the resource has to be defined as diskless:
 # linstor resource create beta nvmedata --nvme-initiator
 ----
 
-Now you can  mount the resource `nvmedata` on one of your nodes.
+Now you can mount the resource `nvmedata` on one of your nodes.
 
 IMPORTANT: If your nodes have more than one NIC you should force the
 route between them for NVMe-of/NVME-TCP, otherwise multiple NICs
@@ -1582,7 +1579,7 @@ the storage pool and the size of the cache device.
 The two properties set in the examples are mandatory, but can also be set on
 controller level which would act as a default for all resources with `WRITECACHE` in their
 `--layer-list`. However, please note that the `Writecache/PoolName` refers to
-the corresponding node. If the node does not have a storage-pool named `pmempool` you will
+the corresponding node. If the node does not have a storage pool named `pmempool` you will
 get an error message.
 
 The 4 mandatory parameters required by
