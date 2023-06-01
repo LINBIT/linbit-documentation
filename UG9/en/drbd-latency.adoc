@@ -109,50 +109,107 @@ time.
 [[s-latency-tuning-cpu-mask]]
 ==== Setting DRBD's CPU Mask
 
-DRBD allows for setting an explicit CPU mask for its kernel
-threads. This is particularly beneficial for applications which would
-otherwise compete with DRBD for CPU cycles.
+DRBD allows you to set an explicit CPU mask for its kernel threads. By default, DRBD picks a
+single CPU for each resource. All the threads for this resource run on this CPU. This policy is
+generally optimal when the goal is maximum aggregate performance with more DRBD resources than
+CPU cores. If instead you want to maximize the performance of individual resources at the
+cost of total CPU usage, you can use the CPU mask parameter to allow the DRBD threads to use
+multiple CPUs.
 
-The CPU mask is a number in whose binary representation the least
-significant bit represents the first CPU, the second-least significant
-bit the second, and so forth. A set bit in the bitmask implies that
-the corresponding CPU may be used by DRBD, whereas a cleared bit means
-it must not. Therefore, for example, a CPU mask of 1 (`00000001`) means
-DRBD may use the first CPU only. A mask of 12 (`00001100`) implies
-DRBD may use the third and fourth CPU.
+In addition, for detailed fine-tuning, you can coordinate the placement of application threads
+with the corresponding DRBD threads. Depending on the behavior of the application and the
+optimization goals, it may be beneficial to either use the same CPU, or to separate the threads
+onto independent CPUs, that is, restrict DRBD from using the same CPUs that are used by the
+application.
 
+The CPU mask value that you set in a DRBD resource configuration is a hex number (or else a
+string of comma-separated hex numbers, to specify a mask that includes a system's 33rd CPU core
+or beyond). You can specify a mask that has up to a maximum of 908 CPU cores.
 
-An example CPU mask configuration for a resource may look like this:
+When represented in binary, the least significant bit of the CPU mask represents the first CPU,
+the second-least significant bit the second CPU, and so forth, up to a maximum of 908 CPU cores.
+A set bit (1) in the binary representation of the mask means that DRBD can use the
+corresponding CPU. A cleared bit (0) means that DRBD cannot use the corresponding CPU.
+
+For example, a CPU mask of 0x1 (`00000001` in binary) means DRBD can use the first CPU only. A mask of
+0xC (`00001100` in binary) means that DRBD can use the third and fourth CPU.
+
+To convert a binary mask value to the hex value (or string of hex values) needed for your DRBD resource configuration
+file, you can use the following commands, provided that you have the `bc` utility installed. For
+example, to get the hex value for the binary number 00001100 and apply the necessary formatting
+for the CPU mask value string, enter the following:
+
+----
+$ binmask=00001100
+$ echo "obase=16;ibase=2;$binmask" | BC_LINE_LENGTH=0 bc | \
+sed ':a;s/\([^,]\)\([^,]\{8\}\)\($\|,\)/\1,\2\3/;p;ta;s/,0\+/,/g' | tail -n 1
+----
+
+NOTE: The `sed` command above transforms the resulting hex number (converted from the binary
+number in the `binmask` variable, into a string format that the function that parses the
+`cpu-mask` string expects.
+
+Output from these commands will be `C`. You can then use this value in your resource
+configuration file, as follows, to limit DRBD to only use the third and fourth CPU cores:
 
 [source,drbd]
 ----
 resource <resource> {
   options {
-    cpu-mask 2;
+    cpu-mask C;
     ...
   }
   ...
 }
 ----
 
-IMPORTANT: Of course, to minimize CPU competition between
+If you need to specify a mask that represents more than 32 CPUs then you will need to use a comma separated list
+of 32 bit hex valuesfootnote:[DRBD uses the `bitmap_parse` function to provide the CPU mask
+parameter functionality. See the Linux kernel documentation for the `bitmap_parse` function:
+https://docs.kernel.org/core-api/kernel-api.html?highlight=bitmap_parse#c.bitmap_parse[here].],
+up to a maximum of 908 CPU cores. A comma must separate every group of eight hex digits (32
+binary digits) in the string.
+
+For a contrived, more complex example, if you wanted to restrict DRBD to using just the 908th,
+35th, 34th, 5th, 2nd, and 1st CPUs, you would set your CPU mask as follows:
+
+----
+$ binmask=10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011000000000000000000000000000010011
+$ echo "obase=16;ibase=2;$binmask" | BC_LINE_LENGTH=0 bc | \
+sed ':a;s/\([^,]\)\([^,]\{8\}\)\($\|,\)/\1,\2\3/;p;ta;s/,0\+/,/g' | tail -n 1
+----
+
+Output from this command will be:
+
+----
+$ 800,,,,,,,,,,,,,,,,,,,,,,,,,,,6,13
+----
+
+You would then set the CPU mask parameter in your resource configuration to:
+
+----
+cpu-mask 800,,,,,,,,,,,,,,,,,,,,,,,,,,,6,13
+----
+
+[IMPORTANT]
+====
+Of course, to minimize CPU competition between
 DRBD and the application using it, you need to configure your
 application to use only those CPUs which DRBD does not use.
 
-Some applications may provide for this through an entry in a configuration
+Some applications might provide for this through an entry in a configuration
 file, just like DRBD itself. Others include an invocation of the
 `taskset` command in an application init script.
+====
 
 [NOTE]
-====================
-
+====
 It makes sense to keep the DRBD threads running on the same L2/L3 caches.
 
-But: the numbering of CPUs doesn't have to correlate with the physical partitioning.
+However, the numbering of CPUs doesn't have to correlate with the physical partitioning.
 You can try the `lstopo` (or `hwloc-ls`) program for X11 or `hwloc-info -v -p`
 for console output to get an overview of the topology.
-====================
-
+====
 
 [[s-latency-tuning-mtu-size]]
 ==== Modifying the Network MTU
