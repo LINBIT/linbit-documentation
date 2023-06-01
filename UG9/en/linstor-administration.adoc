@@ -757,37 +757,43 @@ LINSTOR has the following supported storage plug-ins at the time of writing:
 [[s-linstor-new-volume]]
 === Creating and Deploying Resources and Volumes
 
-In the following scenario we assume that the goal is to create a resource
-'backups' with a size of '500 GB' that is replicated among three cluster nodes.
+You can use the LINSTOR `create` command to create various LINSTOR objects, such as resource
+definitions, volume definitions, and resources. Some of these commands are shown below.
 
-First, we create a new resource definition:
+In the following example scenario, assume that you have a goal of creating a resource named
+'backups' with a size of '500GiB' that is replicated among three cluster nodes.
+
+First, create a new resource definition:
 
 ----
 # linstor resource-definition create backups
 ----
 
-Second, we create a new volume definition within that resource definition:
+Second, create a new volume definition within that resource definition:
 
 ----
 # linstor volume-definition create backups 500G
 ----
 
-If you want to change the size of the volume-definition you can simply do that by:
+If you want to resize (grow or shrink) the volume definition you can do that by specifying a new
+size with the `set-size` command:
 
 ----
 # linstor volume-definition set-size backups 0 100G
 ----
 
+IMPORTANT: The size of a volume definition can only be decreased if it has no associated resource.
+However, you can freely increase the size of a volume definition, even one having a deployed
+resource.
+
 The parameter `0` is the number of the volume in the resource `backups`. You have to provide this parameter
-because resources can have multiple volumes that are identified by a so-called volume number. This number
-can be found by listing the volume-definitions.
+because resources can have multiple volumes that are identified by a so-called volume number. You can find this number
+by listing the volume definitions (`linstor vd l`). The list table will show volume numbers for
+the listed resources.
 
-IMPORTANT: The size of a volume-definition can only be decreased if it has no resource. Despite
-that, the size can be increased even with a deployed resource.
-
-So far we have only created objects in LINSTOR's database, not a single LV was
-created on the storage nodes. Now you have the choice of delegating the
-task of placement to LINSTOR or doing it yourself.
+So far you have only created definition objects in LINSTOR's database. However, not a single logical volume (LV) has been
+created on the satellite nodes. Now you have the choice of delegating the
+task of deploying resources to LINSTOR or else doing it yourself.
 
 [[s-manual_placement]]
 ==== Manually Placing Resources
