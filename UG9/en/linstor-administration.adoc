@@ -1115,35 +1115,49 @@ the following command:
 [[s-linstor_ha]]
 === Creating a Highly Available LINSTOR Cluster
 
-By default a LINSTOR cluster consists of exactly one LINSTOR controller. Making LINSTOR highly available
-involves providing replicated storage for the controller database, multiple LINSTOR controllers where only one
-is active at a time, and a service manager that takes care of mounting and unmounting the highly available storage as well as starting and stopping LINSTOR controllers.
+By default a LINSTOR cluster consists of exactly one active LINSTOR controller node. Making
+LINSTOR highly available involves providing replicated storage for the controller database,
+multiple LINSTOR controller nodes where only one is active at a time, and a service manager
+(here DRBD Reactor) that takes care of mounting and unmounting the highly available storage as
+well as starting and stopping the LINSTOR controller service on nodes.
 
 ==== Configuring Highly Available Storage
 
-For configuring the highly-available storage we use LINSTOR itself. This has the advantage that the storage is
-under LINSTOR control and can for example be easily extended to new cluster nodes. Just create a new
-resource with 200MB in size. This could look like this, you certainly need to adapt the storage pool name:
+For configuring the highly available (HA) storage, you can use LINSTOR itself. One of the
+benefits of having the storage under LINSTOR control is that you can easily extend the HA
+storage to new cluster nodes.
 
+First, create a new resource that is 200MiB in size and set the necessary DRBD options, as shown
+in the example commands below. You will need to adapt the storage pool name to match an existing
+storage pool in your environment.
 
 ----
 # linstor resource-definition create linstor_db
-# linstor resource-definition drbd-options --on-no-quorum=io-error linstor_db
-# linstor resource-definition drbd-options --auto-promote=no linstor_db
+# linstor rd drbd-options --auto-promote=no linstor_db
+# linstor rd drbd-options --quorum=majority linstor_db
+# linstor rd drbd-options --on-suspended-primary-outdated=force-secondary linstor_db
+# linstor rd drbd-options --on-no-quorum=io-error linstor_db
+# linstor rd drbd-options --on-no-data-accessible=io-error linstor_db
+# linstor rd drbd-options --rr-conflict=retry-connect linstor_db
 # linstor volume-definition create linstor_db 200M
-# linstor resource create linstor_db -s pool1 --auto-place 3
+# linstor resource create linstor_db --storage-pool pool1 --auto-place 3
 ----
 
-From now on we assume the resource's name is "linstor_db". It is crucial that your
-cluster qualifies for auto-quorum and uses the `io-error` policy (see Section <<s-linstor-auto-quorum>>), and
-that `auto-promote` is disabled.
+It is crucial that your cluster qualifies for auto-quorum and uses the `io-error` policy (see
+Section <<s-linstor-auto-quorum>>), and that `auto-promote` is disabled.
 
-After the resource is created, it is time to move the LINSTOR DB to the new storage and to create a `systemd`
-mount service. First we stop the current controller and disable it, as it will be managed by `drbd-reactor` later.
+From now on it is assumed that the resource's name is `linstor_db`. After creating the
+`linstor_db` resource, you can move the LINSTOR database to the new storage and create a
+systemd mount service. First, stop the current controller service and disable it, as it will
+be managed by DRBD Reactor later.
 
 ----
 # systemctl disable --now linstor-controller
+----
 
+Next, create the systemd mount service.
+
+----
 # cat << EOF > /etc/systemd/system/var-lib-linstor.mount
 [Unit]
 Description=Filesystem for the LINSTOR controller
@@ -1156,7 +1170,7 @@ EOF
 
 # mv /var/lib/linstor{,.orig}
 # mkdir /var/lib/linstor
-# chattr +i /var/lib/linstor  # only if on LINSTOR >= 1.14.0
+# chattr +i /var/lib/linstor # only if on LINSTOR >= 1.14.0
 # drbdadm primary linstor_db
 # mkfs.ext4 /dev/drbd/by-res/linstor_db/0
 # systemctl start var-lib-linstor.mount
@@ -1164,8 +1178,9 @@ EOF
 # systemctl start linstor-controller
 ----
 
-Copy the `/etc/systemd/system/var-lib-linstor.mount` mount file to all the standby nodes for the linstor controller.
-Again, do not `systemctl enable` any of these services, they get managed by `drbd-reactor`.
+Copy the `/etc/systemd/system/var-lib-linstor.mount` mount file to all the cluster nodes that
+you want to have the potential to run the LINSTOR controller service (standby controller nodes).
+Again, do not `systemctl enable` any of these services because DRBD Reactor will manage them.
 
 ==== Installing Multiple LINSTOR Controllers
 
