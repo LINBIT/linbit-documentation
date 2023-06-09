@@ -10,7 +10,7 @@ configure using complex cluster managers.
 === Installing DRBD Reactor
 
 DRBD Reactor can be installed from source files found within
-https://github.com/LINBIT/drbd-reactor[the project's GitHub repository].  See the instructions
+https://github.com/LINBIT/drbd-reactor[the project's GitHub repository]. See the instructions
 there for details and any prerequisites.
 
 ifndef::drbd-only[]
@@ -322,6 +322,30 @@ start = ["ocf:heartbeat:IPaddr2 ip_mysql ip=10.43.7.223 cidr_netmask=16"]
 
 IMPORTANT: The promoter plug-in expects OCF resource agents in the `/usr/lib/ocf/resource.d/`
 directory.
+
+[[s-drbd-reactor-when-to-use--systemd-fs-mount-units-and-ocf-ras]]
+===== When to Use systemd Mount Units and OCF Filesystem Resource Agents
+
+Almost all scenarios that you might use DRBD Reactor and its promoter plugin will likely involve
+a file system mount. If your use case involves a promoter start list of services with other
+services or applications besides a file system mount, then you should use a systemd mount unit
+to handle the file system mounting.
+
+However, you should not use a systemd file system mount unit if a file system mount point is the
+end goal, that is, it would be the last service in your promoter plugin start list of services.
+An example where this might be the case is when creating a highly available LINSTOR controller.
+Instead, use an OCF Filesystem resource agent to handle mounting and unmounting the file system.
+
+In this case, using an OCF resource agent is preferred because the resource agent will be able
+to escalate the demotion of nodes, by using `kill` actions and other various signals against
+processes that might be holding the mount point open. For example, there could be a user running
+an application against a file in the file system that systemd would not know about. In that
+case, systemd would not be able to unmount the file system and the promoter plugin would not be
+able to demote the node.
+
+You can find more information in the
+https://github.com/LINBIT/drbd-reactor/blob/master/doc/promoter.md#ha-involving-file-system-mount-points[DRBD
+Reactor GitHub documentation].
 
 [[s-drbd-reactor-umh-plug-in-configuring]]
 ==== Configuring the User Mode Helper (UMH) Plug-in
