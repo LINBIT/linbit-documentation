@@ -9,6 +9,10 @@ lang = en
 
 # /linbit-documentation is the WORKDIR in the Dockerfile
 # so, `./` in the `define` block below == `linbit-documentation`
+# also creates a symbolic link to the `/fonts` directory, where RUN actions
+# specified in the Dockerfile will download Japanese and Chinese fonts, when the
+# `linbit-documentation` Docker image is built. `ln -s` used rather than `ln -sf`,
+# in case a `fonts` dir exists already in someone's local `linbit-documentation` dir.
 define run-in-docker =
 	docker run \
 		--rm \
@@ -16,9 +20,9 @@ define run-in-docker =
 		--volume $$(pwd):/linbit-documentation \
 		linbit-documentation \
 		/bin/sh -c \
-		'ln -sf /fonts/genshingothic-fonts ./ && \
+		'ln -s /fonts ./ && \
 		make $(patsubst %-docker,%,$@) lang=$(lang); \
-		unlink ./genshingothic-fonts'
+		unlink ./fonts'
 endef
 
 # generate README.html from README.adoc
@@ -49,19 +53,23 @@ RUN apk update && \
     shadow \
     curl \
     font-noto-cjk
-# download and extract LINBIT fonts collection for Japanese and Chinese translations
 RUN mkdir -p /fonts/genshingothic-fonts
+RUN mkdir -p /fonts/noto-cn
+# download and extract LINBIT fonts collection for Japanese translations
 RUN curl https://packages.linbit.com/public/genshingothic-20150607.zip --output /tmp/ja.zip && \
-	unzip /tmp/ja.zip -d /fonts/genshingothic-fonts && rm /tmp/ja.zip
+    unzip /tmp/ja.zip -d /fonts/genshingothic-fonts && rm /tmp/ja.zip
+# download Noto Sans CJK fonts for Chinese translations
+RUN curl -L https://github.com/googlefonts/noto-cjk/raw/main/Sans/Variable/TTF/NotoSansCJKsc-VF.ttf --output /fonts/noto-cn/NotoSansCJKsc-VF.ttf
+RUN curl -L https://github.com/googlefonts/noto-cjk/raw/main/Sans/Variable/TTF/Mono/NotoSansMonoCJKsc-VF.ttf --output /fonts/noto-cn/NotoSansMonoCJKsc-VF.ttf
 WORKDIR /linbit-documentation
 COPY /GNUmakefile ./
 # the `makedoc` user actions below are necessary for docs website staging actions in a GitLab pipeline
 RUN useradd -m makedoc
 USER makedoc
 RUN mkdir /home/makedoc/.ssh && \
-	chmod 700 /home/makedoc/.ssh && \
-	ssh-keygen -f /home/makedoc/.ssh/id_rsa -t rsa -N '' && \
-	cat /home/makedoc/.ssh/id_rsa.pub
+    chmod 700 /home/makedoc/.ssh && \
+    ssh-keygen -f /home/makedoc/.ssh/id_rsa -t rsa -N '' && \
+    cat /home/makedoc/.ssh/id_rsa.pub
 endef
 
 export dockerfile
@@ -80,17 +88,17 @@ dockerimage: Dockerfile
 
 # Create UG 9 (PDF version)
 .PHONY: UG9-pdf-finalize UG9-pdf-finalize-docker UG9-html-finalize UG9-html-finalize-docker
-UG9-pdf-finalize:
+UG9-pdf-finalize: UG9-translate
 	make -C UG9 pdf-finalize lang=$(lang)
 
-UG9-pdf-finalize-docker: dockerimage
+UG9-pdf-finalize-docker: UG9-translate-docker dockerimage
 	$(run-in-docker)
 
 # Create UG 9 (HTML version)
-UG9-html-finalize:
+UG9-html-finalize: UG9-translate
 	make -C UG9 html-finalize lang=$(lang)
 
-UG9-html-finalize-docker: dockerimage
+UG9-html-finalize-docker: UG9-translate-docker dockerimage
 	$(run-in-docker)
 
 # Create UG 9 translation `pot` and update (or create them if they don't exist) `po` files

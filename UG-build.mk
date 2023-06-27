@@ -108,21 +108,21 @@ html-finalize: html
 	ln -s $(IMGDIR)
 
 $(OUTDIRPDF)/$(OUTPDF_UG): $(SRC) $(SVGSUSED)
-	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+	if [ -d $(FONTDIR) ] && \
 		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
 		INTERN="--theme $(THEMESDIR)/pdf-$(lang)-theme.yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
 	asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_UG)
 
 $(OUTDIRPDF)/$(OUTPDF_LS): $(SRC) $(SVGSUSED)
-	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+	if [ -d $(FONTDIR) ] && \
 		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
 		INTERN="--theme $(THEMESDIR)/pdf-$(lang)-theme.yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
 		if test -f $(IN_LS); then asciidoctor-pdf $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_LS); fi
 
 $(OUTDIRPDF)/$(OUTPDF_VSAN): $(SRC) $(SVGSUSED)
-	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+	if [ -d $(FONTDIR) ] && \
 		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
 		INTERN="--theme $(THEMESDIR)/pdf-$(lang)-theme.yml -a pdf-fontsdir=$(FONTDIR)"; else \
 		INTERN=""; fi && \
