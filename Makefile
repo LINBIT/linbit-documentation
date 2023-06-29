@@ -91,14 +91,14 @@ dockerimage: Dockerfile
 UG9-pdf-finalize: UG9-translate
 	make -C UG9 pdf-finalize lang=$(lang)
 
-UG9-pdf-finalize-docker: UG9-translate-docker dockerimage
+UG9-pdf-finalize-docker: UG9-translate-docker
 	$(run-in-docker)
 
 # Create UG 9 (HTML version)
 UG9-html-finalize: UG9-translate
 	make -C UG9 html-finalize lang=$(lang)
 
-UG9-html-finalize-docker: UG9-translate-docker dockerimage
+UG9-html-finalize-docker: UG9-translate-docker
 	$(run-in-docker)
 
 # Create UG 9 translation `pot` and update (or create them if they don't exist) `po` files
