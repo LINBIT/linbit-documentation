@@ -2226,7 +2226,7 @@ resources on it.
 
 IMPORTANT: If you are evacuating a node where LINSTOR is deployed within another environment,
 such as Kubernetes, or OpenNebula, you need to move the node's LINSTOR-backed workload to
-another node in your cluster before evacuating its resources. For special actions and
+another node in your cluster before evacuating its resources, or else reduce the replica count by one, for each resource that the node is hosting. For special actions and
 considerations within a Kubernetes environment, see the <<s-kubernetes-evacuate-node>> section.
 For a LINSTOR node in OpenNebula, you need to perform a <<s-opennebula-linstor-live-migration,
 live migration>> of the OpenNebula LINSTOR-backed virtual machines that your node hosts, to
@@ -2242,7 +2242,10 @@ to remove the "InUse" resources from the node as part of the evacuation process.
 . Run `linstor node evacuate <node_name>`. You will get a warning if there is no suitable
 replacement node for a resource on the evacuating node. For example, if you have three nodes and
 you want to evacuate one, but your resource group sets a placement count of three, you will get
-a warning that will prevent the node from removing the resources from the evacuating node.
+a warning that will prevent the node from removing the resources from the evacuating node. This
+is because resource replicas on an evacuating node can only be reassigned to meet their current
+replica counts if you have at least one more node in your cluster that participates in the
+LINSTOR storage pool(s) that back(s) LINSTOR resources on the node that you are evacuating.
 
 . Verify that the status of `linstor node list` for your node is "EVACUATE" rather than
 "Online".
