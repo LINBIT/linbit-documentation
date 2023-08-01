@@ -1242,10 +1242,8 @@ you are unsure which shell you are currently using.
 * Finally, grow the file system so it fills the extended size of the
   DRBD device.
 
-
 [[s-shrinking-online]]
 ==== Shrinking Online
-
 
 WARNING: Online shrinking is only supported with external metadata.
 
@@ -1279,12 +1277,11 @@ written into the expected space at the end of the volume.
 
 indexterm:[resource]If you were to shrink a backing block device while
 DRBD is inactive, DRBD would refuse to attach to this block device
-during the next attach attempt, since it is now too small (in case
-external metadata is used), or it would be unable to find its meta
-data (in case internal metadata is used). To work around these
+during the next attach attempt, since the block device would now be too small (if
+external metadata was in use), or it would be unable to find its metadata
+(if internal metadata was in use because DRBD metadata is written to the end of the backing block device). To work around these
 issues, use this procedure (if you cannot use
 <<s-shrinking-online,online shrinking>>):
-
 
 WARNING: This is an advanced procedure. Use at your own discretion.
 
@@ -1300,17 +1297,23 @@ WARNING: This is an advanced procedure. Use at your own discretion.
 * Save the metadata in a text file prior to shrinking:
 
 ----
-# drbdadm dump-md <resource> > /tmp/metadata
+# drbdadm dump-md <resource> > /tmp/<resource>-metadata
 ----
 
-You must do this on both nodes, using a separate dump file for every
-node. *Do not* dump the metadata on one node, and simply copy the dump
-file to the peer. *This. will. not. work.*
+NOTE: If the `dump-md` command fails with a warning about "unclean" metadata, you will first
+need to run the command `drbdadm apply-al <resource>` to apply the activity log of the specified
+resource. You can then retry the `dump-md` command.
 
-* Shrink the backing block device on both nodes.
+You must dump the metadata on all nodes that are configured for the DRBD resource, by using a separate dump file for each
+node.
+
+IMPORTANT: *Do not* dump the metadata on one node and then simply copy the dump
+file to peer nodes. *This. Will. Not. Work.*
+
+* Shrink the backing block device on each node configured for the DRBD resource.
 
 * Adjust the size information (`la-size-sect`) in the file
-  `/tmp/metadata` accordingly, on both nodes. Remember that
+  `/tmp/<resource>-metadata` accordingly, on each node. Remember that
   `la-size-sect` must be specified in sectors.
 
 * *Only if you are using internal metadata* (which at this time have
@@ -1321,26 +1324,28 @@ file to the peer. *This. will. not. work.*
 # drbdadm create-md <resource>
 ----
 
-* Re-import the corrected metadata, on both nodes:
+* Reimport the corrected metadata, on both nodes:
 +
 ----
-# drbdmeta_cmd=$(drbdadm -d dump-md <resource>)
-# ${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata
-Valid meta-data in place, overwrite? [need to type 'yes' to confirm]
-yes
+# drbdmeta_cmd=$(drbdadm --dry-run dump-md <resource>)
+# ${drbdmeta_cmd/dump-md/restore-md} /tmp/<resource>-metadata
+Valid meta-data in place, overwrite?
+[need to type 'yes' to confirm] yes
+
+reinitializing
 Successfully restored meta data
 ----
 
-NOTE: This example uses `bash` parameter substitution. It may or may not
-work in other shells. Check your `SHELL` environment variable if you
-are unsure which shell you are currently using.
+NOTE: This example uses BASH parameter substitution to generate the `drbdmeta restore-md`
+command necessary to restore the modified metadata for the resource. It might not work in other
+shells. Check your `SHELL` environment variable if you are unsure which shell you are currently
+using.
 
 * Re-enable your DRBD resource:
 +
 ----
 # drbdadm up <resource>
 ----
-
 
 [[s-disable-flushes]]
 === Disabling Backing Device Flushes
