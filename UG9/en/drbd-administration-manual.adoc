@@ -135,7 +135,7 @@ The Replication protocol used by the resource. Either `A`, `B`, or `C`. See
 ///////
 
 [[s-drbdsetup-events2]]
-==== Retrieving Status Information Using the DRBD Setup Command 
+==== Retrieving Status Information Using the DRBD Setup Command
 
 NOTE: This is available only with userspace versions 8.9.3 and up.
 // and 8.4.6
@@ -393,7 +393,7 @@ detach`, or that it automatically detached after a lower-level I/O
 error.
 
 ._Attaching_
-indexterm:[disk state, Attaching]Transient state while reading meta data.
+indexterm:[disk state, Attaching]Transient state while reading metadata.
 
 ._Detaching_
 indexterm:[disk state, Detaching]Transient state while detaching and waiting
@@ -464,10 +464,10 @@ Net data read from local disk; in KiB.
 Net data written to local disk; in KiB.
 
 ._al-writes_ (activity log)
-Number of updates of the activity log area of the meta data.
+Number of updates of the activity log area of the metadata.
 
 ._bm-writes_ (bitmap)
-Number of updates of the bitmap area of the meta data.
+Number of updates of the bitmap area of the metadata.
 
 ._upper-pending_ (application pending)
 Number of block I/O requests forwarded to DRBD, but not yet answered (completed)
@@ -1025,7 +1025,7 @@ the command (or script) invoked by `local-io-error`.
 NOTE: Early DRBD versions (prior to 8.0) included another option,
 `panic`, which would forcibly remove the node from the cluster by way
 of a kernel panic, whenever a local I/O error occurred. While that
-option is no longer available, the same behavior may be mimicked through 
+option is no longer available, the same behavior may be mimicked through
 the `local-io-error`/`call-local-io-error` interface. You should do so
 only if you fully understand the implications of such behavior.
 
@@ -1107,11 +1107,11 @@ and *not* the backing block device. If DRBD is up, that's not supposed
 to work anyways (`resize2fs: Device or resource busy while trying to open
 /dev/mapper/VG-LV Couldn't find valid filesystem superblock.`).
 If you tried to do that offline (with DRBD stopped), you may corrupt DRBD
-meta data if you ran the file system tools directly against the backing LV or
+metadata if you ran the file system tools directly against the backing LV or
 partition. So don't.
 
 You do the file system resize only *once* on the Primary, against the active
-DRBD device.  DRBD replicates the changes to the file system structure.
+DRBD device. DRBD replicates the changes to the file system structure.
 That is what you have it for.
 
 Also, don't use resize2fs on XFS volumes, or XFS tools on EXT, or ...
@@ -1126,7 +1126,7 @@ When shrinking (reducing) DRBD volumes, you need to shrink from top to bottom.
 So first verify that no one is using the space you want to cut off.
 Next, shrink the file system (if your file system supports that).
 Then tell DRBD to stop using that space, which is not so easy with DRBD
-internal meta data, because they are by design "at the end"
+internal metadata, because they are by design "at the end"
 of the backing device.
 
 Once you are sure that DRBD won't use the space anymore either,
@@ -1170,14 +1170,14 @@ space by using the --assume-clean option.
 
 indexterm:[resource]When the backing block devices on both nodes are
 grown while DRBD is inactive, and the DRBD resource is using
-<<s-external-meta-data,external meta data>>, then the new size is
+<<s-external-meta-data,external metadata>>, then the new size is
 recognized automatically. No administrative intervention is
 necessary. The DRBD device will have the new size after the next
 activation of DRBD on both nodes and a successful establishment of a
 network connection.
 
 If however the DRBD resource is configured to use
-<<s-internal-meta-data,internal meta data>>, then this meta data must
+<<s-internal-meta-data,internal metadata>>, then this metadata must
 be moved to the end of the grown device before the new size becomes
 available. To do so, complete the following steps:
 
@@ -1191,14 +1191,14 @@ WARNING: This is an advanced procedure. Use at your own discretion.
 # drbdadm down <resource>
 ----
 
-* Save the meta data in a text file prior to resizing:
+* Save the metadata in a text file prior to resizing:
 
 ----
 # drbdadm dump-md <resource> > /tmp/metadata
 ----
 
 You must do this on both nodes, using a separate dump file for every
-node. *Do not* dump the meta data on one node, and simply copy the
+node. *Do not* dump the metadata on one node, and simply copy the
 dump file to the peer. *This. will. not. work.*
 
 * Grow the backing block device on both nodes.
@@ -1213,7 +1213,7 @@ dump file to the peer. *This. will. not. work.*
 # drbdadm create-md <resource>
 ----
 
-* Re-import the corrected meta data, on both nodes:
+* Re-import the corrected metadata, on both nodes:
 
 ----
 # drbdmeta_cmd=$(drbdadm -d dump-md <resource>)
@@ -1280,8 +1280,8 @@ written into the expected space at the end of the volume.
 indexterm:[resource]If you were to shrink a backing block device while
 DRBD is inactive, DRBD would refuse to attach to this block device
 during the next attach attempt, since it is now too small (in case
-external meta data is used), or it would be unable to find its meta
-data (in case internal meta data is used). To work around these
+external metadata is used), or it would be unable to find its meta
+data (in case internal metadata is used). To work around these
 issues, use this procedure (if you cannot use
 <<s-shrinking-online,online shrinking>>):
 
@@ -1297,14 +1297,14 @@ WARNING: This is an advanced procedure. Use at your own discretion.
 # drbdadm down <resource>
 ----
 
-* Save the meta data in a text file prior to shrinking:
+* Save the metadata in a text file prior to shrinking:
 
 ----
 # drbdadm dump-md <resource> > /tmp/metadata
 ----
 
 You must do this on both nodes, using a separate dump file for every
-node. *Do not* dump the meta data on one node, and simply copy the dump
+node. *Do not* dump the metadata on one node, and simply copy the dump
 file to the peer. *This. will. not. work.*
 
 * Shrink the backing block device on both nodes.
@@ -1321,7 +1321,7 @@ file to the peer. *This. will. not. work.*
 # drbdadm create-md <resource>
 ----
 
-* Re-import the corrected meta data, on both nodes:
+* Re-import the corrected metadata, on both nodes:
 +
 ----
 # drbdmeta_cmd=$(drbdadm -d dump-md <resource>)
@@ -1376,7 +1376,7 @@ resource <resource>
 ----
 
 
-To disable disk flushes on DRBD's meta data, include the following
+To disable disk flushes on DRBD's metadata, include the following
 line:
 
 [source,drbd]
@@ -1577,9 +1577,9 @@ The following considerations apply to this type of setup:
   `/dev/drbd10`, then `/dev/drbd10` will be the device that you mount
   and use.
 
-* Device meta data will be stored twice, on the underlying DRBD device
+* Device metadata will be stored twice, on the underlying DRBD device
   _and_ the stacked DRBD device. On the stacked device, you must always
-  use <<s-internal-meta-data,internal meta data>>. This means that the
+  use <<s-internal-meta-data,internal metadata>>. This means that the
   effectively available storage area on a stacked device is slightly
   smaller, compared to an unstacked device.
 
@@ -1662,7 +1662,7 @@ drbdadm up r0
 drbdadm primary r0
 ----
 
-As with unstacked resources, you must create DRBD meta data on the
+As with unstacked resources, you must create DRBD metadata on the
 stacked resources. This is done using the following command:
 
 ----
@@ -1832,7 +1832,7 @@ This is done by defining the network connection on the existing nodes using the 
 # drbdadm adjust <resource>
 ----
 
-and starting the DRBD device on the new node using the command: 
+and starting the DRBD device on the new node using the command:
 
 ----
 # drbdadm up <resource>
@@ -1918,7 +1918,7 @@ behavior that was described in the previous paragraph.
 [[s-guaranteed_minimal_redundancy]]
 ==== Guaranteed Minimal Redundancy
 
-By default every node with a disk gets a vote in the quorum election. That is, 
+By default every node with a disk gets a vote in the quorum election. That is,
 only diskless nodes do not count. So a partition with two _Inconsistent_ disks gets
 quorum, while a partition with one _UpToDate_ node will have quorum in a 3 node
 cluster. By configuring `quorum-minimum-redundancy` this behavior can be changed so that
