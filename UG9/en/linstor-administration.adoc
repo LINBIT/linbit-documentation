@@ -992,6 +992,82 @@ the following command:
 # linstor resource-definition list
 ----
 
+
+[[s-export-import-db]]
+=== Backup and Restore Database
+
+Since version 1.24.0, LINSTOR has a tool that you can use to export and import a LINSTOR database.
+
+This tool has an executable file called `/usr/share/linstor-server/bin/linstor-database`. This executable
+has two subcommands, `export-db` and `import-db`. Both subcommands accept an optional `--config-directory`
+argument that you can use to specify the directory containing the `linstor.toml` configuration file.
+
+IMPORTANT: To ensure a consistent database backup, take the controller offline by stopping the controller
+service as shown in the commands below, before creating a backup of the LINSTOR database.
+
+[[s-export-db]]
+==== Backing Up the Database
+
+To backup the LINSTOR database to a new file named `db_export` in your home directory, enter the
+following commands:
+
+----
+# systemctl stop linstor-controller
+# /usr/share/linstor-server/bin/linstor-database export-db ~/db_export
+# systemctl start linstor-controller
+----
+
+NOTE: You can use the `--config-directory` argument with the `linstor-database` utility to specify a
+LINSTOR configuration directory if needed. If you omit this argument, the utility uses the
+`/etc/linstor` directory by default.
+
+After backing up the database, you can copy the backup file to a safe place.
+
+----
+# cp ~/db_export <somewhere safe>
+----
+
+The resulting database backup is a plain JSON document, containing not just the actual data,
+but also some metadata about when the backup was created, from which database, and other information.
+
+[[s-import-db]]
+==== Restoring the Database From a Backup
+
+Restoring the database from a previously made backup is similar to `export-db` from the
+<<s-export-db,previous section>>.
+
+For example, to restore the previously made backup from the `db_export` file, enter the following
+commands:
+
+----
+# systemctl stop linstor-controller
+# /usr/share/linstor-server/bin/linstor-database import-db ~/db_export
+# systemctl start linstor-controller
+----
+
+You can only import a database from a previous backup if the currently installed
+version of LINSTOR is the same (or higher) version as the version that you created the backup from.
+If the currently installed LINSTOR version is higher than the version that the database backup
+was created from, when you import the backup the data will be restored with the same database
+scheme of the version used during the export. Then, the next time that the controller starts, the
+controller will detect that the database has an old scheme and it will automatically migrate the
+data to the scheme of the current version.
+
+[[s-convert-db]]
+==== Converting Databases
+
+Since the exported database file contains some metadata, an exported database file can be
+imported into a different database type than it was exported from.
+
+This allows the user to convert, for example, from an etcd setup to an SQL based setup.
+There is no special command for converting the database format. You only have to
+specify the correct `linstor.toml` configuration file by using the `--config-directory` argument
+(or updating the default `/etc/linstor/linstor.toml` and specifying the database type that you want
+to use before importing). See the <<#s-linstor-external-database,LINSTOR User's Guide>> for more
+information about specifying a database type. Regardless of the type of database that the backup
+was created from, it will be imported in the database type that is specified in the `linstor.toml`
+configuration file.
+
 [[s-more-about-linstor]]
 == Further LINSTOR Tasks
 
