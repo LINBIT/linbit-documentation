@@ -2333,6 +2333,29 @@ backup shipping for `localRsc` will ship to the remote cluster but they will not
 the remote cluster. The same is true if you specify the `--download-only` option with the
 `linstor backup ship` command.
 
+[[s-shipping_snapshots-concurrently]]
+===== Controlling How Many Shipments Are Active at the Same Time
+
+There might be cases where an automated task (be it LINSTOR's scheduled shipping or an external
+tool) starts too many shipments at once, leading to an overload of the network or
+some of the nodes sending the backups.
+
+In a case like this the solution is to reduce the amount of shipments that can happen at the same
+time on the same node. This is done by using the property `BackupShipping/MaxConcurrentBackupsPerNode`.
+This property can be set either on the controller or on a specific node.
+
+The expected value for this property is a number. Setting it to any negative number will be interpreted
+as "no limit", while setting it to zero will result in this specific node not being eligible to
+ship any backups - or completely disabling backup shipping if the property is set to 0 on the controller.
+
+Any other positive number is treated as a limit of concurrently active shippings per node.
+To determine which node will send a backup shipment, LINSTOR uses the following logic in the order shown:
+
+1. The node specified in the command (`--source-node` for shippings to another cluster, `--node` for
+   shipping to S3 compatible storage) will ship the backup.
+2. The node that has the most available backup slots will ship the backup.
+3. If no node has an available backup slot, the shipment will be added to a queue and started as soon as
+   a different shipment has finished which leads to a backup slot becoming available.
 
 [[s-shipping_snapshots-old]]
 ===== Shipping a Snapshot in the Same Cluster
