@@ -25,14 +25,24 @@ lint:
     - if: $CI_MERGE_REQUEST_ID
     - if: $CI_COMMIT_BRANCH == 'master'
   script:
-    - /bin/vale --config=/vale_app/.vale.ini --no-exit --output=JSON **/en/*.adoc | tee vale.json
+    - apk add --no-cache git
+    - diff_start_count=$(git diff ${CI_MERGE_REQUEST_TARGET_BRANCH_SHA:-HEAD~1} HEAD **/en/*.adoc|awk -F '@@ |@@' '{print $2}')
+    - git diff --name-only ${CI_MERGE_REQUEST_TARGET_BRANCH_SHA:-HEAD~1} HEAD **/en/*.adoc | xargs --no-run-if-empty /bin/vale --config=/vale_app/.vale.ini --no-exit --output=JSON | tee vale.json
+#    - git diff ${CI_MERGE_REQUEST_TARGET_BRANCH_SHA:-HEAD~1} HEAD **/en/*.adoc| sed '1,/^@@/d' | sed '/^+[^+]/!d;s/^+//' > added_content.adoc
+#    - /bin/vale --config=/vale_app/.vale.ini --no-exit --output=JSON added_content.adoc | tee vale-added-content.json
+#    - /bin/vale2climate vale-added-content.json > vale-climate-added-content.json
+    - echo diff start,count info... $diff_start_count
+#    - cat added_content.adoc
+#    - rm added_content.adoc
     - /bin/vale2climate vale.json > vale-climate.json
   artifacts:
     paths:
     - vale.json
+#   - vale-added-content.json
     when: always
     reports:
       codequality:
+#       - vale-climate-added-content.json
         - vale-climate.json
 
 preview:
