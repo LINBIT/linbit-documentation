@@ -132,6 +132,17 @@ Grafana dashboard are available at the
 https://github.com/LINBIT/drbd-reactor/blob/master/doc/prometheus.md[DRBD Reactor GitHub
 repository].
 
+[[s-drdb-reactor-agentx-plugin]]
+==== The AgentX Plugin for SNMP Monitoring
+
+This plugin acts as an AgentX subagent for SNMP to expose various DRBD metrics, for example, to
+monitor DRBD resources via SNMP. AgentX is a standardized protocol that can be used between the
+SNMP daemon and a subagent, such as the AgentX plugin in DRBD Reactor.
+
+The DRBD metrics that this plugin exposes to the SNMP daemon are shown in
+https://github.com/LINBIT/drbd-reactor/blob/master/doc/agentx.md#metrics[the project's source
+code repository].
+
 [[s-drbd-reactor-configuring]]
 === Configuring DRBD Reactor
 
@@ -418,6 +429,158 @@ This plugin provides a Prometheus compatible HTTP endpoint serving DRBD monitori
 such as the DRBD connection state, whether or not the DRBD device has quorum, number of bytes
 out of sync, indication of TCP send buffer congestion, and many more. The
 `drbd-reactor.prometheus` man page has a full list of metrics and more details.
+
+[[s-drbd-reactor-agentx-plugin-configuring]]
+==== Configuring the AgentX Plugin for SNMP Monitoring
+
+Configuring the AgentX plugin involves installing an SNMP management information base (MIB) that
+defines the DRBD metrics that will be exposed, configuring the SNMP daemon, and editing a DRBD
+Reactor configuration snippet file for the AgentX plugin.
+
+IMPORTANT: You will need to complete the following setup steps on all your DRBD Reactor nodes.
+
+[[s-drbd-reactor-agentx-plugin-prerequisites]]
+===== Prerequisites
+
+Before configuring this plugin to expose various DRBD metrics to an SNMP daemon, you will need
+to install the following packages, if they are not already installed.
+
+For RPM-based systems:
+
+----
+# dnf -y install net-snmp net-snmp-utils
+----
+
+For DEB-based systems:
+
+----
+# apt -y install snmp snmpd
+----
+
+NOTE: If you encounter errors related to missing MIBs when using SNMP commands against the
+LINBIT MIB, you will have to download the missing MIBs. You can do this manually or else install
+the `snmp-mibs-downloader` DEB package.
+
+[[s-drbd-reactor-agentx-plugin-firewall]]
+===== AgentX Firewall Considerations
+
+If you are using a firewall service, you will need to allow TCP traffic via port 705 for the
+AgentX protocol.
+
+[[s-drbd-reactor-agentx-plugin-LINBIT-MIB]]
+===== Installing the LINBIT DRBD Management Information Base
+
+To use the AgentX plugin, download the LINBIT DRBD MIB to `/usr/share/snmp/mibs`.
+
+----
+# curl -L https://github.com/LINBIT/drbd-reactor/raw/master/example/LINBIT-DRBD-MIB.mib \
+-o /usr/share/snmp/mibs/LINBIT-DRBD-MIB.mib
+----
+
+[[s-drbd-reactor-agentx-plugin-snmp-daemon]]
+===== Configuring the SNMP Daemon
+
+To configure the SNMP service daemon, add the following lines to its configuration file
+(`/etc/snmp/snmpd.conf`):
+
+----
+# add LINBIT ID to the system view and enable agentx
+view    systemview    included   .1.3.6.1.4.1.23302
+master agentx
+agentXSocket tcp:127.0.0.1:705
+----
+
+IMPORTANT: Verify that the view name that you use matches a view name that is
+configured appropriately in the SNMP configuration file. The example above shows `systemview` as
+the view name used in a RHEL 8 system. For Ubuntu, the view name could be
+different, for example, in Ubuntu 22.04 it is `systemonly`.
+
+Next, enable and start the service (or restart the service if it was already enabled and
+running):
+
+----
+# systemctl enable --now snmpd.service
+----
+
+[[s-drbd-reactor-agentx-plugin-configuration-file]]
+===== Editing the AgentX Plugin Configuration Snippet File
+
+The AgentX plugin needs only minimal configuration in a DRBD Reactor snippet file. Edit the
+configuration snippet file by entering the following command:
+
+----
+# drbd-reactorctl edit -t agentx agentx
+----
+
+Then add the following lines:
+
+----
+[[agentx]]
+address = "localhost:705"
+cache-max = 60 # seconds
+agent-timeout = 60 # seconds snmpd waits for an answer
+peer-states = true # include peer connection and disk states
+----
+
+[NOTE]
+====
+If you use the `drbd-reactorctl edit` command to edit a configuration snippet file, DRBD Reactor
+will reload the service if needed. If you are copying a previously edited snippet file to
+another node, you will need to reload the DRBD Reactor service on that node, by entering:
+
+----
+# systemctl reload drbd-reactor.service
+----
+====
+
+[[s-drbd-reactor-agentx-plugin-verifying]]
+===== Verifying the AgentX Plugin Operation
+
+Before verifying the AgentX plugin operation, first verify that the SNMP service exposes a
+standard, preinstalled MIB, by entering the following command:
+
+[%autofit]
+----
+# snmpwalk -Os -c public -v 2c localhost iso.3.6.1.2.1.1.1
+sysDescr.0 = STRING: Linux linstor-1 5.14.0-284.30.1.el9_2.x86_64 #1 SMP PREEMPT_DYNAMIC Fri Aug 25 09:13:12 EDT 2023 x86_64
+----
+
+Next, verify that the AgentX plugin is shown in the output of a `drbd-reactorctl status`
+command.
+
+----
+/etc/drbd-reactor.d/agentx.toml:
+AgentX: connecting to main agent at localhost:705
+[...]
+----
+
+Next, show the LINBIT MIB table structure by entering the following command:
+
+----
+# snmptranslate -Tp -IR -mALL linbit
+----
+
+Finally, you can use an `snmptable` command to show a table of the values held in the MIB,
+particular to your current DRBD setup and resources. The example command below starts showing
+the values for your DRBD resources at the `enterprises.linbit.1.2`
+(`enterprises.linbit.drbdData.drbdTable`) object identifier (OID) within the LINBIT MIB.
+
+----
+# snmptable -m ALL -v 2c -c public localhost enterprises.linbit.1.2 | less -S
+----
+
+[[s-drbd-reactor-agentx-plugin-using-with-linstor]]
+===== Using the AgentX Plugin With LINSTOR
+
+If you are using DRBD Reactor and its AgentX plugin to work with LINSTOR(R)-created DRBD
+resources, note that these DRBD resources will start from minor number 1000, rather than 1. So,
+for example, to get the DRBD resource name of the first LINSTOR-created resource on a particular
+node, enter the following command:
+
+----
+# snmpget -m ALL -v 2c -c public localhost .1.3.6.1.4.1.23302.1.2.1.2.1000
+LINBIT-DRBD-MIB::ResourceName.1000 = STRING: linstor_db
+----
 
 [[s-drbd-reactorctl]]
 === Using the DRBD Reactor CLI Utility
