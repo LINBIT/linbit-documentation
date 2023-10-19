@@ -459,7 +459,39 @@ resource <resource> {
 option uses the `tcp` transport.
 
 The `tcp` transport can be configured with the net options: `sndbuf-size`, `rcvbuf-size`,
-`connect-int`, `sock-check-timeo`, `ping-timeo`, `timeout`.
+`connect-int`, `sock-check-timeo`, `ping-timeo`, `timeout`, `tls`.
+
+[[s-tcp_ip-tls]]
+====== Securing DRBD Connections with TLS
+
+You can enable authenticated and encrypted DRBD connections via the `tcp` transport by adding
+the `tls` net option to a DRBD resource configuration file.
+
+----
+resource <resource> {
+  net {
+    tls yes;
+  }
+  ...
+}
+----
+
+DRBD will temporarily pass the sockets to a user space utility (`tlshd`, part of the `ktls-utils` package)
+when establishing connections. `tlshd` will use the keys configured in `/etc/tlshd.conf` to set up authentication and
+encryption.
+
+./etc/tlshd.conf
+----
+[authenticate.client]
+x509.certificate=/etc/tlshd.d/tls.crt
+x509.private_key=/etc/tlshd.d/tls.key
+x509.truststore=/etc/tlshd.d/ca.crt
+
+[authenticate.server]
+x509.certificate=/etc/tlshd.d/tls.crt
+x509.private_key=/etc/tlshd.d/tls.key
+x509.truststore=/etc/tlshd.d/ca.crt
+----
 
 [[s-rdma]]
 ===== RDMA
