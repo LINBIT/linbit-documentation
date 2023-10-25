@@ -1,0 +1,374 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-24 12:55+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: UG9/en/linstor-olvm.adoc:2
+#, no-wrap
+msgid "LINSTOR Volumes in Oracle Linux Virtualization Manager"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:8
+msgid ""
+"indexterm:[oVirt] This chapter describes using LINSTOR to provision "
+"persistent, replicated, and high-performance block storage for link:https://"
+"docs.oracle.com/en/virtualization/oracle-linux-virtualization-manager/index."
+"html[Oracle Linux Virtualization Manager]."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-olvm.adoc:10
+#, no-wrap
+msgid "Introduction to Oracle Linux Virtualization Manager"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:15
+msgid ""
+"Oracle Linux Virtualization Manager (OLVM) is a server virtualization "
+"management platform based on link:https://www.ovirt.org/[oVirt]. It can "
+"configure, manage and monitor a Kernel-based Virtual Machine (KVM) "
+"environment based on Oracle Linux."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:17
+msgid ""
+"OLVM supports multiple storage technologies that can be integrated with "
+"LINSTOR:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:21
+#, no-wrap
+msgid ""
+"*iSCSI* or *NFS* storage are used for shared storage. In this setup, all OLVM nodes connect to a service host that\n"
+"exports the storage volume, by using iSCSI or NFS. Here, LINSTOR Gateway can help you create and manage iSCSI targets\n"
+"and NFS exports based on replicated DRBD volumes and make them highly available.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:25
+#, no-wrap
+msgid ""
+"https://www.ovirt.org/develop/release-management/features/storage/managed-block-storage-copy.html[*Managed Block Storage*]\n"
+"is another feature available in OLVM. Disks for VMs are managed as separate volumes, rather than from within a pool\n"
+"of storage on a service host. This makes it possible to directly attach a volume to a VM while avoiding the\n"
+"performance overhead that a service host adds.\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-olvm.adoc:27
+#, no-wrap
+msgid "Using LINSTOR Gateway for OLVM Storage"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:32
+msgid ""
+"<<ch-linstor-gateway,LINSTOR Gateway>> creates highly available iSCSI "
+"targets and NFS exports, which OLVM can consume as data domains. All volume "
+"access is routed through the LINSTOR Gateway host exporting the volume. "
+"Volume access includes reads and writes by any VM using the storage domain."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:34
+msgid "As prerequisites, you need:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:36
+msgid ""
+"A working <<s-installation,LINSTOR Cluster>>, with <<s-linstor_ha, High "
+"Availability>> enabled."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:37
+msgid "A working <<ch-linstor-gateway,LINSTOR Gateway>> installation."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:40
+msgid ""
+"LINSTOR and LINSTOR Gateway don't need to run on the same nodes as OLVM, "
+"provided that the Gateway nodes are reachable from the OLVM hosts."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-olvm.adoc:42
+#, no-wrap
+msgid "Using LINSTOR Gateway for Data Domains"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:46
+msgid ""
+"Data Domains are the primary storage for your VMs in OLVM. With LINSTOR "
+"Gateway, you can create both iSCSI targets and NFS exports, to use as Data "
+"Domains in OLVM."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:50
+msgid ""
+"Use the `linstor-gateway` command to create iSCSI or NFS exports. Choose a "
+"service IP that is reachable from the OLVM nodes. The following example "
+"creates an iSCSI export of 60GB reachable under `192.168.0.100` and a NFS "
+"export of 50GB, available at `192.168.0.101:/srv/gateway-exports/nfs-data`"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-olvm.adoc:56
+#, no-wrap
+msgid ""
+"$ linstor-gateway iscsi create iqn.2019-08.com.linbit:data-domain 192.168.0.100/24 60G\n"
+"Created iSCSI target 'iqn.2019-08.com.linbit:data-domain'\n"
+"$ linstor-gateway nfs create nfs-data 192.168.0.101/24 50G\n"
+"Created export 'nfs-data' at 192.168.0.101:/srv/gateway-exports/nfs-data\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:62
+msgid ""
+"To configure the storage domains, navigate to the OLVM Administration Portal "
+"and open the `Storage > Domains` page.  Click `New Domain` and choose a name "
+"for the new storage domain. Then, select the Domain function (either `Data` "
+"or `ISO`) and the matching storage type (either `iSCSI` or `NFS`). Enter the "
+"required connection parameters to complete the configuration."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-olvm.adoc:64
+#, no-wrap
+msgid "Using LINSTOR Gateway to Deploy the OLVM Self-Hosted Engine"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:68
+msgid ""
+"LINSTOR Gateway iSCSI Targets can be used to create the initial data domain "
+"used when deploying the link:https://docs.oracle.com/en/virtualization/"
+"oracle-linux-virtualization-manager/getstart/getstarted-hosted-engine-deploy."
+"html[OLVM self-hosted engine]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:73
+msgid ""
+"Use a separate data domain for the self-hosted engine to reduce the risk of "
+"adverse interference with your VMs. Create a iSCSI target with at least 60GB "
+"to use for the management VM. The following example creates a 60GB volume "
+"exported as `iqn.2019-08.com.linbit:olvm-engine`, available at the IP "
+"`192.168.0.200`. Change the IP and iSCSI target name to appropriate values "
+"for your setup."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-olvm.adoc:76
+#, no-wrap
+msgid "$ linstor-gateway iscsi create iqn.2019-08.com.linbit:engine-data 192.168.0.200/24 60G\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:81
+msgid ""
+"While setting up the OLVM self-hosted engine, you will be asked to provide "
+"details for the storage of the Manager virtual machine. You only need to "
+"provide the storage type `iscsi` and the IP address `192.168.0.200`. All "
+"other information will be discovered automatically."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-olvm.adoc:97
+#, no-wrap
+msgid ""
+"Please specify the storage you would like to use (glusterfs, iscsi, fc,\n"
+"nfs)[nfs]: iscsi\n"
+"Please specify the iSCSI portal IP address: 192.168.0.200\n"
+"  Please specify the iSCSI portal port [3260]:\n"
+"  Please specify the iSCSI discover user:\n"
+"  Please specify the iSCSI discover password:\n"
+"  Please specify the iSCSI portal login user:\n"
+"  Please specify the iSCSI portal login password:\n"
+"  The following targets have been found:\n"
+"    [1] iqn.2019-08.com.linbit:engine-data\n"
+"        TPGT: 1, portals:\n"
+"            192.168.0.200:3260\n"
+"  Please select a target (1) [1]: 1\n"
+"  Please select the destination LUN (1) [1]:\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:101
+msgid ""
+"After the setup completes, the iSCSI target is added as a data domain to "
+"OLVM. Use separate data domains for your VMs to avoid interference with the "
+"self-hosted engine's storage."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-olvm.adoc:102
+#, no-wrap
+msgid "Using LINSTOR Cinder for Managed Block Storage"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:106
+msgid ""
+"OLVM can be configured to use the LINSTOR Cinder driver to attach LINSTOR "
+"managed volumes directly on the VM host. In contrast to using LINSTOR "
+"Gateway, storage access and replication happens directly from the host the "
+"VM is running on."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:108
+msgid ""
+"Using LINSTOR Cinder requires several additional steps to set up for OLVM:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:110
+msgid ""
+"All OLVM hosts, including the engine host, need to be registered with LINBIT "
+"and the `ovirt` repository enabled:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-olvm.adoc:121
+#, no-wrap
+msgid ""
+"# curl -O https://my.linbit.com/linbit-manage-node.py\n"
+"# chmod +x ./linbit-manage-node.py\n"
+"# ./linbit-manage-node.py\n"
+"...\n"
+"    1) pacemaker-2(Disabled)\n"
+"    2) ovirt(Enabled)\n"
+"    3) drbd-9.0(Disabled)\n"
+"    4) drbd-9(Enabled)\n"
+"...\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:124
+msgid ""
+"OLVM hosts as well as the management engine need to be part of the LINSTOR "
+"cluster. Ensure that the `linstor-satellite` service is installed and "
+"configured on all hosts."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:126
+msgid ""
+"OLVM needs to have `CinderLib` support enabled. It is disabled by default. "
+"To enable it, run `engine-setup` on the engine host:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-olvm.adoc:131
+#, no-wrap
+msgid ""
+"$ engine-setup --reconfigure-optional-components\n"
+"...\n"
+"--== PRODUCT OPTIONS ==--\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-olvm.adoc:134
+#, no-wrap
+msgid ""
+"Configure Cinderlib integration (Currently in tech preview) (Yes, No) [No]: Yes\n"
+"...\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:137
+msgid ""
+"The engine hosts need to have the LINBIT version of `python3-cinder-common` "
+"installed, which can be identified by the `linbit1` string in the version "
+"number:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-olvm.adoc:143
+#, no-wrap
+msgid ""
+"$ dnf install --enablerepo=ovirt python3-cinder-common\n"
+"$ dnf list --installed python3-cinder-common\n"
+"Installed Packages\n"
+"python3-cinder-common.noarch   1:17.2.0-1.el8.linbit1   @linbit-ovirt\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:145
+msgid "The engine hosts need to have the `linstor-cinder` package installed:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-olvm.adoc:148
+#, no-wrap
+msgid "$ dnf install --enablerepo=ovirt linstor-cinder\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:151
+msgid ""
+"All OLVM hosts need to have the LINBIT version of `vdsm` and `python3-"
+"osbrick` installed, which can be identified by the `linbit1` string in the "
+"version number:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-olvm.adoc:158
+#, no-wrap
+msgid ""
+"$ dnf install --enablerepo=ovirt vdsm python3-os-brick\n"
+"$ dnf list --installed vdsm python3-os-brick\n"
+"Installed Packages\n"
+"python3-os-brick.noarch   4.0.4-1.el8.linbit1             @linbit-ovirt\n"
+"vdsm.x86_64               4.40.100.2-1.0.13.el8.linbit1   @linbit-ovirt\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:163
+msgid ""
+"To configure LINSTOR Cinder for Managed Block Storage, navigate to the OLVM "
+"Administration Portal and open the `Storage > Domains` page. Click `New "
+"Domain` and select Domain Function \"Managed Block Storage\". Choose a name, "
+"and set the following driver options:"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-olvm.adoc:170
+#, no-wrap
+msgid ""
+"| Driver Option | Value\n"
+"| `volume_driver` | `linstor_cinder.LinstorDrbdDriver`\n"
+"| `linstor_uris` | URL of the LINSTOR Controller Endpoint(s). Separate multiple endpoints by using a comma (`,`).\n"
+"| `linstor_default_resource_group_name` | LINSTOR resource group to use. Volumes created in this data domain will inherit all settings on the resource group.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-olvm.adoc:174
+msgid ""
+"OLVM 4.4 does not support creating VMs using Managed Block Storage from the "
+"VM Portal, only through the Administration Portal."
+msgstr ""
