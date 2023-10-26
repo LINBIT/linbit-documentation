@@ -516,26 +516,46 @@ Exos pools will use the Exos pool serial number by default for the shared-space 
 [[s-physical-storage-command]]
 ==== Creating Storage Pools by Using the Physical Storage Command
 
-Since linstor-server 1.5.2 and a recent linstor-client, LINSTOR can create LVM/ZFS pools on a satellite for you.
-The linstor-client has the following commands to list possible disks and create storage pools, but such LVM/ZFS pools
-are not managed by LINSTOR and there is no delete command, so such action must be done manually on the nodes.
+Since `linstor-server` version 1.5.2 and a recent LINSTOR client, you can use LINSTOR to create
+LVM volumes or ZFS pools on a satellite node. The LINSTOR client has a `physical-storage`
+command and various sub-commands to list possible disks and create LINSTOR storage pools from
+these disks. You can then make these LINSTOR storages pools available for use with LINSTOR
+storage objects, such as LINSTOR resource groups, definitions, and resources, for your
+applications and services to consume.
+
+However, although you can use LINSTOR to create these LVM or ZFS backed storage pools, LINSTOR
+does not have access to LVM or ZFS management commands. Only the `pvcreate`, `vgcreate`, and
+`zpool create` commands are available to LINSTOR. LINSTOR cannot use the `pvremove`, `vgremove`,
+or `zpool destroy`, commands, for example. You will have to perform management and deletion
+actions manually on the nodes, by using appropriate LVM or ZFS commands.
+
+[[s-physical-storage-listing]]
+===== Listing Physical Storage for LINSTOR Use
+
+The following command will show you a table that lists the available disks grouped by size and
+type (rotational). The rotational attribute will be 'True' if the device is a spinning, magnetic
+hard disk drive, and 'False' (empty entry in the table list shown) if this device is an SSD,
+NVMe, or other "non-rotational" drive.
 
 ----
 # linstor physical-storage list
 ----
 
-Will give you a list of available disks grouped by size and rotational(SSD/Magnetic Disk).
+[IMPORTANT]
+====
+The `physical-storage list` command will only show disks that pass the following filters:
+- The device size must be greater than 1GiB.
+- The device is a root device (not having children), for example, `/dev/vda`, `/dev/sda`.
+- The device does not have any file system or other `blkid` marker (`wipefs -a` might be needed).
+- The device is not a DRBD device.
+====
 
-It will only show disks that pass the following filters:
+[[s-physical-storage-creating]]
+===== Creating Physical Storage for LINSTOR Use
 
-  * The device size must be greater than 1GiB.
-  * The device is a root device (not having children), for example, `/dev/vda`, `/dev/sda`.
-  * The device does not have any file system or other `blkid` marker (`wipefs -a` might be needed).
-  * The device is not a DRBD device.
-
-
-With the `create-device-pool` command you can create a LVM pool on a disk and also directly
-add it as a storage pool in LINSTOR.
+With the `physical-storage create-device-pool` command you can create a LVM or ZFS pool on a
+disk and also directly add it as a storage pool in LINSTOR. For example, to create an LVM thin
+provisioned pool the uses `/dev/vdc` as a backing device, you can enter the following command:
 
 ----
 # linstor physical-storage create-device-pool --pool-name lv_my_pool \
