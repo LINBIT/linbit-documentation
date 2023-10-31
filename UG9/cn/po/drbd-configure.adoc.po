@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: documentation@linbit.com\n"
-"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,14 +20,14 @@ msgstr ""
 #. type: delimited block -
 #: UG9/en/drbd-administration-manual.adoc:562
 #: UG9/en/drbd-administration-manual.adoc:1234
-#: UG9/en/drbd-administration-manual.adoc:1342
-#: UG9/en/drbd-administration-manual.adoc:1839 UG9/en/drbd-configure.adoc:537
+#: UG9/en/drbd-administration-manual.adoc:1347
+#: UG9/en/drbd-administration-manual.adoc:1843 UG9/en/drbd-configure.adoc:687
 #, no-wrap
 msgid "# drbdadm up <resource>\n"
 msgstr "# drbdadm up <resource>\n"
 
 #. type: delimited block -
-#: UG9/en/drbd-administration-manual.adoc:1821 UG9/en/drbd-configure.adoc:522
+#: UG9/en/drbd-administration-manual.adoc:1825 UG9/en/drbd-configure.adoc:672
 #, fuzzy, no-wrap
 msgid ""
 "# drbdadm create-md <resource>\n"
@@ -123,7 +123,7 @@ msgstr ""
 "metadata>>）。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:37 UG9/en/drbd-configure.adoc:80
+#: UG9/en/drbd-configure.adoc:37 UG9/en/drbd-configure.adoc:79
 msgid "For the purposes of this guide, we assume a very simple setup:"
 msgstr "在本指南中，我们假设一个非常简单的设置："
 
@@ -198,18 +198,23 @@ msgid ""
 msgstr "当然，您还必须确保DRBD的TCP端口尚未被其他应用程序使用。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:77
+#: UG9/en/drbd-configure.adoc:76
+#, fuzzy
+#| msgid ""
+#| "It is not (yet) possible to configure a DRBD resource to support more "
+#| "than one TCP connection pair. If you want to provide for DRBD connection "
+#| "load-balancing or redundancy, you can easily do so at the Ethernet level "
+#| "(again, using the _bonding_ driver)."
 msgid ""
-"It is not (yet) possible to configure a DRBD resource to support more than "
-"one TCP connection pair. If you want to provide for DRBD connection load-"
-"balancing or redundancy, you can easily do so at the Ethernet level (again, "
-"using the _bonding_ driver)."
+"Since DRBD version 9.2.6, it is possible to configure a DRBD resource to "
+"support more than one TCP connection pair, for traffic load balancing "
+"purposes. Refer to the <<s-tcp-load-balancing>> section for details."
 msgstr ""
 "目前还不能配置DRBD资源来支持多个TCP连接对。如果您想提供DRBD连接负载平衡或冗"
 "余，那么您可以在以太网级别（再次提醒，使用 _bonding_ 设备）轻松地做到这一点。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:84
+#: UG9/en/drbd-configure.adoc:83
 msgid ""
 "Our two DRBD hosts each have a currently unused network interface, `eth1`, "
 "with IP addresses `10.1.1.31` and `10.1.1.32` assigned to it, respectively."
@@ -218,25 +223,25 @@ msgstr ""
 "`10.1.1.31` 和 `10.1.1.32` 。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:87
+#: UG9/en/drbd-configure.adoc:86
 msgid "No other services are using TCP ports 7788 through 7799 on either host."
 msgstr "无其他服务在任一主机上使用TCP端口7788到7799。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:90
+#: UG9/en/drbd-configure.adoc:89
 msgid ""
 "The local firewall configuration allows both inbound and outbound TCP "
 "connections between the hosts over these ports."
 msgstr "本地防火墙配置允许主机之间通过这些端口进行入站和出站TCP连接。"
 
 #. type: Title ====
-#: UG9/en/drbd-configure.adoc:93
+#: UG9/en/drbd-configure.adoc:92
 #, no-wrap
 msgid "Configuring your resource"
 msgstr "配置资源"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:98
+#: UG9/en/drbd-configure.adoc:97
 msgid ""
 "All aspects of DRBD are controlled in its configuration file, `/etc/drbd."
 "conf`. Normally, this configuration file is just a skeleton with the "
@@ -246,7 +251,7 @@ msgstr ""
 "是具有以下内容的框架："
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:102
+#: UG9/en/drbd-configure.adoc:101
 #, no-wrap
 msgid ""
 "include \"/etc/drbd.d/global_common.conf\";\n"
@@ -256,7 +261,7 @@ msgstr ""
 "include \"/etc/drbd.d/*.res\";\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:108
+#: UG9/en/drbd-configure.adoc:107
 msgid ""
 "By convention, `/etc/drbd.d/global_common.conf` contains the <<s-drbdconf-"
 "global,`global`>> and <<s-drbdconf-common,`common`>> sections of the DRBD "
@@ -268,7 +273,7 @@ msgstr ""
 "drbdconf-resource,`resource`>>部分。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:113
+#: UG9/en/drbd-configure.adoc:112
 msgid ""
 "It is also possible to use `drbd.conf` as a flat configuration file without "
 "any `include` statements at all. Such a configuration, however, quickly "
@@ -280,7 +285,7 @@ msgstr ""
 "方法。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:117
+#: UG9/en/drbd-configure.adoc:116
 msgid ""
 "Regardless of which approach you employ, you should always make sure that "
 "`drbd.conf`, and any other files it includes, are _exactly identical_ on all "
@@ -290,7 +295,7 @@ msgstr ""
 "何其他文件 _完全相同_ 。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:123
+#: UG9/en/drbd-configure.adoc:122
 msgid ""
 "The DRBD source tarball contains an example configuration file in the "
 "`scripts` subdirectory. Binary installation packages will either install "
@@ -302,7 +307,7 @@ msgstr ""
 "档目录中安装此示例配置。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:128
+#: UG9/en/drbd-configure.adoc:127
 msgid ""
 "This section describes only those few aspects of the configuration file "
 "which are absolutely necessary to understand in order to get DRBD up and "
@@ -313,26 +318,26 @@ msgstr ""
 "文件的语法和内容在 `drbd.conf` 的手册页中有详细的说明。"
 
 #. type: Title =====
-#: UG9/en/drbd-configure.adoc:131
+#: UG9/en/drbd-configure.adoc:130
 #, no-wrap
 msgid "Example configuration"
 msgstr "示例配置"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:136
+#: UG9/en/drbd-configure.adoc:135
 msgid ""
 "For the purposes of this guide, we assume a minimal setup in line with the "
 "examples given in the previous sections:"
 msgstr "在本指南中，我们假设按照前面章节中给出的示例进行最小设置："
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:137
+#: UG9/en/drbd-configure.adoc:136
 #, no-wrap
 msgid "Simple DRBD configuration (`/etc/drbd.d/global_common.conf`)"
 msgstr "简单的DRBD配置（ `/etc/DRBD.d/global_common.conf` ）"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:147
+#: UG9/en/drbd-configure.adoc:146
 #, no-wrap
 msgid ""
 "global {\n"
@@ -354,13 +359,13 @@ msgstr ""
 "}\n"
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:149
+#: UG9/en/drbd-configure.adoc:148
 #, no-wrap
 msgid "Simple DRBD resource configuration (`/etc/drbd.d/r0.res`)"
 msgstr "简单的DRBD资源配置( `/etc/drbd.d/rc0.res` )"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:155
+#: UG9/en/drbd-configure.adoc:154
 #, fuzzy, no-wrap
 #| msgid ""
 #| "resource r0 {\n"
@@ -381,7 +386,7 @@ msgstr ""
 "  meta-disk internal;\n"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:167
+#: UG9/en/drbd-configure.adoc:166
 #, fuzzy, no-wrap
 #| msgid ""
 #| "resource r0 {\n"
@@ -421,12 +426,12 @@ msgstr ""
 "}\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:170
+#: UG9/en/drbd-configure.adoc:169
 msgid "This example configures DRBD in the following fashion:"
 msgstr "此示例按以下方式配置DRBD："
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:173
+#: UG9/en/drbd-configure.adoc:172
 msgid ""
 "You \"opt in\" to be included in DRBD's usage statistics (see <<fp-usage-"
 "count>>)."
@@ -434,7 +439,7 @@ msgstr ""
 "您 \"决定参加\" 将包含在DRBD的使用统计信息中 (参见 <<fp-usage-count>>)。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:177
+#: UG9/en/drbd-configure.adoc:176
 msgid ""
 "Resources are configured to use fully synchronous replication (<<s-"
 "replication-protocols,Protocol C>>) unless explicitly specified otherwise."
@@ -443,12 +448,12 @@ msgstr ""
 "Protocol C>>）。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:179
+#: UG9/en/drbd-configure.adoc:178
 msgid "Our cluster consists of two nodes, 'alice' and 'bob'."
 msgstr "我们的集群由两个节点 `alice` 和 `bob` 组成。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:183
+#: UG9/en/drbd-configure.adoc:182
 msgid ""
 "We have a resource arbitrarily named `r0` which uses `/dev/sda7` as the "
 "lower-level device, and is configured with <<s-internal-meta-data,internal "
@@ -458,7 +463,7 @@ msgstr ""
 "internal-meta-data,internal metadata>>。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:186
+#: UG9/en/drbd-configure.adoc:185
 #, fuzzy
 #| msgid ""
 #| "The resource uses TCP port 7789 for its network connections, and binds to "
@@ -472,7 +477,7 @@ msgstr ""
 "将隐式定义所使用的网络连接。）"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:191
+#: UG9/en/drbd-configure.adoc:190
 msgid ""
 "The configuration above implicitly creates one volume in the resource, "
 "numbered zero (`0`). For multiple volumes in one resource, modify the syntax "
@@ -483,13 +488,13 @@ msgstr ""
 "卷，请按如下所示修改语法（假设两个节点上使用相同的底层存储块设备）："
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:192
+#: UG9/en/drbd-configure.adoc:191
 #, no-wrap
 msgid "Multi-volume DRBD resource configuration (`/etc/drbd.d/r0.res`)"
 msgstr "多卷DRBD资源配置（ `/etc/drbd.d/rc0.res` )"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:219
+#: UG9/en/drbd-configure.adoc:218
 #, fuzzy, no-wrap
 #| msgid ""
 #| "resource r0 {\n"
@@ -557,7 +562,7 @@ msgstr ""
 "}\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:224
+#: UG9/en/drbd-configure.adoc:223
 msgid ""
 "Host sections ('on' keyword) inherit _volume_ sections from the resource "
 "level. They may contain _volume_ themselves, these values have precedence "
@@ -565,28 +570,28 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:227
+#: UG9/en/drbd-configure.adoc:226
 msgid ""
 "Volumes may also be added to existing resources on the fly. For an example "
 "see <<s-lvm-add-pv>>."
 msgstr "卷也可以动态添加到现有资源中。有关示例，请参见<<s-lvm-add-pv>>。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:230
+#: UG9/en/drbd-configure.adoc:229
 msgid ""
 "For compatibility with older releases of DRBD it supports also drbd-8.4 like "
 "configuration files."
 msgstr ""
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:231
+#: UG9/en/drbd-configure.adoc:230
 #, fuzzy, no-wrap
 #| msgid "Creating the configuration file"
 msgid "An old(8.4) style configuration file"
 msgstr "创建配置文件"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:246
+#: UG9/en/drbd-configure.adoc:245
 #, fuzzy, no-wrap
 #| msgid ""
 #| "resource r0 {\n"
@@ -634,37 +639,37 @@ msgstr ""
 "}\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:250
+#: UG9/en/drbd-configure.adoc:249
 msgid ""
 "Strings that do not contain keywords, might be gives without double quotes "
 "`\"`."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:253
+#: UG9/en/drbd-configure.adoc:252
 msgid ""
 "In the old (8.4) version, the way to specify the device was by using a "
 "string that specified the name of the resulting `/dev/drbd__X__` device file."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:255
+#: UG9/en/drbd-configure.adoc:254
 msgid "Two node configurations get node numbers assigned by drbdadm."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:257
+#: UG9/en/drbd-configure.adoc:256
 msgid "A pure two node configuration gets an implicit connection."
 msgstr ""
 
 #. type: Title =====
-#: UG9/en/drbd-configure.adoc:259
+#: UG9/en/drbd-configure.adoc:258
 #, no-wrap
 msgid "The `global` section"
 msgstr " `global` 部分"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:266
+#: UG9/en/drbd-configure.adoc:265
 msgid ""
 "This section is allowed only once in the configuration. It is normally in "
 "the `/etc/drbd.d/global_common.conf` file. In a single-file configuration, "
@@ -676,13 +681,13 @@ msgstr ""
 "只有一个与大多数用户相关："
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:268
+#: UG9/en/drbd-configure.adoc:267
 #, no-wrap
 msgid "`usage-count`"
 msgstr "`usage-count`"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:274
+#: UG9/en/drbd-configure.adoc:273
 msgid ""
 "The DRBD project keeps statistics about the usage of various DRBD versions. "
 "This is done by contacting an HTTP server every time a new DRBD version is "
@@ -695,20 +700,20 @@ msgstr ""
 "用。默认值是 `usage count ask；` ，每次升级DRBD时都会提示您。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:277
+#: UG9/en/drbd-configure.adoc:276
 msgid ""
 "DRBD's usage statistics are, of course, publicly available: see http://usage."
 "drbd.org."
 msgstr "当然，DRBD的使用统计数据是公开的：参见http://usage.DRBD.org。"
 
 #. type: Title =====
-#: UG9/en/drbd-configure.adoc:280
+#: UG9/en/drbd-configure.adoc:279
 #, no-wrap
 msgid "The `common` section"
 msgstr " `common` 部分"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:286
+#: UG9/en/drbd-configure.adoc:285
 msgid ""
 "This section provides a shorthand method to define configuration settings "
 "inherited by every resource. It is normally found in `/etc/drbd.d/"
@@ -719,7 +724,7 @@ msgstr ""
 "global_common.conf` 。您可以定义任何选项，也可以基于每个资源定义。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:290
+#: UG9/en/drbd-configure.adoc:289
 msgid ""
 "Including a `common` section is not strictly required, but strongly "
 "recommended if you are using more than one resource. Otherwise, the "
@@ -729,7 +734,7 @@ msgstr ""
 "做。否则，重复使用的选项会使配置很快变得复杂。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:296
+#: UG9/en/drbd-configure.adoc:295
 msgid ""
 "In the example above, we included `net { protocol C; }` in the `common` "
 "section, so every resource configured (including `r0`)  inherits this option "
@@ -741,13 +746,13 @@ msgstr ""
 "项。有关可用的其他同步协议，请参见<<s-replication-protocols>>。"
 
 #. type: Title =====
-#: UG9/en/drbd-configure.adoc:298
+#: UG9/en/drbd-configure.adoc:297
 #, no-wrap
 msgid "The `resource` sections"
 msgstr " `resource` 部分"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:306
+#: UG9/en/drbd-configure.adoc:305
 msgid ""
 "A per-resource configuration file is usually named `/etc/drbd.d/__resource__."
 "res`.  Any DRBD resource you define must be named by specifying a resource "
@@ -762,7 +767,7 @@ msgstr ""
 "__volume__` 格式的命名时，可能会让您困惑不已。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:311
+#: UG9/en/drbd-configure.adoc:310
 msgid ""
 "Every resource configuration must also have at least two `on _host_` sub-"
 "sections, one for every cluster node. All other configuration settings are "
@@ -773,7 +778,7 @@ msgstr ""
 "置设置要么继承自 `common` 部分（如果存在），要么派生自DRBD的默认设置。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:315
+#: UG9/en/drbd-configure.adoc:314
 msgid ""
 "In addition, options with equal values on all hosts can be specified "
 "directly in the `resource` section. Thus, we can further condense our "
@@ -783,7 +788,7 @@ msgstr ""
 "可以进一步压缩示例配置如下："
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:328
+#: UG9/en/drbd-configure.adoc:327
 #, fuzzy, no-wrap
 #| msgid ""
 #| "resource r0 {\n"
@@ -823,13 +828,13 @@ msgstr ""
 "}\n"
 
 #. type: Title ====
-#: UG9/en/drbd-configure.adoc:332
+#: UG9/en/drbd-configure.adoc:331
 #, no-wrap
 msgid "Defining network connections"
 msgstr "定义网络连接"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:337
+#: UG9/en/drbd-configure.adoc:336
 msgid ""
 "Currently the communication links in DRBD 9 must build a full mesh, i.e. in "
 "every resource every node must have a direct connection to every other node "
@@ -839,7 +844,7 @@ msgstr ""
 "须与每个其他节点（当然，不包括自身）有直接连接。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:340
+#: UG9/en/drbd-configure.adoc:339
 msgid ""
 "For the simple case of two hosts `drbdadm` will insert the (single) network "
 "connection by itself, for ease of use and backwards compatibility."
@@ -848,7 +853,7 @@ msgstr ""
 "后兼容。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:345
+#: UG9/en/drbd-configure.adoc:344
 msgid ""
 "The net effect of this is a quadratic number of network connections over "
 "hosts. For the \"traditional\" two nodes one connection is needed; for three "
@@ -861,24 +866,24 @@ msgstr ""
 "连接，依此类推。对于（当前的）最多16个节点，将有120个主机对需要连接。"
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:347
+#: UG9/en/drbd-configure.adoc:346
 #, no-wrap
 msgid "Number of connections for _N_ hosts"
 msgstr "_N_ 个主机的连接数"
 
 #. type: Target for macro image
-#: UG9/en/drbd-configure.adoc:348
+#: UG9/en/drbd-configure.adoc:347
 #, no-wrap
 msgid "images/connection-mesh.svg"
 msgstr "images/connection-mesh.svg"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:352
+#: UG9/en/drbd-configure.adoc:351
 msgid "An example configuration file for three hosts would be this:"
 msgstr "三台主机的配置文件示例如下："
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:374
+#: UG9/en/drbd-configure.adoc:373
 #, fuzzy, no-wrap
 #| msgid ""
 #| "resource r0 {\n"
@@ -945,7 +950,7 @@ msgstr ""
 "}\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:381
+#: UG9/en/drbd-configure.adoc:380
 #, fuzzy
 #| msgid ""
 #| "If you have enough network cards in your servers, you can create direct "
@@ -963,13 +968,13 @@ msgstr ""
 "网格。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:383
+#: UG9/en/drbd-configure.adoc:382
 msgid ""
 "In this case you can specify a different IP address to use the direct link:"
 msgstr "在这种情况下，可以指定其他节点的IP地址以使用直接链接："
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:400
+#: UG9/en/drbd-configure.adoc:399
 #, no-wrap
 msgid ""
 "resource r0 {\n"
@@ -1005,7 +1010,7 @@ msgstr ""
 "}\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:405
+#: UG9/en/drbd-configure.adoc:404
 #, fuzzy
 #| msgid ""
 #| "For easier maintenance and debugging, it’s recommended that you use "
@@ -1022,20 +1027,21 @@ msgstr ""
 "的结果，从而很容易地将其关联起来。"
 
 #. type: Title ====
-#: UG9/en/drbd-configure.adoc:408 UG9/en/drbd-configure.adoc:442
-#, no-wrap
-msgid "Configuring transport implementations"
-msgstr "配置传输实现"
+#: UG9/en/drbd-configure.adoc:407
+#, fuzzy, no-wrap
+#| msgid "Configuring the Nodes"
+msgid "Configuring multiple paths"
+msgstr "配置节点"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:411
+#: UG9/en/drbd-configure.adoc:410
 msgid ""
 "DRBD allows configuring multiple paths per connection, by introducing "
 "multiple path sections in a connection. Please see the following example:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:427
+#: UG9/en/drbd-configure.adoc:426
 #, fuzzy, no-wrap
 #| msgid ""
 #| "resource r0 {\n"
@@ -1086,7 +1092,7 @@ msgstr ""
 "}\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:432
+#: UG9/en/drbd-configure.adoc:431
 msgid ""
 "Obviously the two endpoint hostnames need to be equal in all paths of a "
 "connection. Paths may be on different IPs (potentially different NICs)  or "
@@ -1094,36 +1100,51 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:437
+#: UG9/en/drbd-configure.adoc:436
 msgid ""
-"The TCP transport uses one path at a time. If the backing TCP connections "
-"get dropped, or show timeouts, the TCP transport implementation tries to "
-"establish a connection over the next path. It goes over all paths in a round-"
-"robin fashion until a connection gets established."
+"The TCP transport uses one path at a time, unless you have configured load "
+"balancing (refer to <<s-tcp-load-balancing>>). If the backing TCP "
+"connections get dropped, or show timeouts, the TCP transport implementation "
+"tries to establish a connection over the next path. It goes over all paths "
+"in a round-robin fashion until a connection gets established."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:440
+#: UG9/en/drbd-configure.adoc:439
 msgid ""
 "The RDMA transport uses all paths of a connection concurrently and it "
 "balances the network traffic between the paths evenly."
 msgstr ""
 
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:441
+#, no-wrap
+msgid "Configuring transport implementations"
+msgstr "配置传输实现"
+
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:445
+#: UG9/en/drbd-configure.adoc:444
 msgid ""
 "DRBD supports multiple network transports. A transport implementation can be "
 "configured for each connection of a resource."
 msgstr "DRBD支持多种网络传输。可以为资源的每个连接配置传输实现。"
 
 #. type: Title =====
-#: UG9/en/drbd-configure.adoc:447
+#: UG9/en/drbd-configure.adoc:446
 #, no-wrap
 msgid "TCP/IP"
 msgstr "TCP/IP协议"
 
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:451
+msgid ""
+"TCP is the default transport for DRBD replication traffic. Each DRBD "
+"resource connection where the `transport` option is not specified in the "
+"resource configuration will use the TCP transport."
+msgstr ""
+
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:456
+#: UG9/en/drbd-configure.adoc:459
 #, no-wrap
 msgid ""
 "resource <resource> {\n"
@@ -1141,113 +1162,407 @@ msgstr ""
 "}\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:460
-#, fuzzy
-#| msgid ""
-#| "`tcp` is the default transport. I.e. each connection that lacks a "
-#| "transport option uses the `tcp` transport."
-msgid ""
-"`tcp` is the default transport. Each connection that lacks a transport "
-"option uses the `tcp` transport."
-msgstr ""
-"`tcp` 是默认传输协议。即：每个缺少配置传输选项的连接默认使用 `tcp` 传输。"
-
-#. type: Plain text
-#: UG9/en/drbd-configure.adoc:463
-msgid ""
-"The `tcp` transport can be configured with the net options: `sndbuf-size`, "
-"`rcvbuf-size`, `connect-int`, `sock-check-timeo`, `ping-timeo`, `timeout`."
-msgstr ""
-"`tcp` 传输可以使用以下网络选项进行配置： `sndbuf size` 、`rcvbuf size` 、"
-"`connect int` 、 `sock check timeo` 、`ping timeo` 、`timeout` 。"
-
-#. type: Title =====
 #: UG9/en/drbd-configure.adoc:465
-#, no-wrap
-msgid "RDMA"
-msgstr "RDMA"
-
-#. type: delimited block -
-#: UG9/en/drbd-configure.adoc:473
-#, no-wrap
 msgid ""
-"resource <resource> {\n"
-"  net {\n"
-"    transport \"rdma\";\n"
-"  }\n"
-"  ...\n"
-"}\n"
+"You can configure the `tcp` transport with the following options, by "
+"specifying them in the `net` section of a resource configuration: `sndbuf-"
+"size`, `rcvbuf-size`, `connect-int`, `socket-check-timeout`, `ping-timeout`, "
+"`timeout`, `load-balance-paths`, and `tls`. Refer to `man drbd.conf-9.0` for "
+"more details about each option."
 msgstr ""
-"resource <resource> {\n"
-"  net {\n"
-"    transport \"rdma\";\n"
-"  }\n"
-"  ...\n"
-"}\n"
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:468
+msgid "====== Load Balancing DRBD Traffic"
+msgstr ""
 
 #. type: Plain text
 #: UG9/en/drbd-configure.adoc:476
 msgid ""
-"The `rdma` transport can be configured with the net options: `sndbuf-size`, "
-"`rcvbuf-size`, `max_buffers`, `connect-int`, `sock-check-timeo`, `ping-"
-"timeo`, `timeout`."
+"By default, the TCP transport establishes a connection path between DRBD "
+"resource peers serially, that is, one at a time. Since DRBD version 9.2.6, "
+"by setting the option `load-balance-paths` to `yes`, you can enable the "
+"transport to establish all paths in parallel.  Also, when load balancing is "
+"configured, the transport will always send replicated traffic into the path "
+"with the shortest send queue. Data can arrive out of order on the receiving "
+"side when multiple paths are established. The DRBD transport implementation "
+"takes care of sorting the received data packets and provides the data to the "
+"DRBD core in the original sending order."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:481
+msgid ""
+"Using the load balancing feature also requires a `drbd-utils` version 9.26.0 "
+"or later. If you have an earlier version of `drbd-utils` installed, you "
+"might get \"bad parser\" error messages when trying to run `drbdadm` "
+"commands against resources for which you have configured load balancing."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:484
+msgid ""
+"An example configuration with load balancing configured for a DRBD resource "
+"named `drbd-lb-0`, is as follows:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:485
+#, no-wrap
+msgid "`drbd-lb-0.res`"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:495
+#, no-wrap
+msgid ""
+"resource \"drbd-lb-0\"\n"
+"{\n"
+"[...]\n"
+"    net\n"
+"    {\n"
+"        load-balance-paths      yes;\n"
+"        [...]\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:504
+#, no-wrap
+msgid ""
+"    on \"linbit-0\"\n"
+"    {\n"
+"        volume 0\n"
+"        {\n"
+"        [...]\n"
+"        }\n"
+"        node-id    0;\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:513
+#, no-wrap
+msgid ""
+"    on \"linbit-1\"\n"
+"    {\n"
+"        volume 0\n"
+"        {\n"
+"        [...]\n"
+"        }\n"
+"        node-id    1;\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:522
+#, no-wrap
+msgid ""
+"    on \"linbit-2\"\n"
+"    {\n"
+"        volume 0\n"
+"        {\n"
+"        [...]\n"
+"        }\n"
+"        node-id    2;\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:536
+#, fuzzy, no-wrap
+#| msgid ""
+#| "resource r0 {\n"
+#| "  ...\n"
+#| "  connection {\n"
+#| "    host alice   address 10.1.2.1:7010;\n"
+#| "    host bob     address 10.1.2.2:7001;\n"
+#| "  }\n"
+#| "  connection {\n"
+#| "    host alice   address 10.1.3.1:7020;\n"
+#| "    host charlie address 10.1.3.2:7002;\n"
+#| "  }\n"
+#| "  connection {\n"
+#| "    host bob     address 10.1.4.1:7021;\n"
+#| "    host charlie address 10.1.4.2:7012;\n"
+#| "  }\n"
+#| "}\n"
+msgid ""
+"    connection\n"
+"    {\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-0\" address ipv4 192.168.220.60:7900;\n"
+"            host \"linbit-1\" address ipv4 192.168.220.61:7900;\n"
+"        }\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-0\" address ipv4 192.168.221.60:7900;\n"
+"            host \"linbit-1\" address ipv4 192.168.221.61:7900;\n"
+"        }\n"
+"    }\n"
+msgstr ""
+"resource r0 {\n"
+"  ...\n"
+"  connection {\n"
+"    host alice   address 10.1.2.1:7010;\n"
+"    host bob     address 10.1.2.2:7001;\n"
+"  }\n"
+"  connection {\n"
+"    host alice   address 10.1.3.1:7020;\n"
+"    host charlie address 10.1.3.2:7002;\n"
+"  }\n"
+"  connection {\n"
+"    host bob     address 10.1.4.1:7021;\n"
+"    host charlie address 10.1.4.2:7012;\n"
+"  }\n"
+"}\n"
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:564
+#, no-wrap
+msgid ""
+"    connection\n"
+"    {\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-0\" address ipv4 192.168.220.60:7900;\n"
+"            host \"linbit-2\" address ipv4 192.168.220.62:7900;\n"
+"        }\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-0\" address ipv4 192.168.221.60:7900;\n"
+"            host \"linbit-2\" address ipv4 192.168.221.62:7900;\n"
+"        }\n"
+"    }\n"
+"        connection\n"
+"    {\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-1\" address ipv4 192.168.220.61:7900;\n"
+"            host \"linbit-2\" address ipv4 192.168.220.62:7900;\n"
+"        }\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-1\" address ipv4 192.168.221.61:7900;\n"
+"            host \"linbit-2\" address ipv4 192.168.221.62:7900;\n"
+"        }\n"
+"    }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:574
+msgid ""
+"While the above configuration shows three DRBD connection paths, only two "
+"are necessary in a three-node cluster. For example, if the above "
+"configuration was on node `linbit-0`, the connection between `linbit-1` and "
+"`linbit-2` would be unnecessary in the configuration. On `linbit-1`, the "
+"connection between `linbit-0` and `linbit-2` would be unnecessary, and so "
+"on, for the configuration on `linbit-2`. Nevertheless, it can be helpful to "
+"have all possible connections in your resource configuration. This way, you "
+"can use a single configuration file on all the nodes in your cluster without "
+"having to edit and customize the configuration on each node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:577
+msgid "====== Securing DRBD Connections with TLS"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:580
+msgid ""
+"You can enable authenticated and encrypted DRBD connections via the `tcp` "
+"transport by adding the `tls` net option to a DRBD resource configuration "
+"file."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:588
+#, fuzzy, no-wrap
+#| msgid ""
+#| "resource <resource> {\n"
+#| "  net {\n"
+#| "    transport \"tcp\";\n"
+#| "  }\n"
+#| "  ...\n"
+#| "}\n"
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    tls yes;\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+"resource <resource> {\n"
+"  net {\n"
+"    transport \"tcp\";\n"
+"  }\n"
+"  ...\n"
+"}\n"
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:593
+msgid ""
+"DRBD will temporarily pass the sockets to a user space utility (`tlshd`, "
+"part of the `ktls-utils` package)  when establishing connections. `tlshd` "
+"will use the keys configured in `/etc/tlshd.conf` to set up authentication "
+"and encryption."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:594
+#, no-wrap
+msgid "/etc/tlshd.conf"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:600
+#, no-wrap
+msgid ""
+"[authenticate.client]\n"
+"x509.certificate=/etc/tlshd.d/tls.crt\n"
+"x509.private_key=/etc/tlshd.d/tls.key\n"
+"x509.truststore=/etc/tlshd.d/ca.crt\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:605
+#, no-wrap
+msgid ""
+"[authenticate.server]\n"
+"x509.certificate=/etc/tlshd.d/tls.crt\n"
+"x509.private_key=/etc/tlshd.d/tls.key\n"
+"x509.truststore=/etc/tlshd.d/ca.crt\n"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-configure.adoc:608
+#, no-wrap
+msgid "RDMA"
+msgstr "RDMA"
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:612
+msgid ""
+"You can configure DRBD resource replication traffic to use RDMA rather than "
+"TCP as a transport type by specifying it explicitly in a DRBD resource "
+"configuration."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:620
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    transport \"rdma\";\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+"resource <resource> {\n"
+"  net {\n"
+"    transport \"rdma\";\n"
+"  }\n"
+"  ...\n"
+"}\n"
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:626
+#, fuzzy
+#| msgid ""
+#| "The `rdma` transport can be configured with the net options: `sndbuf-"
+#| "size`, `rcvbuf-size`, `max_buffers`, `connect-int`, `sock-check-timeo`, "
+#| "`ping-timeo`, `timeout`."
+msgid ""
+"You can configure the `rdma` transport with the following options, by "
+"specifying them in the `net` section of the resource configuration: `sndbuf-"
+"size`, `rcvbuf-size`, `max_buffers`, `connect-int`, `socket-check-timeout`, "
+"`ping-timeout`, `timeout`. Refer to `man drbd.conf-9.0` for more details "
+"about each option."
 msgstr ""
 "`rdma` 传输可以使用以下网络选项配置：`sndbuf size` 、`rcvbuf size` 、"
 "`max_buffers` 、`connect int` 、`sock check timeo` 、`ping timeo` 、"
 "`timeout` 。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:480
+#: UG9/en/drbd-configure.adoc:629
+#, fuzzy
+#| msgid ""
+#| "The `rdma` transport is a zero-copy-receive transport. One implication of "
+#| "that is that the `max_buffers` configuration options must be set to a "
+#| "value big enough to hold all `rcvbuf-size`."
 msgid ""
 "The `rdma` transport is a zero-copy-receive transport. One implication of "
-"that is that the `max_buffers` configuration options must be set to a value "
+"that is that the `max_buffers` configuration option must be set to a value "
 "big enough to hold all `rcvbuf-size`."
 msgstr ""
 "`rdma` 传输是零拷贝接收传输。这意味着 `max_buffers` 配置选项必须设置为足以容"
 "纳所有 `rcvbuf size` 的值。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:484
+#: UG9/en/drbd-configure.adoc:633
+#, fuzzy
+#| msgid ""
+#| "`rcvbuf-size` is configured in bytes, while `max_buffers` is configured "
+#| "in pages. For optimal performance `max_buffers` should be big enough to "
+#| "hold all of `rcvbuf-size` and the amount of data that might be in flight "
+#| "to the backend device at any point in time."
 msgid ""
 "`rcvbuf-size` is configured in bytes, while `max_buffers` is configured in "
 "pages. For optimal performance `max_buffers` should be big enough to hold "
-"all of `rcvbuf-size` and the amount of data that might be in flight to the "
-"backend device at any point in time."
+"all of `rcvbuf-size` and the amount of data that might be in transit to the "
+"back-end device at any point in time."
 msgstr ""
 "`rcvbuf size` 以字节为单位配置，`max_buffers` 以页为单位配置。为了获得最佳性"
 "能，`max_buffers` 应该足够大，可以容纳所有 `rcvbuf size` 和在任何时间点可能传"
 "输到后端设备的数据量。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:488
+#: UG9/en/drbd-configure.adoc:638
+#, fuzzy
+#| msgid ""
+#| "In case you are using InfiniBand HCAs with the `rdma` transport, you need "
+#| "to configure IPoIB as well. The IP address is not used for data transfer, "
+#| "but it is used to find the right adapters and ports while establishing "
+#| "the connection."
 msgid ""
-"In case you are using InfiniBand HCAs with the `rdma` transport, you need to "
-"configure IPoIB as well. The IP address is not used for data transfer, but "
-"it is used to find the right adapters and ports while establishing the "
-"connection."
+"In case you are using InfiniBand host channel adapters (HCAs) with the "
+"`rdma` transport, you also need to configure IP over InfiniBand (IPoIB). The "
+"IP address is not used for data transfer, but it is used to find the right "
+"adapters and ports while establishing the connection."
 msgstr ""
 "如果您将InfiniBand HCAs与 `rdma` 传输一起使用，则还需要配置IPoIB。IP地址不用"
 "于数据传输，但用于在建立连接时找到正确的适配器和端口。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:492
+#: UG9/en/drbd-configure.adoc:642
+#, fuzzy
+#| msgid ""
+#| "The configuration options `sndbuf-size`, `rcvbuf-size` are only "
+#| "considered at the time a connection is established. I.e. you can change "
+#| "them while the connection is established. They will take effect in the "
+#| "moment the connection is re-established."
 msgid ""
-"The configuration options `sndbuf-size`, `rcvbuf-size` are only considered "
-"at the time a connection is established. I.e. you can change them while the "
-"connection is established. They will take effect in the moment the "
-"connection is re-established."
+"The configuration options `sndbuf-size` and `rcvbuf-size` are only "
+"considered at the time a connection is established. While you can change "
+"their values when the connection is established, your changes will only take "
+"effect when the connection is re-established."
 msgstr ""
 "只有在建立连接时才考虑配置选项 `sndbuf size` 、`rcvbuf size` 。即: 如果你在连"
 "接已建立时更改它们。它们将在重新建立连接时生效。"
 
 #. type: Title =====
-#: UG9/en/drbd-configure.adoc:494
+#: UG9/en/drbd-configure.adoc:644
 #, no-wrap
 msgid "Performance considerations for RDMA"
 msgstr "RDMA的性能考虑"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:500
+#: UG9/en/drbd-configure.adoc:650
 msgid ""
 "By looking at the pseudo file _/sys/kernel/debug/drbd/<resource>/connections/"
 "<peer>/transport_, the counts of available receive descriptors (rx_desc) and "
@@ -1259,25 +1574,25 @@ msgstr ""
 "如果某个描述符类型耗尽，则应增加 `sndbuf size` ”或  `rcvbuf size` 。"
 
 #. type: Title ====
-#: UG9/en/drbd-configure.adoc:502
+#: UG9/en/drbd-configure.adoc:652
 #, no-wrap
 msgid "Enabling your resource for the first time"
 msgstr "首次启用资源"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:506
+#: UG9/en/drbd-configure.adoc:656
 msgid ""
 "After you have completed initial resource configuration as outlined in the "
 "previous sections, you can bring up your resource."
 msgstr "在您完成了前面章节中概述的初始资源配置之后，您可以启用您定义的资源。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:508
+#: UG9/en/drbd-configure.adoc:658
 msgid "Each of the following steps must be completed on both nodes."
 msgstr "必须在两个节点上完成以下每个步骤。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:510
+#: UG9/en/drbd-configure.adoc:660
 msgid ""
 "Please note that with our example config snippets (`resource r0 { ... }`), "
 "`<resource>` would be `r0`."
@@ -1286,20 +1601,20 @@ msgstr ""
 "是 `r0` 。 "
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:511
+#: UG9/en/drbd-configure.adoc:661
 #, no-wrap
 msgid "Create device metadata"
 msgstr "创建设备元数据"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:514
+#: UG9/en/drbd-configure.adoc:664
 msgid ""
 "This step must be completed only on initial device creation. It initializes "
 "DRBD's metadata:"
 msgstr "此步骤只能在初始设备创建时完成。它初始化DRBD的元数据："
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:529
+#: UG9/en/drbd-configure.adoc:679
 msgid ""
 "Please note that the number of bitmap slots that are allocated in the meta-"
 "data depends on the number of hosts for this resource; per default the hosts "
@@ -1313,13 +1628,13 @@ msgstr ""
 "些手动操作。"
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:531
+#: UG9/en/drbd-configure.adoc:681
 #, no-wrap
 msgid "Enable the resource"
 msgstr "启用资源"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:535
+#: UG9/en/drbd-configure.adoc:685
 msgid ""
 "This step associates the resource with its backing device (or devices, in "
 "case of a multi-volume resource), sets replication parameters, and connects "
@@ -1329,13 +1644,13 @@ msgstr ""
 "并将资源连接到其对等方："
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:539
+#: UG9/en/drbd-configure.adoc:689
 #, no-wrap
 msgid "Observe the status via `drbdadm status`"
 msgstr "运行 `drbdadm status` 观察状态变化"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:542
+#: UG9/en/drbd-configure.adoc:692
 #, fuzzy
 #| msgid ""
 #| "``drbdsetup``'s status output should now contain information similar to "
@@ -1346,7 +1661,7 @@ msgid ""
 msgstr "``drbdsetup`` 的状态输出现在应该包含类似于以下内容的信息："
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:549
+#: UG9/en/drbd-configure.adoc:699
 #, no-wrap
 msgid ""
 "# drbdadm status r0\n"
@@ -1362,12 +1677,12 @@ msgstr ""
 "    disk:Inconsistent\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:553
+#: UG9/en/drbd-configure.adoc:703
 msgid "The _Inconsistent/Inconsistent_ disk state is expected at this point."
 msgstr "此时磁盘状态应该是 _Inconsistent/Inconsistent_ 。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:558
+#: UG9/en/drbd-configure.adoc:708
 msgid ""
 "By now, DRBD has successfully allocated both disk and network resources and "
 "is ready for operation. What it does not know yet is which of your nodes "
@@ -1377,24 +1692,24 @@ msgstr ""
 "该使用哪个节点作为初始设备同步的源。"
 
 #. type: Title ====
-#: UG9/en/drbd-configure.adoc:560
+#: UG9/en/drbd-configure.adoc:710
 #, no-wrap
 msgid "The initial device synchronization"
 msgstr "初始设备同步"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:564
+#: UG9/en/drbd-configure.adoc:714
 msgid "There are two more steps required for DRBD to become fully operational:"
 msgstr "要使DRBD完全运行，还需要两个步骤："
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:565
+#: UG9/en/drbd-configure.adoc:715
 #, no-wrap
 msgid "Select an initial sync source"
 msgstr "选择初始同步源"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:572
+#: UG9/en/drbd-configure.adoc:722
 msgid ""
 "If you are dealing with newly-initialized, empty disks, this choice is "
 "entirely arbitrary. If one of your nodes already has valuable data that you "
@@ -1408,13 +1723,13 @@ msgstr ""
 "上执行初始设备同步，则会丢失该数据。这点要非常小心。"
 
 #. type: Block title
-#: UG9/en/drbd-configure.adoc:574
+#: UG9/en/drbd-configure.adoc:724
 #, no-wrap
 msgid "Start the initial full synchronization"
 msgstr "启动初始化全量同步"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:578
+#: UG9/en/drbd-configure.adoc:728
 msgid ""
 "This step must be performed on only one node, only on initial resource "
 "configuration, and only on the node you selected as the synchronization "
@@ -1424,13 +1739,13 @@ msgstr ""
 "步源的节点上执行。要执行此步骤，请输入以下命令："
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:581
+#: UG9/en/drbd-configure.adoc:731
 #, no-wrap
 msgid "# drbdadm primary --force <resource>\n"
 msgstr "# drbdadm primary --force <resource>\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:587
+#: UG9/en/drbd-configure.adoc:737
 msgid ""
 "After issuing this command, the initial full synchronization will commence. "
 "You will be able to monitor its progress via `drbdadm status`. It may take "
@@ -1440,7 +1755,7 @@ msgstr ""
 "度。根据设备的大小，可能需要一些时间。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:594
+#: UG9/en/drbd-configure.adoc:744
 msgid ""
 "By now, your DRBD device is fully operational, even before the initial "
 "synchronization has completed (albeit with slightly reduced performance). If "
@@ -1453,7 +1768,7 @@ msgstr ""
 "块设备，挂载它，并对可访问的块设备执行任何其他操作。"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:597
+#: UG9/en/drbd-configure.adoc:747
 msgid ""
 "You will now probably want to continue with <<p-work>>, which describes "
 "common administrative tasks to perform on your resource."
@@ -1461,14 +1776,14 @@ msgstr ""
 "您现在可能需要继续执行<<p-work>>，它描述了要在资源上执行的常见管理任务。"
 
 #. type: Title ====
-#: UG9/en/drbd-configure.adoc:599
+#: UG9/en/drbd-configure.adoc:749
 #, fuzzy, no-wrap
 #| msgid "The initial device synchronization"
 msgid "Skipping initial resynchronization"
 msgstr "初始设备同步"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:605
+#: UG9/en/drbd-configure.adoc:755
 msgid ""
 "If (and only if) you are starting DRBD resources from scratch (with no "
 "valueable data on them) you can use following command sequence to skip "
@@ -1476,14 +1791,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:607
+#: UG9/en/drbd-configure.adoc:757
 #, fuzzy
 #| msgid "on all nodes."
 msgid "On all nodes:"
 msgstr "在所有节点上。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:611
+#: UG9/en/drbd-configure.adoc:761
 #, fuzzy, no-wrap
 #| msgid ""
 #| "# drbdadm create-md r0-U\n"
@@ -1496,48 +1811,48 @@ msgstr ""
 "# drbdadm up r0-U\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:614
+#: UG9/en/drbd-configure.adoc:764
 msgid ""
 "The command `drbdadm status` should now show all disks as _Inconsistent_."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:616
+#: UG9/en/drbd-configure.adoc:766
 #, fuzzy
 #| msgid "On the local node, issue the following command:"
 msgid "Then, on one node execute the following command:"
 msgstr "在本地节点上，输入以下命令："
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:619
+#: UG9/en/drbd-configure.adoc:769
 #, no-wrap
 msgid "# drbdadm new-current-uuid --clear-bitmap <resource>/<volume>\n"
 msgstr "# drbdadm new-current-uuid --clear-bitmap <resource>/<volume>\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:621 UG9/en/drbd-install-packages.adoc:254
-#: UG9/en/drbd-latency.adoc:170 UG9/en/drbd-lvm.adoc:176
+#: UG9/en/drbd-configure.adoc:771 UG9/en/drbd-install-packages.adoc:260
+#: UG9/en/drbd-latency.adoc:229 UG9/en/drbd-lvm.adoc:176
 #: UG9/en/linstor-opennebula.adoc:35
 #, no-wrap
 msgid "or"
 msgstr "或"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:623 UG9/en/drbd-configure.adoc:657
+#: UG9/en/drbd-configure.adoc:773 UG9/en/drbd-configure.adoc:807
 #, fuzzy
 #| msgid "# drbdsetup new-current-uuid --clear-bitmap <minor>\n"
 msgid "# drbdsetup new-current-uuid --clear-bitmap <minor>"
 msgstr "# drbdsetup new-current-uuid --clear-bitmap <minor>\n"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:624 UG9/en/drbd-configure.adoc:658
-#: UG9/en/drbd-configure.adoc:724
+#: UG9/en/drbd-configure.adoc:774 UG9/en/drbd-configure.adoc:808
+#: UG9/en/drbd-configure.adoc:874
 #, no-wrap
 msgid "--\n"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:629
+#: UG9/en/drbd-configure.adoc:779
 msgid ""
 "Running `drbdadm status` now shows the disks as _UpToDate_ (even tough the "
 "backing devices might be out of sync). You can now create a file system on "
@@ -1545,27 +1860,27 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:632
+#: UG9/en/drbd-configure.adoc:782
 msgid ""
 "IMPORTANT: Don't do the above with data you want to keep or it gets "
 "corrupted."
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:634
+#: UG9/en/drbd-configure.adoc:784
 #, fuzzy
 #| msgid "Using truck based replication"
 msgid "[[s-using-truck-based-replication]]"
 msgstr "使用基于卡车的复制"
 
 #. type: Title ====
-#: UG9/en/drbd-configure.adoc:634
+#: UG9/en/drbd-configure.adoc:784
 #, no-wrap
 msgid "Using truck based replication"
 msgstr "使用基于卡车的复制"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:639
+#: UG9/en/drbd-configure.adoc:789
 msgid ""
 "In order to preseed a remote node with data which is then to be kept "
 "synchronized, and to skip the initial full device synchronization, follow "
@@ -1575,7 +1890,7 @@ msgstr ""
 "下步骤。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:646
+#: UG9/en/drbd-configure.adoc:796
 #, fuzzy
 #| msgid ""
 #| "This assumes that your local node has a configured, but disconnected DRBD "
@@ -1595,7 +1910,7 @@ msgstr ""
 "地节点上发出了用于<<s-initial-full-sync,initial resource promotion>>的命令"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:650
+#: UG9/en/drbd-configure.adoc:800
 #, fuzzy, no-wrap
 #| msgid "On the local node, issue the following command:"
 msgid ""
@@ -1605,21 +1920,21 @@ msgid ""
 msgstr "在本地节点上，输入以下命令："
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:653
+#: UG9/en/drbd-configure.adoc:803
 #, fuzzy
 #| msgid "# drbdadm new-current-uuid --clear-bitmap <resource>/<volume>\n"
 msgid "# drbdadm new-current-uuid --clear-bitmap <resource>/<volume>"
 msgstr "# drbdadm new-current-uuid --clear-bitmap <resource>/<volume>\n"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:655
+#: UG9/en/drbd-configure.adoc:805
 #, fuzzy, no-wrap
 #| msgid "or"
 msgid "or\n"
 msgstr "或"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:668
+#: UG9/en/drbd-configure.adoc:818
 #, fuzzy, no-wrap
 #| msgid "Create a consistent, verbatim copy of the resource's data _and its metadata_. You may do so, for example, by removing a hot-swappable drive from a RAID-1 mirror.  You would, of course, replace it with a fresh drive, and rebuild the RAID set, to ensure continued redundancy. But the removed drive is a verbatim copy that can now be shipped off site.  If your local block device supports snapshot copies (such as when using DRBD on top of LVM), you may also create a bitwise copy of that snapshot using `dd`."
 msgid ""
@@ -1634,7 +1949,7 @@ msgid ""
 msgstr "创建资源数据及其元数据的一致的、逐字的复本。您可以这样做，例如，从RAID-1镜像中删除热插拔驱动器。当然，您可以用新的驱动器替换它，并重建RAID集，以确保持续的冗余。但删除的驱动器是逐字复制的，现在可以运离现场。如果本地块设备支持快照副本（例如在LVM上使用DRBD），也可以使用 `dd` 创建该快照的逐位副本。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:672
+#: UG9/en/drbd-configure.adoc:822
 #, fuzzy, no-wrap
 #| msgid "On the local node, issue:"
 msgid ""
@@ -1644,21 +1959,21 @@ msgid ""
 msgstr "在本地节点上，输入："
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:675
+#: UG9/en/drbd-configure.adoc:825
 #, fuzzy
 #| msgid "# drbdadm new-current-uuid <resource>\n"
 msgid "# drbdadm new-current-uuid <resource>"
 msgstr "# drbdadm new-current-uuid <resource>\n"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:677
+#: UG9/en/drbd-configure.adoc:827
 #, fuzzy, no-wrap
 #| msgid "or the matching `drbdsetup` command."
 msgid "or the matching `drbdsetup` command.\n"
 msgstr "或者匹配的 `drbdsetup` 命令。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:680
+#: UG9/en/drbd-configure.adoc:830
 #, fuzzy, no-wrap
 #| msgid "Note the absence of the `--clear-bitmap` option in this second invocation."
 msgid ""
@@ -1668,14 +1983,14 @@ msgid ""
 msgstr "注意，在第二次调用中没有 `--clear bitmap` 选项。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:683
+#: UG9/en/drbd-configure.adoc:833
 #, fuzzy, no-wrap
 #| msgid "Physically transport the copies to the remote peer location."
 msgid "* Physically transport the copies to the remote peer location.\n"
 msgstr "将副本物理传输到远程对等位置。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:689
+#: UG9/en/drbd-configure.adoc:839
 #, fuzzy, no-wrap
 #| msgid "Add the copies to the remote node. This may again be a matter of plugging in a physical disk, or grafting a bitwise copy of your shipped data onto existing storage on the remote node.  Be sure to restore or copy not only your replicated data, but also the associated DRBD metadata. If you fail to do so, the disk shipping process is moot."
 msgid ""
@@ -1687,7 +2002,7 @@ msgid ""
 msgstr "将副本添加到远程节点。这可能再次是插入物理磁盘的问题，或者将已传送数据的按位副本移植到远程节点上的现有存储上。请确保不仅还原或复制了复制的数据副本，而且还原或复制了与之关联的DRBD元数据。如果不这样做，磁盘传送过程就没有意义。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:694
+#: UG9/en/drbd-configure.adoc:844
 #, fuzzy, no-wrap
 #| msgid "On the new node we need to fix the node ID in the metadata, and exchange the peer-node info for the two nodes. Please see the following lines as example for changing node id from 2 to 1 on a resource `r0` volume `0`."
 msgid ""
@@ -1699,12 +2014,12 @@ msgid ""
 msgstr "在新节点上，我们需要修复元数据中的节点ID，并为这两个节点交换对等节点信息。请参阅以下几行，作为将资源 `r0` 卷 `0` 上的节点id从2更改为1的示例。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:697
+#: UG9/en/drbd-configure.adoc:847
 msgid "This must be done while the volume is not in use."
 msgstr "必须在卷未使用时执行此操作。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:703
+#: UG9/en/drbd-configure.adoc:853
 msgid ""
 "You need to edit the first four lines to match your needs. V is the resource "
 "name with the volume number. NODE_FROM is the node ID of the node the data "
@@ -1714,7 +2029,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:709
+#: UG9/en/drbd-configure.adoc:859
 #, fuzzy
 #| msgid ""
 #| "V=r0/0\n"
@@ -1727,7 +2042,7 @@ msgstr ""
 "NODE_TO=1\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:716
+#: UG9/en/drbd-configure.adoc:866
 #, no-wrap
 msgid ""
 "drbdadm -- --force dump-md $V > /tmp/md_orig.txt\n"
@@ -1745,7 +2060,7 @@ msgstr ""
 "\t< /tmp/md_orig.txt > /tmp/md.txt\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:718
+#: UG9/en/drbd-configure.adoc:868
 #, fuzzy
 #| msgid ""
 #| "drbdmeta --force $(drbdadm sh-minor $V) v09 $(drbdadm sh-ll-dev $V) "
@@ -1758,7 +2073,7 @@ msgstr ""
 "restore-md /tmp/md.txt\n"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:723
+#: UG9/en/drbd-configure.adoc:873
 #, fuzzy, no-wrap
 #| msgid "`drbdmeta` before 8.9.7 cannot cope with out-of-order `peer` sections; you'll need to exchange the blocks via an editor."
 msgid ""
@@ -1768,7 +2083,7 @@ msgid ""
 msgstr "8.9.7之前的 `drbdmeta` 无法处理无序的 `peer` 部分；您需要通过编辑器手动更换配置部分。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:728
+#: UG9/en/drbd-configure.adoc:878
 #, fuzzy, no-wrap
 #| msgid "Bring up the resource on the remote node:"
 msgid ""
@@ -1777,14 +2092,14 @@ msgid ""
 msgstr "在远程节点上启动该资源："
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:730
+#: UG9/en/drbd-configure.adoc:880
 #, fuzzy
 #| msgid "# drbdadm up <resource>\n"
 msgid "# drbdadm up <resource>"
 msgstr "# drbdadm up <resource>\n"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:736
+#: UG9/en/drbd-configure.adoc:886
 #, fuzzy, no-wrap
 #| msgid "After the two peers connect, they will not initiate a full device synchronization. Instead, the automatic synchronization that now commences only covers those blocks that changed since the invocation of `drbdadm{nbsp}--clear-bitmap{nbsp}new-current-uuid`."
 msgid ""
@@ -1795,7 +2110,7 @@ msgid ""
 msgstr "两个节点连接后，它们将不会启动完整的设备同步。相反，现在开始的自动同步只覆盖自调用 `drbdadm{nbsp}--clear bitmap{nbsp}new-current-uuid` 命令后更改的块。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:742
+#: UG9/en/drbd-configure.adoc:892
 #, fuzzy, no-wrap
 #| msgid "Even if there were _no_ changes whatsoever since then, there may still be a brief synchronization period due to areas covered by the <<s-activity-log,Activity Log>> being rolled back on the new Secondary. This may be mitigated by the use of <<p-checksum-sync,checksum-based synchronization>>."
 msgid ""
@@ -1807,7 +2122,7 @@ msgid ""
 msgstr "即使此后 _没有_ 任何更改，由于在新的副节点上有<<s-activity-log,Activity Log>>中提到的因回滚导致的区域覆盖问题，仍可能有一个短暂的同步周期。这可以通过使用<<p-checksum-sync,checksum-based synchronization>>来降低影响。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:746
+#: UG9/en/drbd-configure.adoc:896
 #, fuzzy, no-wrap
 #| msgid "You may use this same procedure regardless of whether the resource is a regular DRBD resource, or a stacked resource. For stacked resources, simply add the `-S` or `--stacked` option to `drbdadm`."
 msgid ""
@@ -1817,31 +2132,31 @@ msgid ""
 msgstr "无论资源是常规DRBD资源还是堆栈资源，步骤都是相同的。对于堆叠资源，只需将 `-S` 或 `--stacked` 选项添加到 `drbdadm` 。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:749
+#: UG9/en/drbd-configure.adoc:899
 #, no-wrap
 msgid "[[s-4node-example]]\n"
 msgstr ""
 
 #. type: Title ====
-#: UG9/en/drbd-configure.adoc:749
+#: UG9/en/drbd-configure.adoc:899
 #, no-wrap
 msgid "Example configuration for four nodes"
 msgstr "四个节点的示例配置"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:752
+#: UG9/en/drbd-configure.adoc:902
 msgid "Here is an example for a four-node cluster."
 msgstr "下面是一个四节点集群的示例。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:754
+#: UG9/en/drbd-configure.adoc:904
 #, fuzzy
 #| msgid "images/connection-mesh.svg"
 msgid "[[s-connection-mesh]]"
 msgstr "images/connection-mesh.svg"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:759
+#: UG9/en/drbd-configure.adoc:909
 #, fuzzy, no-wrap
 #| msgid ""
 #| "resource r0 {\n"
@@ -1860,7 +2175,7 @@ msgstr ""
 "  meta-disk   internal;\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:776
+#: UG9/en/drbd-configure.adoc:926
 #, no-wrap
 msgid ""
 "  on store1 {\n"
@@ -1898,7 +2213,7 @@ msgstr ""
 "  }\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:781
+#: UG9/en/drbd-configure.adoc:931
 #, no-wrap
 msgid ""
 "  connection-mesh {\n"
@@ -1912,14 +2227,14 @@ msgstr ""
 "}\n"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:784
+#: UG9/en/drbd-configure.adoc:934
 #, fuzzy, no-wrap
 #| msgid "In case you want to see the `connection-mesh` configuration expanded, try `drbdadm dump _<resource>_ -v`."
 msgid "In case you want to see the `connection-mesh` configuration expanded, try `drbdadm dump _<resource>_ -v`.\n"
 msgstr "如果您想查看 `connection mesh` 配置的扩展，请尝试 `drbdadm dump _<resource>_ -v` 。"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:791
+#: UG9/en/drbd-configure.adoc:941
 #, fuzzy, no-wrap
 #| msgid "As another example, if the four nodes have enough interfaces to provide a complete mesh via direct linksfootnote:[i.e. three crossover and at least one outgoing/management interface], you can specify the IP addresses of the interfaces:"
 msgid ""
@@ -1931,7 +2246,7 @@ msgid ""
 msgstr "另一个例子是，如果四个节点有足够的接口，可以通过直接链接提供完整的网格。注意：[即，三个交叉点和至少一个传出/管理接口]，可以指定接口的IP地址："
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:795
+#: UG9/en/drbd-configure.adoc:945
 #, no-wrap
 msgid ""
 "resource r0 {\n"
@@ -1941,7 +2256,7 @@ msgstr ""
 "  ...\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:809
+#: UG9/en/drbd-configure.adoc:959
 #, no-wrap
 msgid ""
 "  # store1 has crossover links like 10.99.1x.y\n"
@@ -1973,7 +2288,7 @@ msgstr ""
 "  }\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:819
+#: UG9/en/drbd-configure.adoc:969
 #, no-wrap
 msgid ""
 "  # store2 has crossover links like 10.99.2x.y\n"
@@ -1997,7 +2312,7 @@ msgstr ""
 "  }\n"
 
 #. type: Plain text
-#: UG9/en/drbd-configure.adoc:826
+#: UG9/en/drbd-configure.adoc:976
 #, no-wrap
 msgid ""
 "  # store3 has crossover links like 10.99.3x.y\n"
@@ -2015,7 +2330,7 @@ msgstr ""
 "}\n"
 
 #. type: delimited block -
-#: UG9/en/drbd-configure.adoc:830
+#: UG9/en/drbd-configure.adoc:980
 #, fuzzy, no-wrap
 #| msgid "Please note the numbering scheme used for the IP addresses and ports. Another resource could use the same IP addresses, but ports `71__xy__`, the next one `72__xy__`, and so on."
 msgid ""

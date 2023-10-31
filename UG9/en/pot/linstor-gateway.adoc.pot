@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: documentation@linbit.com\n"
-"POT-Creation-Date: 2023-05-19 18:19+0000\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,29 +18,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #. type: Title ====
-#: UG9/en/drbd-reactor.adoc:2 UG9/en/linstor-gateway.adoc:70
+#: UG9/en/drbd-reactor.adoc:2 UG9/en/linstor-gateway.adoc:72
+#: UG9/en/linstorgw-software-stack.adoc:27
 #, no-wrap
 msgid "DRBD Reactor"
-msgstr ""
-
-#. type: Plain text
-#: UG9/en/linstor-administration.adoc:41 UG9/en/linstor-gateway.adoc:155
-#, no-wrap
-msgid "linstor-client"
 msgstr ""
 
 #. type: Title ==
 #: UG9/en/linstor-gateway.adoc:2
 #, no-wrap
-msgid "LINSTOR Gateway for Highly Available NFS/iSCSI Storage"
+msgid "LINSTOR Gateway for Highly Available NFS/iSCSI/NVMe-oF Storage"
 msgstr ""
 
 #. type: Plain text
 #: UG9/en/linstor-gateway.adoc:6
 #, no-wrap
 msgid ""
-"*LINSTOR Gateway* manages highly available iSCSI targets and NFS exports by leveraging both LINSTOR and\n"
-"DRBD Reactor.\n"
+"*LINSTOR Gateway* manages highly available NVMe-oF targets, iSCSI targets, and NFS exports by leveraging both\n"
+"LINSTOR and DRBD Reactor.\n"
 msgstr ""
 
 #. type: Title ===
@@ -52,9 +47,10 @@ msgstr ""
 #. type: Plain text
 #: UG9/en/linstor-gateway.adoc:12
 msgid ""
-"LINSTOR Gateway requires an initialized LINSTOR cluster, DRBD Reactor, as "
-"well as NFS, iSCSI, or both utilities be installed and configured before it "
-"can be used. The following sections cover these requirements in detail."
+"Before you can use LINSTOR Gateway, you will need to have an initialized "
+"LINSTOR cluster, with DRBD Reactor, as well as NVMe-oF, NFS, iSCSI utilities "
+"installed and configured. The following sections detail how to meet these "
+"requirements."
 msgstr ""
 
 #. type: Title ====
@@ -75,8 +71,8 @@ msgstr ""
 #. type: Plain text
 #: UG9/en/linstor-gateway.adoc:22
 msgid ""
-"For both iSCSI and NFS, a LINSTOR `storage-pool` , `resource-group` and "
-"`volume-group` for LINSTOR Gateway needs to be created before use. The "
+"For NVMe-oF, iSCSI, and NFS, a LINSTOR `storage-pool`, `resource-group`, and "
+"`volume-group` for LINSTOR Gateway need to be created before use. The "
 "following section provides example commands for setting up the prerequisites "
 "in a three-node LINSTOR cluster."
 msgstr ""
@@ -108,23 +104,25 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:39
+#: UG9/en/linstor-gateway.adoc:40
 #, no-wrap
 msgid ""
 "# linstor resource-group create iscsi_group --storage-pool lvmpool --place-count 2\n"
 "# linstor resource-group create nfs_group --storage-pool lvmpool --place-count 3\n"
+"# linstor resource-group create nvme_group --storage-pool lvm --place-count 2\n"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:44
+#: UG9/en/linstor-gateway.adoc:46
 #, no-wrap
 msgid ""
 "# linstor volume-group create iscsi_group\n"
 "# linstor volume-group create nfs_group\n"
+"# linstor volume-group create nvmeof_group\n"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:48
+#: UG9/en/linstor-gateway.adoc:50
 msgid ""
 "LINSTOR Gateway requires modification of the LINSTOR Satellite's "
 "configuration on each Satellite node.  Edit or create the following file "
@@ -132,18 +130,18 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:51
+#: UG9/en/linstor-gateway.adoc:53
 #, no-wrap
 msgid "# vim /etc/linstor/linstor_satellite.toml\n"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:54
+#: UG9/en/linstor-gateway.adoc:56
 msgid "Add the following content to the Satellite configuration:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:62
+#: UG9/en/linstor-gateway.adoc:64
 #, no-wrap
 msgid ""
 "[files]\n"
@@ -155,20 +153,20 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:65
+#: UG9/en/linstor-gateway.adoc:67
 msgid ""
 "Save the changes to the Satellite configuration and restart the satellite "
 "service on all nodes to load the changes."
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:68
+#: UG9/en/linstor-gateway.adoc:70
 #, no-wrap
 msgid "# systemctl restart linstor-satellite\n"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:74
+#: UG9/en/linstor-gateway.adoc:76
 msgid ""
 "DRBD Reactor is a daemon that will orchestrate the iSCSI, NFS or NVMe-oF "
 "resources in our cluster. It must be installed and the service must be "
@@ -176,7 +174,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:80
+#: UG9/en/linstor-gateway.adoc:82
 msgid ""
 "DRBD Reactor's main function could be summarized as such: each DRBD Reactor "
 "daemon tries to take over DRBD Reactor managed services. The daemon that "
@@ -187,7 +185,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:83
+#: UG9/en/linstor-gateway.adoc:85
 msgid ""
 "For details regarding DRBD Reactor's installation and configuration options, "
 "refer to the https://github.com/LINBIT/drbd-reactor[DRBD Reactor GitHub "
@@ -195,18 +193,18 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:85
+#: UG9/en/linstor-gateway.adoc:87
 msgid "Start and enable the DRBD Reactor service on all nodes:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:88
+#: UG9/en/linstor-gateway.adoc:90
 #, no-wrap
 msgid "# systemctl enable --now drbd-reactor\n"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:93
+#: UG9/en/linstor-gateway.adoc:95
 msgid ""
 "In addition to this, DRBD Reactor needs to be configured to automatically "
 "reload when its configuration changes. Run this snippet on all nodes, as "
@@ -215,7 +213,7 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:97
+#: UG9/en/linstor-gateway.adoc:99
 #, no-wrap
 msgid ""
 "# cp examples/drbd-reactor-reload.{path,service} /etc/systemd/system/\n"
@@ -223,7 +221,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:101
+#: UG9/en/linstor-gateway.adoc:103
 msgid ""
 "DRBD Reactor uses Pacemaker's resource agents when integrated with LINSTOR "
 "Gateway. You also need to install resource agents on all nodes in the "
@@ -232,59 +230,79 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:104
+#: UG9/en/linstor-gateway.adoc:106
 #, no-wrap
-msgid "# yum -y install resource-agents\n"
+msgid "# dnf -y install resource-agents\n"
 msgstr ""
 
 #. type: Title ====
-#: UG9/en/linstor-gateway.adoc:106
+#: UG9/en/linstor-gateway.adoc:108
 #, no-wrap
-msgid "iSCSI and NFS Utilities"
+msgid "NVME-oF, iSCSI, and NFS Utilities"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:109
+#: UG9/en/linstor-gateway.adoc:112
+msgid ""
+"To configure NVMe-oF targets for LINSTOR Gateway, you will need to install "
+"the NVMe-of command line interface on all nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:114
+msgid ""
+"The `nvmetcli` package can be installed on RPM based systems using the "
+"following command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-gateway.adoc:117
+#, no-wrap
+msgid "# dnf -y install nvmetcli\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:120
 msgid ""
 "LINSTOR Gateway requires the LIO iSCSI implementation be installed on all "
 "nodes."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:111
+#: UG9/en/linstor-gateway.adoc:122
 msgid ""
 "The `targetcli` package can be installed on RPM based systems using the "
 "following command:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:114
+#: UG9/en/linstor-gateway.adoc:125
 #, no-wrap
-msgid "# yum -y install targetcli\n"
+msgid "# dnf -y install targetcli\n"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:117
+#: UG9/en/linstor-gateway.adoc:128
 msgid ""
 "For NFS support in LINSTOR Gateway, nfs-server utilities need to be "
 "installed on each node."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:119
+#: UG9/en/linstor-gateway.adoc:130
 msgid ""
 "The `nfs-utils` package can be installed on RPM based systems using the "
 "following command:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:122
+#: UG9/en/linstor-gateway.adoc:133
 #, no-wrap
-msgid "# yum -y install nfs-utils\n"
+msgid "# dnf -y install nfs-utils\n"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:126
+#: UG9/en/linstor-gateway.adoc:137
 msgid ""
 "The NFS server should not be enabled in systemd since that will conflict "
 "with DRBD Reactors ability to manage the service. Disable the nfs-server "
@@ -292,7 +310,7 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:130
+#: UG9/en/linstor-gateway.adoc:141
 #, no-wrap
 msgid ""
 "# systemctl disable nfs-server --now\n"
@@ -300,14 +318,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:133
+#: UG9/en/linstor-gateway.adoc:144
 msgid ""
 "Ensure that the output of the command above lists the service as `inactive` "
 "and `disabled`:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:138
+#: UG9/en/linstor-gateway.adoc:149
 #, no-wrap
 msgid ""
 "● nfs-server.service - NFS server and services\n"
@@ -316,26 +334,26 @@ msgid ""
 msgstr ""
 
 #. type: Title ===
-#: UG9/en/linstor-gateway.adoc:141
+#: UG9/en/linstor-gateway.adoc:152
 #, no-wrap
 msgid "Verifying Requirements are Satisfied"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:145
+#: UG9/en/linstor-gateway.adoc:156
 msgid ""
 "The last thing we can do before starting to use LINSTOR Gateway is check "
 "that we've satisfied the prerequisites outlined in the previous sections."
 msgstr ""
 
 #. type: Title ====
-#: UG9/en/linstor-gateway.adoc:146
+#: UG9/en/linstor-gateway.adoc:157
 #, no-wrap
 msgid "Verifying Components are Installed"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:151
+#: UG9/en/linstor-gateway.adoc:162
 msgid ""
 "Let's check that all the required components are present. This guide assumes "
 "you already installed and configured a LINSTOR cluster complete with storage-"
@@ -343,52 +361,62 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:153
+#: UG9/en/linstor-gateway.adoc:164
 msgid ""
 "In addition to the initialized LINSTOR cluster, the following tools need to "
 "be present on all nodes:"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:156
+#: UG9/en/linstor-gateway.adoc:166
+msgid "linstor-client"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:167
 msgid "drbd-reactor"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:157
+#: UG9/en/linstor-gateway.adoc:168
+msgid "nvmetcli"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:169
 msgid "targetcli"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:158
+#: UG9/en/linstor-gateway.adoc:170
 msgid "nfs-utils (RPM) or nfs-common (DEB)"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:159
+#: UG9/en/linstor-gateway.adoc:171
 msgid "nfs-server (RPM) or nfs-kernel-server (DEB)"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:160
+#: UG9/en/linstor-gateway.adoc:172
 msgid "resource-agents"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:162
+#: UG9/en/linstor-gateway.adoc:174
 msgid ""
 "LINSTOR Gateway provides a utility to check that the prerequisite tools are "
 "present:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:165
+#: UG9/en/linstor-gateway.adoc:177
 #, no-wrap
 msgid "# linstor-gateway check-health\n"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:169
+#: UG9/en/linstor-gateway.adoc:181
 msgid ""
 "This command should print something similar to the output below if you "
 "installed all of the required components. If an error is reported, you must "
@@ -396,7 +424,7 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:177
+#: UG9/en/linstor-gateway.adoc:189
 #, no-wrap
 msgid ""
 "[✓] LINSTOR\n"
@@ -408,27 +436,27 @@ msgid ""
 msgstr ""
 
 #. type: Title ====
-#: UG9/en/linstor-gateway.adoc:179
+#: UG9/en/linstor-gateway.adoc:191
 #, no-wrap
 msgid "Verifying LINSTOR Cluster Initialization"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:183
+#: UG9/en/linstor-gateway.adoc:195
 msgid ""
 "Verify that the LINSTOR cluster is initialized properly by comparing your "
 "outputs are similar to the outputs in the commands below."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:186
+#: UG9/en/linstor-gateway.adoc:198
 msgid ""
 "Ensure all your LINSTOR nodes are listed as a Satellite or Combined type, "
 "and that you have 3 (or more) to support quorum:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:196
+#: UG9/en/linstor-gateway.adoc:208
 #, no-wrap
 msgid ""
 "# linstor node list\n"
@@ -442,14 +470,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:199
+#: UG9/en/linstor-gateway.adoc:211
 msgid ""
 "Check that LINSTOR's storage-pool list includes an LVM or ZFS backed storage-"
 "pool:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:212
+#: UG9/en/linstor-gateway.adoc:224
 #, no-wrap
 msgid ""
 "# linstor storage-pool list\n"
@@ -466,7 +494,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:216
+#: UG9/en/linstor-gateway.adoc:228
 msgid ""
 "Check that you've created at least one LINSTOR resource-group that uses your "
 "storage-pool. Also verify that each resource-group has a corresponding "
@@ -474,7 +502,7 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:242
+#: UG9/en/linstor-gateway.adoc:263
 #, no-wrap
 msgid ""
 "# linstor resource-group list\n"
@@ -484,6 +512,9 @@ msgid ""
 "┊ DfltRscGrp    ┊ PlaceCount: 2           ┊        ┊             ┊\n"
 "╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡\n"
 "┊ iscsi_group   ┊ PlaceCount: 2           ┊ 0      ┊             ┊\n"
+"┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊\n"
+"╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡\n"
+"┊ nvmeof_group  ┊ PlaceCount: 2           ┊ 0      ┊             ┊\n"
 "┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊\n"
 "╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡\n"
 "┊ nfs_group     ┊ PlaceCount: 3           ┊ 0      ┊             ┊\n"
@@ -501,16 +532,22 @@ msgid ""
 "╞══════════════════╡\n"
 "┊ 0        ┊       ┊\n"
 "╰──────────────────╯\n"
+"# linstor volume-group list nvmeof_group\n"
+"╭──────────────────╮\n"
+"┊ VolumeNr ┊ Flags ┊\n"
+"╞══════════════════╡\n"
+"┊ 0        ┊       ┊\n"
+"╰──────────────────╯\n"
 msgstr ""
 
 #. type: Title ===
-#: UG9/en/linstor-gateway.adoc:245
+#: UG9/en/linstor-gateway.adoc:266
 #, no-wrap
 msgid "Creating iSCSI Targets"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:249
+#: UG9/en/linstor-gateway.adoc:270
 msgid ""
 "Once the preparations are complete, you can start creating iSCSI luns. The "
 "`linstor-gateway` command line utility will be used to manage all iSCSI "
@@ -518,14 +555,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:251
+#: UG9/en/linstor-gateway.adoc:272
 msgid ""
 "Use `linstor-gateway iscsi help` for detailed information regarding the "
 "`iscsi` subcommand."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:254
+#: UG9/en/linstor-gateway.adoc:275
 msgid ""
 "The following command will create a new DRBD resource in the LINSTOR cluster "
 "with the specified name and resource-group.  This command also creates the "
@@ -534,7 +571,7 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:258
+#: UG9/en/linstor-gateway.adoc:279
 #, no-wrap
 msgid ""
 "# linstor-gateway iscsi create iqn.2019-08.com.linbit:example 192.168.122.181/24 1G \\\n"
@@ -542,7 +579,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:264
+#: UG9/en/linstor-gateway.adoc:285
 msgid ""
 "After running the command above, you will have a 1GiB iSCSI target with CHAP "
 "authentication enabled using the username and password provided. It will be "
@@ -553,14 +590,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:266
+#: UG9/en/linstor-gateway.adoc:287
 msgid ""
 "You can list LINSTOR Gateway created iSCSI resources using the `linstor-"
 "gateway iscsi list` command:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:274
+#: UG9/en/linstor-gateway.adoc:295
 #, no-wrap
 msgid ""
 "# linstor-gateway iscsi list\n"
@@ -572,39 +609,40 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:277 UG9/en/linstor-gateway.adoc:327
+#: UG9/en/linstor-gateway.adoc:298 UG9/en/linstor-gateway.adoc:348
+#: UG9/en/linstor-gateway.adoc:389
 msgid ""
 "You can check the DRBD Reactor status using the `drbd-reactorctl status` "
 "command."
 msgstr ""
 
 #. type: Title ===
-#: UG9/en/linstor-gateway.adoc:279
+#: UG9/en/linstor-gateway.adoc:300
 #, no-wrap
 msgid "Deleting iSCSI Targets"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:282
+#: UG9/en/linstor-gateway.adoc:303
 msgid ""
 "The following command will delete the iSCSI target from DRBD Reactor as well "
 "as the LINSTOR cluster:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:285
+#: UG9/en/linstor-gateway.adoc:306
 #, no-wrap
 msgid "# linstor-gateway delete -i iqn.2021-04.com.linbit:lun4 -l 4\n"
 msgstr ""
 
 #. type: Title ===
-#: UG9/en/linstor-gateway.adoc:288
+#: UG9/en/linstor-gateway.adoc:309
 #, no-wrap
 msgid "Creating NFS Exports"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:293
+#: UG9/en/linstor-gateway.adoc:314
 msgid ""
 "Before creating a NFS export you need to tell LINSTOR which filesystem the "
 "DRBD resource should be formatted with.  This is done by setting the "
@@ -613,20 +651,20 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:296
+#: UG9/en/linstor-gateway.adoc:317
 #, no-wrap
 msgid "# linstor resource-group set-property nfs_group FileSystem/Type ext4\n"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:300
+#: UG9/en/linstor-gateway.adoc:321
 msgid ""
 "You only need to set this once per resource-group, and only on the resource-"
 "group created specifically for LINSTOR Gateway's NFS exports."
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:304
+#: UG9/en/linstor-gateway.adoc:325
 msgid ""
 "Finally, the following command will create a HA NFS export in the cluster. "
 "This single command will create a new resource within the LINSTOR cluster "
@@ -636,7 +674,7 @@ msgid ""
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:308
+#: UG9/en/linstor-gateway.adoc:329
 #, no-wrap
 msgid ""
 "# linstor-gateway nfs create nfstest 172.16.16.102/32 1G \\\n"
@@ -644,7 +682,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:314
+#: UG9/en/linstor-gateway.adoc:335
 msgid ""
 "After running the command above, you will have a 1GiB NFS export with the "
 "specified `allowed-ips` able to mount the export using the IP address "
@@ -655,14 +693,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:316
+#: UG9/en/linstor-gateway.adoc:337
 msgid ""
 "You can list LINSTOR Gateway created NFS resources using the `linstor-"
 "gateway nfs list` command:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:324
+#: UG9/en/linstor-gateway.adoc:345
 #, no-wrap
 msgid ""
 "# LINSTOR-gateway nfs list\n"
@@ -674,20 +712,104 @@ msgid ""
 msgstr ""
 
 #. type: Title ===
-#: UG9/en/linstor-gateway.adoc:329
+#: UG9/en/linstor-gateway.adoc:350
 #, no-wrap
 msgid "Deleting NFS Exports"
 msgstr ""
 
 #. type: Plain text
-#: UG9/en/linstor-gateway.adoc:332
+#: UG9/en/linstor-gateway.adoc:353
 msgid ""
 "The following command will delete the NFS export from DRBD Reactor as well "
 "as the LINSTOR cluster:"
 msgstr ""
 
 #. type: delimited block -
-#: UG9/en/linstor-gateway.adoc:335
+#: UG9/en/linstor-gateway.adoc:356
 #, no-wrap
 msgid "# linstor-gateway nfs delete -r nfstest\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-gateway.adoc:359
+#, no-wrap
+msgid "Creating NVMe-oF Targets"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:362
+msgid ""
+"The `linstor-gateway` command line utility will be used to manage all NVMe-"
+"oF target related actions."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:364
+msgid ""
+"Use `linstor-gateway nvme help` for detailed information regarding the "
+"`nvme` subcommand."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:367
+msgid ""
+"The following command will create a new DRBD resource in the LINSTOR cluster "
+"with the specified name and resource group.  This command also creates the "
+"DRBD Reactor configuration files to enable high availability of the NVMe-oF "
+"target."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-gateway.adoc:370
+#, no-wrap
+msgid "# linstor-gateway nvme create linbit:nvme:vol0 192.168.221.69/24 2G\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:376
+msgid ""
+"After running the command above, you will have a highly available 2GiB NVMe-"
+"oF target created in your cluster that is discoverable on the IP address "
+"used in the command. The target will be backed by a DRBD device managed by "
+"LINSTOR. The DRBD resource was created by LINSTOR in the `nvmeof_group` "
+"resource group. The DRBD Reactor configuration files created by the above "
+"command can be found in `/etc/drbd-reactor.d/`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:378
+msgid ""
+"You can list the NVMe-oF resources that you created by using LINSTOR Gateway "
+"by entering the `linstor-gateway nvme list` command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-gateway.adoc:386
+#, no-wrap
+msgid ""
+"# linstor-gateway nvme list\n"
+"+------------------+-------------------+---------------+-----------+---------------+\n"
+"|       NQN        |    Service IP     | Service state | Namespace | LINSTOR state |\n"
+"+------------------+-------------------+---------------+-----------+---------------+\n"
+"| linbit:nvme:vol0 | 192.168.221.69/24 | Started       |         1 | OK            |\n"
+"+------------------+-------------------+---------------+-----------+---------------+\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-gateway.adoc:391
+#, no-wrap
+msgid "Deleting NVMe-oF Targets"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-gateway.adoc:394
+msgid ""
+"The following command will delete the NVMe-oF target from DRBD Reactor as "
+"well as the LINSTOR Cluster:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-gateway.adoc:397
+#, no-wrap
+msgid "# linstor-gateway nvme delete linbit:nvme:vol0\n"
 msgstr ""
