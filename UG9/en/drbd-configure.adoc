@@ -70,10 +70,9 @@ not keep DRBD from functioning properly.
 You must, of course, also ensure that the TCP ports
 for DRBD are not already used by another application.
 
-It is not (yet) possible to configure a DRBD resource to support more than
-one TCP connection pair. If you want to provide for DRBD connection
-load-balancing or redundancy, you can easily do so at the Ethernet
-level (again, using the _bonding_ driver).
+Since DRBD version 9.2.6, it is possible to configure a DRBD resource to support more
+than one TCP connection pair, for traffic load balancing purposes. Refer to the
+<<s-tcp-load-balancing>> section for details.
 
 For the purposes of this guide, we assume a
 very simple setup:
@@ -430,10 +429,10 @@ Obviously the two endpoint hostnames need to be equal in all paths of
 a connection. Paths may be on different IPs (potentially different NICs)
 or may only be on different ports.
 
-The TCP transport uses one path at a time. If the backing TCP
-connections get dropped, or show timeouts, the TCP transport implementation
-tries to establish a connection over the next path. It goes over all paths
-in a round-robin fashion until a connection gets established.
+The TCP transport uses one path at a time, unless you have configured load balancing (refer to
+<<s-tcp-load-balancing>>). If the backing TCP connections get dropped, or show timeouts, the TCP
+transport implementation tries to establish a connection over the next path. It goes over all
+paths in a round-robin fashion until a connection gets established.
 
 The RDMA transport uses all paths of a connection concurrently and it
 balances the network traffic between the paths evenly.
@@ -446,6 +445,10 @@ configured for each connection of a resource.
 [[s-tcp_ip]]
 ===== TCP/IP
 
+TCP is the default transport for DRBD replication traffic. Each DRBD resource connection where
+the `transport` option is not specified in the resource configuration will use the TCP
+transport.
+
 ----
 resource <resource> {
   net {
@@ -455,11 +458,119 @@ resource <resource> {
 }
 ----
 
-`tcp` is the default transport. Each connection that lacks a transport
-option uses the `tcp` transport.
+You can configure the `tcp` transport with the following options, by specifying them in the
+`net` section of a resource configuration: `sndbuf-size`, `rcvbuf-size`, `connect-int`,
+`socket-check-timeout`, `ping-timeout`, `timeout`, `load-balance-paths`, and `tls`. Refer to
+`man drbd.conf-9.0` for more details about each option.
 
-The `tcp` transport can be configured with the net options: `sndbuf-size`, `rcvbuf-size`,
-`connect-int`, `sock-check-timeo`, `ping-timeo`, `timeout`, `tls`.
+[[s-tcp-load-balancing]]
+====== Load Balancing DRBD Traffic
+
+By default, the TCP transport establishes a connection path between DRBD resource peers
+serially, that is, one at a time. Since DRBD version 9.2.6, by setting the option
+`load-balance-paths` to `yes`, you can enable the transport to establish all paths in parallel.
+Also, when load balancing is configured, the transport will always send replicated traffic into
+the path with the shortest send queue. Data can arrive out of order on the receiving side when
+multiple paths are established. The DRBD transport implementation takes care of sorting the
+received data packets and provides the data to the DRBD core in the original sending order.
+
+IMPORTANT: Using the load balancing feature also requires a `drbd-utils` version 9.26.0 or
+later. If you have an earlier version of `drbd-utils` installed, you might get "bad parser"
+error messages when trying to run `drbdadm` commands against resources for which you have
+configured load balancing.
+
+An example configuration with load balancing configured for a DRBD resource named `drbd-lb-0`,
+is as follows:
+
+.`drbd-lb-0.res`
+----
+resource "drbd-lb-0"
+{
+[...]
+    net
+    {
+        load-balance-paths      yes;
+        [...]
+    }
+
+    on "linbit-0"
+    {
+        volume 0
+        {
+        [...]
+        }
+        node-id    0;
+    }
+
+    on "linbit-1"
+    {
+        volume 0
+        {
+        [...]
+        }
+        node-id    1;
+    }
+
+    on "linbit-2"
+    {
+        volume 0
+        {
+        [...]
+        }
+        node-id    2;
+    }
+
+    connection
+    {
+        path
+        {
+            host "linbit-0" address ipv4 192.168.220.60:7900;
+            host "linbit-1" address ipv4 192.168.220.61:7900;
+        }
+        path
+        {
+            host "linbit-0" address ipv4 192.168.221.60:7900;
+            host "linbit-1" address ipv4 192.168.221.61:7900;
+        }
+    }
+
+    connection
+    {
+        path
+        {
+            host "linbit-0" address ipv4 192.168.220.60:7900;
+            host "linbit-2" address ipv4 192.168.220.62:7900;
+        }
+        path
+        {
+            host "linbit-0" address ipv4 192.168.221.60:7900;
+            host "linbit-2" address ipv4 192.168.221.62:7900;
+        }
+    }
+        connection
+    {
+        path
+        {
+            host "linbit-1" address ipv4 192.168.220.61:7900;
+            host "linbit-2" address ipv4 192.168.220.62:7900;
+        }
+        path
+        {
+            host "linbit-1" address ipv4 192.168.221.61:7900;
+            host "linbit-2" address ipv4 192.168.221.62:7900;
+        }
+    }
+}
+----
+
+NOTE: While the above configuration shows three DRBD connection paths, only two are necessary in
+a three-node cluster. For example, if the above configuration was on node `linbit-0`, the
+connection between `linbit-1` and `linbit-2` would be unnecessary in the configuration. On
+`linbit-1`, the connection between `linbit-0` and `linbit-2` would be unnecessary, and so on,
+for the configuration on `linbit-2`. Nevertheless, it can be helpful to have all possible
+connections in your resource configuration. This way, you can use a single configuration file on
+all the nodes in your cluster without having to edit and customize the configuration on each
+node.
 
 [[s-tcp_ip-tls]]
 ====== Securing DRBD Connections with TLS
@@ -495,6 +606,10 @@ x509.truststore=/etc/tlshd.d/ca.crt
 
 [[s-rdma]]
 ===== RDMA
+
+You can configure DRBD resource replication traffic to use RDMA rather than TCP as a transport
+type by specifying it explicitly in a DRBD resource configuration.
+
 ----
 resource <resource> {
   net {
@@ -503,24 +618,27 @@ resource <resource> {
   ...
 }
 ----
-The `rdma` transport can be configured with the net options: `sndbuf-size`, `rcvbuf-size`,
-`max_buffers`, `connect-int`, `sock-check-timeo`, `ping-timeo`, `timeout`.
 
-The `rdma` transport is a zero-copy-receive transport. One implication of that is that
-the `max_buffers` configuration options must be set to a value big enough to hold all
-`rcvbuf-size`.
+You can configure the `rdma` transport with the following options, by specifying them in the
+`net` section of the resource configuration: `sndbuf-size`, `rcvbuf-size`, `max_buffers`,
+`connect-int`, `socket-check-timeout`, `ping-timeout`, `timeout`. Refer to `man drbd.conf-9.0`
+for more details about each option.
 
-NOTE: `rcvbuf-size` is configured in bytes, while `max_buffers` is configured in pages. For
-optimal performance `max_buffers` should be big enough to hold all of `rcvbuf-size` and
-the amount of data that might be in flight to the backend device at any point in time.
+The `rdma` transport is a zero-copy-receive transport. One implication of that is that the
+`max_buffers` configuration option must be set to a value big enough to hold all `rcvbuf-size`.
 
-TIP: In case you are using InfiniBand HCAs with the `rdma` transport, you need to
-configure IPoIB as well. The IP address is not used for data transfer, but it is used
-to find the right adapters and ports while establishing the connection.
+TIP: `rcvbuf-size` is configured in bytes, while `max_buffers` is configured in pages. For
+optimal performance `max_buffers` should be big enough to hold all of `rcvbuf-size` and the
+amount of data that might be in transit to the back-end device at any point in time.
 
-CAUTION: The configuration options `sndbuf-size`, `rcvbuf-size` are only considered at
-the time a connection is established. I.e. you can change them while the connection is
-established. They will take effect in the moment the connection is re-established.
+IMPORTANT: In case you are using InfiniBand host channel adapters (HCAs) with the `rdma`
+transport, you also need to configure IP over InfiniBand (IPoIB). The IP address is not used for
+data transfer, but it is used to find the right adapters and ports while establishing the
+connection.
+
+WARNING: The configuration options `sndbuf-size` and `rcvbuf-size` are only considered at the
+time a connection is established. While you can change their values when the connection is
+established, your changes will only take effect when the connection is re-established.
 
 [[s-performance_considerations_for_rdma]]
 ===== Performance considerations for RDMA
