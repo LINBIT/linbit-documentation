@@ -118,7 +118,7 @@ html-finalize: html
 		mv $(OUTDIRHTML)/$(OUTHTML_UNDERSTANDING_GW) $(OUTDIRHTML)/$(OUTHTML_UNDERSTANDING_GW_WEBDEVS) && \
 		td=$$(mktemp -d) && \
 		cp $(OUTDIRHTML)/$(OUTHTML_UNDERSTANDING_GW_WEBDEVS) "$$td"/$(OUTHTML_UNDERSTANDING_GW_WEBDEVS) && cp -r $(OUTDIRHTMLIMAGES) $$td && \
-		(cd $$td && zip understanding-gw.zip $(OUTHTML_UNDERSTANDING_GW_WEBDEVS) images/*.*) && mv $$td/understanding-gw.zip $(OUTDIRHTMLFINAL) && rm -rf "$$td"; \
+		(cd $$td && zip linstorgateway.zip $(OUTHTML_UNDERSTANDING_GW_WEBDEVS) images/*.*) && mv $$td/linstorgateway.zip $(OUTDIRHTMLFINAL) && rm -rf "$$td"; \
 	fi
 
 # PDF
