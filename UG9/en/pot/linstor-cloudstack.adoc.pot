@@ -1,0 +1,1002 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: UG9/en/linstor-cloudstack.adoc:2
+#, no-wrap
+msgid "LINSTOR Volumes in CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:9
+msgid ""
+"This chapter describes using LINSTOR to provision volumes that can be used "
+"to back _primary storage_ in Apache CloudStack. CloudStack primary storage "
+"stores the virtual disks for virtual machines (VMs) running on hosts in "
+"CloudStack. A LINBIT-developed CloudStack plug-in integrates LINSTOR with "
+"CloudStack. A benefit to integrating LINSTOR with CloudStack is that it can "
+"be a way to provide highly available primary storage that is also flexible "
+"to manage."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:12
+msgid ""
+"Currently, the LINSTOR plug-in for CloudStack can only be used to provision "
+"volumes for use with KVM hypervisors."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:19
+msgid ""
+"Setting up and deploying CloudStack can be a complex task. A production-"
+"ready deployment can take several weeks to months before it is ready for "
+"users. A basic test deployment in a virtual environment can be set up in a "
+"few hours perhaps. This chapter will deal only with aspects related to "
+"integrating LINSTOR in CloudStack and should be considered a general "
+"overview. You should supplement instructions in this chapter with "
+"instructions and best practice recommendations from the http://docs."
+"cloudstack.apache.org/en/latest/[CloudStack documentation]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:23
+msgid ""
+"Attention should be paid to security, firewall, and resource provisioning "
+"instructions in the CloudStack documentation, and in other chapters in the "
+"LINSTOR User's Guide, before production deployment."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:26
+msgid ""
+"In this chapter, as in other areas of the LINSTOR User's Guide, the word "
+"_node_ is used.  In most cases, you can think of a node as equivalent to a "
+"CloudStack _host_."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-cloudstack.adoc:28
+#, no-wrap
+msgid "Introduction to CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:33
+msgid ""
+"From the CloudStack documentation: \"Apache CloudStack is an open source "
+"Infrastructure-as-a-Service (IaaS) platform that manages and orchestrates "
+"pools of storage, network, and computer resources to build a public or "
+"private IaaS compute cloud.\""
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-cloudstack.adoc:35
+#, no-wrap
+msgid "Preparing Your Environment For CloudStack and LINSTOR Deployment"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:38
+msgid ""
+"You will need to make a few preparatory steps before deploying LINSTOR for "
+"use with CloudStack."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:39
+#, no-wrap
+msgid "Configuring Time Synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:43
+msgid ""
+"It is important that the nodes in your cluster are time synchronized. To do "
+"this, you can install and configure a tool such as Chrony or OpenNTPD."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:44
+#, no-wrap
+msgid "Adding Node IP Addresses and Host Names"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:47
+msgid ""
+"Add your cluster nodes' IP addresses and host names to each node's `/etc/"
+"hosts` file."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:48
+#, no-wrap
+msgid "Setting a Root User Password and Permitting SSH Login"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:52
+msgid ""
+"Set a root password by using the `passwd root` command. Then edit your SSH "
+"configuration file (`/etc/ssh/sshd_config`) to permit root login. The line "
+"in your file should look like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:55
+#, no-wrap
+msgid "PermitRootLogin yes\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:57
+#, no-wrap
+msgid "Configuring SELinux"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:61
+msgid ""
+"For CloudStack to work properly, SELinux must be set to permissive or "
+"disabled (not recommended in production)."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-cloudstack.adoc:63
+#, no-wrap
+msgid "Installing and Preparing LINSTOR for CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:68
+msgid ""
+"The LINSTOR plug-in is included in Apache CloudStack versions 4.16.1 and "
+"later. You do not have to install anything else to support LINSTOR. "
+"CloudStack versions 4.16.0 and earlier do not support the LINSTOR plug-in."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:73
+msgid ""
+"One of the pull requests did not merge properly in CloudStack v4.17.0 which "
+"caused a CloudStack UI bug in the CloudStack initialization wizard. More "
+"details are available https://github.com/apache/cloudstack/pull/6481[here]. "
+"If you need to be on the v4.17 branch, it is recommended (at time of "
+"writing) that you install v4.17.1."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:76
+msgid ""
+"Follow <<linstor-administration.adoc#s-installation,the installation "
+"instructions in the LINSTOR User's Guide>> to install LINSTOR on the storage "
+"providing nodes in your cluster."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:78
+msgid "A basic outline of installation steps is:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:81
+msgid ""
+"Install necessary packages for storage layers that you will be using, for "
+"example, ZFS or LVM. The steps below use ZFS as a backing storage layer for "
+"LINSTOR."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:85
+msgid ""
+"Install the necessary LINSTOR packages (DRBD kernel module, `linbit-sds-"
+"controller`, and `linbit-sds-satellite` packages) from LINBIT repositories "
+"if you are a LINBIT customer, otherwise, you will need to build from source."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:87
+msgid "Restart the `multipathd` daemon."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:90
+#, no-wrap
+msgid "systemctl restart multipathd\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:93
+msgid ""
+"Enable and start the LINSTOR Controller and LINSTOR Satellite services on "
+"your nodes."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:97
+#, no-wrap
+msgid ""
+"# systemctl enable --now linstor-controller\n"
+"# systemctl enable --now linstor-satellite\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:100
+msgid "Add your nodes to LINSTOR."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:103
+#, no-wrap
+msgid "linstor node create <node_host_name>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:107
+msgid ""
+"Create a new LINSTOR storage pool on all of your participating nodes. For "
+"example, given a ZFS pool named `zfs_storage`, enter the following to create "
+"a storage pool named `DfltStorPool`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:110
+#, no-wrap
+msgid "# linstor storage-pool create zfs <node_host_name> DfltStorPool zfs_storage\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:114
+msgid ""
+"Create a LINSTOR resource group to be used for CloudStack. To create a "
+"resource group named `cloudstack`, to be placed on two of your cluster "
+"nodes, enter:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:117
+#, no-wrap
+msgid "# linstor resource-group create cloudstack --place-count 2 --storage-pool DfltStorPool\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:120
+msgid ""
+"Create a LINSTOR volume group from your resource group, by entering the "
+"command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:123
+#, no-wrap
+msgid "# linstor volume-group create cloudstack\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:125
+#, no-wrap
+msgid "Verifying Creating Resources"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:130
+msgid ""
+"After installing LINSTOR and creating a resource group backed by a storage "
+"pool and storage layer, test that you can create storage resources. You can "
+"do this by spawning resources from the resource group that you created."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:135
+msgid ""
+"The http://docs.cloudstack.apache.org/projects/archived-cloudstack-"
+"installation/en/latest/choosing_deployment_architecture.html?"
+"highlight=6%20TB#setup-best-practices[CloudStack setup best practices] "
+"recommend that a primary storage mount point (and therefore the LINSTOR "
+"resource that backs it) \"should not exceed 6TB in size.\""
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:138
+#, no-wrap
+msgid "# linstor resource-group spawn cloudstack testres 1GiB\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:141
+msgid ""
+"Verify that LINSTOR created your resources by using a `resource list` "
+"command."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:151
+#, no-wrap
+msgid ""
+"# linstor resource list\n"
+"+----------------------------------------------------------------------------------+\n"
+"| ResourceName | Node   | Port | Usage  | Conns |      State | CreatedOn           |\n"
+"|-=================================================================================|\n"
+"| testres      | node-0 | 7000 | Unused | Ok    |   UpToDate | 2022-11-10 20:12:30 |\n"
+"| testres      | node-1 | 7000 | Unused | Ok    |   UpToDate | 2022-11-10 20:12:30 |\n"
+"| testres      | node-2 | 7000 | Unused | Ok    | TieBreaker | 2022-11-10 20:12:29 |\n"
+"+----------------------------------------------------------------------------------+\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:153
+#, no-wrap
+msgid "Cleaning Up After Verifying Resource Creation"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:157
+msgid ""
+"After verifying resource creation, you can delete the resource, here "
+"`testres`, in your cluster by entering:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:160
+#, no-wrap
+msgid "# linstor resource-definition delete testres\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:163 UG9/en/linstor-cloudstack.adoc:261
+#, no-wrap
+msgid "Installing CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:170
+msgid ""
+"After installing and preparing LINSTOR, you can install and configure "
+"CloudStack. As disclaimed previously, you should take these instructions as "
+"a way to setup CloudStack quickly for testing and illustrative purposes. "
+"Refer to http://docs.cloudstack.apache.org/en/latest/[CloudStack "
+"documentation] for detailed instructions and best practice recommendations, "
+"before deploying into production."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:171
+#, no-wrap
+msgid "Installing MySQL"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:174
+msgid ""
+"First, install a MySQL server instance that is necessary for CloudStack's "
+"database."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:176
+msgid "On Ubuntu, enter:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:179
+#, no-wrap
+msgid "# apt install -y mysql-server\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:182 UG9/en/linstor-cloudstack.adoc:233
+msgid "On RHEL, enter:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:185
+#, no-wrap
+msgid "# dnf install -y mysql-server\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:187
+#, no-wrap
+msgid "Configuring the CloudStack Database"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:191
+msgid ""
+"After installing the MySQL server package, create a CloudStack database "
+"configuration file named `/etc/mysql/conf.d/cloudstack.cnf` with the "
+"following contents:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:199
+#, no-wrap
+msgid ""
+"[mysqld]\n"
+"innodb_rollback_on_timeout=1\n"
+"innodb_lock_wait_timeout=600\n"
+"max_connections=350 <1>\n"
+"log-bin=mysql-bin\n"
+"binlog-format = 'ROW'\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:204
+msgid ""
+"350 is the `max_connections` value specified in http://docs.cloudstack."
+"apache.org/en/latest/quickinstallationguide/qig.html#database-installation-"
+"and-configuration[the CloudStack installation guide]. You can change this "
+"value depending on your needs."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:207
+msgid ""
+"If you are on an Ubuntu 16.04 or later system, for binary logging, you need "
+"to specify a `server_id` in your `.cnf` database configuration file, for "
+"example:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:216
+#, no-wrap
+msgid ""
+"[mysqld]\n"
+"server_id = 1\n"
+"innodb_rollback_on_timeout=1\n"
+"innodb_lock_wait_timeout=600\n"
+"max_connections=350\n"
+"log-bin=mysql-bin\n"
+"binlog-format = 'ROW'\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:219
+msgid "Then restart the MySQL service by entering `systemctl restart mysql`."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:220
+#, no-wrap
+msgid "Installing NFS for Secondary Storage"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:225
+msgid ""
+"Next, install and configure NFS for CloudStack's secondary storage. You only "
+"need to do this on the node that will be your CloudStack management node. "
+"CloudStack uses secondary storage to store such things as operating system "
+"images for VMs and snapshots of VM data."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:227
+msgid "To install NFS, on Ubuntu, enter:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:230
+#, no-wrap
+msgid "# apt install -y nfs-kernel-server\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:236
+#, no-wrap
+msgid "# dnf install -y nfs-utils\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:240
+msgid ""
+"After installing the NFS server, create an NFS export for CloudStack's "
+"secondary storage by entering the following commands:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:245
+#, no-wrap
+msgid ""
+"# mkdir -p /export/secondary\n"
+"# echo \"/export *(rw,async,no_root_squash,no_subtree_check)\" >> /etc/exports\n"
+"# exportfs -a\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:248
+msgid "Next, enable and start the NFS server service."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:251
+#, no-wrap
+msgid "# systemctl enable --now nfs-server\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-cloudstack.adoc:254
+#, no-wrap
+msgid "Installing and Configuring CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:260
+msgid ""
+"General CloudStack installation and configuration instructions follow. As "
+"your environment may have specific needs or variations, you should also "
+"reference the instructions in the http://docs.cloudstack.apache.org/"
+"en/4.17.1.0/installguide/index.html[CloudStack Installation Guide]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:265
+msgid ""
+"While official CloudStack releases are \"always in source code form,\" for "
+"convenience, there are community generated DEB and RPM packages available at "
+"cloudstack.org:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:267
+msgid "Ubuntu DEB repository: http://download.cloudstack.org/ubuntu"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:269
+msgid "EL8 RPM repository: http://download.cloudstack.org/el/8/"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:271
+msgid "EL7 RPM repository: http://download.cloudstack.org/el/7/"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:276
+msgid ""
+"You can follow the links above to find and download the packages that you "
+"need for your installation. Be sure to verify the integrity of downloaded "
+"packages against CloudStack's signing keys, as outlined in the instructions "
+"https://cloudstack.apache.org/downloads.html[here]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:281
+msgid ""
+"Alternatively, you can follow instructions http://docs.cloudstack.apache.org/"
+"en/latest/installguide/management-server/#configure-package-repository[here] "
+"to configure the CloudStack repository appropriate to your Linux "
+"distribution and then pull and install packages by using your distribution's "
+"package manager."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:284
+msgid ""
+"After adding the CloudStack repository, you may need to update the package "
+"manager's repository list, before you can install packages."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:286
+msgid "For your CloudStack management node, install these packages:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:288
+msgid "`cloudstack-management`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:289
+msgid "`cloudstack-common`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:290
+msgid "`cloudstack-ui`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:292
+msgid ""
+"For your other cluster nodes that will be hosting VMs, install the "
+"`cloudstack-agent` package."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:293
+#, no-wrap
+msgid "Initializing the CloudStack Database"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:296
+msgid ""
+"After installing the necessary CloudStack packages, initialize the "
+"CloudStack database."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:298
+msgid ""
+"For testing purposes, you can enter the following command on your management "
+"node:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:301
+#, no-wrap
+msgid "# cloudstack-setup-databases cloud:cloud --deploy-as=root:nonsense -i <node_name>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:305
+msgid ""
+"Here, the `cloud` after `cloud:` and `nonsense` are passwords that you can "
+"change as you see fit."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:309
+msgid ""
+"For production deployments, follow the more detailed instructions in the "
+"http://docs.cloudstack.apache.org/en/4.17.1.0/installguide/management-server/"
+"index.html#install-the-database-on-the-management-server-node[CloudStack "
+"Installation Guide]."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-cloudstack.adoc:311
+#, no-wrap
+msgid "Installing the CloudStack System Virtual Machine Image Template"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:317
+msgid ""
+"CloudStack needs to run some system VMs for some of its functionality. You "
+"can download a CloudStack VM template image and then run a CloudStack script "
+"that will prepare the image for various system VMs in deployment. On the "
+"CloudStack management node, enter the following commands:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:326
+#, no-wrap
+msgid ""
+"# CS_VERSION=4.17\n"
+"# CS_VERSION_PATCH=4.17.1\n"
+"# wget https://download.cloudstack.org/systemvm/$CS_VERSION/systemvmtemplate-$CS_VERSION_PATCH-kvm.qcow2.bz2\n"
+"# /usr/share/cloudstack-common/scripts/storage/secondary/cloud-install-sys-tmplt \\\n"
+"-m /export/secondary \\\n"
+"-f systemvmtemplate-$CS_VERSION_PATCH=-kvm.qcow2.bz2 \\\n"
+"-h kvm -o localhost -r cloud -d cloud\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-cloudstack.adoc:329
+#, no-wrap
+msgid "Configuring KVM Hypervisor Hosts for Use in CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:333
+msgid ""
+"Currently, the LINSTOR CloudStack plug-in only supports KVM hypervisor "
+"hosts. The instructions that follow are for configuring your CloudStack "
+"installation with KVM hypervisor hosts."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:336
+msgid ""
+"Enter the following command to add `libvirt` configurations to every node in "
+"your cluster that will host CloudStack VMs:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:345
+#, no-wrap
+msgid ""
+"# cat << EOF >> /etc/libvirt/libvirtd.conf\n"
+"listen_tls = 0\n"
+"listen_tcp = 1\n"
+"tcp_port = \"16509\"\n"
+"auth_tcp = \"none\" # not suitable for production\n"
+"mdns_adv = 0\n"
+"EOF\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:348
+msgid "Restart the `libvirtd` service on all hypervisor nodes."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:351
+#, no-wrap
+msgid "# systemctl restart libvirtd\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:353
+#, no-wrap
+msgid "Configuring AppArmor"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:356
+msgid ""
+"If you are running CloudStack on Ubuntu Linux and if AppArmor is enabled, "
+"enter the following:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:362
+#, no-wrap
+msgid ""
+"# ln -s /etc/apparmor.d/usr.sbin.libvirtd /etc/apparmor.d/disable/\n"
+"# ln -s /etc/apparmor.d/usr.lib.libvirt.virt-aa-helper /etc/apparmor.d/disable/\n"
+"# apparmor_parser -R /etc/apparmor.d/usr.sbin.libvirtd\n"
+"# apparmor_parser -R /etc/apparmor.d/usr.lib.libvirt.virt-aa-helper\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:364
+#, no-wrap
+msgid "Restarting the CloudStack Management Service"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:368
+msgid ""
+"After making the necessary setup and preparatory configurations, restart the "
+"`cloudstack-management` service."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:371
+#, no-wrap
+msgid "# systemctl restart cloudstack-management\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:374
+msgid ""
+"You can follow the progress of CloudStack's initial database setup by "
+"entering:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-cloudstack.adoc:377
+#, no-wrap
+msgid "# journalctl -u cloudstack-management -f\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:379
+#, no-wrap
+msgid "Logging into the CloudStack UI"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:384
+msgid ""
+"After some time, you should be able to log into the CloudStack management "
+"UI. Given a management node resolvable host name of `node-0`, enter the "
+"following URL into a web browser on a computer in your cluster's network: "
+"`http://node-0:8080/client`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:387
+msgid ""
+"Once you are greeted by the CloudStack UI's portal login page, log into the "
+"portal by using the default user name `admin` and the default password "
+"`password`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:390
+msgid ""
+"After successfully logging in, the CloudStack UI will display the \"Hello "
+"and Welcome to CloudStack\" page."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:391
+#, no-wrap
+msgid "Running the CloudStack Initialization Wizard"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:395
+msgid ""
+"You can continue to set up CloudStack by launching an initialization wizard. "
+"Click on the \"Continue with installation\" button to launch the wizard."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:401
+msgid ""
+"The wizard will first prompt you to change the default password for the "
+"administrator user.  After changing the password, you can continue through "
+"the wizard steps to configure a zone, network, and resources details. "
+"Complete the fields in each setup step according to your environment and "
+"needs. More details about initializing CloudStack can be found http://docs."
+"cloudstack.apache.org/projects/cloudstack-installation/en/4.6/configuration."
+"html#adding-a-zone[here]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:403
+msgid ""
+"The following fields will be common to all LINSTOR use cases in CloudStack:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:405
+msgid "Zone details:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:406
+msgid "Hypervisor: KVM"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:408
+msgid "Add resources, IP Address step:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:409
+msgid "Host Name: <host_name_of_cluster_node_that_will_host_VMs>"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:410
+msgid "Username: root"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:411
+msgid "Password: <root_password_that_you_configured_previously_for_the_host>"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:413
+msgid "Add resources, Primary Storage step:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:414
+msgid "Protocol: Linstor"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:415
+msgid "Server: <IP_address_of_LINSTOR_controller_node>"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:416
+msgid ""
+"Resource Group: <LINSTOR_resource_group_name_that_you_configured_previously>"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:419
+msgid ""
+"Based on configuring an NFS export for secondary storage earlier, complete "
+"the fields presented during the \"Add resources, Secondary Storage\" step as "
+"follows:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:421
+msgid "Provider: NFS"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:422
+msgid ""
+"IP Address: <IP_address_of_NFS_server> # should be the CloudStack management "
+"node"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:423
+msgid "Path: <NFS_mount_point> # `/export/secondary`, as configured previously"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:427
+msgid ""
+"After completing entry fields in the \"Add resources\" fields and clicking "
+"the \"Next\" button, the wizard will display a message indicating the \"Zone "
+"is ready to launch.\" Click on the \"Launch Zone\" button."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:429
+msgid ""
+"The \"Adding Host\" step of the \"Launch Zone\" process may take a while."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:433
+msgid ""
+"After the zone is added, the wizard will show a \"Zone creation complete\" "
+"message. You can then click on the \"Enable Zone\" button. After another "
+"\"Success\" notification you will be returned to the CloudStack UI dashboard."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:434
+#, no-wrap
+msgid "Verifying Primary Storage in CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:439
+msgid ""
+"Click on the \"Infrastructure\" icon on the left of the screen, then click "
+"on \"Primary Storage\".  The \"Primary Storage\" screen should show your "
+"LINSTOR-backed primary storage pool in an \"Up\" state."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-cloudstack.adoc:440
+#, no-wrap
+msgid "Verifying Secondary Storage in CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:445
+msgid ""
+"Click on the \"Infrastructure\" icon on the left of the screen, then click "
+"on the \"Secondary Storage\" link.  The \"Secondary Storage\" screen should "
+"show your NFS-backed secondary storage in a \"ReadWrite\" access state."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-cloudstack.adoc:447
+#, no-wrap
+msgid "Taking Next Steps in CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:452
+msgid ""
+"After configuring LINSTOR for use in CloudStack you can move onto other "
+"tasks, such as http://docs.cloudstack.apache.org/en/4.17.1.0/adminguide/"
+"hosts.html#adding-hosts[adding hosts] to host your CloudStack VMs."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-cloudstack.adoc:455
+msgid ""
+"LINBIT has also made available a video demonstrating deploying LINSTOR and "
+"CloudStack into a three-node VM cluster. You can view the video https://www."
+"youtube.com/watch?v=hI_kTlsbNeU[here]."
+msgstr ""

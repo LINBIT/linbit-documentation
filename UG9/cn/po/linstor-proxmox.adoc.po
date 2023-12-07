@@ -1,0 +1,679 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
+"PO-Revision-Date: 2020-03-05 18:00+0800\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: zh\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.6\n"
+
+#.  Keep the empty line before this comment, otherwise the next chapter is folded into this
+#. type: Title ==
+#: UG9/en/linstor-proxmox.adoc:2
+#, no-wrap
+msgid "LINSTOR Volumes in Proxmox VE"
+msgstr "Proxmox VE中的LINSTOR卷"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:6
+#, fuzzy
+#| msgid ""
+#| "indexterm:[Proxmox]This chapter describes DRBD in Proxmox VE via the "
+#| "http://git.linbit.com/linstor-proxmox.git[LINSTOR Proxmox Plugin]."
+msgid ""
+"indexterm:[Proxmox]This chapter describes DRBD in Proxmox Virtual "
+"Environment (VE) using the https://github.com/linbit/linstor-proxmox[LINSTOR "
+"Proxmox Plug-in]."
+msgstr ""
+"indexterm:[Proxmox]本章描述了通过 http://git.linbit.com/linstor-proxmox."
+"git[LINSTOR Proxmox Plugin] 实现的Proxmox VE中的DRBD。"
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:8
+#, fuzzy, no-wrap
+#| msgid "Introduction to DRBD"
+msgid "Introduction to Proxmox VE"
+msgstr "DRBD简介"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:12
+msgid ""
+"http://www.proxmox.com/en/[Proxmox VE] is an easy to use, complete server "
+"virtualization environment with KVM, Linux Containers and HA."
+msgstr ""
+"http://www.proxmox.com/en/[proxmox VE]是一个易于使用的、完整的服务器虚拟化环"
+"境，具有KVM、Linux容器和HA。"
+
+#. (LVM volumes on DRBD)
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:14
+msgid ""
+"'linstor-proxmox' is a Perl plugin for Proxmox that, in combination with "
+"LINSTOR, allows you to replicate VM"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:18
+#, fuzzy
+#| msgid ""
+#| "'linstor-proxmox' is a Perl plugin for Proxmox that, in combination with "
+#| "LINSTOR, allows to replicate VM disks on several Proxmox VE nodes. This "
+#| "allows to live-migrate active VMs within a few seconds and with no "
+#| "downtime without needing a central SAN, as the data is already replicated "
+#| "to multiple nodes."
+msgid ""
+"disks on several Proxmox VE nodes. This allows to live-migrate active VMs "
+"within a few seconds and with no downtime without needing a central SAN, as "
+"the data is already replicated to multiple nodes."
+msgstr ""
+"`linstor-proxmox` 是proxmox的一个Perl插件，它与LINSTOR结合，允许在多个"
+"proxmox VE节点上复制VM磁盘。这允许在几秒钟内实时迁移活动vm，而且不需要中央"
+"SAN，因为数据已经复制到多个节点。"
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:20
+#, fuzzy, no-wrap
+#| msgid "Upgrading"
+msgid "Upgrading Proxmox"
+msgstr "升级"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:22
+msgid ""
+"If this is a fresh installation, skip this section and continue with <<s-"
+"proxmox-ls-install>>."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:24
+#, no-wrap
+msgid "Upgrading Plug-in to 7.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:27
+msgid ""
+"Version 7 of the plugin uses a LINSTOR controller API that is available from "
+"LINSTOR version 1.21.1 onwards.  Make sure that your LINSTOR setup "
+"(controller and satellites) use at least that version."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:29
+#, no-wrap
+msgid "Upgrading Plug-in from 4.x to 5.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:33
+msgid ""
+"Version 5 of the plugin drops compatibility with the legacy configuration "
+"options \"storagepool\" and \"redundancy\". Version 5 *requires* a "
+"\"resourcegroup\" option, and obviously a LINSTOR resource group. The old "
+"options should be removed from the configuration."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:35
+msgid ""
+"Configuring LINSTOR is described in Section <<s-proxmox-ls-ls-"
+"configuration>>, a typical example follows:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:37
+msgid "Let's assume the pool was set to \"mypool\", and redundancy to 3."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:45
+#, no-wrap
+msgid ""
+"# linstor resource-group create --storage-pool=mypool --place-count=3 drbdMypoolThree\n"
+"# linstor volume-group create drbdMypoolThree\n"
+"# vi /etc/pve/storage.cfg\n"
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup drbdMypoolThree\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:48
+#, no-wrap
+msgid "Upgrading Plug-in from 5.x to 6.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:51
+msgid ""
+"Version 6.0.0 of the plugin drops all code related to the `redundancy` "
+"setting. This is handled by LINSTOR resource groups (`resourcegroup` "
+"setting) for a very long time. No change should be required."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:54
+msgid ""
+"The `controllervm` setting, which was intended for executing a LINSTOR "
+"controller in a VM manged by LINSTOR is gone. Using `drbd-reactor` to "
+"realize a highly available LINSTOR controller is what we suggest."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:56
+msgid ""
+"The settings `statuscache` and `preferlocal` are now enabled by default."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:58
+#, no-wrap
+msgid "Upgrading PVE from 5.x to 6.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:62
+msgid ""
+"With version 6 PVE added additional parameters to some functions and "
+"rightfully reset their \"APIAGE\". This means that old plugins, while "
+"actually usable as they don't use any of these changed functions do not work "
+"anymore. Please upgrade to plugin version 5.2.1 at least."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:64
+#, fuzzy, no-wrap
+#| msgid "Install the LINSTOR driver file"
+msgid "Installing the LINSTOR Proxmox Plug-in"
+msgstr "安装LINSTOR驱动程序文件"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:67
+msgid ""
+"To use LINSTOR in Proxmox, you will need to install the LINSTOR Proxmox "
+"plugin."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:69
+#, no-wrap
+msgid "Installing the Proxmox VE Kernel Headers"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:76
+msgid ""
+"To use LINSTOR in Proxmox, you will need to install the DRBD kernel module. "
+"The DRBD 9 kernel module is installed as a kernel module source package "
+"(`drbd-dkms`).  Therefore, you will have to install the Proxmox VE kernel "
+"headers package, `pve-headers`, before you install the DRBD kernel module "
+"from LINBIT's repositories. Following that order ensures that the kernel "
+"module will build properly for your kernel."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:82
+#, fuzzy
+#| msgid ""
+#| "The DRBD9 kernel module is installed as a `dkms` package (i.e., `drbd-"
+#| "dkms`), therefore you'll have to install\n"
+#| "`pve-headers` package, before you set up/install the software packages "
+#| "from LINBIT's repositories. Following\n"
+#| "that order, ensures that the kernel module will build properly for your "
+#| "kernel. If you don't plan to install\n"
+#| "the latest Proxmox kernel, you have to install kernel headers matching "
+#| "your current running kernel (e.g.,\n"
+#| "\t\t`pve-headers-$(uname -r)`). If you missed this step, then still you "
+#| "can rebuild the dkms package against\n"
+#| "your current kernel, (kernel headers have to be installed in advance), by "
+#| "issuing `apt install --reinstall\n"
+#| "drbd-dkms` command.\n"
+msgid ""
+"If you do not plan to install the latest Proxmox kernel, you have to install "
+"kernel headers matching your current running kernel (for example, `pve-"
+"headers-$(uname -r)`). If you missed this step, then you can still rebuild "
+"the `drbd-dkms` package against your current kernel (so long as you have "
+"installed kernel headers in advance) by entering the `apt install --"
+"reinstall drbd-dkms` command."
+msgstr ""
+"DRBD9内核模块是作为dkms软件包（即 `drbd-dkms` ）安装的，因此，您必须先安装 "
+"`pve-headers` 软件包，然后才能从LINBIT的存储库中设置/安装软件包。 按照该顺"
+"序，确保内核模块将为您的内核正确构建。如果您不打算安装最新的Proxmox内核，则必"
+"须安装与当前运行的内核匹配的内核头文件（例如 `pve-headers-$（uname -r）`）。"
+"如果您错过了这一步，那么仍然可以通过输入 `apt install --reinstall drbd-dkms` "
+"命令， 针对当前内核重建dkms软件包（必须预先安装内核头文件）。\n"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:88
+msgid ""
+"You will need to add the Proxmox PVE repository to your APT sources list, `/"
+"etc/apt/sources.list`, and then enter `apt update`, before you can install "
+"the `pve-headers` package. Refer to https://pve.proxmox.com/wiki/"
+"Package_Repositories#_repositories_in_proxmox_vei[the Proxmox wiki] for "
+"instructions."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:91
+#, no-wrap
+msgid "Installing the Proxmox Plug-in By Using LINBIT Customer Repositories"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:96
+msgid ""
+"If you are a LINBIT customer, or you have an evaluation account, you can "
+"enable LINBIT's `drbd-9` repository on your node and then update your "
+"repositories by using an `apt update` command."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:99
+msgid ""
+"You can then install the DRBD kernel module, DRBD utilities, and the LINSTOR "
+"Proxmox plugin by entering:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:102
+#, fuzzy, no-wrap
+#| msgid "# apt install drbd-utils python-drbdmanage drbd-dkms\n"
+msgid "# apt install drbd-utils linstor-proxmox drbd-dkms\n"
+msgstr "# apt install drbd-utils python-drbdmanage drbd-dkms\n"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:107
+msgid ""
+"Refer to the <<linstor-administration.adoc#s-linbit-manage-nodes-script,"
+"Using a Script to Manage LINBIT Cluster Nodes>> for instructions on "
+"registering a node with LINBIT and enabling LINBIT repositories."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-proxmox.adoc:110
+#, no-wrap
+msgid "Installing the Proxmox Plug-in By Using LINBIT Public Repositories"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:113
+#, fuzzy
+#| msgid ""
+#| "LINBIT provides a dedicated public repository for Proxmox VE users. This "
+#| "repository not only contains the Proxmox plugin, but the whole DRBD SDS "
+#| "stack including a DRBD SDS kernel module and user space utilities."
+msgid ""
+"LINBIT provides a dedicated public repository for Proxmox VE users. This "
+"repository not only contains the Proxmox plugin, but the whole DRBD SDS "
+"stack including a DRBD SDS kernel module and user-space utilities."
+msgstr ""
+"LINBIT为Proxmox VE用户提供了一个专用的公共仓库。这个存储库不仅包含Proxmox插"
+"件，还包含整个DRBD-SDS堆栈，包括DRBD SDS内核模块和用户空间实用程序。"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:117
+#, fuzzy
+#| msgid ""
+#| "LINBIT's repository can be enabled as follows, where \"$PVERS\" should be "
+#| "set to your Proxmox VE *major version* (e.g., \"5\", not \"5.2\"):"
+msgid ""
+"You can add LINBIT's public repository by entering the commands below, "
+"setting `$PVERS` to your Proxmox VE *major version* (for example, \"7\", not "
+"\"7.1\"):"
+msgstr ""
+"LINBIT的仓库可以如下启用，其中 \"$PVERS\" 应该设置为Proxmox VE *主版本* （例"
+"如， \"5\" ，而不是 \"5.2\" ）："
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:125
+#, fuzzy, no-wrap
+#| msgid ""
+#| "# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
+#| "# PVERS=5 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
+#| "\t/etc/apt/sources.list.d/linbit.list\n"
+#| "# apt update && apt install linstor-proxmox\n"
+msgid ""
+"# wget -O /tmp/package-signing-pubkey.asc \\\n"
+"https://packages.linbit.com/package-signing-pubkey.asc\n"
+"# gpg --yes -o /etc/apt/trusted.gpg.d/linbit-keyring.gpg --dearmor \\\n"
+"/tmp/package-signing-pubkey.asc\n"
+"# PVERS=7 && echo \"deb [signed-by=/etc/apt/trusted.gpg.d/linbit-keyring.gpg] \\\n"
+"http://packages.linbit.com/public/ proxmox-$PVERS drbd-9\" > /etc/apt/sources.list.d/linbit.list\n"
+msgstr ""
+"# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
+"# PVERS=5 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
+"\t/etc/apt/sources.list.d/linbit.list\n"
+"# apt update && apt install linstor-proxmox\n"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:129
+msgid ""
+"After adding the LINBIT package repository, you can install the Proxmox "
+"plugin and other necessary components (DRBD kernel module and utilities), by "
+"entering the following command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:132
+#, fuzzy, no-wrap
+#| msgid "# apt install drbd-utils python-drbdmanage drbd-dkms\n"
+msgid "# apt update && apt -y install drbd-dkms drbd-utils linstor-proxmox\n"
+msgstr "# apt install drbd-utils python-drbdmanage drbd-dkms\n"
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:135
+#, fuzzy, no-wrap
+#| msgid "Configuration using LINSTOR"
+msgid "Configuring LINSTOR"
+msgstr "使用LINSTOR配置"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:141
+#, fuzzy
+#| msgid ""
+#| "For the rest of this guide we assume that you have a LINSTOR cluster "
+#| "configured as described in <<s-linstor-init-cluster>>. Also make sure to "
+#| "setup each node as a \"Combined\" node. Start the \"linstor-controller\" "
+#| "on one node, and the \"linstor-satellite\" on all nodes. The preferred "
+#| "way to use the plugin, starting from version 4.1.0, is via LINSTOR "
+#| "resource groups and a single volume group within every resource group. "
+#| "LINSTOR resource groups are described in <<s-linstor-resource-groups>>. "
+#| "All the required LINSTOR configuration (e.g., redundancy count) has to be "
+#| "set on the resource group."
+msgid ""
+"For the rest of this guide we assume that you have a LINSTOR cluster "
+"configured as described in <<s-linstor-init-cluster>>. Start the \"linstor-"
+"controller\" on one node, and the \"linstor-satellite\" on all nodes. The "
+"\"linstor-satellite\" service needs some extra configuration which should be "
+"done via `systemctl edit linstor-satellite.service`:"
+msgstr ""
+"对于本指南的其余部分，我们假设您已经按照<<s-linstor-init-cluster>>中的说明配"
+"置了LINSTOR集群。还要确保将每个节点设置为 \"Combined\" 节点。在一个节点上启"
+"动  \"linstor-controller\" ` ，在所有节点上启动 \"linstor-satellite\"  。从"
+"4.1.0版开始，使用插件的首选方法是通过LINSTOR资源组和每个资源组中的单个卷组。"
+"LINSTOR资源组在<<s-linstor-resource-groups>>中描述。必须在资源组上设置所有必"
+"需的LINSTOR配置（如冗余计数）。"
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:146
+#, no-wrap
+msgid ""
+"[Service]\n"
+"Type=notify\n"
+"TimeoutStartSec=infinity\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:152
+#, fuzzy
+#| msgid ""
+#| "For the rest of this guide we assume that you have a LINSTOR cluster "
+#| "configured as described in <<s-linstor-init-cluster>>. Also make sure to "
+#| "setup each node as a \"Combined\" node. Start the \"linstor-controller\" "
+#| "on one node, and the \"linstor-satellite\" on all nodes. The preferred "
+#| "way to use the plugin, starting from version 4.1.0, is via LINSTOR "
+#| "resource groups and a single volume group within every resource group. "
+#| "LINSTOR resource groups are described in <<s-linstor-resource-groups>>. "
+#| "All the required LINSTOR configuration (e.g., redundancy count) has to be "
+#| "set on the resource group."
+msgid ""
+"The preferred way to use the plugin, starting from version 4.1.0, is through "
+"LINSTOR resource groups and a single volume group within every resource "
+"group. LINSTOR resource groups are described in <<s-linstor-resource-"
+"groups>>. All the required LINSTOR configuration (e.g., redundancy count) "
+"has to be set on the resource group."
+msgstr ""
+"对于本指南的其余部分，我们假设您已经按照<<s-linstor-init-cluster>>中的说明配"
+"置了LINSTOR集群。还要确保将每个节点设置为 \"Combined\" 节点。在一个节点上启"
+"动  \"linstor-controller\" ` ，在所有节点上启动 \"linstor-satellite\"  。从"
+"4.1.0版开始，使用插件的首选方法是通过LINSTOR资源组和每个资源组中的单个卷组。"
+"LINSTOR资源组在<<s-linstor-resource-groups>>中描述。必须在资源组上设置所有必"
+"需的LINSTOR配置（如冗余计数）。"
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:154
+#, fuzzy, no-wrap
+#| msgid "Configuring the Nodes"
+msgid "Configuring the Proxmox Plug-in"
+msgstr "配置节点"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:157
+msgid ""
+"The final step is to provide a configuration for Proxmox itself. This can be "
+"done by adding an entry in the `/etc/pve/storage.cfg` file, with a content "
+"similar to the following."
+msgstr ""
+"最后一步是为Proxmox本身提供配置。这可以通过在 `/etc/pve/storage.cfg` 文件中添"
+"加一个条目来完成，其内容类似于以下内容。"
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:163 UG9/en/linstor-proxmox.adoc:183
+#, no-wrap
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup defaultpool\n"
+msgstr ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup defaultpool\n"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:175
+#, fuzzy
+#| msgid ""
+#| "The \"drbd\" entry is fixed and you are not allowed to modify it, as it "
+#| "tells to Proxmox to use DRBD as storage backend.  The \"drbdstorage\" "
+#| "entry can be modified and is used as a friendly name that will be shown "
+#| "in the PVE web GUI to locate the DRBD storage.  The \"content\" entry is "
+#| "also fixed, so do not change it. The redundancy (specified in the "
+#| "resource group) specifies how many replicas of the data will be stored in "
+#| "the cluster. The recommendation is to set it to 2 or 3 depending on your "
+#| "setup.  The data is accessible from all nodes, even if some of them do "
+#| "not have local copies of the data.  For example, in a 5 node cluster, all "
+#| "nodes will be able to access 3 copies of the data, no matter where they "
+#| "are stored in. The \"controller\" parameter must be set to the IP of the "
+#| "node that runs the LINSTOR controller service. Only one node can be set "
+#| "to run as LINSTOR controller at the same time.  If that node fails, start "
+#| "the LINSTOR controller on another node and change that value to its IP "
+#| "address. There are more elegant ways to deal with this problem. For more, "
+#| "see later in this chapter how to setup a highly available LINSTOR "
+#| "controller VM in Proxmox."
+msgid ""
+"The \"drbd\" entry is fixed and you are not allowed to modify it, as it "
+"tells to Proxmox to use DRBD as storage back end. The \"drbdstorage\" entry "
+"can be modified and is used as a friendly name that will be shown in the PVE "
+"web GUI to locate the DRBD storage. The \"content\" entry is also fixed, so "
+"do not change it. The redundancy (specified in the resource group) specifies "
+"how many replicas of the data will be stored in the cluster. The "
+"recommendation is to set it to 2 or 3 depending on your setup. The data is "
+"accessible from all nodes, even if some of them do not have local copies of "
+"the data. For example, in a 5 node cluster, all nodes will be able to access "
+"3 copies of the data, no matter where they are stored in. The \"controller\" "
+"parameter must be set to the IP of the node that runs the LINSTOR controller "
+"service. Only one node can be set to run as LINSTOR controller at the same "
+"time. If that node fails, start the LINSTOR controller on another node and "
+"change that value to its IP address."
+msgstr ""
+"\"drbd\" 条目是固定的，不允许修改它，因为它告诉Proxmox使用drbd作为存储后端。"
+"可以修改 \"drbdstorage\" 条目并将其用作友好名称，该名称将显示在PVE web GUI中"
+"以查找DRBD存储。 \"content\" 条目也是固定的，所以不要更改它。冗余（在资源组中"
+"指定）指定将在群集中存储多少数据副本。建议根据您的设置将其设置为2或3。数据可"
+"以从所有节点访问，即使其中一些节点没有数据的本地副本。例如，在5节点集群中，所"
+"有节点都可以访问数据的3个副本，无论它们存储在何处。 \"controller\" 参数必须设"
+"置为运行LINSTOR控制器服务的节点的IP。只能将一个节点设置为同时作为LINSTOR "
+"controller运行。如果该节点出现故障，请在另一个节点上启动LINSTOR controller，"
+"并将该值更改为其IP地址。有更优雅的方法来处理这个问题。有关更多信息，请参阅本"
+"章后面的 `如何在ProxBox中设置高可用的LINSTOR controller 虚拟机` 。"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:177
+#, fuzzy
+#| msgid ""
+#| "A simple pattern for deploying resources using resource groups would look "
+#| "like this:"
+msgid ""
+"A configuration using different storage pools in different resource groups "
+"would look like this:"
+msgstr "使用资源组部署资源的简单模式如下："
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:188
+#, no-wrap
+msgid ""
+"drbd: fastdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup ssd\n"
+msgstr ""
+"drbd: fastdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup ssd\n"
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:193
+#, no-wrap
+msgid ""
+"drbd: slowdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup backup\n"
+msgstr ""
+"drbd: slowdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup backup\n"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:197
+#, fuzzy
+#| msgid ""
+#| "By now, you should be able to create VMs via Proxmox's web GUI by "
+#| "selecting \"__drbdstorage__\", or any other of the defined pools as "
+#| "storage location."
+msgid ""
+"By now, you should be able to create VMs using Proxmox's web GUI by "
+"selecting \"__drbdstorage__\", or any other of the defined pools as storage "
+"location."
+msgstr ""
+"现在，您应该可以通过Proxmox的web GUI创建vm，方法是选择 \"__drbdstorage__\" , "
+"或者选择任何其他已定义的池作为存储位置。"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:203
+msgid ""
+"Starting from version 5 of the plugin, you can set the option \"preferlocal "
+"yes\". If it is set, the plugin tries to create a diskful assignment on the "
+"node that issued the storage create command. With this option you can ensure "
+"that the VM gets local storage if possible. Without that option LINSTOR "
+"might place the storage on nodes 'B' and 'C', while the VM is initially "
+"started on node 'A'. This would still work as node 'A' then would get a "
+"diskless assignment, but having local storage might be preferred."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-proxmox.adoc:204
+#, no-wrap
+msgid "NOTE: DRBD supports only the **raw** disk format at the moment."
+msgstr "注意：目前DRBD只支持 **raw** 磁盘格式。"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:210
+#, fuzzy
+#| msgid ""
+#| "At this point you can try to live migrate the VM - as all data is "
+#| "accessible on all nodes (even on Diskless nodes) - it will take just a "
+#| "few seconds. The overall process might take a bit longer if the VM is "
+#| "under load and if there is a lot of RAM being dirtied all the time.  But "
+#| "in any case, the downtime should be minimal and you will see no "
+#| "interruption at all."
+msgid ""
+"At this point you can try to live migrate the VM - as all data is accessible "
+"on all nodes (even on Diskless nodes) - it will take just a few seconds. The "
+"overall process might take a bit longer if the VM is under load and if there "
+"is a significant amount of RAM being dirtied all the time. But in any case, "
+"the downtime should be minimal and you will see no interruption at all."
+msgstr ""
+"此时，您可以尝试实时迁移虚拟机 - 因为所有节点（甚至在无盘节点上）都可以访问所"
+"有数据 - 只需几秒钟。如果VM负载不足，并且有很多RAM一直被污染，那么整个过程可"
+"能需要更长的时间。但是在任何情况下，停机时间都应该是最少的，而且您不会看到任"
+"何中断。"
+
+#. type: Block title
+#: UG9/en/linstor-proxmox.adoc:211
+#, fuzzy, no-wrap
+#| msgid "Boolean configuration options"
+msgid "Table Configuration Options"
+msgstr "布尔配置选项"
+
+#. type: Table
+#: UG9/en/linstor-proxmox.adoc:222
+#, no-wrap
+msgid ""
+"| Option | Meaning\n"
+"\n"
+"| `controller`    | The IP of the LINSTOR controller (',' separated list allowed)\n"
+"| `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above\n"
+"| `preferlocal`   | Prefer to create local storage (yes/no). As decribed above\n"
+"| `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storages in `/etc/pve/storage.cfg` to take effect.\n"
+"| `apicrt`        | Path to the client certificate\n"
+"| `apikey`        | Path to the client private key\n"
+"| `apica`         | Path to the CA certificate\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-proxmox.adoc:225
+#, fuzzy, no-wrap
+#| msgid "Making the Controller Highly-Available"
+msgid "Making the Controller Highly Available (Optional Configuration)"
+msgstr "Controller HA"
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:228
+msgid ""
+"Making LINSTOR highly available is a matter of making the LINSTOR controller "
+"highly-available. This step is described in Section <<s-linstor_ha>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-proxmox.adoc:233
+msgid ""
+"The last -- but crucial -- step is to configure the Proxmox plugin to be "
+"able to connect to multiple LINSTOR controllers. It will use the first one "
+"it receives an answer from. This is done by adding a comma-separated list of "
+"controllers in the `controller` section of the plugin like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-proxmox.adoc:239
+#, fuzzy, no-wrap
+#| msgid ""
+#| "drbd: drbdstorage\n"
+#| "   content images,rootdir\n"
+#| "   controller 10.11.12.13\n"
+#| "   resourcegroup defaultpool\n"
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13,10.11.12.14,10.11.12.15\n"
+"   resourcegroup defaultpool\n"
+msgstr ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup defaultpool\n"

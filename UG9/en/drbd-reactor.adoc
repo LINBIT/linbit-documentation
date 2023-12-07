@@ -10,7 +10,7 @@ configure using complex cluster managers.
 === Installing DRBD Reactor
 
 DRBD Reactor can be installed from source files found within
-https://github.com/LINBIT/drbd-reactor[the project's GitHub repository].  See the instructions
+https://github.com/LINBIT/drbd-reactor[the project's GitHub repository]. See the instructions
 there for details and any prerequisites.
 
 ifndef::drbd-only[]
@@ -25,60 +25,60 @@ Once installed, you can verify DRBD Reactor's version number by using the `drbd-
 === DRBD Reactor's Components
 
 Because DRBD Reactor has many different uses, it was split into two components: a core component
-and a plug-in component.
+and a plugin component.
 
 [[s-drdb-reactor-core]]
 ==== DRBD Reactor Core
 
 DRBD Reactor’s core component is responsible for collecting DRBD events, preparing them, and
-sending them to the DRBD Reactor plug-ins.
+sending them to the DRBD Reactor plugins.
 
 The core can be reloaded with an all new or an additional, updated configuration. It can stop
-plug-in instances no longer required and start new plug-in threads without losing DRBD events.
-Last but not least, the core has to ensure that plug-ins receive an initial and complete DRBD
+plugin instances no longer required and start new plugin threads without losing DRBD events.
+Last but not least, the core has to ensure that plugins receive an initial and complete DRBD
 state.
 
-[[s-drdb-reactor-plug-ins]]
-==== DRBD Reactor Plug-ins
+[[s-drdb-reactor-plugins]]
+==== DRBD Reactor Plugins
 
-Plug-ins provide DRBD Reactor with its functionality and there are different plug-ins for
-different uses. A plug-in receives messages from the core component and acts upon DRBD resources
-based on the message content and according to the plug-in’s type and configuration.
+Plugins provide DRBD Reactor with its functionality and there are different plugins for
+different uses. A plugin receives messages from the core component and acts upon DRBD resources
+based on the message content and according to the plugin’s type and configuration.
 
-Plug-ins can be instantiated multiple times, so there can be multiple instances of every plug-in
-type. So, for example, numerous plug-in instances could provide high-availability in a cluster,
+Plugins can be instantiated multiple times, so there can be multiple instances of every plugin
+type. So, for example, numerous plugin instances could provide high-availability in a cluster,
 one per DRBD resource.
 
-[[s-drdb-reactor-promoter-plug-in]]
-==== The Promoter Plug-in
+[[s-drdb-reactor-promoter-plugin]]
+==== The Promoter Plugin
 
-The promoter plug-in is arguably DRBD Reactor's most important and useful feature. You can use
+The promoter plugin is arguably DRBD Reactor's most important and useful feature. You can use
 it to create failover clusters hosting highly available services more easily than using other
 more complex cluster resource managers (CRMs). If you want to get started quickly, you can
-finish reading this section, then skip to <<s-drbd-reactor-promoter-plug-in-configuring>>. You
+finish reading this section, then skip to <<s-drbd-reactor-promoter-plugin-configuring>>. You
 can then try the instructions in the <<s-drbd-reactor-creating-a-ha-file-system-mount>> section
 for an example exercise.
 
-The promoter plug-in monitors events on DRBD resources and executes systemd units. This plug-in
+The promoter plugin monitors events on DRBD resources and executes systemd units. This plugin
 allows DRBD Reactor to provide failover functionality to a cluster to create high-availability
-deployments. You can use DRBD Reactor and its promoter plug-in as a replacement for other CRMs,
+deployments. You can use DRBD Reactor and its promoter plugin as a replacement for other CRMs,
 such as Pacemaker, in many scenarios where its lightness and its configuration simplicity offer
 advantages.
 
-For example, you can use the promoter plug-in to configure fully automatic recovery of isolated
+For example, you can use the promoter plugin to configure fully automatic recovery of isolated
 primary nodes. Furthermore, there is no need for a separate communication layer (such as
 Corosync), because DRBD and DRBD Reactor (used as the CRM) will always agree on the quorum
 status of nodes.
 
-A disadvantage to the promoter plug-in when compared to a CRM such as Pacemaker is that it is
+A disadvantage to the promoter plugin when compared to a CRM such as Pacemaker is that it is
 not possible to create order constraints that are independent of colocations. For example, if a
 web service and a database run on different nodes, Pacemaker can constrain the web service to
-start after the database. DRBD Reactor and its promoter plug-in cannot.
+start after the database. DRBD Reactor and its promoter plugin cannot.
 
-[[s-drbd-reactor-promoter-plug-in-how-it-works]]
-===== How the Promoter Plug-in Works
+[[s-drbd-reactor-promoter-plugin-how-it-works]]
+===== How the Promoter Plugin Works
 
-The promoter plug-in’s main function is that if a DRBD device can be promoted, promote it to
+The promoter plugin’s main function is that if a DRBD device can be promoted, promote it to
 _Primary_ and start a set of user-defined services. This could be a series of services, such
 as:
 
@@ -89,28 +89,28 @@ as:
 If a resource loses quorum, DRBD Reactor stops these services so that another node that still
 has quorum (or the node that lost quorum when it has quorum again) can start the services.
 
-The promoter plug-in also supports Open Cluster Framework (OCF) resource agents and failure
+The promoter plugin also supports Open Cluster Framework (OCF) resource agents and failure
 actions such as rebooting a node if a resource fails to demote, so that the resource can promote
 on another node.
 
-[[s-drdb-reactor-umh-plug-in]]
-==== The User Mode Helper (UMH) Plug-in
+[[s-drdb-reactor-umh-plugin]]
+==== The User Mode Helper (UMH) Plugin
 
-Using this plug-in and its domain specific language (DSL), you can execute a script if an event
+Using this plugin and its domain specific language (DSL), you can execute a script if an event
 you define occurs. For example, you can run a script that sends a Slack message whenever a DRBD
 resource loses connection.
 
 This functionality has existed before in DRBD with “user-defined helper scripts” in “kernel
-space”. However, DRBD Reactor, including the UMH plug-in, can be executed in “user space”. This
+space”. However, DRBD Reactor, including the UMH plugin, can be executed in “user space”. This
 allows for easier container deployments and use with “read-only” host file systems such as those
 found within container distributions.
 
-Using UMH plug-ins also provides a benefit beyond what was previously possible using user
+Using UMH plugins also provides a benefit beyond what was previously possible using user
 defined helper scripts: Now you can define your own rules for all the events that are possible
 for a DRBD resource. You are no longer limited to only the few events that there are event
 handlers in the kernel for.
 
-UMH plug-in scripts can be of two types:
+UMH plugin scripts can be of two types:
 
 - *User-defined filters*. These are “one-shot” UMH scripts where an event happens that triggers
   the script.
@@ -121,10 +121,10 @@ UMH plug-in scripts can be of two types:
   so that the script can take a next action, based on the failure or success of the kernel’s
   action. An example of such a script would be a `before-resync-target` activated script.
 
-[[s-drdb-reactor-prometheus-plug-in]]
-==== The Prometheus Monitoring Plug-in
+[[s-drdb-reactor-prometheus-plugin]]
+==== The Prometheus Monitoring Plugin
 
-This plug-in provides a https://prometheus.io/[Prometheus] compatible endpoint that exposes
+This plugin provides a https://prometheus.io/[Prometheus] compatible endpoint that exposes
 various DRBD metrics, including out-of-sync bytes, resource roles (for example, _Primary_), and
 connection states (for example, _Connected_). This information can then be used in every
 monitoring solution that supports Prometheus endpoints. The full set of metrics and an example
@@ -132,12 +132,23 @@ Grafana dashboard are available at the
 https://github.com/LINBIT/drbd-reactor/blob/master/doc/prometheus.md[DRBD Reactor GitHub
 repository].
 
+[[s-drdb-reactor-agentx-plugin]]
+==== The AgentX Plugin for SNMP Monitoring
+
+This plugin acts as an AgentX subagent for SNMP to expose various DRBD metrics, for example, to
+monitor DRBD resources via SNMP. AgentX is a standardized protocol that can be used between the
+SNMP daemon and a subagent, such as the AgentX plugin in DRBD Reactor.
+
+The DRBD metrics that this plugin exposes to the SNMP daemon are shown in
+https://github.com/LINBIT/drbd-reactor/blob/master/doc/agentx.md#metrics[the project's source
+code repository].
+
 [[s-drbd-reactor-configuring]]
 === Configuring DRBD Reactor
 
 Before you can run DRBD Reactor, you must configure it. Global configurations are made within a
 main TOML configuration file, which should be created here: `/etc/drbd-reactor.toml`. The file
-has to be a valid TOML (https://toml.io) file. Plug-in configurations should be made within
+has to be a valid TOML (https://toml.io) file. Plugin configurations should be made within
 snippet files that can be placed into the default DRBD Reactor snippets directory,
 `/etc/drbd-reactor.d`, or into another directory if specified in the main configuration file. An
 https://github.com/LINBIT/drbd-reactor/blob/master/example/drbd-reactor.toml[example
@@ -145,7 +156,7 @@ configuration file] can be found in the `example` directory of the DRBD Reactor 
 repository.
 
 For documentation purposes only, the example configuration file mentioned above contains example
-plug-in configurations. However, for deployment, plug-in configurations should always be made
+plugin configurations. However, for deployment, plugin configurations should always be made
 within snippet files.
 
 [[s-drbd-reactor-core-configuring]]
@@ -160,23 +171,23 @@ log level.
 
 See the `drbd-reactor.toml` man page for the syntax of these settings.
 
-[[s-drbd-reactor-plug-in-configuring]]
-==== Configuring DRBD Reactor Plug-ins
+[[s-drbd-reactor-plugin-configuring]]
+==== Configuring DRBD Reactor Plugins
 
-You configure DRBD Reactor plug-ins by editing TOML formatted snippet files. Every plug-in can
+You configure DRBD Reactor plugins by editing TOML formatted snippet files. Every plugin can
 specify an ID (`id`) in its configuration section. On a DRBD Reactor daemon reload, started
-plug-ins that are still present in the new configuration keep running. Plug-ins without an ID
+plugins that are still present in the new configuration keep running. Plugins without an ID
 get stopped and restarted if still present in the new configuration.
 
-IMPORTANT: For plug-ins without an ID, every DRBD Reactor service reload is a restart.
+IMPORTANT: For plugins without an ID, every DRBD Reactor service reload is a restart.
 
-[[s-drbd-reactor-promoter-plug-in-configuring]]
-==== Configuring the Promoter Plug-in
+[[s-drbd-reactor-promoter-plugin-configuring]]
+==== Configuring the Promoter Plugin
 
 You will typically have one snippet file for each DRBD resource that you want DRBD Reactor and
-the promoter plug-in to watch and manage.
+the promoter plugin to watch and manage.
 
-Here is an example promoter plug-in configuration snippet:
+Here is an example promoter plugin configuration snippet:
 
 ----
 [[promoter]]
@@ -190,7 +201,7 @@ preferred-nodes = ["nodeA", "nodeB"] <7>
 ----
 
 <1> "my_drbd_resource" specifies the name of the DRBD resource that DRBD Reactor and the
-promoter plug-in should watch and manage.
+promoter plugin should watch and manage.
 
 <2> Specifies the systemd dependency type to generate inter-service dependencies as.
 
@@ -198,7 +209,7 @@ promoter plug-in should watch and manage.
 unit.
 
 <4> `start` specifies what should be started when the watched DRBD resource is promotable. In
-this example, the promoter plug-in would start a file system mount unit and a service unit.
+this example, the promoter plugin would start a file system mount unit and a service unit.
 
 <5> Specifies the action to take if a DRBD resource fails to demote, for example, after a loss
 of quorum event. In such a case, an action should be taken on the node that fails to demote
@@ -219,9 +230,9 @@ for illustrative purposes.
 ===== Specifying a Promoter Start List Service String Spanning Multiple Lines
 
 For formatting or readability reasons, it is possible to split a long service string across
-multiple lines within a promoter plug-in snippet file's start list of services. You can do this
+multiple lines within a promoter plugin snippet file's start list of services. You can do this
 by using https://toml.io/en/v1.0.0#string[TOML syntax for multi-line basic strings]. In the
-following example, the first and third service strings in a promoter plug-in's start list are
+following example, the first and third service strings in a promoter plugin's start list are
 split across multiple lines. A backslash (\) at the end of a line within a multi-line basic
 string ensures that a newline character is not inserted between lines within the string.
 
@@ -238,13 +249,13 @@ cidr_netmask=24 iflabel=virtualip"""
 [...]
 ----
 
-TIP: You can also use this technique to split up long strings within other plug-in snippet
+TIP: You can also use this technique to split up long strings within other plugin snippet
 files.
 
 [[s-drbd-reactor-promoter-plugin-freeze-configure]]
 ===== Configuring Resource Freezing
 
-Starting with DRBD Reactor version 0.9.0, you can configure the promoter plug-in to "freeze" a
+Starting with DRBD Reactor version 0.9.0, you can configure the promoter plugin to "freeze" a
 resource that DRBD Reactor is controlling, rather than stopping it when a currently active node
 loses quorum. DRBD Reactor can then "thaw" the resource when the node regains quorum and becomes
 active, rather than having to restart the resource if it was stopped.
@@ -260,10 +271,10 @@ thaw the resource. The result of this behavior could be that the resource is aga
 seconds, rather than minutes, because the resource did not have to start from a stopped state,
 it only had to resume from a frozen one.
 
-[[s-drbd-reactor-promoter-plug-in-freeze-requirements]]
+[[s-drbd-reactor-promoter-plugin-freeze-requirements]]
 ====== Requirements:
 
-Before configuring the promoter plug-in's freeze feature for a resource, you will need:
+Before configuring the promoter plugin's freeze feature for a resource, you will need:
 
 * A system that uses https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html[cgroup
 v2], implementing unified cgroups. You can verify this by the presence of
@@ -283,23 +294,23 @@ NOTE: This should only be relevant for RHEL 8, Ubuntu 20.04, and earlier version
 applications that rely on the resource) respond to freezing and thawing by using the `systemctl
 freeze <systemd_unit>`, and the `systemctl thaw <systemd_unit>` commands. Here you specify the
 systemd unit or units that correspond to the start list of services within the promoter
-plug-in's configuration. You can use these commands to test how your applications behave, after
+plugin's configuration. You can use these commands to test how your applications behave, after
 services that they depend on are frozen and thawed.
 +
 IMPORTANT: If you are unsure whether your resource and applications will tolerate freezing, then
 it is safer to keep the default stop and start behavior.
 
 To configure resource freezing, add the following line to your DRBD Reactor resource's promoter
-plug-in snippet file:
+plugin snippet file:
 
 ----
 on-quorum-loss = "freeze"
 ----
 
-[[s-drbd-reactor-promoter-plug-in-ocf-resource-agents]]
-===== Using OCF Resource Agents with the Promoter Plug-in
+[[s-drbd-reactor-promoter-plugin-ocf-resource-agents]]
+===== Using OCF Resource Agents with the Promoter Plugin
 
-You can also configure the promoter plug-in to use OCF resource agents in the `start` list of
+You can also configure the promoter plugin to use OCF resource agents in the `start` list of
 services.
 
 ifndef::de-brand[]
@@ -320,13 +331,36 @@ start = ["ocf:heartbeat:IPaddr2 ip_mysql ip=10.43.7.223 cidr_netmask=16"]
 [...]
 ----
 
-IMPORTANT: The promoter plug-in expects OCF resource agents in the `/usr/lib/ocf/resource.d/`
+IMPORTANT: The promoter plugin expects OCF resource agents in the `/usr/lib/ocf/resource.d/`
 directory.
 
-[[s-drbd-reactor-umh-plug-in-configuring]]
-==== Configuring the User Mode Helper (UMH) Plug-in
+[[s-drbd-reactor-when-to-use--systemd-fs-mount-units-and-ocf-ras]]
+===== When to Use systemd Mount Units and OCF Filesystem Resource Agents
 
-Configuration for this plug-in consists of:
+Almost all scenarios that you might use DRBD Reactor and its promoter plugin will likely involve
+a file system mount. If your use case involves a promoter start list of services with other
+services or applications besides a file system mount, then you should use a systemd mount unit
+to handle the file system mounting.
+
+However, you should not use a systemd file system mount unit if a file system mount point is the
+end goal, that is, it would be the last service in your promoter plugin start list of services.
+Instead, use an OCF Filesystem resource agent to handle mounting and unmounting the file system.
+
+In this case, using an OCF resource agent is preferred because the resource agent will be able
+to escalate the demotion of nodes, by using `kill` actions and other various signals against
+processes that might be holding the mount point open. For example, there could be a user running
+an application against a file in the file system that systemd would not know about. In that
+case, systemd would not be able to unmount the file system and the promoter plugin would not be
+able to demote the node.
+
+You can find more information in the
+https://github.com/LINBIT/drbd-reactor/blob/master/doc/promoter.md#ha-involving-file-system-mount-points[DRBD
+Reactor GitHub documentation].
+
+[[s-drbd-reactor-umh-plugin-configuring]]
+==== Configuring the User Mode Helper (UMH) Plugin
+
+Configuration for this plugin consists of:
 
 - Rule type
 - Command or script to execute
@@ -347,14 +381,14 @@ the commonly set ones:
 You can also filter UMH rule types by DRBD resource name or event type (exists, create, destroy,
 or change).
 
-Finally, you can filter the plug-in’s action based on DRBD state changes. Filters should be
-based upon both the old and the new (current) DRBD state, that are reported to the plug-in,
-because you want the plug-in to react to changes. This is only possible if two states, old
-and new, are filtered for, otherwise the plug-in might trigger randomly. For example, if you
-only specified a new (current) DRBD role as a DRBD state to filter for, the plug-in might
+Finally, you can filter the plugin’s action based on DRBD state changes. Filters should be
+based upon both the old and the new (current) DRBD state, that are reported to the plugin,
+because you want the plugin to react to changes. This is only possible if two states, old
+and new, are filtered for, otherwise the plugin might trigger randomly. For example, if you
+only specified a new (current) DRBD role as a DRBD state to filter for, the plugin might
 trigger even when the new role is the same as the old DRBD role.
 
-Here is an example UMH plug-in configuration snippet for a `resource` rule:
+Here is an example UMH plugin configuration snippet for a `resource` rule:
 
 ----
 [[umh]]
@@ -366,7 +400,7 @@ old.role = { operator = "NotEquals", value = "Primary" }
 new.role = "Primary"
 ----
 
-This example UMH plug-in configuration is based on change event messages received from DRBD
+This example UMH plugin configuration is based on change event messages received from DRBD
 Reactor’s daemon for the DRBD resource specified by the `resource-name` value `my-resource`.
 
 If the resource’s old role was not _Primary_ and its new (current) role is _Primary_, then a
@@ -375,7 +409,7 @@ the script needs to reside within the commonly set `PATH` environment variable
 (`/sbin:/usr/sbin:/bin:/usr/bin`) of the host machine (or container if run that way).
 Presumably, the script sends a message to a Slack channel informing of the resource role change.
 Variables specified in the command string value are substituted for based on specified values
-elsewhere in the plug-in's configuration, for example, the value specified by `resource-name`
+elsewhere in the plugin's configuration, for example, the value specified by `resource-name`
 will be substituted for `$DRBD_RES_NAME` when the command runs.
 
 NOTE: The example configuration above uses the specified operator "NotEquals" to evaluate
@@ -384,50 +418,202 @@ then the default operator is "Equals", as in the `new.role = "Primary"` filter i
 configuration.
 
 There are more rules, fields, filter types, and variables that you can specify in your UMH
-plug-in configurations. See the
+plugin configurations. See the
 https://github.com/LINBIT/drbd-reactor/blob/master/doc/umh.md[UMH documentation page] in the
 DRBD Reactor GitHub repository for more details, explanations, examples, and caveats.
 
-[[s-drbd-reactor-prometheus-plug-in-configuring]]
-==== Configuring the Prometheus Plug-in
+[[s-drbd-reactor-prometheus-plugin-configuring]]
+==== Configuring the Prometheus Plugin
 
-This plug-in provides a Prometheus compatible HTTP endpoint serving DRBD monitoring metrics,
+This plugin provides a Prometheus compatible HTTP endpoint serving DRBD monitoring metrics,
 such as the DRBD connection state, whether or not the DRBD device has quorum, number of bytes
 out of sync, indication of TCP send buffer congestion, and many more. The
 `drbd-reactor.prometheus` man page has a full list of metrics and more details.
+
+[[s-drbd-reactor-agentx-plugin-configuring]]
+==== Configuring the AgentX Plugin for SNMP Monitoring
+
+Configuring the AgentX plugin involves installing an SNMP management information base (MIB) that
+defines the DRBD metrics that will be exposed, configuring the SNMP daemon, and editing a DRBD
+Reactor configuration snippet file for the AgentX plugin.
+
+IMPORTANT: You will need to complete the following setup steps on all your DRBD Reactor nodes.
+
+[[s-drbd-reactor-agentx-plugin-prerequisites]]
+===== Prerequisites
+
+Before configuring this plugin to expose various DRBD metrics to an SNMP daemon, you will need
+to install the following packages, if they are not already installed.
+
+For RPM-based systems:
+
+----
+# dnf -y install net-snmp net-snmp-utils
+----
+
+For DEB-based systems:
+
+----
+# apt -y install snmp snmpd
+----
+
+NOTE: If you encounter errors related to missing MIBs when using SNMP commands against the
+LINBIT MIB, you will have to download the missing MIBs. You can do this manually or else install
+the `snmp-mibs-downloader` DEB package.
+
+[[s-drbd-reactor-agentx-plugin-firewall]]
+===== AgentX Firewall Considerations
+
+If you are using a firewall service, you will need to allow TCP traffic via port 705 for the
+AgentX protocol.
+
+[[s-drbd-reactor-agentx-plugin-LINBIT-MIB]]
+===== Installing the LINBIT DRBD Management Information Base
+
+To use the AgentX plugin, download the LINBIT DRBD MIB to `/usr/share/snmp/mibs`.
+
+----
+# curl -L https://github.com/LINBIT/drbd-reactor/raw/master/example/LINBIT-DRBD-MIB.mib \
+-o /usr/share/snmp/mibs/LINBIT-DRBD-MIB.mib
+----
+
+[[s-drbd-reactor-agentx-plugin-snmp-daemon]]
+===== Configuring the SNMP Daemon
+
+To configure the SNMP service daemon, add the following lines to its configuration file
+(`/etc/snmp/snmpd.conf`):
+
+----
+# add LINBIT ID to the system view and enable agentx
+view    systemview    included   .1.3.6.1.4.1.23302
+master agentx
+agentXSocket tcp:127.0.0.1:705
+----
+
+IMPORTANT: Verify that the view name that you use matches a view name that is
+configured appropriately in the SNMP configuration file. The example above shows `systemview` as
+the view name used in a RHEL 8 system. For Ubuntu, the view name could be
+different, for example, in Ubuntu 22.04 it is `systemonly`.
+
+Next, enable and start the service (or restart the service if it was already enabled and
+running):
+
+----
+# systemctl enable --now snmpd.service
+----
+
+[[s-drbd-reactor-agentx-plugin-configuration-file]]
+===== Editing the AgentX Plugin Configuration Snippet File
+
+The AgentX plugin needs only minimal configuration in a DRBD Reactor snippet file. Edit the
+configuration snippet file by entering the following command:
+
+----
+# drbd-reactorctl edit -t agentx agentx
+----
+
+Then add the following lines:
+
+----
+[[agentx]]
+address = "localhost:705"
+cache-max = 60 # seconds
+agent-timeout = 60 # seconds snmpd waits for an answer
+peer-states = true # include peer connection and disk states
+----
+
+[NOTE]
+====
+If you use the `drbd-reactorctl edit` command to edit a configuration snippet file, DRBD Reactor
+will reload the service if needed. If you are copying a previously edited snippet file to
+another node, you will need to reload the DRBD Reactor service on that node, by entering:
+
+----
+# systemctl reload drbd-reactor.service
+----
+====
+
+[[s-drbd-reactor-agentx-plugin-verifying]]
+===== Verifying the AgentX Plugin Operation
+
+Before verifying the AgentX plugin operation, first verify that the SNMP service exposes a
+standard, preinstalled MIB, by entering the following command:
+
+[%autofit]
+----
+# snmpwalk -Os -c public -v 2c localhost iso.3.6.1.2.1.1.1
+sysDescr.0 = STRING: Linux linstor-1 5.14.0-284.30.1.el9_2.x86_64 #1 SMP PREEMPT_DYNAMIC Fri Aug 25 09:13:12 EDT 2023 x86_64
+----
+
+Next, verify that the AgentX plugin is shown in the output of a `drbd-reactorctl status`
+command.
+
+----
+/etc/drbd-reactor.d/agentx.toml:
+AgentX: connecting to main agent at localhost:705
+[...]
+----
+
+Next, show the LINBIT MIB table structure by entering the following command:
+
+----
+# snmptranslate -Tp -IR -mALL linbit
+----
+
+Finally, you can use an `snmptable` command to show a table of the values held in the MIB,
+particular to your current DRBD setup and resources. The example command below starts showing
+the values for your DRBD resources at the `enterprises.linbit.1.2`
+(`enterprises.linbit.drbdData.drbdTable`) object identifier (OID) within the LINBIT MIB.
+
+----
+# snmptable -m ALL -v 2c -c public localhost enterprises.linbit.1.2 | less -S
+----
+
+[[s-drbd-reactor-agentx-plugin-using-with-linstor]]
+===== Using the AgentX Plugin With LINSTOR
+
+If you are using DRBD Reactor and its AgentX plugin to work with LINSTOR(R)-created DRBD
+resources, note that these DRBD resources will start from minor number 1000, rather than 1. So,
+for example, to get the DRBD resource name of the first LINSTOR-created resource on a particular
+node, enter the following command:
+
+----
+# snmpget -m ALL -v 2c -c public localhost .1.3.6.1.4.1.23302.1.2.1.2.1000
+LINBIT-DRBD-MIB::ResourceName.1000 = STRING: linstor_db
+----
 
 [[s-drbd-reactorctl]]
 === Using the DRBD Reactor CLI Utility
 
 You can use the DRBD Reactor CLI utility, `drbd-reactorctl`, to control the DRBD Reactor daemon
-and its plug-ins.
+and its plugins.
 
-IMPORTANT: This utility only operates on plug-in snippets. Any existing plug-in configurations
+IMPORTANT: This utility only operates on plugin snippets. Any existing plugin configurations
 in the main configuration file (not advised nor supported) should be moved to snippet files
 within the snippets directory.
 
 With the `drbd-reactorctl` utility, you can:
 
-- Get the status of the DRBD Reactor daemon and enabled plug-ins, by using the `drbd-reactorctl
+- Get the status of the DRBD Reactor daemon and enabled plugins, by using the `drbd-reactorctl
   status` command.
 
-- Edit an existing or create a new plug-in configuration, by using the `drbd-reactorctl edit -t
-  <plug-in_type> <plug-in_file>` command.
+- Edit an existing or create a new plugin configuration, by using the `drbd-reactorctl edit -t
+  <plugin_type> <plugin_file>` command.
 
-- Display the TOML configuration of a given plug-in, by using the `drbd-reactorctl cat
-  <plug-in_file>` command.
+- Display the TOML configuration of a given plugin, by using the `drbd-reactorctl cat
+  <plugin_file>` command.
 
-- Enable or disable a plug-in, by using the `drbd-reactorctl enable|disable <plug-in_file>`
+- Enable or disable a plugin, by using the `drbd-reactorctl enable|disable <plugin_file>`
   command.
 
-- Evict a promoter plug-in resource from the node, by using the `drbd-reactorctl evict
-  <plug-in_file>` command.
+- Evict a promoter plugin resource from the node, by using the `drbd-reactorctl evict
+  <plugin_file>` command.
 
-- Restart specified plug-ins (or the DRBD Reactor daemon, if no plug-ins specified) by using the
-  `drbd-reactorctl restart <plug-in_file>` command. Remove an existing plug-in and restart the
-  daemon, by using the `drbd-reactorctl rm <plug-in_file>` command.
+- Restart specified plugins (or the DRBD Reactor daemon, if no plugins specified) by using the
+  `drbd-reactorctl restart <plugin_file>` command. Remove an existing plugin and restart the
+  daemon, by using the `drbd-reactorctl rm <plugin_file>` command.
 
-- List the activated plug-ins, or optionally list disabled plug-ins, by using the
+- List the activated plugins, or optionally list disabled plugins, by using the
   `drbd-reactorctl ls [--disabled]` command.
 
 For greater control of some of the above actions, there are additional options available. The
@@ -457,7 +643,7 @@ the equivalent DRBD Reactor client commands.
 |===
 
 A DRBD Reactor client command that is equivalent to `crm resource unmigrate` is unnecessary
-because DRBD Reactor's promoter plug-in evicts a DRBD resource in the moment, but it does not
+because DRBD Reactor's promoter plugin evicts a DRBD resource in the moment, but it does not
 prevent the resource from failing back to the node it was evicted from later, should the
 situation arise. In contrast, the CRM shell `migrate` command inserts a permanent constraint
 into the cluster information base (CIB) that prevents the resource from running on the node
@@ -473,9 +659,9 @@ by using the `drbd-reactorctl evict --unmask` command. This command would be the
 CRM shell's `unmigrate` command.
 
 [[s-drbd-reactor-creating-a-ha-file-system-mount]]
-=== Using DRBD Reactor’s Promoter Plug-in to Create a Highly Available File System Mount
+=== Using DRBD Reactor’s Promoter Plugin to Create a Highly Available File System Mount
 
-In this example, you will use DRBD Reactor and the promoter plug-in to create a highly available
+In this example, you will use DRBD Reactor and the promoter plugin to create a highly available
 file system mount within a cluster.
 
 Prerequisites:
@@ -526,7 +712,7 @@ example.
 ----
 
 Make the node _Secondary_ because after further configurations, DRBD Reactor and the Promoter
-plug-in will control promoting nodes.
+plugin will control promoting nodes.
 
 ----
 # drbdadm secondary ha-mount
@@ -552,7 +738,7 @@ location given by `Where=/mnt/test`. You can use the command `systemd-escape -p 
 /my/mount/point` to convert your mount point to a systemd unit file name.
 
 Next, on the same nodes as the previous step, create a configuration file for the DRBD Reactor
-promoter plug-in:
+promoter plugin:
 
 ----
 # cat << EOF > /etc/drbd-reactor.d/ha-mount.toml
@@ -567,7 +753,7 @@ on-drbd-demote-failure = "reboot"
 EOF
 ----
 
-NOTE: This promoter plug-in configuration uses a start list of services that specifies an OCF
+NOTE: This promoter plugin configuration uses a start list of services that specifies an OCF
 resource agent for the file system found at your HA mount point. By using this particular
 resource agent, you can circumvent situations where systemd might not know about certain users
 and processes that might hold the mount point open and prevent it from unmounting. This could
@@ -610,9 +796,9 @@ section on creating a highly available LINSTOR cluster]. There, DRBD Reactor is 
 the LINSTOR Controller as a service so that it is highly available within your cluster.
 
 [[s-drbd-reactor-configuring-prometheus-monitoring]]
-=== Configuring DRBD Reactor's Prometheus Plug-in
+=== Configuring DRBD Reactor's Prometheus Plugin
 
-DRBD Reactor’s Prometheus monitoring plug-in acts as a Prometheus compatible endpoint for DRBD
+DRBD Reactor’s Prometheus monitoring plugin acts as a Prometheus compatible endpoint for DRBD
 resources and exposes various DRBD metrics. You can find a list of the available metrics in
 https://github.com/LINBIT/drbd-reactor/blob/master/doc/prometheus.md[the documentation folder]
 in the project’s GitHub repository.
@@ -623,7 +809,7 @@ Prerequisites:
 
 - Grafana is installed with its service enabled and running.
 
-To enable the Prometheus plug-in, create a simple configuration file snippet on all DRBD Reactor
+To enable the Prometheus plugin, create a simple configuration file snippet on all DRBD Reactor
 nodes that you are monitoring.
 
 ----

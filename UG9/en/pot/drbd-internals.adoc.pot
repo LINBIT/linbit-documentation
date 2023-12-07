@@ -1,0 +1,1103 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#
+#
+#
+#
+#
+#
+#. [[s-_debian_gnu_linux]]
+#. ====  Debian GNU/Linux
+#. While PPAs are not directly supported in Debian, they basically work like any
+#. other package repository. For `jessie` you should be able to just use
+#. the `xenial` repository in your `sources.list`:
+#. ----
+#. deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu xenial main
+#. ----
+#. Then use the same command to install the software:
+#. ----
+#. # apt install drbd-utils drbd-dkms
+#. ----
+#. type: Title ==
+#: UG9/en/drbd-internals.adoc:2
+#, no-wrap
+msgid "DRBD Internals"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:11
+msgid ""
+"This chapter gives _some_ background information about some of DRBD's "
+"internal algorithms and structures. It is intended for interested users "
+"wishing to gain a certain degree of background knowledge about DRBD. It does "
+"not dive into DRBD's inner workings deep enough to be a reference for DRBD "
+"developers. For that purpose, please refer to the papers listed in <<s-"
+"publications>>, and of course to the comments in the DRBD source code."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:13
+#, no-wrap
+msgid "DRBD Metadata"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:17
+msgid ""
+"indexterm:[metadata]DRBD stores various pieces of information about the data "
+"it keeps in a dedicated area. This metadata includes:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:19
+msgid "the size of the DRBD device,"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:20
+msgid "the Generation Identifier (GI, described in detail in <<s-gi>>),"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:21
+msgid "the Activity Log (AL, described in detail in <<s-activity-log>>)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:22
+msgid "the quick-sync bitmap (described in detail in <<s-quick-sync-bitmap>>),"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:25
+msgid ""
+"This metadata may be stored _internally_ or _externally_. Which method is "
+"used is configurable on a per-resource basis."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:27
+#, no-wrap
+msgid "Internal Metadata"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:34
+msgid ""
+"indexterm:[metadata]Configuring a resource to use internal metadata means "
+"that DRBD stores its metadata on the same physical lower-level device as the "
+"actual production data. It does so by setting aside an area at the _end_ of "
+"the device for the specific purpose of storing metadata."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:35 UG9/en/drbd-internals.adoc:85
+#, no-wrap
+msgid "Advantage"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:40
+msgid ""
+"Since the metadata are inextricably linked with the actual data, no special "
+"action is required from the administrator in case of a hard disk failure. "
+"The metadata are lost together with the actual data and are also restored "
+"together."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:41 UG9/en/drbd-internals.adoc:89
+#, no-wrap
+msgid "Disadvantage"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:49
+msgid ""
+"In case of the lower-level device being a single physical hard disk (as "
+"opposed to a RAID set), internal metadata may negatively affect write "
+"throughput. The performance of write requests by the application may trigger "
+"an update of the metadata in DRBD. If the metadata are stored on the same "
+"magnetic disk of a hard disk, the write operation may result in two "
+"additional movements of the write/read head of the hard disk."
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-internals.adoc:56
+msgid ""
+"If you are planning to use internal metadata in conjunction with an existing "
+"lower-level device that already has data that you want to preserve, you "
+"_must_ account for the space required by DRBD's metadata."
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-internals.adoc:60
+msgid ""
+"Otherwise, upon DRBD resource creation, the newly created metadata would "
+"overwrite data at the end of the lower-level device, potentially destroying "
+"existing files in the process."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:63
+msgid "To avoid that, you must do one of the following things:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:68
+msgid ""
+"Enlarge your lower-level device. This is possible with any logical volume "
+"management facility (such as indexterm:[LVM]LVM) provided that you have free "
+"space available in the corresponding volume group. It may also be supported "
+"by hardware storage solutions."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:71
+msgid ""
+"Shrink your existing file system on your lower-level device. This may or may "
+"not be supported by your file system."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:74
+msgid ""
+"If neither of the two are possible, use <<s-external-meta-data,external "
+"metadata>> instead."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:77
+msgid ""
+"To estimate the amount by which you must enlarge your lower-level device or "
+"shrink your file system, see <<s-meta-data-size>>."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:79
+#, no-wrap
+msgid "External Metadata"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:84
+msgid ""
+"indexterm:[metadata]External metadata is simply stored on a separate, "
+"dedicated block device distinct from that which holds your production data."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:88
+msgid ""
+"For some write operations, using external metadata produces a somewhat "
+"improved latency behavior."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:95
+msgid ""
+"Meta data are not inextricably linked with the actual production data. This "
+"means that manual intervention is required in the case of a hardware failure "
+"destroying just the production data (but not DRBD metadata), to effect a "
+"full data sync from the surviving node onto the subsequently replaced disk."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:98
+msgid ""
+"Use of external metadata is also the only viable option if _all_ of the "
+"following apply:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:101
+msgid ""
+"You are using DRBD to duplicate an existing device that already contains "
+"data you want to preserve, _and_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:103
+msgid "that existing device does not support enlargement, _and_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:105
+msgid "the existing file system on the device does not support shrinking."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:108
+msgid ""
+"To estimate the required size of the block device dedicated to hold your "
+"device metadata, see <<s-meta-data-size>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:110
+msgid "External metadata requires a minimum of a 1MB device size."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:112
+#, no-wrap
+msgid "Estimating Metadata Size"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:116
+msgid ""
+"indexterm:[metadata]You may calculate the exact space requirements for "
+"DRBD's metadata using the following formula:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:118
+#, no-wrap
+msgid "Calculating DRBD metadata size (exactly)"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:119
+#, no-wrap
+msgid "images/metadata-size-exact.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:122
+#, no-wrap
+msgid "*_C~s~_* is the data device size in sectors, and *_N_* is the number of peers.\n"
+msgstr ""
+
+#. If
+#. you are using the <<al-stripe,al-stripes>> setting, additional space of size
+#. _al-stripes_ times _al-strip-size_ is required.
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:131
+msgid ""
+"You may retrieve the device size (in bytes) by issuing `blockdev --getsize64 "
+"<device>`; to convert to MB, divide by 1048576 (= 2^20^ or 1024^2^)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:134
+msgid ""
+"In practice, you may use a reasonably good approximation, given below. Note "
+"that in this formula, the unit is megabytes, not sectors:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:136
+#, no-wrap
+msgid "Estimating DRBD metadata size (approximately)"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:137
+#, no-wrap
+msgid "images/metadata-size-approx.svg"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:140
+#, no-wrap
+msgid "Generation Identifiers"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:144
+msgid ""
+"indexterm:[generation identifiers]DRBD uses _generation identifiers_ (GIs) "
+"to identify \"generations\" of replicated data."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:146
+msgid "This is DRBD's internal mechanism used for"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:149
+msgid ""
+"determining whether the two nodes are in fact members of the same cluster "
+"(as opposed to two nodes that were connected accidentally),"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:152
+msgid ""
+"determining the direction of background re-synchronization (if necessary),"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:155
+msgid ""
+"determining whether full re-synchronization is necessary or whether partial "
+"re-synchronization is sufficient,"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:157
+msgid "indexterm:[split brain]identifying split brain."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:159
+#, no-wrap
+msgid "Data Generations"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:163
+msgid ""
+"DRBD marks the start of a new _data generation_ at each of the following "
+"occurrences:"
+msgstr ""
+
+#.  FIXME PRe
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:167
+msgid "The initial device full sync,"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:169
+msgid "a disconnected resource switching to the primary role,"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:171
+msgid "a resource in the primary role disconnecting."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:179
+msgid ""
+"Therefore, we can summarize that whenever a resource is in the _Connected_ "
+"connection state, and both nodes' disk state is _UpToDate_, the current data "
+"generation on both nodes is the same. The inverse is also true. Note that "
+"the current implementation uses the lowest bit to encode the role of the "
+"node (Primary/Secondary). Therefore, the lowest bit might be different on "
+"distinct nodes even if they are considered to have the same data generation."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:182
+msgid ""
+"Every new data generation is identified by an 8-byte, universally unique "
+"identifier (UUID)."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:184
+#, no-wrap
+msgid "The Generation Identifier Tuple"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:188
+msgid ""
+"DRBD keeps some pieces of information about current and historical data "
+"generations in the local resource metadata:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:189
+#, no-wrap
+msgid "Current UUID"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:194
+msgid ""
+"This is the generation identifier for the current data generation, as seen "
+"from the local node's perspective. When a resource is _Connected_ and fully "
+"synchronized, the current UUID is identical between nodes."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:195
+#, no-wrap
+msgid "Bitmap UUIDs"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:199
+msgid ""
+"This is the UUID of the generation against which this on-disk bitmap is "
+"tracking changes (per remote host). Like the on-disk sync bitmap itself, "
+"this identifier is only relevant while the remote host is disconnected."
+msgstr ""
+
+#.  If the resource is _Connected_, this UUID is always empty (zero). FIXME
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:202
+#, no-wrap
+msgid "Historical UUIDs"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:205
+msgid ""
+"These are the identifiers of data generations preceding the current one, "
+"sized to have one slot per (possible) remote host."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:208
+msgid ""
+"Collectively, these items are referred to as the _generation identifier "
+"tuple_, or \"__GI tuple__\" for short."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:210
+#, no-wrap
+msgid "How Generation Identifiers Change"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-internals.adoc:213
+#, no-wrap
+msgid "Start of a New Data Generation"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:218
+msgid ""
+"When a node in _Primary_ role loses connection to its peer (either by "
+"network failure or manual intervention), DRBD modifies its local generation "
+"identifiers in the following manner:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:220
+#, no-wrap
+msgid "GI tuple changes at start of a new data generation"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:221
+#, no-wrap
+msgid "images/gi-changes-newgen.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:225
+msgid ""
+"The primary creates a new UUID for the new data generation. This becomes the "
+"_new_ current UUID for the primary node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:229
+msgid ""
+"The _previous_ current UUID now refers to the generation the bitmap is "
+"tracking changes against, so it becomes the new bitmap UUID for the primary "
+"node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:231
+msgid "On the secondary node(s), the GI tuple remains unchanged."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-internals.adoc:234
+#, no-wrap
+msgid "Completion of Resynchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:238
+msgid ""
+"When resynchronization concludes, the synchronization target adopts the "
+"entire GI tuple from the synchronization source."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:240
+msgid ""
+"The synchronization source keeps the same set, and doesn't generate new "
+"UUIDs."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:242
+#, no-wrap
+msgid "How DRBD Uses Generation Identifiers"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:247
+msgid ""
+"When a connection between nodes is established, the two nodes exchange their "
+"currently available generation identifiers, and proceed accordingly. Several "
+"possible outcomes exist:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:248
+#, no-wrap
+msgid "Current UUIDs empty on both nodes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:254
+msgid ""
+"The local node detects that both its current UUID and the peer's current "
+"UUID are empty. This is the normal occurrence for a freshly configured "
+"resource that has not had the initial full sync initiated. No "
+"synchronization takes place; it has to be started manually."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:255
+#, no-wrap
+msgid "Current UUIDs empty on one node"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:265
+msgid ""
+"The local node detects that the peer's current UUID is empty, and its own is "
+"not. This is the normal case for a freshly configured resource on which the "
+"initial full sync has just been initiated, the local node having been "
+"selected as the initial synchronization source. DRBD now sets all bits in "
+"the on-disk sync bitmap (meaning it considers the entire device out-of-"
+"sync), and starts synchronizing as a synchronization source. In the opposite "
+"case (local current UUID empty, peer's non-empty), DRBD performs the same "
+"steps, except that the local node becomes the synchronization target."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:266
+#, no-wrap
+msgid "Equal current UUIDs"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:272
+msgid ""
+"The local node detects that its current UUID and the peer's current UUID are "
+"non-empty and equal. This is the normal occurrence for a resource that went "
+"into disconnected mode at a time when it was in the secondary role, and was "
+"not promoted on either node while disconnected. No synchronization takes "
+"place, as none is necessary."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:273
+#, no-wrap
+msgid "Bitmap UUID matches peer's current UUID"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:287
+msgid ""
+"The local node detects that its bitmap UUID matches the peer's current UUID, "
+"and that the peer's bitmap UUID is empty. This is the normal and expected "
+"occurrence after a secondary node failure, with the local node being in the "
+"primary role. It means that the peer never became primary in the meantime "
+"and worked on the basis of the same data generation all along. DRBD now "
+"initiates a normal, background re-synchronization, with the local node "
+"becoming the synchronization source. If, conversely, the local node detects "
+"that _its_ bitmap UUID is empty, and that the _peer's_ bitmap matches the "
+"local node's current UUID, then that is the normal and expected occurrence "
+"after a failure of the local node. Again, DRBD now initiates a normal, "
+"background re-synchronization, with the local node becoming the "
+"synchronization target."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:288
+#, no-wrap
+msgid "Current UUID matches peer's historical UUID"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:300
+msgid ""
+"The local node detects that its current UUID matches one of the peer's "
+"historical UUIDs. This implies that while the two data sets share a common "
+"ancestor, and the peer node has the up-to-date data, the information kept in "
+"the peer node's bitmap is outdated and not usable. Therefore, a normal "
+"synchronization would be insufficient. DRBD now marks the entire device as "
+"out-of-sync and initiates a full background re-synchronization, with the "
+"local node becoming the synchronization target. In the opposite case (one of "
+"the local node's historical UUID matches the peer's current UUID), DRBD "
+"performs the same steps, except that the local node becomes the "
+"synchronization source."
+msgstr ""
+
+#.  ERROR: FIXME
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:303
+#, no-wrap
+msgid "Bitmap UUIDs match, current UUIDs do not"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:310
+msgid ""
+"indexterm:[split brain]The local node detects that its current UUID differs "
+"from the peer's current UUID, and that the bitmap UUIDs match. This is split "
+"brain, but one where the data generations have the same parent. This means "
+"that DRBD invokes split brain auto-recovery strategies, if configured. "
+"Otherwise, DRBD disconnects and waits for manual split brain resolution."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:311
+#, no-wrap
+msgid "Neither current nor bitmap UUIDs match"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:317
+msgid ""
+"The local node detects that its current UUID differs from the peer's current "
+"UUID, and that the bitmap UUIDs _do not_ match. This is split brain with "
+"unrelated ancestor generations, therefore auto-recovery strategies, even if "
+"configured, are moot. DRBD disconnects and waits for manual split brain "
+"resolution."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:318
+#, no-wrap
+msgid "No UUIDs match"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:324
+msgid ""
+"Finally, in case DRBD fails to detect even a single matching element in the "
+"two nodes' GI tuples, it logs a warning about unrelated data and "
+"disconnects. This is DRBD's safeguard against accidental connection of two "
+"cluster nodes that have never heard of each other before."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:327
+#, no-wrap
+msgid "The Activity Log"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:330
+#, no-wrap
+msgid "Purpose"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:338
+msgid ""
+"indexterm:[Activity Log]During a write operation DRBD forwards the write "
+"operation to the local backing block device, but also sends the data block "
+"over the network. These two actions occur, for all practical purposes, "
+"simultaneously. Random timing behavior may cause a situation where the write "
+"operation has been completed, but the transmission over the network has not "
+"yet taken place, or vice versa."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:352
+msgid ""
+"If, at this moment, the active node fails and failover is being initiated, "
+"then this data block is out of sync between nodes -- it has been written on "
+"the failed node prior to the failure, but replication has not yet completed. "
+"Therefore, when the node eventually recovers, this block must be removed "
+"from the data set during subsequent synchronization. Otherwise, the failed "
+"node would be \"one write ahead\" of the surviving node, which would violate "
+"the \"all or nothing\" principle of replicated storage. This is an issue "
+"that is not limited to DRBD, in fact, this issue exists in practically all "
+"replicated storage configurations. Many other storage solutions (just as "
+"DRBD itself, prior to version 0.7) therefore require that after a failure of "
+"the active node the data must be fully synchronized after its recovery."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:357
+msgid ""
+"DRBD's approach, since version 0.7, is a different one. The _activity log_ "
+"(AL), stored in the metadata area, keeps track of those blocks that have "
+"\"recently\" been written to. Colloquially, these areas are referred to as "
+"_hot extents_."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:363
+msgid ""
+"If a temporarily failed node that was in active mode at the time of failure "
+"is synchronized, only those hot extents highlighted in the AL need to be "
+"synchronized (plus any blocks marked in the bitmap on the now-active peer), "
+"rather than the full device. This drastically reduces synchronization time "
+"after an active node failure."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:365
+#, no-wrap
+msgid "Active Extents"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:372
+msgid ""
+"indexterm:[Activity Log]The activity log has a configurable parameter, the "
+"number of active extents. Every active extent adds 4MiB to the amount of "
+"data being retransmitted after a Primary failure. This parameter must be "
+"understood as a compromise between the following opposites:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:373
+#, no-wrap
+msgid "Many active extents"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:380
+msgid ""
+"Keeping a large activity log improves write throughput. Every time a new "
+"extent is activated, an old extent is reset to inactive. This change "
+"requires a write operation to the metadata area. If the number of active "
+"extents is high, old active extents are swapped out fairly rarely, reducing "
+"metadata write operations and thereby improving performance."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:381
+#, no-wrap
+msgid "Few active extents"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:384
+msgid ""
+"Keeping a small activity log reduces synchronization time after active node "
+"failure and subsequent recovery."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:387
+#, no-wrap
+msgid "Selecting a Suitable Activity Log Size"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:393
+msgid ""
+"indexterm:[Activity Log]Consideration of the number of extents should be "
+"based on the desired synchronization time at a given synchronization rate. "
+"The number of active extents can be calculated as follows:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:395
+#, no-wrap
+msgid "Active extents calculation based on sync rate and target sync time"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:396
+#, no-wrap
+msgid "images/al-extents.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:401
+msgid ""
+"_R_ is the synchronization rate, given in MiB/s. _t~sync~_ is the target "
+"synchronization time, in seconds. _E_ is the resulting number of active "
+"extents."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:406
+msgid ""
+"To provide an example, suppose the cluster has an I/O subsystem with a "
+"throughput rate of 200 MiByte/s that was configured to a synchronization "
+"rate (_R_) of 60 MiByte/s, and we want to keep the target synchronization "
+"time (_t~sync~_) at 4 minutes or 240 seconds:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:408
+#, no-wrap
+msgid "Active extents calculation based on sync rate and target sync time (example)"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:409
+#, no-wrap
+msgid "images/al-extents-example.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:413
+msgid ""
+"On a final note, DRBD 9 needs to keep an AL even on the Secondary nodes, as "
+"their data might be used to synchronize other Secondary nodes."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:416
+#, no-wrap
+msgid "The Quick-sync Bitmap"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:423
+msgid ""
+"indexterm:[quick-sync bitmap]indexterm:[bitmap (DRBD-specific concept)]The "
+"quick-sync bitmap is the internal data structure which DRBD uses, on a per-"
+"resource per-peer basis, to keep track of blocks being in sync (identical on "
+"both nodes) or out-of sync. It is only relevant when a resource is in "
+"disconnected mode."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:430
+msgid ""
+"In the quick-sync bitmap, one bit represents a 4-KiB chunk of on-disk data. "
+"If the bit is cleared, it means that the corresponding block is still in "
+"sync with the peer node. That implies that the block has not been written to "
+"since the time of disconnection. Conversely, if the bit is set, it means "
+"that the block has been modified and needs to be re-synchronized whenever "
+"the connection becomes available again."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:440
+msgid ""
+"As DRBD detects write I/O on a disconnected device, and therefore starts "
+"setting bits in the quick-sync bitmap, it does so in RAM -- therefore "
+"avoiding expensive synchronous metadata I/O operations. Only when the "
+"corresponding blocks turn cold (that is, expire from the <<s-activity-log,"
+"Activity Log>>), DRBD makes the appropriate modifications in an on-disk "
+"representation of the quick-sync bitmap. Likewise, if the resource happens "
+"to be manually shut down on the remaining node while disconnected, DRBD "
+"flushes the _complete_ quick-sync bitmap out to persistent storage."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:446
+msgid ""
+"When the peer node recovers or the connection is re-established, DRBD "
+"combines the bitmap information from both nodes to determine the _total data "
+"set_ that it must re-synchronize. Simultaneously, DRBD <<s-gi-use,examines "
+"the generation identifiers>> to determine the _direction_ of synchronization."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:452
+msgid ""
+"The node acting as the synchronization source then transmits the agreed-upon "
+"blocks to the peer node, clearing sync bits in the bitmap as the "
+"synchronization target acknowledges the modifications. If the re-"
+"synchronization is now interrupted (by another network outage, for example) "
+"and subsequently resumed it will continue where it left off"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:454
+msgid ""
+"with any additional blocks modified in the meantime being added to the re-"
+"synchronization data set, of course."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:461
+msgid ""
+"Re-synchronization may be also be paused and resumed manually with the "
+"indexterm:[drbdadm, pause-sync]`drbdadm pause-sync` and indexterm:[drbdadm, "
+"resume-sync]`drbdadm resume-sync` commands. You should, however, not do so "
+"light-heartedly -- interrupting re-synchronization leaves your secondary "
+"node's disk _Inconsistent_ longer than necessary."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:463
+#, no-wrap
+msgid "The Peer-fencing Interface"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:472
+msgid ""
+"DRBD has an interface defined for fencingfootnote:[For a discussion about "
+"Fencing and STONITH, please see the corresponding Pacemaker page http://"
+"clusterlabs.org/doc/crm_fencing.html.] the peer node in case of the "
+"replication link being interrupted. The `fence-peer` should mark the disk(s) "
+"on the peer node as _Outdated_, or shut down the peer node. It has to "
+"fulfill these tasks under the assumption that the replication network is "
+"down."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:474
+msgid "The fencing helper is invoked only in case"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:477
+msgid ""
+"a `fence-peer` handler has been defined in the resource's (or `common`)  "
+"`handlers` section, _and_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:480
+msgid ""
+"the `fencing` option for the resource is set to either `resource-only` or "
+"`resource-and-stonith`, _and_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:485
+msgid ""
+"the node was primary _and_ the replication link is interrupted long enough "
+"for DRBDfootnote:[That means, for example, a TCP timeout, the `ping-"
+"timeout`, or the kernel triggers a connection abort, perhaps as a result of "
+"the network link going down.] to detect a network failure. _or_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:488
+msgid ""
+"the node should promote to primary _and_ is not connected to the peer _and_ "
+"the peer's disks are not already marked as _Outdated_."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:494
+msgid ""
+"The program or script specified as the `fence-peer` handler, when it is "
+"invoked, has the `DRBD_RESOURCE` and `DRBD_PEER` environment variables "
+"available. They contain the name of the affected DRBD resource and the "
+"peer's hostname, respectively."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:497
+msgid ""
+"Any peer fencing helper program (or script) must return one of the following "
+"exit codes:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:498
+#, no-wrap
+msgid "`fence-peer` handler exit codes"
+msgstr ""
+
+#. type: Table
+#: UG9/en/drbd-internals.adoc:507
+#, no-wrap
+msgid ""
+"Exit code;Implication\n"
+"3;Peer's disk state was already _Inconsistent_.\n"
+"4;Peer's disk state was successfully set to _Outdated_ (or was _Outdated_ to begin with).\n"
+"5;Connection to the peer node failed, peer could not be reached.\n"
+"6;Peer refused to be outdated because the affected resource was in the primary role.\n"
+"7;Peer node was successfully fenced off the cluster. This should never occur unless `fencing` is set to `resource-and-stonith` for the affected resource.\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:510
+#, no-wrap
+msgid "The Client Mode"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:518
+msgid ""
+"Since version 9.0.13 DRBD supports clients. A client in DRBD speak is just a "
+"permanently diskless node. In the configuration, it is expressed by using "
+"the keyword `none` for the backing block device (the `disk` keyword). You "
+"will notice that in the `drbdsetup status` output you will see the "
+"`Diskless` disk status displayed in green color. (Usually, a disk state of "
+"`Diskless` is displayed in red)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:525
+msgid ""
+"Internally all the peers of an intentional diskless node are configured with "
+"the `peer-device-option` `--bitmap=no`. That means that they will not "
+"allocate a bitmap slot in the meta-data for the intentional diskless peer. "
+"On the intentional diskless node the device gets marked with the option `--"
+"diskless=yes` while it is created with the `new-minor` sub-command of "
+"`drbdsetup`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:527
+msgid "These flags are visible through the `events2` status command:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:530
+msgid ""
+"a `device` might have the `client:` field. If it reports `yes` the local "
+"device was marked to be permanently diskless."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:533
+msgid ""
+"a `peer-device` might have the `peer-client` filed. If it says `yes` then "
+"there is no change-tracking bitmap to that peer."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:535
+msgid "Relevant commands and implications:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:539
+msgid ""
+"You can only run `drbdsetup peer-device-options --bitmap=yes ...` if bitmap "
+"slots are available in the meta-data, since a bitmap-slot gets allocated."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:543
+msgid ""
+"The command `drbdsetup peer-device-options --bitmap=no ...` is only possible "
+"if the peer is diskless, it does _not_ unallocate the bitmap-slot."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:546
+msgid ""
+"`drbdsetup forget-peer ...` is used to irrevocable free the bitmap-slot "
+"assigned to a certain peer."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:549
+msgid ""
+"Connecting two peers with disk where one (or both) expect the peer to be "
+"permanently diskless fails."
+msgstr ""

@@ -52,7 +52,7 @@ top-level to bottom-most these are:
 .`drbdadm`
 The high-level administration tool of the DRBD-utils program suite. Obtains all DRBD
 configuration parameters from the configuration file `/etc/drbd.conf` and acts
-as a front-end for `drbdsetup` and `drbdmeta`.  `drbdadm` has a _dry-run_ mode,
+as a front-end for `drbdsetup` and `drbdmeta`. `drbdadm` has a _dry-run_ mode,
 invoked with the `-d` option, that shows which `drbdsetup` and `drbdmeta` calls
 `drbdadm` would issue without actually calling those commands.
 
@@ -63,7 +63,7 @@ Configures the DRBD module that was loaded into the kernel. All parameters to
 rarely need to use `drbdsetup` directly, if at all.
 
 .`drbdmeta`
-Allows to create, dump, restore, and modify DRBD meta data structures. Like
+Allows to create, dump, restore, and modify DRBD metadata structures. Like
 `drbdsetup`, most users will only rarely need to use `drbdmeta` directly.
 
 [[s-resources]]
@@ -77,7 +77,7 @@ This can be any arbitrary, US-ASCII name not containing white space by
 which the resource is referred to.
 
 IMPORTANT: Beginning with DRBD 9.2.0, there is a stricter naming convention for resources. DRBD
-9.2.x accepts only alphanumeric, `.`, `+`, `_`, and `-` characters in resource names (regular expression: `[0-9A-Za-z.+_-]*`). If you depend on the old behavior, it
+9.2.x accepts only alphanumeric, `.`, `pass:[+]`, `pass:[_]`, and `-` characters in resource names (regular expression: `[0-9A-Za-z.+_-]*`). If you depend on the old behavior, it
 can be brought back by disabling strict name checking: `echo 0 > /sys/module/drbd/parameters/strict_names`.
 
 .Volumes
@@ -218,11 +218,19 @@ clusters of more than five nodes are not recommended.
 "This standard shall be used in designing and implementing cryptographic modules..."
 -- https://csrc.nist.gov/publications/detail/fips/140/3/final[NIST's _FIPS 140-3_ publication]
 
-DRBD does not use nor implement any cryptographic modules in its code base and is therefore
-outside the scope of FIPS compliance. If the data that you are replicating has requirements that
-need the use of cryptographic modules, for example, encryption, this is implemented in a
-different block layer, and not by DRBD itself. Linux Unified Key Setup (LUKS) is an example of
-such an implementation.
+Since DRBD version 9.2.6, it is possible to encrypt DRBD traffic by using the
+<<drbd-configure.adoc#s-tcp_ip-tls,TLS feature>>. However, DRBD itself does not contain
+cryptographic modules. DRBD uses cryptographic modules that are available in the `ktls-utils`
+package (used by the `tlshd` daemon), or that are referenced by the
+https://www.kernel.org/doc/html/latest/crypto/index.html[Linux kernel crypto API]. In either
+case, the cryptographic modules that DRBD uses to encrypt traffic will be FIPS compliant, so
+long as you are using a FIPS mode enabled operating system.
+
+If you have not enabled the TLS feature, then DRBD does not use any cryptographic modules.
+
+In DRBD versions before 9.2.6, it was only possible to use encryption with DRBD if it was
+implemented in a different block layer, and not by DRBD itself. Linux Unified Key Setup (LUKS)
+is an example of such an implementation.
 ifndef::drbd-only[]
 You can refer to details in the
 https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/#s-linstor-without-drbd[_LINSTOR User's

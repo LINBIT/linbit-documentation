@@ -1,0 +1,196 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2020-03-02 15:09+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: proxmox.adoc:2
+#, no-wrap
+msgid "DRBD Volumes in Proxmox VE"
+msgstr "Proxmox VE中的DRBD卷"
+
+#. type: Plain text
+#: proxmox.adoc:6
+msgid ""
+"indexterm:[Proxmox]This chapter describes DRBD in Proxmox VE via the "
+"http://git.linbit.com/drbdmanage-proxmox.git[DRBD Manage Proxmox Plugin]."
+msgstr ""
+"indexterm:[Proxmox]本章通过 "
+"http://git.linbit.com/drbdmanage-proxmox.git[DRBD "
+"Manage Proxmox Plugin]描述Proxmox VE中的DRBD。"
+
+#. type: Title ===
+#: proxmox.adoc:8
+#, no-wrap
+msgid "Proxmox VE Overview"
+msgstr "Proxmox VE概述"
+
+#. type: Plain text
+#: proxmox.adoc:12
+msgid ""
+"http://www.proxmox.com/en/[Proxmox VE] is an easy to use, complete server "
+"virtualization environment with KVM, Linux Containers and HA."
+msgstr ""
+"http://www.proxmox.com/en/[proxmox VE] 是一个易于使用的、完整的服务器虚拟化环境，具有KVM、Linux容器和HA。"
+
+#. (LVM volumes on DRBD)
+#. type: Plain text
+#: proxmox.adoc:18
+msgid ""
+"'drbdmanage-proxmox' is a Perl plugin for Proxmox that, in combination with "
+"DRBD Manage, allows to replicate VM disks on several Proxmox VE nodes. This "
+"allows to live-migrate active VMs within a few seconds and with no downtime "
+"without needing a central SAN, as the data is already replicated to multiple"
+" nodes."
+msgstr ""
+"`drbdmanage-proxmox` 是proxmox的一个Perl插件，它与DRBD Manage结合，允许在多个proxmox "
+"VE节点上复制VM磁盘。这允许在几秒钟内实时迁移活动vm，而且不需要中央SAN，因为数据已经复制到多个节点。"
+
+#. type: Title ===
+#: proxmox.adoc:20
+#, no-wrap
+msgid "Proxmox Plugin Installation"
+msgstr "Proxmox插件安装"
+
+#. type: Plain text
+#: proxmox.adoc:25
+msgid ""
+"LINBIT provides a dedicated public repository for Proxmox VE users. This "
+"repository not only contains the Proxmox plugin, but the whole DRBD SDS "
+"stack including a customized version of DRBD Manage, DRBD SDS kernel module "
+"and user space utilities, and of course the Proxmox Perl plugin itself."
+msgstr ""
+"LINBIT为Proxmox VE用户提供了一个专用的公共存储库。这个存储库不仅包含Proxmox插件，还包含整个DRBD "
+"SDS堆栈，包括一个自定义版本的DRBD Manage、DRBD SDS内核模块和用户空间实用程序，当然还有Proxmox Perl插件本身。"
+
+#. type: Plain text
+#: proxmox.adoc:32
+msgid ""
+"The DRBD9 kernel module gets installed as a `dkms` package (i.e., `drbd-"
+"dkms`), therefore you want to install `pve-headers` before you set "
+"up/install software from LINBIT's repositories. Following that order ensures"
+" that the kernel module is built for your kernel. If you do not follow the "
+"latest Proxmox kernel, you have to install kernel headers matching your "
+"current kernel (e.g., `pve-headers-$(uname -r)`). If you did not follow that"
+" advice and you need to rebuild the dkms package against your current kernel"
+" (headers have to be installed), you can issue `apt install --reinstall "
+"drbd-dkms`."
+msgstr ""
+"DRBD9内核模块作为 `dkms` 包（即 `drbd-dkms` ）安装，因此在从LINBIT的存储库设置/安装软件之前，需要安装 `pve-"
+"headers` 。遵循这个顺序可以确保为您的内核构建内核模块。如果不遵循最新的Proxmox内核，则必须安装与当前内核匹配的内核头(例如，`pve-"
+"headers-(uname-r)` )。如果您没有遵循这个建议，并且需要根据当前内核重新构建dkms包（必须安装头），那么可以输入 `apt "
+"install --reinstall drbd-dkms` 。"
+
+#. type: Plain text
+#: proxmox.adoc:35
+msgid ""
+"LINBIT's repository can be enabled as follows, where \"$PVERS\" should be "
+"set to your Proxmox VE *major version* (e.g., \"5\", not \"5.2\"):"
+msgstr "LINBIT的存储库可以如下启用，其中 \"$PVERS\" 应该设置为Proxmox VE *主版本*（例如，\"5\"，而不是 \"5.2\"）："
+
+#. type: delimited block -
+#: proxmox.adoc:42
+#, no-wrap
+msgid ""
+"# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
+"# PVERS=5 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
+"\t/etc/apt/sources.list.d/linbit.list\n"
+"# apt purge drbdmanage\n"
+"# apt update && apt install drbdmanage-proxmox\n"
+msgstr ""
+"# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -\n"
+"# PVERS=5 && echo \"deb http://packages.linbit.com/proxmox/ proxmox-$PVERS drbd-9.0\" > \\\n"
+"\t/etc/apt/sources.list.d/linbit.list\n"
+"# apt purge drbdmanage\n"
+"# apt update && apt install drbdmanage-proxmox\n"
+
+#. type: Plain text
+#: proxmox.adoc:46
+msgid ""
+"If you are already (or have been) using Proxmox's version of DRBD Manage, "
+"you can simply enable the repository and install `drbdmanage-proxmox`; you "
+"don't have to change the existing configuration."
+msgstr ""
+"如果您已经（或已经）使用了Proxmox版本的DRBD Manage，那么您只需启用存储库并安装 `drbdmanage-proxmox`  "
+"；不必更改现有配置。"
+
+#. type: Title ===
+#: proxmox.adoc:48
+#, no-wrap
+msgid "Proxmox Plugin Configuration"
+msgstr "ProxBox插件配置"
+
+#. type: Plain text
+#: proxmox.adoc:52
+msgid ""
+"The first step is to set up a static IP address for DRBD traffic. As Proxmox"
+" is Debian GNU/Linux based, this is configured via "
+"`/etc/network/interfaces`."
+msgstr ""
+"第一步是为DRBD流量设置一个静态IP地址。由于Proxmox是基于Debian "
+"GNU/Linux的，所以它是通过 `/etc/network/interfaces` 配置的。"
+
+#. type: Plain text
+#: proxmox.adoc:54
+msgid ""
+"The second step is to configure DRBD Manage as described in <<s-dm-init-"
+"cluster>>."
+msgstr "第二步是配置DRBD Manage，如<<s-dm-init-cluster>>中所述。"
+
+#. type: Plain text
+#: proxmox.adoc:57
+msgid ""
+"The third and last step is to provide a configuration for Proxmox itself. "
+"This is done by adding an entry to `/etc/pve/storage.cfg` with the following"
+" content, assuming a three node cluster in this example:"
+msgstr ""
+"第三步也是最后一步是为Proxmox本身提供配置。这是通过在 `/etc/pve/storage.cfg` 中添加一个包含以下内容的条目来完成的，假设在本例中是一个三节点集群："
+
+#. type: delimited block -
+#: proxmox.adoc:62
+#, no-wrap
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+msgstr ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   redundancy 3\n"
+
+#. type: Plain text
+#: proxmox.adoc:65
+msgid ""
+"After that you can create VMs via Proxmox's web GUI by selecting "
+"\"__drbdstorage__\" as storage location."
+msgstr "之后，您可以通过Proxmox的web GUI创建vm，方法是选择 \"__drbdstorage__\" 作为存储位置。"
+
+#. type: Block title
+#: proxmox.adoc:66
+#, no-wrap
+msgid "NOTE: DRBD supports only the **raw** disk format at the moment."
+msgstr "注意：目前DRBD只支持 **raw** 磁盘格式。"
+
+#. type: Plain text
+#: proxmox.adoc:70
+msgid ""
+"At this point you can try to live migrate the VM - as all data is available "
+"on both nodes it will take just a few seconds. The overall process might "
+"take a bit longer if the VM is under load and if there is a lot of RAM being"
+" dirtied all the time. But in any case, the downtime is minimal and you will"
+" see no interruption at all."
+msgstr ""
+"此时，您可以尝试实时迁移虚拟机—因为两个节点上的所有数据都可用，只需几秒钟。如果VM负载不足，并且有很多RAM一直被污染，那么整个过程可能需要更长的时间。但是在任何情况下，停机时间都是最少的，而且您不会看到任何中断。"

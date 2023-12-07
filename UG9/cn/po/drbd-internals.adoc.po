@@ -1,0 +1,1454 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. [[s-_debian_gnu_linux]]
+#. ====  Debian GNU/Linux
+#. While PPAs are not directly supported in Debian, they basically work like any
+#. other package repository. For `jessie` you should be able to just use
+#. the `xenial` repository in your `sources.list`:
+#. ----
+#. deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu xenial main
+#. ----
+#. Then use the same command to install the software:
+#. ----
+#. # apt install drbd-utils drbd-dkms
+#. ----
+#. type: Title ==
+#: UG9/en/drbd-internals.adoc:2
+#, no-wrap
+msgid "DRBD Internals"
+msgstr "DRBD内幕"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:11
+msgid ""
+"This chapter gives _some_ background information about some of DRBD's "
+"internal algorithms and structures. It is intended for interested users "
+"wishing to gain a certain degree of background knowledge about DRBD. It does "
+"not dive into DRBD's inner workings deep enough to be a reference for DRBD "
+"developers. For that purpose, please refer to the papers listed in <<s-"
+"publications>>, and of course to the comments in the DRBD source code."
+msgstr ""
+"本章介绍了DRBD的一些内部算法和结构的背景信息。它是为有兴趣的用户希望获得DRBD"
+"一定程度的背景知识。它没有深入研究DRBD的内部工作机制，不能作为DRBD开发人员的"
+"参考。为此，请参阅<<s-publications>>中列出的论文，当然也请参阅DRBD源代码中的"
+"注释。"
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:13
+#, fuzzy, no-wrap
+#| msgid "DRBD meta data"
+msgid "DRBD Metadata"
+msgstr "DRBD元数据"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:17
+#, fuzzy
+#| msgid ""
+#| "indexterm:[meta data]DRBD stores various pieces of information about the "
+#| "data it keeps in a dedicated area. This metadata includes:"
+msgid ""
+"indexterm:[metadata]DRBD stores various pieces of information about the data "
+"it keeps in a dedicated area. This metadata includes:"
+msgstr ""
+"indexterm:[meta data]DRBD存储关于它保存在一个专用区域中的数据的各种信息。此元"
+"数据包括："
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:19
+msgid "the size of the DRBD device,"
+msgstr "DRBD设备的大小，"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:20
+msgid "the Generation Identifier (GI, described in detail in <<s-gi>>),"
+msgstr "生成标识符（GI，详细说明见<<s-gi>>），"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:21
+msgid "the Activity Log (AL, described in detail in <<s-activity-log>>)."
+msgstr "活动日志（AL，在<<s-activity-log>>中详细描述）。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:22
+msgid "the quick-sync bitmap (described in detail in <<s-quick-sync-bitmap>>),"
+msgstr "快速同步位图（详见<<s-quick-sync-bitmap>>），"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:25
+msgid ""
+"This metadata may be stored _internally_ or _externally_. Which method is "
+"used is configurable on a per-resource basis."
+msgstr "此元数据可以存储在内部或外部。所使用的方法是基于每个资源可配置的。"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:27
+#, fuzzy, no-wrap
+#| msgid "Internal meta data"
+msgid "Internal Metadata"
+msgstr "内部元数据"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:34
+#, fuzzy
+#| msgid ""
+#| "indexterm:[meta data]Configuring a resource to use internal meta data "
+#| "means that DRBD stores its meta data on the same physical lower-level "
+#| "device as the actual production data. It does so by setting aside an area "
+#| "at the _end_ of the device for the specific purpose of storing metadata."
+msgid ""
+"indexterm:[metadata]Configuring a resource to use internal metadata means "
+"that DRBD stores its metadata on the same physical lower-level device as the "
+"actual production data. It does so by setting aside an area at the _end_ of "
+"the device for the specific purpose of storing metadata."
+msgstr ""
+"indexterm:[meta data]将资源配置为使用内部元数据意味着DRBD将其元数据存储在与实"
+"际生产数据相同的物理低级设备上。它通过在设备的末端留出一个区域来存储元数据。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:35 UG9/en/drbd-internals.adoc:85
+#, no-wrap
+msgid "Advantage"
+msgstr "优势"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:40
+#, fuzzy
+#| msgid ""
+#| "Since the meta data are inextricably linked with the actual data, no "
+#| "special action is required from the administrator in case of a hard disk "
+#| "failure. The meta data are lost together with the actual data and are "
+#| "also restored together."
+msgid ""
+"Since the metadata are inextricably linked with the actual data, no special "
+"action is required from the administrator in case of a hard disk failure. "
+"The metadata are lost together with the actual data and are also restored "
+"together."
+msgstr ""
+"由于元数据与实际数据有着千丝万缕的联系，因此在硬盘出现故障时，管理员无需执行"
+"任何特殊操作。元数据与实际数据一起丢失，也一起还原。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:41 UG9/en/drbd-internals.adoc:89
+#, no-wrap
+msgid "Disadvantage"
+msgstr "劣势"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:49
+#, fuzzy
+#| msgid ""
+#| "In case of the lower-level device being a single physical hard disk (as "
+#| "opposed to a RAID set), internal meta data may negatively affect write "
+#| "throughput. The performance of write requests by the application may "
+#| "trigger an update of the meta data in DRBD. If the meta data are stored "
+#| "on the same magnetic disk of a hard disk, the write operation may result "
+#| "in two additional movements of the write/read head of the hard disk."
+msgid ""
+"In case of the lower-level device being a single physical hard disk (as "
+"opposed to a RAID set), internal metadata may negatively affect write "
+"throughput. The performance of write requests by the application may trigger "
+"an update of the metadata in DRBD. If the metadata are stored on the same "
+"magnetic disk of a hard disk, the write operation may result in two "
+"additional movements of the write/read head of the hard disk."
+msgstr ""
+"如果较低级别的设备是单个物理硬盘（而不是RAID集），内部元数据可能会对写入吞吐"
+"量产生负面影响。应用程序的写请求的性能可能触发DRBD中的元数据的更新。如果元数"
+"据存储在硬盘的同一个磁盘上，则写入操作可能导致硬盘的写/读磁头的两个额外移动。"
+
+#. type: delimited block =
+#: UG9/en/drbd-internals.adoc:56
+#, fuzzy
+#| msgid ""
+#| "If you are planning to use internal meta data in conjunction with an "
+#| "existing lower-level device that already has data which you wish to "
+#| "preserve, you _must_ account for the space required by DRBD's meta data."
+msgid ""
+"If you are planning to use internal metadata in conjunction with an existing "
+"lower-level device that already has data that you want to preserve, you "
+"_must_ account for the space required by DRBD's metadata."
+msgstr ""
+"如果您计划将内部元数据与现有的较低级别设备结合使用，而该设备已具有您希望保留"
+"的数据，则 _必须_ 考虑DRBD元数据所需的空间。"
+
+#. type: delimited block =
+#: UG9/en/drbd-internals.adoc:60
+msgid ""
+"Otherwise, upon DRBD resource creation, the newly created metadata would "
+"overwrite data at the end of the lower-level device, potentially destroying "
+"existing files in the process."
+msgstr ""
+"否则，在创建DRBD资源时，新创建的元数据将覆盖较低级别设备末尾的数据，从而可能"
+"在该过程中破坏现有文件。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:63
+msgid "To avoid that, you must do one of the following things:"
+msgstr "要避免这种情况，您必须执行以下操作之一："
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:68
+#, fuzzy
+#| msgid ""
+#| "Enlarge your lower-level device. This is possible with any logical volume "
+#| "management facility (such as indexterm:[LVM]LVM) as long as you have free "
+#| "space available in the corresponding volume group. It may also be "
+#| "supported by hardware storage solutions."
+msgid ""
+"Enlarge your lower-level device. This is possible with any logical volume "
+"management facility (such as indexterm:[LVM]LVM) provided that you have free "
+"space available in the corresponding volume group. It may also be supported "
+"by hardware storage solutions."
+msgstr ""
+"扩容你的下层设备。只要在相应的卷组中有可用空间，任何逻辑卷管理工具（如"
+"indexterm:[LVM]LVM）都可以做到这一点。硬件存储解决方案也可能支持它。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:71
+msgid ""
+"Shrink your existing file system on your lower-level device. This may or may "
+"not be supported by your file system."
+msgstr "缩容较低级别设备上的现有文件系统。您的文件系统可能支持，也可能不支持。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:74
+#, fuzzy
+#| msgid ""
+#| "If neither of the two are possible, use <<s-external-meta-data,external "
+#| "meta data>> instead."
+msgid ""
+"If neither of the two are possible, use <<s-external-meta-data,external "
+"metadata>> instead."
+msgstr "如果两者都不可能，请改用<<s-external-meta-data,external meta data>>。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:77
+msgid ""
+"To estimate the amount by which you must enlarge your lower-level device or "
+"shrink your file system, see <<s-meta-data-size>>."
+msgstr ""
+"要估计必须放大低级设备或缩小文件系统的数量，请参见<<s-meta-data-size>>。"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:79
+#, fuzzy, no-wrap
+#| msgid "External meta data"
+msgid "External Metadata"
+msgstr "外部元数据"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:84
+#, fuzzy
+#| msgid ""
+#| "indexterm:[meta data]External meta data is simply stored on a separate, "
+#| "dedicated block device distinct from that which holds your production "
+#| "data."
+msgid ""
+"indexterm:[metadata]External metadata is simply stored on a separate, "
+"dedicated block device distinct from that which holds your production data."
+msgstr ""
+"indexterm:[meta data]外部元数据简单地存储在一个独立的专用块设备上，与保存生产"
+"数据的设备不同。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:88
+#, fuzzy
+#| msgid ""
+#| "For some write operations, using external meta data produces a somewhat "
+#| "improved latency behavior."
+msgid ""
+"For some write operations, using external metadata produces a somewhat "
+"improved latency behavior."
+msgstr "对于某些写操作，使用外部元数据会产生稍有改进的延迟行为。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:95
+#, fuzzy
+#| msgid ""
+#| "Meta data are not inextricably linked with the actual production data. "
+#| "This means that manual intervention is required in the case of a hardware "
+#| "failure destroying just the production data (but not DRBD meta data), to "
+#| "effect a full data sync from the surviving node onto the subsequently "
+#| "replaced disk."
+msgid ""
+"Meta data are not inextricably linked with the actual production data. This "
+"means that manual intervention is required in the case of a hardware failure "
+"destroying just the production data (but not DRBD metadata), to effect a "
+"full data sync from the surviving node onto the subsequently replaced disk."
+msgstr ""
+"元数据与实际生产数据并非密不可分。这意味着，在硬件故障仅破坏生产数据（而非"
+"DRBD元数据）的情况下，需要手动干预，以实现从幸存节点到随后更换的磁盘的完全数"
+"据同步。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:98
+#, fuzzy
+#| msgid ""
+#| "Use of external meta data is also the only viable option if _all_ of the "
+#| "following apply:"
+msgid ""
+"Use of external metadata is also the only viable option if _all_ of the "
+"following apply:"
+msgstr "如果适用以下所有条件，使用外部元数据也是唯一可行的选择："
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:101
+#, fuzzy
+#| msgid ""
+#| "You are using DRBD to duplicate an existing device that already contains "
+#| "data you wish to preserve, _and_"
+msgid ""
+"You are using DRBD to duplicate an existing device that already contains "
+"data you want to preserve, _and_"
+msgstr "您正在使用DRBD复制已包含要保留的数据的现有设备，_并且_"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:103
+msgid "that existing device does not support enlargement, _and_"
+msgstr "现有设备不支持扩容，_并且_"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:105
+msgid "the existing file system on the device does not support shrinking."
+msgstr "设备上现有的文件系统不支持收缩。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:108
+#, fuzzy
+#| msgid ""
+#| "To estimate the required size of the block device dedicated to hold your "
+#| "device meta data, see <<s-meta-data-size>>."
+msgid ""
+"To estimate the required size of the block device dedicated to hold your "
+"device metadata, see <<s-meta-data-size>>."
+msgstr ""
+"要估计专用于保存设备元数据的块设备所需的大小，请参见<<s-meta-data-size>>。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:110
+#, fuzzy
+#| msgid "External meta data requires a minimum of a 1MB device size."
+msgid "External metadata requires a minimum of a 1MB device size."
+msgstr "外部元数据至少需要1MB的设备大小。"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:112
+#, fuzzy, no-wrap
+#| msgid "Estimating meta data size"
+msgid "Estimating Metadata Size"
+msgstr "估计元数据大小"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:116
+#, fuzzy
+#| msgid ""
+#| "indexterm:[meta data]You may calculate the exact space requirements for "
+#| "DRBD's meta data using the following formula:"
+msgid ""
+"indexterm:[metadata]You may calculate the exact space requirements for "
+"DRBD's metadata using the following formula:"
+msgstr "indexterm:[meta data]您可以使用以下公式计算DRBD元数据的确切空间需求："
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:118
+#, fuzzy, no-wrap
+#| msgid "Calculating DRBD meta data size (exactly)"
+msgid "Calculating DRBD metadata size (exactly)"
+msgstr "计算DRBD元数据大小（精确）"
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:119
+#, no-wrap
+msgid "images/metadata-size-exact.svg"
+msgstr "images/metadata-size-exact.svg"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:122
+#, no-wrap
+msgid "*_C~s~_* is the data device size in sectors, and *_N_* is the number of peers.\n"
+msgstr "*_C~s~_* is the data device size in sectors, and *_N_* is the number of peers.\n"
+
+#. If
+#. you are using the <<al-stripe,al-stripes>> setting, additional space of size
+#. _al-stripes_ times _al-strip-size_ is required.
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:131
+msgid ""
+"You may retrieve the device size (in bytes) by issuing `blockdev --getsize64 "
+"<device>`; to convert to MB, divide by 1048576 (= 2^20^ or 1024^2^)."
+msgstr ""
+"您可以通过发出 `blockdev --getsize64 <device>` ；为转换为MB，除以1048576"
+"（=2^20^或1024^2^）来检索设备大小（字节）。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:134
+msgid ""
+"In practice, you may use a reasonably good approximation, given below. Note "
+"that in this formula, the unit is megabytes, not sectors:"
+msgstr ""
+"实际上，您可以使用一个相当好的近似值，如下所示。注意，在这个公式中，单位是兆"
+"字节，而不是扇区："
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:136
+#, fuzzy, no-wrap
+#| msgid "Estimating DRBD meta data size (approximately)"
+msgid "Estimating DRBD metadata size (approximately)"
+msgstr "估计DRBD元数据大小（大约）"
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:137
+#, no-wrap
+msgid "images/metadata-size-approx.svg"
+msgstr "images/metadata-size-approx.svg"
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:140
+#, no-wrap
+msgid "Generation Identifiers"
+msgstr "生成标识符"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:144
+msgid ""
+"indexterm:[generation identifiers]DRBD uses _generation identifiers_ (GIs) "
+"to identify \"generations\" of replicated data."
+msgstr ""
+"indexterm:[generation identifiers]DRBD使用生成标识符（GIs）来标识复制数据的 "
+"\"生成\"。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:146
+msgid "This is DRBD's internal mechanism used for"
+msgstr "这是DRBD的内部机制，用于"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:149
+msgid ""
+"determining whether the two nodes are in fact members of the same cluster "
+"(as opposed to two nodes that were connected accidentally),"
+msgstr "确定这两个节点是否实际上是同一集群的成员（与意外连接的两个节点相反），"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:152
+msgid ""
+"determining the direction of background re-synchronization (if necessary),"
+msgstr "确定背景重新同步的方向（如有必要），"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:155
+msgid ""
+"determining whether full re-synchronization is necessary or whether partial "
+"re-synchronization is sufficient,"
+msgstr "确定是否需要完全重新同步或部分重新同步是否足够，"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:157
+msgid "indexterm:[split brain]identifying split brain."
+msgstr "indexterm:[split brain]识别裂脑。"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:159
+#, fuzzy, no-wrap
+#| msgid "Data generations"
+msgid "Data Generations"
+msgstr "数据生成"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:163
+msgid ""
+"DRBD marks the start of a new _data generation_ at each of the following "
+"occurrences:"
+msgstr "DRBD在以下每一次出现时都标志着新数据生成的开始："
+
+#.  FIXME PRe
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:167
+msgid "The initial device full sync,"
+msgstr "初始设备完全同步，"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:169
+msgid "a disconnected resource switching to the primary role,"
+msgstr "断开连接的资源切换到主角色，"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:171
+msgid "a resource in the primary role disconnecting."
+msgstr "主角色中的资源正在断开连接。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:179
+#, fuzzy
+#| msgid ""
+#| "Thus, we can summarize that whenever a resource is in the _Connected_ "
+#| "connection state, and both nodes' disk state is _UpToDate_, the current "
+#| "data generation on both nodes is the same. The inverse is also true. Note "
+#| "that the current implementation uses the lowest bit to encode the role of "
+#| "the node (Primary/Secondary). Therefore, the lowest bit might be "
+#| "different on distinct nodes even if they are considered to have the same "
+#| "data generation."
+msgid ""
+"Therefore, we can summarize that whenever a resource is in the _Connected_ "
+"connection state, and both nodes' disk state is _UpToDate_, the current data "
+"generation on both nodes is the same. The inverse is also true. Note that "
+"the current implementation uses the lowest bit to encode the role of the "
+"node (Primary/Secondary). Therefore, the lowest bit might be different on "
+"distinct nodes even if they are considered to have the same data generation."
+msgstr ""
+"因此，我们可以总结出，每当资源处于 _Connected_ 连接状态，并且两个节点的磁盘状"
+"态都是 _UpToDate_ 时，两个节点上的当前数据生成都是相同的。反之亦然。注意，当"
+"前实现使用最低的位来编码节点的角色（主/次）。因此，即使被认为具有相同的数据生"
+"成，不同节点上的最低位也可能不同。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:182
+msgid ""
+"Every new data generation is identified by an 8-byte, universally unique "
+"identifier (UUID)."
+msgstr "每个新的数据生成都由一个8字节的通用唯一标识符（UUID）标识。"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:184
+#, fuzzy, no-wrap
+#| msgid "The generation identifier tuple"
+msgid "The Generation Identifier Tuple"
+msgstr "生成标识符元组"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:188
+#, fuzzy
+#| msgid ""
+#| "DRBD keeps some pieces of information about current and historical data "
+#| "generations in the local resource meta data:"
+msgid ""
+"DRBD keeps some pieces of information about current and historical data "
+"generations in the local resource metadata:"
+msgstr "DRBD在本地资源元数据中保留一些有关当前和历史数据生成的信息："
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:189
+#, no-wrap
+msgid "Current UUID"
+msgstr "当前UUID"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:194
+msgid ""
+"This is the generation identifier for the current data generation, as seen "
+"from the local node's perspective. When a resource is _Connected_ and fully "
+"synchronized, the current UUID is identical between nodes."
+msgstr ""
+"从本地节点的角度看，这是当前数据生成的生成标识符。当资源连接并完全同步时，节"
+"点之间的当前UUID是相同的。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:195
+#, no-wrap
+msgid "Bitmap UUIDs"
+msgstr "Bitmap UUIDs"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:199
+msgid ""
+"This is the UUID of the generation against which this on-disk bitmap is "
+"tracking changes (per remote host). Like the on-disk sync bitmap itself, "
+"this identifier is only relevant while the remote host is disconnected."
+msgstr ""
+"这是此磁盘上位图跟踪更改（每个远程主机）所依据的生成的UUID。与磁盘上同步位图"
+"本身一样，此标识符仅在远程主机断开连接时才相关。"
+
+#.  If the resource is _Connected_, this UUID is always empty (zero). FIXME
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:202
+#, no-wrap
+msgid "Historical UUIDs"
+msgstr "历史UUIDs"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:205
+msgid ""
+"These are the identifiers of data generations preceding the current one, "
+"sized to have one slot per (possible) remote host."
+msgstr ""
+"这些是当前数据生成之前的数据生成的标识符，大小为每个（可能的）远程主机有一个"
+"插槽。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:208
+msgid ""
+"Collectively, these items are referred to as the _generation identifier "
+"tuple_, or \"__GI tuple__\" for short."
+msgstr "这些项统称为 _generation identifier tuple_ ，简称为 \"__GI tuple__\"。"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:210
+#, fuzzy, no-wrap
+#| msgid "How generation identifiers change"
+msgid "How Generation Identifiers Change"
+msgstr "生成标识符如何更改"
+
+#. type: Title =====
+#: UG9/en/drbd-internals.adoc:213
+#, fuzzy, no-wrap
+#| msgid "Start of a new data generation"
+msgid "Start of a New Data Generation"
+msgstr "开始新的数据生成"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:218
+msgid ""
+"When a node in _Primary_ role loses connection to its peer (either by "
+"network failure or manual intervention), DRBD modifies its local generation "
+"identifiers in the following manner:"
+msgstr ""
+"当处于 _主要_ 角色的节点失去与其对等节点的连接时（通过网络故障或手动干预），"
+"DRBD按以下方式修改其本地生成标识符："
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:220
+#, no-wrap
+msgid "GI tuple changes at start of a new data generation"
+msgstr "在新数据生成开始时更改GI元组"
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:221
+#, no-wrap
+msgid "images/gi-changes-newgen.svg"
+msgstr "images/gi-changes-newgen.svg"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:225
+msgid ""
+"The primary creates a new UUID for the new data generation. This becomes the "
+"_new_ current UUID for the primary node."
+msgstr "主节点为新的数据生成创建一个新的UUID。这将成为主节点的当前UUID。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:229
+msgid ""
+"The _previous_ current UUID now refers to the generation the bitmap is "
+"tracking changes against, so it becomes the new bitmap UUID for the primary "
+"node."
+msgstr ""
+"前一个当前的UUID现在引用位图跟踪更改的生成，因此它成为主节点的新位图UUID。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:231
+msgid "On the secondary node(s), the GI tuple remains unchanged."
+msgstr "在次节点上，GI元组保持不变。"
+
+#. type: Title =====
+#: UG9/en/drbd-internals.adoc:234
+#, fuzzy, no-wrap
+#| msgid "Completion of re-synchronization"
+msgid "Completion of Resynchronization"
+msgstr "重新同步完成"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:238
+#, fuzzy
+#| msgid ""
+#| "When re-synchronization concludes, the synchronization target adopts the "
+#| "entire GI tuple from the synchronization source."
+msgid ""
+"When resynchronization concludes, the synchronization target adopts the "
+"entire GI tuple from the synchronization source."
+msgstr "当重新同步结束时，同步目标采用来自同步源的整个GI元组。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:240
+msgid ""
+"The synchronization source keeps the same set, and doesn't generate new "
+"UUIDs."
+msgstr "同步源保持相同的集合，并且不生成新的uuid。"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:242
+#, fuzzy, no-wrap
+#| msgid "How DRBD uses generation identifiers"
+msgid "How DRBD Uses Generation Identifiers"
+msgstr "DRBD如何使用生成标识符"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:247
+#, fuzzy
+#| msgid ""
+#| "When a connection between nodes is established, the two nodes exchange "
+#| "their currently available generation identifiers, and proceed "
+#| "accordingly. A number of possible outcomes exist:"
+msgid ""
+"When a connection between nodes is established, the two nodes exchange their "
+"currently available generation identifiers, and proceed accordingly. Several "
+"possible outcomes exist:"
+msgstr ""
+"当节点之间建立连接时，两个节点交换其当前可用的生成标识符，并相应地继续。存在"
+"许多可能的结果："
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:248
+#, no-wrap
+msgid "Current UUIDs empty on both nodes"
+msgstr "两个节点上的当前uuid均为空"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:254
+msgid ""
+"The local node detects that both its current UUID and the peer's current "
+"UUID are empty. This is the normal occurrence for a freshly configured "
+"resource that has not had the initial full sync initiated. No "
+"synchronization takes place; it has to be started manually."
+msgstr ""
+"本地节点检测到其当前UUID和对等方的当前UUID都为空。这是新配置的资源的正常情"
+"况，该资源尚未启动初始完全同步。不进行同步；必须手动启动。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:255
+#, no-wrap
+msgid "Current UUIDs empty on one node"
+msgstr "一个节点上的当前uuid为空"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:265
+msgid ""
+"The local node detects that the peer's current UUID is empty, and its own is "
+"not. This is the normal case for a freshly configured resource on which the "
+"initial full sync has just been initiated, the local node having been "
+"selected as the initial synchronization source. DRBD now sets all bits in "
+"the on-disk sync bitmap (meaning it considers the entire device out-of-"
+"sync), and starts synchronizing as a synchronization source. In the opposite "
+"case (local current UUID empty, peer's non-empty), DRBD performs the same "
+"steps, except that the local node becomes the synchronization target."
+msgstr ""
+"本地节点检测到对等方的当前UUID为空，而其自身的UUID为空。对于刚刚启动初始完全"
+"同步的新配置资源，这是正常情况，已选择本地节点作为初始同步源。DRBD现在设置磁"
+"盘同步位图中的所有位（意味着它认为整个设备不同步），并作为同步源开始同步。在"
+"相反的情况下（本地当前UUID为空，对等端为非空），DRBD执行相同的步骤，只是本地"
+"节点成为同步目标。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:266
+#, no-wrap
+msgid "Equal current UUIDs"
+msgstr "匹配当前 UUIDs"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:272
+msgid ""
+"The local node detects that its current UUID and the peer's current UUID are "
+"non-empty and equal. This is the normal occurrence for a resource that went "
+"into disconnected mode at a time when it was in the secondary role, and was "
+"not promoted on either node while disconnected. No synchronization takes "
+"place, as none is necessary."
+msgstr ""
+"本地节点检测到其当前UUID和对等方的当前UUID不为空且相等。这是资源在处于次要角"
+"色时进入断开连接模式的正常情况，并且在断开连接时未在任何节点上升级。不需要同"
+"步，因为不需要同步。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:273
+#, no-wrap
+msgid "Bitmap UUID matches peer's current UUID"
+msgstr "位图UUID与对等方的当前UUID匹配"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:287
+msgid ""
+"The local node detects that its bitmap UUID matches the peer's current UUID, "
+"and that the peer's bitmap UUID is empty. This is the normal and expected "
+"occurrence after a secondary node failure, with the local node being in the "
+"primary role. It means that the peer never became primary in the meantime "
+"and worked on the basis of the same data generation all along. DRBD now "
+"initiates a normal, background re-synchronization, with the local node "
+"becoming the synchronization source. If, conversely, the local node detects "
+"that _its_ bitmap UUID is empty, and that the _peer's_ bitmap matches the "
+"local node's current UUID, then that is the normal and expected occurrence "
+"after a failure of the local node. Again, DRBD now initiates a normal, "
+"background re-synchronization, with the local node becoming the "
+"synchronization target."
+msgstr ""
+"本地节点检测到其位图UUID与对等方的当前UUID匹配，并且对等方的位图UUID为空。这"
+"是在次要节点发生故障（本地节点处于主要角色）后发生的正常且预期的事件。这意味"
+"着对等方从来没有在同一时间成为主要的，并且一直在同一数据生成的基础上工作。"
+"DRBD现在启动一个正常的后台重新同步，本地节点成为同步源。相反，如果本地节点检"
+"测到其位图UUID为空，并且该位图与本地节点的当前UUID匹配，则这是本地节点发生故"
+"障后的正常和预期发生。再次，DRBD现在启动一个正常的后台重新同步，本地节点成为"
+"同步目标。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:288
+#, no-wrap
+msgid "Current UUID matches peer's historical UUID"
+msgstr "当前UUID与对等方的历史UUID匹配"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:300
+#, fuzzy
+#| msgid ""
+#| "The local node detects that its current UUID matches one of the peer's "
+#| "historical UUID's. This implies that while the two data sets share a "
+#| "common ancestor, and the peer node has the up-to-date data, the "
+#| "information kept in the peer node's bitmap is outdated and not usable. "
+#| "Thus, a normal synchronization would be insufficient. DRBD now marks the "
+#| "entire device as out-of-sync and initiates a full background re-"
+#| "synchronization, with the local node becoming the synchronization target. "
+#| "In the opposite case (one of the local node's historical UUID matches the "
+#| "peer's current UUID), DRBD performs the same steps, except that the local "
+#| "node becomes the synchronization source."
+msgid ""
+"The local node detects that its current UUID matches one of the peer's "
+"historical UUIDs. This implies that while the two data sets share a common "
+"ancestor, and the peer node has the up-to-date data, the information kept in "
+"the peer node's bitmap is outdated and not usable. Therefore, a normal "
+"synchronization would be insufficient. DRBD now marks the entire device as "
+"out-of-sync and initiates a full background re-synchronization, with the "
+"local node becoming the synchronization target. In the opposite case (one of "
+"the local node's historical UUID matches the peer's current UUID), DRBD "
+"performs the same steps, except that the local node becomes the "
+"synchronization source."
+msgstr ""
+"本地节点检测到其当前的UUID与对等方的历史UUID之一匹配。这意味着，虽然这两个数"
+"据集共享一个共同的祖先，并且对等方节点具有最新的数据，但对等方节点位图中保留"
+"的信息已过时且不可用。因此，正常的同步是不够的。DRBD现在将整个设备标记为不同"
+"步，并启动完全后台重新同步，本地节点将成为同步目标。在相反的情况下（本地节点"
+"的一个历史UUID与对等节点的当前UUID匹配），DRBD执行相同的步骤，只是本地节点成"
+"为同步源。"
+
+#.  ERROR: FIXME
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:303
+#, no-wrap
+msgid "Bitmap UUIDs match, current UUIDs do not"
+msgstr "位图uuid匹配，当前uuid不匹配"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:310
+#, fuzzy
+#| msgid ""
+#| "indexterm:[split brain]The local node detects that its current UUID "
+#| "differs from the peer's current UUID, and that the bitmap UUID's match. "
+#| "This is split brain, but one where the data generations have the same "
+#| "parent. This means that DRBD invokes split brain auto-recovery "
+#| "strategies, if configured. Otherwise, DRBD disconnects and waits for "
+#| "manual split brain resolution."
+msgid ""
+"indexterm:[split brain]The local node detects that its current UUID differs "
+"from the peer's current UUID, and that the bitmap UUIDs match. This is split "
+"brain, but one where the data generations have the same parent. This means "
+"that DRBD invokes split brain auto-recovery strategies, if configured. "
+"Otherwise, DRBD disconnects and waits for manual split brain resolution."
+msgstr ""
+"indexterm:[split brain]本地节点检测到其当前UUID与对等节点的当前UUID不同，并且"
+"位图UUID匹配。这是分裂的大脑，但其中的数据世代有相同的父母。这意味着，如果配"
+"置了DRBD，它会调用分割大脑自动恢复策略。否则，DRBD将断开连接，等待手动拆分大"
+"脑分辨率。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:311
+#, no-wrap
+msgid "Neither current nor bitmap UUIDs match"
+msgstr "当前uuid和位图uuid都不匹配"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:317
+#, fuzzy
+#| msgid ""
+#| "The local node detects that its current UUID differs from the peer's "
+#| "current UUID, and that the bitmap UUID's _do not_ match. This is split "
+#| "brain with unrelated ancestor generations, thus auto-recovery strategies, "
+#| "even if configured, are moot. DRBD disconnects and waits for manual split "
+#| "brain resolution."
+msgid ""
+"The local node detects that its current UUID differs from the peer's current "
+"UUID, and that the bitmap UUIDs _do not_ match. This is split brain with "
+"unrelated ancestor generations, therefore auto-recovery strategies, even if "
+"configured, are moot. DRBD disconnects and waits for manual split brain "
+"resolution."
+msgstr ""
+"本地节点检测到其当前UUID与对等方的当前UUID不同，并且位图UUID的不匹配。这是分"
+"裂的大脑与无关的祖先世代，因此自动恢复策略，即使配置，是没有意义的。DRBD断开"
+"连接并等待手动分割大脑分辨率。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:318
+#, no-wrap
+msgid "No UUIDs match"
+msgstr "无Uuid匹配"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:324
+msgid ""
+"Finally, in case DRBD fails to detect even a single matching element in the "
+"two nodes' GI tuples, it logs a warning about unrelated data and "
+"disconnects. This is DRBD's safeguard against accidental connection of two "
+"cluster nodes that have never heard of each other before."
+msgstr ""
+"最后，如果DRBD在两个节点的GI元组中甚至检测不到一个匹配的元素，它会记录一个关"
+"于不相关数据和断开连接的警告。这是DRBD防止两个以前从未听说过的集群节点意外连"
+"接的保护措施。"
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:327
+#, no-wrap
+msgid "The Activity Log"
+msgstr "活动日志"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:330
+#, no-wrap
+msgid "Purpose"
+msgstr "目的"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:338
+#, fuzzy
+#| msgid ""
+#| "indexterm:[Activity Log]During a write operation DRBD forwards the write "
+#| "operation to the local backing block device, but also sends the data "
+#| "block over the network. These two actions occur, for all practical "
+#| "purposes, simultaneously. Random timing behavior may cause a situation "
+#| "where the write operation has been completed, but the transmission via "
+#| "the network has not yet taken place, or vice versa."
+msgid ""
+"indexterm:[Activity Log]During a write operation DRBD forwards the write "
+"operation to the local backing block device, but also sends the data block "
+"over the network. These two actions occur, for all practical purposes, "
+"simultaneously. Random timing behavior may cause a situation where the write "
+"operation has been completed, but the transmission over the network has not "
+"yet taken place, or vice versa."
+msgstr ""
+"indexterm:[Activity Log]在写操作期间，DRBD将写操作转发到本地备份块设备，但也"
+"通过网络发送数据块。出于所有实际目的，这两个动作同时发生。随机定时行为可能导"
+"致写入操作已完成，但经由网络的传输尚未发生的情况，反之亦然。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:352
+#, fuzzy
+#| msgid ""
+#| "If, at this moment, the active node fails and fail-over is being "
+#| "initiated, then this data block is out of sync between nodes -- it has "
+#| "been written on the failed node prior to the crash, but replication has "
+#| "not yet completed. Thus, when the node eventually recovers, this block "
+#| "must be removed from the data set during subsequent synchronization. "
+#| "Otherwise, the crashed node would be \"one write ahead\" of the surviving "
+#| "node, which would violate the \"all or nothing\" principle of replicated "
+#| "storage. This is an issue that is not limited to DRBD, in fact, this "
+#| "issue exists in practically all replicated storage configurations. Many "
+#| "other storage solutions (just as DRBD itself, prior to version 0.7) thus "
+#| "require that after a failure of the active node the data must be fully "
+#| "synchronized after its recovery."
+msgid ""
+"If, at this moment, the active node fails and failover is being initiated, "
+"then this data block is out of sync between nodes -- it has been written on "
+"the failed node prior to the failure, but replication has not yet completed. "
+"Therefore, when the node eventually recovers, this block must be removed "
+"from the data set during subsequent synchronization. Otherwise, the failed "
+"node would be \"one write ahead\" of the surviving node, which would violate "
+"the \"all or nothing\" principle of replicated storage. This is an issue "
+"that is not limited to DRBD, in fact, this issue exists in practically all "
+"replicated storage configurations. Many other storage solutions (just as "
+"DRBD itself, prior to version 0.7) therefore require that after a failure of "
+"the active node the data must be fully synchronized after its recovery."
+msgstr ""
+"如果此时活动节点发生故障，并且正在启动故障转移，则此数据块在节点之间不同步—它"
+"在崩溃之前已写入到发生故障的节点上，但复制尚未完成。因此，当节点最终恢复时，"
+"必须在后续同步期间从数据集中删除此块。否则，崩溃的节点将比幸存的节点 \"提前一"
+"次写入\"，这将违反复制存储的 \"全部或无\" 原则。这是一个不仅限于DRBD的问题，"
+"事实上，这个问题实际上存在于几乎所有的复制存储配置中。许多其他存储解决方案"
+"（就像DRBD本身一样，在0.7之前）因此要求在活动节点发生故障后，数据在恢复后必须"
+"完全同步。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:357
+#, fuzzy
+#| msgid ""
+#| "DRBD's approach, since version 0.7, is a different one. The _activity "
+#| "log_ (AL), stored in the meta data area, keeps track of those blocks that "
+#| "have \"recently\" been written to. Colloquially, these areas are referred "
+#| "to as _hot extents_."
+msgid ""
+"DRBD's approach, since version 0.7, is a different one. The _activity log_ "
+"(AL), stored in the metadata area, keeps track of those blocks that have "
+"\"recently\" been written to. Colloquially, these areas are referred to as "
+"_hot extents_."
+msgstr ""
+"DRBD的方法，因为版本0.7，是不同的。存储在元数据区域中的 _活动日志_（AL）跟踪"
+"那些 \"最近\" 被写入的块。通俗地说，这些地区被称为 \"热区\"。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:363
+#, fuzzy
+#| msgid ""
+#| "If a temporarily failed node that was in active mode at the time of "
+#| "failure is synchronized, only those hot extents highlighted in the AL "
+#| "need to be synchronized (plus any blocks marked in the bitmap on the now-"
+#| "active peer), rather than the full device. This drastically reduces "
+#| "synchronization time after an active node crash."
+msgid ""
+"If a temporarily failed node that was in active mode at the time of failure "
+"is synchronized, only those hot extents highlighted in the AL need to be "
+"synchronized (plus any blocks marked in the bitmap on the now-active peer), "
+"rather than the full device. This drastically reduces synchronization time "
+"after an active node failure."
+msgstr ""
+"如果同步发生故障时处于活动模式的临时故障节点，则只需要同步AL中突出显示的热数"
+"据块（加上当前活动对等机上位图中标记的任何块），而不需要同步整个设备。这大大"
+"缩短了活动节点崩溃后的同步时间。"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:365
+#, fuzzy, no-wrap
+#| msgid "Active extents"
+msgid "Active Extents"
+msgstr "活动范围"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:372
+#, fuzzy
+#| msgid ""
+#| "indexterm:[Activity Log]The activity log has a configurable parameter, "
+#| "the number of active extents. Every active extent adds 4MiB to the amount "
+#| "of data being retransmitted after a Primary crash. This parameter must be "
+#| "understood as a compromise between the following opposites:"
+msgid ""
+"indexterm:[Activity Log]The activity log has a configurable parameter, the "
+"number of active extents. Every active extent adds 4MiB to the amount of "
+"data being retransmitted after a Primary failure. This parameter must be "
+"understood as a compromise between the following opposites:"
+msgstr ""
+"indexterm:[活动日志]活动日志有一个可配置的参数，即活动扩展的数量。每个活动数"
+"据块都会在主崩溃后重新传输的数据量上增加4MiB。必须将此参数理解为以下两个对立"
+"面之间的折衷："
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:373
+#, no-wrap
+msgid "Many active extents"
+msgstr "许多活动范围"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:380
+#, fuzzy
+#| msgid ""
+#| "Keeping a large activity log improves write throughput. Every time a new "
+#| "extent is activated, an old extent is reset to inactive. This transition "
+#| "requires a write operation to the meta data area. If the number of active "
+#| "extents is high, old active extents are swapped out fairly rarely, "
+#| "reducing meta data write operations and thereby improving performance."
+msgid ""
+"Keeping a large activity log improves write throughput. Every time a new "
+"extent is activated, an old extent is reset to inactive. This change "
+"requires a write operation to the metadata area. If the number of active "
+"extents is high, old active extents are swapped out fairly rarely, reducing "
+"metadata write operations and thereby improving performance."
+msgstr ""
+"保持较大的活动日志可以提高写吞吐量。每次激活新数据块时，旧数据块都会重置为非"
+"活动数据块。此转换需要对元数据区域执行写操作。如果活动扩展数据块的数量很高，"
+"则旧的活动扩展数据块很少被换出，从而减少元数据写入操作，从而提高性能。"
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:381
+#, no-wrap
+msgid "Few active extents"
+msgstr "活动范围很少"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:384
+msgid ""
+"Keeping a small activity log reduces synchronization time after active node "
+"failure and subsequent recovery."
+msgstr "保持一个小的活动日志可以减少活动节点故障和后续恢复后的同步时间。"
+
+#. type: Title ====
+#: UG9/en/drbd-internals.adoc:387
+#, fuzzy, no-wrap
+#| msgid "Selecting a suitable Activity Log size"
+msgid "Selecting a Suitable Activity Log Size"
+msgstr "选择适当的活动日志大小"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:393
+msgid ""
+"indexterm:[Activity Log]Consideration of the number of extents should be "
+"based on the desired synchronization time at a given synchronization rate. "
+"The number of active extents can be calculated as follows:"
+msgstr ""
+"indexterm:[活动日志]应根据给定同步速率下的所需同步时间来考虑扩展数据块的数"
+"量。活动范围的数量可以按以下方式计算："
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:395
+#, no-wrap
+msgid "Active extents calculation based on sync rate and target sync time"
+msgstr "基于同步速率和目标同步时间的活动数据块计算"
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:396
+#, no-wrap
+msgid "images/al-extents.svg"
+msgstr "images/al-extents.svg"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:401
+msgid ""
+"_R_ is the synchronization rate, given in MiB/s. _t~sync~_ is the target "
+"synchronization time, in seconds. _E_ is the resulting number of active "
+"extents."
+msgstr ""
+"_R_ 是同步速率，以MiB/s为单位。_t~sync_ 是目标同步时间，以秒为单位。_E_ 是活"
+"动范围的结果数量。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:406
+msgid ""
+"To provide an example, suppose the cluster has an I/O subsystem with a "
+"throughput rate of 200 MiByte/s that was configured to a synchronization "
+"rate (_R_) of 60 MiByte/s, and we want to keep the target synchronization "
+"time (_t~sync~_) at 4 minutes or 240 seconds:"
+msgstr ""
+"举个例子，假设集群有一个I/O子系统，其吞吐量 (_R_) 为200兆字节/秒，配置为60兆"
+"字节/秒的同步速率，并且我们希望将目标同步时间（_t~tsync~_）保持在4分或240秒："
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:408
+#, no-wrap
+msgid "Active extents calculation based on sync rate and target sync time (example)"
+msgstr "基于同步速率和目标同步时间的活动数据块计算（示例）"
+
+#. type: Target for macro image
+#: UG9/en/drbd-internals.adoc:409
+#, no-wrap
+msgid "images/al-extents-example.svg"
+msgstr "images/al-extents-example.svg"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:413
+msgid ""
+"On a final note, DRBD 9 needs to keep an AL even on the Secondary nodes, as "
+"their data might be used to synchronize other Secondary nodes."
+msgstr ""
+"最后，DRBD 9需要在次要节点上保持AL，因为它们的数据可能用于同步其他次要节点。"
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:416
+#, fuzzy, no-wrap
+#| msgid "The quick-sync bitmap"
+msgid "The Quick-sync Bitmap"
+msgstr "快速同步位图"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:423
+msgid ""
+"indexterm:[quick-sync bitmap]indexterm:[bitmap (DRBD-specific concept)]The "
+"quick-sync bitmap is the internal data structure which DRBD uses, on a per-"
+"resource per-peer basis, to keep track of blocks being in sync (identical on "
+"both nodes) or out-of sync. It is only relevant when a resource is in "
+"disconnected mode."
+msgstr ""
+"indexterm:[quick-sync bitmap]indexterm:[bitmap（DRBD-specific "
+"concept）]quick sync bitmap是内部数据结构，DRBD在每个对等资源上使用它来跟踪正"
+"在同步（在两个节点上相同）或不同步的块。它只在资源处于断开连接模式时才相关。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:430
+msgid ""
+"In the quick-sync bitmap, one bit represents a 4-KiB chunk of on-disk data. "
+"If the bit is cleared, it means that the corresponding block is still in "
+"sync with the peer node. That implies that the block has not been written to "
+"since the time of disconnection. Conversely, if the bit is set, it means "
+"that the block has been modified and needs to be re-synchronized whenever "
+"the connection becomes available again."
+msgstr ""
+"在快速同步位图中，一位表示磁盘上的4 KiB数据块。如果该位被清除，则表示对应的块"
+"仍与对等节点同步。这意味着自断开连接时起就没有写入块。相反，如果设置了位，则"
+"意味着块已被修改，并且需要在连接再次可用时重新同步。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:440
+#, fuzzy
+#| msgid ""
+#| "As DRBD detects write I/O on a disconnected device, and hence starts "
+#| "setting bits in the quick-sync bitmap, it does so in RAM -- thus avoiding "
+#| "expensive synchronous metadata I/O operations. Only when the "
+#| "corresponding blocks turn cold (that is, expire from the <<s-activity-log,"
+#| "Activity Log>>), DRBD makes the appropriate modifications in an on-disk "
+#| "representation of the quick-sync bitmap. Likewise, if the resource "
+#| "happens to be manually shut down on the remaining node while "
+#| "disconnected, DRBD flushes the _complete_ quick-sync bitmap out to "
+#| "persistent storage."
+msgid ""
+"As DRBD detects write I/O on a disconnected device, and therefore starts "
+"setting bits in the quick-sync bitmap, it does so in RAM -- therefore "
+"avoiding expensive synchronous metadata I/O operations. Only when the "
+"corresponding blocks turn cold (that is, expire from the <<s-activity-log,"
+"Activity Log>>), DRBD makes the appropriate modifications in an on-disk "
+"representation of the quick-sync bitmap. Likewise, if the resource happens "
+"to be manually shut down on the remaining node while disconnected, DRBD "
+"flushes the _complete_ quick-sync bitmap out to persistent storage."
+msgstr ""
+"当DRBD检测到断开连接的设备上的写I/O，并因此开始在快速同步位图中设置位时，它在"
+"RAM中这样做——从而避免了昂贵的同步元数据I/O操作。只有当相应的块变冷时（即，从"
+"<<s-activity-log,Activity Log>>过期），DRBD才会在快速同步位图的磁盘表示中进行"
+"适当的修改。同样，如果在断开连接的同时碰巧手动关闭了剩余节点上的资源，DRBD会"
+"将快速同步位图刷新到持久存储。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:446
+msgid ""
+"When the peer node recovers or the connection is re-established, DRBD "
+"combines the bitmap information from both nodes to determine the _total data "
+"set_ that it must re-synchronize. Simultaneously, DRBD <<s-gi-use,examines "
+"the generation identifiers>> to determine the _direction_ of synchronization."
+msgstr ""
+"当对等节点恢复或重新建立连接时，DRBD结合来自两个节点的位图信息来确定必须重新"
+"同步的 _总数据集_ 。同时，DRBD<<s-gi-use,examines the generation "
+"identifiers>>以确定同步的 _方向_ 。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:452
+msgid ""
+"The node acting as the synchronization source then transmits the agreed-upon "
+"blocks to the peer node, clearing sync bits in the bitmap as the "
+"synchronization target acknowledges the modifications. If the re-"
+"synchronization is now interrupted (by another network outage, for example) "
+"and subsequently resumed it will continue where it left off"
+msgstr ""
+"然后，作为同步源的节点将商定的块发送到对等节点，在同步目标确认修改时清除位图"
+"中的同步位。如果重新同步现在被中断（例如，被另一个网络中断）并随后恢复，它将"
+"在中断的地方继续"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:454
+msgid ""
+"with any additional blocks modified in the meantime being added to the re-"
+"synchronization data set, of course."
+msgstr "当然，同时修改的任何其他块都会被添加到重新同步数据集中。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:461
+msgid ""
+"Re-synchronization may be also be paused and resumed manually with the "
+"indexterm:[drbdadm, pause-sync]`drbdadm pause-sync` and indexterm:[drbdadm, "
+"resume-sync]`drbdadm resume-sync` commands. You should, however, not do so "
+"light-heartedly -- interrupting re-synchronization leaves your secondary "
+"node's disk _Inconsistent_ longer than necessary."
+msgstr ""
+"使用indexterm:[drbdadm，pause-sync] `drbdadm pause-sync` 和indexterm:"
+"[drbdadm，resume-sync]`drbdadm resume-sync`命令也可以暂停并手动恢复重新同步。"
+"但是，您不应该心平气和地这样做——中断重新同步会使辅助节点的磁盘不一致的时间超"
+"过必要的时间。"
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:463
+#, fuzzy, no-wrap
+#| msgid "The Peer-Fencing interface"
+msgid "The Peer-fencing Interface"
+msgstr "节点围栏接口"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:472
+#, fuzzy
+#| msgid ""
+#| "DRBD has an interface defined for fencingfootnote:[For a discussion about "
+#| "Fencing and STONITH, please see the corresponding Pacemaker page http://"
+#| "clusterlabs.org/doc/crm_fencing.html.] the peer node in case of the "
+#| "replication link being interrupted. The `drbd-peer-outdater` helper, "
+#| "bundled with Heartbeat, is the reference implementation for this "
+#| "interface. However, you may easily implement your own peer fencing helper "
+#| "program."
+msgid ""
+"DRBD has an interface defined for fencingfootnote:[For a discussion about "
+"Fencing and STONITH, please see the corresponding Pacemaker page http://"
+"clusterlabs.org/doc/crm_fencing.html.] the peer node in case of the "
+"replication link being interrupted. The `fence-peer` should mark the disk(s) "
+"on the peer node as _Outdated_, or shut down the peer node. It has to "
+"fulfill these tasks under the assumption that the replication network is "
+"down."
+msgstr ""
+"DRBD有一个为fencing定义的接口footnote:[有关围栏和STONITH的讨论，请参见相应的"
+"起搏器页面http://clusterlabs.org/doc/crm\\u Fencing.html.]如果复制链接被中"
+"断，则是对等节点。与Heartbeat捆绑在一起的“drbd peer outdater”助手是此接口的引"
+"用实现。但是，您可以轻松实现自己的同伴击剑助手程序。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:474
+msgid "The fencing helper is invoked only in case"
+msgstr "只有在出现以下情况时才会调用击剑助手"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:477
+msgid ""
+"a `fence-peer` handler has been defined in the resource's (or `common`)  "
+"`handlers` section, _and_"
+msgstr ""
+"在资源的（或“common”）“handler s”部分中定义了“fence peer”处理程序，然后_"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:480
+msgid ""
+"the `fencing` option for the resource is set to either `resource-only` or "
+"`resource-and-stonith`, _and_"
+msgstr "资源的“fencing”选项设置为“resource only”或“resource and stonith”_"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:485
+#, fuzzy
+#| msgid ""
+#| "the replication link is interrupted long enough for DRBDfootnote:[That "
+#| "means e.g. a TCP timeout, the `ping-timeout`, or the kernel triggers a "
+#| "connection abort e.g. because the network link goes down.] to detect a "
+#| "network failure."
+msgid ""
+"the node was primary _and_ the replication link is interrupted long enough "
+"for DRBDfootnote:[That means, for example, a TCP timeout, the `ping-"
+"timeout`, or the kernel triggers a connection abort, perhaps as a result of "
+"the network link going down.] to detect a network failure. _or_"
+msgstr ""
+"复制链接中断的时间足够DRBDfootnote:[这意味着TCP超时、“ping超时”或内核触发连接"
+"中止，例如因为网络链接断开。]以检测网络故障。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:488
+msgid ""
+"the node should promote to primary _and_ is not connected to the peer _and_ "
+"the peer's disks are not already marked as _Outdated_."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:494
+msgid ""
+"The program or script specified as the `fence-peer` handler, when it is "
+"invoked, has the `DRBD_RESOURCE` and `DRBD_PEER` environment variables "
+"available. They contain the name of the affected DRBD resource and the "
+"peer's hostname, respectively."
+msgstr ""
+"当调用指定为“fence peer”处理程序的程序或脚本时，它具"
+"有“DRBD_RESOURCE”和“DRBD_peer”环境变量。它们分别包含受影响的DRBD资源的名称和"
+"对等主机名。"
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:497
+msgid ""
+"Any peer fencing helper program (or script) must return one of the following "
+"exit codes:"
+msgstr "任何对等围栏帮助程序（或脚本）必须返回以下退出代码之一："
+
+#. type: Block title
+#: UG9/en/drbd-internals.adoc:498
+#, no-wrap
+msgid "`fence-peer` handler exit codes"
+msgstr "`fence peer`handler退出代码"
+
+#. type: Table
+#: UG9/en/drbd-internals.adoc:507
+#, no-wrap
+msgid ""
+"Exit code;Implication\n"
+"3;Peer's disk state was already _Inconsistent_.\n"
+"4;Peer's disk state was successfully set to _Outdated_ (or was _Outdated_ to begin with).\n"
+"5;Connection to the peer node failed, peer could not be reached.\n"
+"6;Peer refused to be outdated because the affected resource was in the primary role.\n"
+"7;Peer node was successfully fenced off the cluster. This should never occur unless `fencing` is set to `resource-and-stonith` for the affected resource.\n"
+msgstr ""
+"Exit code;Implication\n"
+"3;Peer's disk state was already _Inconsistent_.\n"
+"4;Peer's disk state was successfully set to _Outdated_ (or was _Outdated_ to begin with).\n"
+"5;Connection to the peer node failed, peer could not be reached.\n"
+"6;Peer refused to be outdated because the affected resource was in the primary role.\n"
+"7;Peer node was successfully fenced off the cluster. This should never occur unless `fencing` is set to `resource-and-stonith` for the affected resource.\n"
+
+#. type: Title ===
+#: UG9/en/drbd-internals.adoc:510
+#, no-wrap
+msgid "The Client Mode"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:518
+msgid ""
+"Since version 9.0.13 DRBD supports clients. A client in DRBD speak is just a "
+"permanently diskless node. In the configuration, it is expressed by using "
+"the keyword `none` for the backing block device (the `disk` keyword). You "
+"will notice that in the `drbdsetup status` output you will see the "
+"`Diskless` disk status displayed in green color. (Usually, a disk state of "
+"`Diskless` is displayed in red)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:525
+msgid ""
+"Internally all the peers of an intentional diskless node are configured with "
+"the `peer-device-option` `--bitmap=no`. That means that they will not "
+"allocate a bitmap slot in the meta-data for the intentional diskless peer. "
+"On the intentional diskless node the device gets marked with the option `--"
+"diskless=yes` while it is created with the `new-minor` sub-command of "
+"`drbdsetup`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:527
+msgid "These flags are visible through the `events2` status command:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:530
+msgid ""
+"a `device` might have the `client:` field. If it reports `yes` the local "
+"device was marked to be permanently diskless."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:533
+msgid ""
+"a `peer-device` might have the `peer-client` filed. If it says `yes` then "
+"there is no change-tracking bitmap to that peer."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:535
+msgid "Relevant commands and implications:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:539
+msgid ""
+"You can only run `drbdsetup peer-device-options --bitmap=yes ...` if bitmap "
+"slots are available in the meta-data, since a bitmap-slot gets allocated."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:543
+msgid ""
+"The command `drbdsetup peer-device-options --bitmap=no ...` is only possible "
+"if the peer is diskless, it does _not_ unallocate the bitmap-slot."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:546
+msgid ""
+"`drbdsetup forget-peer ...` is used to irrevocable free the bitmap-slot "
+"assigned to a certain peer."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-internals.adoc:549
+msgid ""
+"Connecting two peers with disk where one (or both) expect the peer to be "
+"permanently diskless fails."
+msgstr ""

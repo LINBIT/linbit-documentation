@@ -1,122 +1,17 @@
 [[s-administrative-tasks-setup]]
 == Basic Administrative Tasks and System Setup
 
-LINSTOR is a configuration management system for storage on Linux systems.
-It manages LVM logical volumes, ZFS ZVOLs, or both, on a cluster of nodes. It
-leverages DRBD for replication between different nodes and to provide
-block storage devices to users and applications. It manages snapshots,
-encryption and caching of HDD backed data in SSDs using bcache.
+This is a how-to style chapter that covers basic LINSTOR administrative tasks, including
+installing LINSTOR and how to get started using LINSTOR.
 
-// Troubleshooting for LINSTOR guide?
-/////
-This chapter outlines typical administrative tasks encountered during
-day-to-day operations. It does not cover troubleshooting tasks, these
-are covered in detail in <<ch-troubleshooting>>.
-/////
+[[s-linstor-before-installing]]
+=== Before Installing LINSTOR
 
-[[s-concepts_and_terms]]
-=== Concepts and Terms
-This section goes over core concepts and terms that you will need to familiarize yourself
-with to understand how LINSTOR works and deploys storage. The section is laid out in a
-"ground up" approach.
-
-==== Installable Components
-
-===== linstor-controller
-A LINSTOR setup requires at least one active controller and one or more satellites.
-
-// Once the chapter on making your controller HA is done we need to link that here
-
-The _linstor-controller_ relies on a database that holds all configuration
-information for the whole cluster. It makes all decisions that need to have a
-view of the whole cluster. Multiple controllers can be used for LINSTOR but
-only one can be active.
-
-===== linstor-satellite
-The _linstor-satellite_ runs on each node where LINSTOR consumes local
-storage or provides storage to services. It is stateless; it receives
-all the information it needs from the controller. It runs programs
-like `lvcreate` and `drbdadm`. It acts like a node agent.
-
-===== linstor-client
-The _linstor-client_ is a command line utility that you use to issue
-commands to the system and to investigate the status of the system.
-
-==== Objects
-Objects are the end result which LINSTOR presents to the end-user or application,
-such as: Kubernetes/OpenShift, a replicated block device (DRBD), NVMeOF target, and others.
-
-===== Node
-Nodes are a server or container that participate in a LINSTOR cluster. The _Node_
-attribute defines:
-
-* Determines which LINSTOR cluster the node participates in
-* Sets the role of the node: Controller, Satellite, Auxiliary
-* *NetInterface* objects define the node's connectivity
-
-===== NetInterface
-As the name implies, this is how you define the interface/address of a node's network interface.
-
-===== Definitions
-Definitions define attributes of an object, and can be thought of as
-profiles or templates. Objects created will inherit the configuration
-defined in the definitions. A definition must be defined prior to creating
-the associated object. For example, you must create a _ResourceDefinition_
-prior to creating the _Resource_.
-
-StoragePoolDefinition :::
-* Defines the name of a storage pool
-
-ResourceDefinition :::
-Resource definitions define the following attributes of a resource:
-* The name of a DRBD resource
-* The TCP port for DRBD to use for the resource's connection
-
-VolumeDefinition :::
-Volume definitions define the following:
-
-* A volume of a DRBD resource
-* The size of the volume
-* The volume number of the DRBD resource's volume
-* The metadata properties of the volume
-* The minor number to use for the DRBD device associated with the DRBD volume
-
-===== StoragePool
-The _StoragePool_ identifies storage in the context of LINSTOR. It defines:
-
-* The configuration of a storage pool on a specific node
-* The storage back-end driver to use for the storage pool on the cluster node (LVM, ZFS, and
-others)
-* The parameters and configuration to pass to the storage backed driver
-
-===== Resource
-LINSTOR has now expanded its capabilities to manage a broader set of storage technologies
-outside of just DRBD. A _Resource_:
-
-* Represents the placement of a DRBD resource, as defined within the _ResourceDefinition_
-* Places a resource on a node in the cluster
-* Defines the placement of a _ResourceDefinition_ on a node
-
-===== Volume
-Volumes are a subset of a _Resource_. A _Resource_ could have multiple volumes, for example
-you may want to have your database stored on slower storage than your logs in your MySQL cluster.
-
-By keeping the _volumes_ under a single _resource_ you are essentially creating a consistency group.
-The _Volume_ attribute can define also define attributes on a more granular level.
-
-[[s-broader_context]]
-=== Broader Context
-
-While LINSTOR might be used to make the management of DRBD more
-convenient, it is often integrated with software stacks higher up.
-Such integration exist already for Kubernetes, OpenStack, OpenNebula
-and Proxmox. Chapters specific to deploying LINSTOR in these
-environments are included in this guide.
-
-The southbound drivers used by LINSTOR are LVM, thinLVM and ZFS.
+Before you install LINSTOR, there are a few things that you should be aware of that might affect
+how you install LINSTOR.
 
 [[s-packages]]
-=== Packages
+==== Packages
 
 LINSTOR is packaged in both the RPM and the DEB variants:
 
@@ -127,14 +22,14 @@ LINSTOR is packaged in both the RPM and the DEB variants:
 for the services. They depend on Java runtime environment (JRE) version 1.8
 (headless) or higher.
 
-For further detail about these packages see the
+For further details about these packages see the
 <<Installable Components,Installable Components>> section above.
 
-NOTE: If you have a support subscription to LINBIT(R), you will have access to
-our certified binaries through our repositories.
+NOTE: If you have a LINBIT(R) support subscription, you will have access to
+certified binaries through LINBIT customer-only repositories.
 
 [[s-linstor-fips-compliance]]
-=== FIPS Compliance
+==== FIPS Compliance
 
 "This standard shall be used in designing and implementing cryptographic modules..."
 -- https://csrc.nist.gov/publications/detail/fips/140/3/final[NIST's _FIPS 140-3_ publication]
@@ -184,14 +79,14 @@ nodes to:
 * Join a node to an existing LINBIT cluster.
 * Enable LINBIT package repositories on your node.
 
-Enabling LINBIT package repositories will give you access to LINBT software packages, DRBD
+Enabling LINBIT package repositories will give you access to LINBIT software packages, DRBD
 kernel modules, and other related software such as cluster managers and OCF scripts. You can
 then use a package manager to fetch, install, and manage updating installed packages.
 
-===== Downloading the LINBIT Manage Nodes Script
+===== Downloading the LINBIT Manage Node Script
 
 To register your cluster nodes with LINBIT, and configure LINBIT's repositories, first download
-and then run the manage nodes helper script by entering the following commands on all cluster
+and then run the manage node helper script by entering the following commands on all cluster
 nodes:
 
 ----
@@ -226,7 +121,7 @@ Before it closes, the script will show a message that suggests different package
 install for different use cases.
 
 IMPORTANT: On DEB based systems you can install a precompiled DRBD kernel module package,
-`drbd-module-$(uname -r)`, or a source version of the kernel module, `drbd-dkms`.  Install one
+`drbd-module-$(uname -r)`, or a source version of the kernel module, `drbd-dkms`. Install one
 or the other package but not both.
 
 [[s-linstor-installing-using-package-manager]]
@@ -273,7 +168,6 @@ The LINSTOR project's GitHub page is here: https://github.com/LINBIT/linstor-ser
 LINBIT also has downloadable archived files of source code for LINSTOR, DRBD, and more,
 available here:
 https://linbit.com/linbit-software-download-page-for-linstor-and-drbd-linux-driver/.
-
 
 [[s-upgrading]]
 === Upgrading LINSTOR
@@ -330,14 +224,14 @@ The containers available in this repository are:
 * drbd.io/linstor-client
 
 An up-to-date list of available images with versions can be retrieved by opening http://drbd.io in your
-browser. Be sure to access the image repository through "http", although the registry's images themselves are pulled through "https", using the associated `docker pull` command.
+browser. Be sure to browse the image repository through HTTP, although the registry's images themselves are pulled through HTTPS, using the associated `docker pull` command.
 
 To load the kernel module, needed only for LINSTOR satellites, you'll need to
 run a `drbd9-$dist` container in privileged mode. The kernel module containers
 either retrieve an official LINBIT package from a customer repository, use
 shipped packages, or they try to build the kernel modules from source. If you
 intend to build from source, you need to have the according kernel headers
-(e.g., `kernel-devel`) installed on the host. There are 4 ways to execute such
+(e.g., `kernel-devel`) installed on the host. There are four ways to execute such
 a module load container:
 
 * Building from shipped source
@@ -534,37 +428,34 @@ on each node.
 For example, one valid approach is to give all SSDs one name and
 all HDDs another.
 
+[[s-linstor-storage-pools-creating]]
+==== Creating Storage Pools
+
 On each host contributing storage, you need to create
-either an LVM VG or a ZFS zPool. The VGs and zPools identified with one
+either an LVM volume group (VG) or a ZFS zPool. The VGs and zPools identified with one
 LINSTOR storage pool name may have different VG or zPool names on the
-hosts, but do yourself a favor and use the same VG or zPool name on all
+hosts, but do yourself a favor, for coherency, use the same VG or zPool name on all
 nodes.
 
 ----
 # vgcreate vg_ssd /dev/nvme0n1 /dev/nvme1n1 [...]
 ----
 
-These then need to be registered with LINSTOR:
+After creating a volume group on each of your nodes, you can create a storage pool that is backed by the
+volume group on each of your nodes, by entering the following commands:
 
 ----
 # linstor storage-pool create lvm alpha pool_ssd vg_ssd
 # linstor storage-pool create lvm bravo pool_ssd vg_ssd
 ----
 
-NOTE: The storage pool name and common metadata is referred to as a
-_storage pool definition_.
-The listed commands create a storage pool definition implicitly.
-You can see that by using `linstor storage-pool-definition list`.
-Creating storage pool definitions explicitly is possible but
-not necessary.
-
-To list your storage-pools you can use:
+To list your storage pools you can enter:
 
 ----
 # linstor storage-pool list
 ----
 
-or using the short version
+or using LINSTOR abbreviated notation:
 
 ----
 # linstor sp l
@@ -585,16 +476,16 @@ or using the short version
 ----
 # linstor sp lo alpha pool_ssd
 ----
-////
 
 Should the deletion of the storage pool be prevented due to attached resources or snapshots with some of its
 volumes in another still functional storage pool, hints will be given in the 'status' column of the
 corresponding list-command (e.g. `linstor resource list`). After deleting the LINSTOR-objects in the lost storage pool
 manually, the lost-command can be executed again to ensure a complete deletion of the storage pool and its
 remaining objects.
+////
 
 [[s-a_storage_pool_per_backend_device]]
-==== Confining Failure Domains to a Single Back-end Device
+==== Using Storage Pools To Confine Failure Domains to a Single Back-end Device
 
 In clusters where you have only one kind of storage and the capability
 to hot swap storage devices, you may choose a model where you create
@@ -623,7 +514,7 @@ volume group UUID as the shared space identifier for a pool accessible by nodes 
 Exos pools will use the Exos pool serial number by default for the shared-space identifier.
 
 [[s-physical-storage-command]]
-==== Creating Storage Pools
+==== Creating Storage Pools by Using the Physical Storage Command
 
 Since linstor-server 1.5.2 and a recent linstor-client, LINSTOR can create LVM/ZFS pools on a satellite for you.
 The linstor-client has the following commands to list possible disks and create storage pools, but such LVM/ZFS pools
@@ -644,32 +535,21 @@ It will only show disks that pass the following filters:
 
 
 With the `create-device-pool` command you can create a LVM pool on a disk and also directly
-add it as a storage-pool in LINSTOR.
+add it as a storage pool in LINSTOR.
 
 ----
 # linstor physical-storage create-device-pool --pool-name lv_my_pool \
   LVMTHIN node_alpha /dev/vdc --storage-pool newpool
 ----
 
-If the `--storage-pool` option was provided, LINSTOR will create a storage-pool with the given name.
+If the `--storage-pool` option was provided, LINSTOR will create a storage pool with the given name.
 
 For more options and exact command usage please check the linstor-client help.
 
 [[s-linstor-resource-groups]]
 === Using Resource Groups to Deploy LINSTOR Provisioned Volumes
 
-A resource group is a parent object of a resource definition where all
-property changes made on a resource group will be inherited by its
-resource definition children. The resource group also stores settings
-for automatic placement rules and can spawn a resource definition
-depending on the stored rules.
-
-In simpler terms, resource groups are like templates that define
-characteristics of resources created from them. Changes to these
-pseudo templates will be applied to all resources that were created
-from the resource group, retroactively.
-
-TIP: Using resource groups to define how you'd like your resources
+Using resource groups to define how you would like your resources
 provisioned should be considered the de facto method for deploying
 volumes provisioned by LINSTOR. Chapters that follow which describe
 creating each _resource_ from a _resource-definition_ and
@@ -760,37 +640,43 @@ LINSTOR has the following supported storage plug-ins at the time of writing:
 [[s-linstor-new-volume]]
 === Creating and Deploying Resources and Volumes
 
-In the following scenario we assume that the goal is to create a resource
-'backups' with a size of '500 GB' that is replicated among three cluster nodes.
+You can use the LINSTOR `create` command to create various LINSTOR objects, such as resource
+definitions, volume definitions, and resources. Some of these commands are shown below.
 
-First, we create a new resource definition:
+In the following example scenario, assume that you have a goal of creating a resource named
+'backups' with a size of '500GiB' that is replicated among three cluster nodes.
+
+First, create a new resource definition:
 
 ----
 # linstor resource-definition create backups
 ----
 
-Second, we create a new volume definition within that resource definition:
+Second, create a new volume definition within that resource definition:
 
 ----
 # linstor volume-definition create backups 500G
 ----
 
-If you want to change the size of the volume-definition you can simply do that by:
+If you want to resize (grow or shrink) the volume definition you can do that by specifying a new
+size with the `set-size` command:
 
 ----
 # linstor volume-definition set-size backups 0 100G
 ----
 
+IMPORTANT: The size of a volume definition can only be decreased if it has no associated resource.
+However, you can freely increase the size of a volume definition, even one having a deployed
+resource.
+
 The parameter `0` is the number of the volume in the resource `backups`. You have to provide this parameter
-because resources can have multiple volumes that are identified by a so-called volume number. This number
-can be found by listing the volume-definitions.
+because resources can have multiple volumes that are identified by a so-called volume number. You can find this number
+by listing the volume definitions (`linstor vd l`). The list table will show volume numbers for
+the listed resources.
 
-IMPORTANT: The size of a volume-definition can only be decreased if it has no resource. Despite
-that, the size can be increased even with a deployed resource.
-
-So far we have only created objects in LINSTOR's database, not a single LV was
-created on the storage nodes. Now you have the choice of delegating the
-task of placement to LINSTOR or doing it yourself.
+So far you have only created definition objects in LINSTOR's database. However, not a single logical volume (LV) has been
+created on the satellite nodes. Now you have the choice of delegating the
+task of deploying resources to LINSTOR or else doing it yourself.
 
 [[s-manual_placement]]
 ==== Manually Placing Resources
@@ -824,7 +710,7 @@ your `--auto-place` command arguments, then LINSTOR will reject your command wit
 message.
 
 In the following example, the value after the `--auto-place` option tells LINSTOR how many
-replicas you want to have. The storage-pool option should be obvious.
+replicas you want to have. The `--storage-pool` option should be obvious.
 
 ----
 # linstor resource create backups --auto-place 3 --storage-pool pool_hdd
@@ -1106,41 +992,131 @@ the following command:
 # linstor resource-definition list
 ----
 
+
+[[s-export-import-db]]
+=== Backup and Restore Database
+
+Since version 1.24.0, LINSTOR has a tool that you can use to export and import a LINSTOR database.
+
+This tool has an executable file called `/usr/share/linstor-server/bin/linstor-database`. This executable
+has two subcommands, `export-db` and `import-db`. Both subcommands accept an optional `--config-directory`
+argument that you can use to specify the directory containing the `linstor.toml` configuration file.
+
+IMPORTANT: To ensure a consistent database backup, take the controller offline by stopping the controller
+service as shown in the commands below, before creating a backup of the LINSTOR database.
+
+[[s-export-db]]
+==== Backing Up the Database
+
+To backup the LINSTOR database to a new file named `db_export` in your home directory, enter the
+following commands:
+
+----
+# systemctl stop linstor-controller
+# /usr/share/linstor-server/bin/linstor-database export-db ~/db_export
+# systemctl start linstor-controller
+----
+
+NOTE: You can use the `--config-directory` argument with the `linstor-database` utility to specify a
+LINSTOR configuration directory if needed. If you omit this argument, the utility uses the
+`/etc/linstor` directory by default.
+
+After backing up the database, you can copy the backup file to a safe place.
+
+----
+# cp ~/db_export <somewhere safe>
+----
+
+The resulting database backup is a plain JSON document, containing not just the actual data,
+but also some metadata about when the backup was created, from which database, and other information.
+
+[[s-import-db]]
+==== Restoring the Database From a Backup
+
+Restoring the database from a previously made backup is similar to `export-db` from the
+<<s-export-db,previous section>>.
+
+For example, to restore the previously made backup from the `db_export` file, enter the following
+commands:
+
+----
+# systemctl stop linstor-controller
+# /usr/share/linstor-server/bin/linstor-database import-db ~/db_export
+# systemctl start linstor-controller
+----
+
+You can only import a database from a previous backup if the currently installed
+version of LINSTOR is the same (or higher) version as the version that you created the backup from.
+If the currently installed LINSTOR version is higher than the version that the database backup
+was created from, when you import the backup the data will be restored with the same database
+scheme of the version used during the export. Then, the next time that the controller starts, the
+controller will detect that the database has an old scheme and it will automatically migrate the
+data to the scheme of the current version.
+
+[[s-convert-db]]
+==== Converting Databases
+
+Since the exported database file contains some metadata, an exported database file can be
+imported into a different database type than it was exported from.
+
+This allows the user to convert, for example, from an etcd setup to an SQL based setup.
+There is no special command for converting the database format. You only have to
+specify the correct `linstor.toml` configuration file by using the `--config-directory` argument
+(or updating the default `/etc/linstor/linstor.toml` and specifying the database type that you want
+to use before importing). See the <<#s-linstor-external-database,LINSTOR User's Guide>> for more
+information about specifying a database type. Regardless of the type of database that the backup
+was created from, it will be imported in the database type that is specified in the `linstor.toml`
+configuration file.
+
 [[s-more-about-linstor]]
 == Further LINSTOR Tasks
 
 [[s-linstor_ha]]
 === Creating a Highly Available LINSTOR Cluster
 
-By default a LINSTOR cluster consists of exactly one LINSTOR controller. Making LINSTOR highly available
-involves providing replicated storage for the controller database, multiple LINSTOR controllers where only one
-is active at a time, and a service manager that takes care of mounting and unmounting the highly available storage as well as starting and stopping LINSTOR controllers.
+By default a LINSTOR cluster consists of exactly one active LINSTOR controller node. Making
+LINSTOR highly available involves providing replicated storage for the controller database,
+multiple LINSTOR controller nodes where only one is active at a time, and a service manager
+(here DRBD Reactor) that takes care of mounting and unmounting the highly available storage as
+well as starting and stopping the LINSTOR controller service on nodes.
 
 ==== Configuring Highly Available Storage
 
-For configuring the highly-available storage we use LINSTOR itself. This has the advantage that the storage is
-under LINSTOR control and can for example be easily extended to new cluster nodes. Just create a new
-resource with 200MB in size. This could look like this, you certainly need to adapt the storage pool name:
+For configuring the highly available (HA) storage, you can use LINSTOR itself. One of the
+benefits of having the storage under LINSTOR control is that you can easily extend the HA
+storage to new cluster nodes.
 
+First, create a new resource that is 200MiB in size and set the necessary DRBD options, as shown
+in the example commands below. You will need to adapt the storage pool name to match an existing
+storage pool in your environment.
 
 ----
 # linstor resource-definition create linstor_db
-# linstor resource-definition drbd-options --on-no-quorum=io-error linstor_db
-# linstor resource-definition drbd-options --auto-promote=no linstor_db
+# linstor rd drbd-options --auto-promote=no linstor_db
+# linstor rd drbd-options --quorum=majority linstor_db
+# linstor rd drbd-options --on-suspended-primary-outdated=force-secondary linstor_db
+# linstor rd drbd-options --on-no-quorum=io-error linstor_db
+# linstor rd drbd-options --on-no-data-accessible=io-error linstor_db
+# linstor rd drbd-options --rr-conflict=retry-connect linstor_db
 # linstor volume-definition create linstor_db 200M
-# linstor resource create linstor_db -s pool1 --auto-place 3
+# linstor resource create linstor_db --storage-pool pool1 --auto-place 3
 ----
 
-From now on we assume the resource's name is "linstor_db". It is crucial that your
-cluster qualifies for auto-quorum and uses the `io-error` policy (see Section <<s-linstor-auto-quorum>>), and
-that `auto-promote` is disabled.
+It is crucial that your cluster qualifies for auto-quorum and uses the `io-error` policy (see
+Section <<s-linstor-auto-quorum>>), and that `auto-promote` is disabled.
 
-After the resource is created, it is time to move the LINSTOR DB to the new storage and to create a `systemd`
-mount service. First we stop the current controller and disable it, as it will be managed by `drbd-reactor` later.
+From now on it is assumed that the resource's name is `linstor_db`. After creating the
+`linstor_db` resource, you can move the LINSTOR database to the new storage and create a
+systemd mount service. First, stop the current controller service and disable it, as it will
+be managed by DRBD Reactor later.
 
 ----
 # systemctl disable --now linstor-controller
+----
 
+Next, create the systemd mount service.
+
+----
 # cat << EOF > /etc/systemd/system/var-lib-linstor.mount
 [Unit]
 Description=Filesystem for the LINSTOR controller
@@ -1153,7 +1129,7 @@ EOF
 
 # mv /var/lib/linstor{,.orig}
 # mkdir /var/lib/linstor
-# chattr +i /var/lib/linstor  # only if on LINSTOR >= 1.14.0
+# chattr +i /var/lib/linstor # only if on LINSTOR >= 1.14.0
 # drbdadm primary linstor_db
 # mkfs.ext4 /dev/drbd/by-res/linstor_db/0
 # systemctl start var-lib-linstor.mount
@@ -1161,8 +1137,9 @@ EOF
 # systemctl start linstor-controller
 ----
 
-Copy the `/etc/systemd/system/var-lib-linstor.mount` mount file to all the standby nodes for the linstor controller.
-Again, do not `systemctl enable` any of these services, they get managed by `drbd-reactor`.
+Copy the `/etc/systemd/system/var-lib-linstor.mount` mount file to all the cluster nodes that
+you want to have the potential to run the LINSTOR controller service (standby controller nodes).
+Again, do not `systemctl enable` any of these services because DRBD Reactor will manage them.
 
 ==== Installing Multiple LINSTOR Controllers
 
@@ -1390,21 +1367,21 @@ provisioned by LINSTOR are not replicated, the data is stored on one
 node.
 
 NOTE: NVMe-oF only works on RDMA-capable networks and NVMe-TCP on
-every network that can carry IP traffic. If you want to know more
-about NVMe-oF/NVMe-TCP visit
-https://www.linbit.com/en/nvme-linstor-swordfish/ for more
-information.
+networks that can carry IP traffic. You can use tools such as `lshw` or `ethtool` to verify
+the capabilities of your network adapters.
 
 To use NVMe-oF/NVMe-TCP with LINSTOR the package `nvme-cli` needs to
-be installed on every Node which acts as a Satellite and will use
-NVMe-oF/NVMe-TCP for a resource:
-
-IMPORTANT: If you are not using Ubuntu, use the suitable command for
-installing packages on your operating system: SLES: `zypper`; RHEL-family: `dnf`.
+be installed on every node which acts as a satellite and will use
+NVMe-oF/NVMe-TCP for a resource. For example, on a DEB-based system, to install the package,
+enter the following command:
 
 ----
 # apt install nvme-cli
 ----
+
+IMPORTANT: If you are not on a DEB-based system, use the suitable command for
+installing packages on your operating system, for example, on SLES: `zypper`; on RPM-based
+systems: `dnf`.
 
 To make a resource which uses NVMe-oF/NVMe-TCP an additional parameter
 has to be given as you create the resource-definition:
@@ -1451,7 +1428,7 @@ network, the resource has to be defined as diskless:
 # linstor resource create beta nvmedata --nvme-initiator
 ----
 
-Now you can  mount the resource `nvmedata` on one of your nodes.
+Now you can mount the resource `nvmedata` on one of your nodes.
 
 IMPORTANT: If your nodes have more than one NIC you should force the
 route between them for NVMe-of/NVME-TCP, otherwise multiple NICs
@@ -1582,7 +1559,7 @@ the storage pool and the size of the cache device.
 The two properties set in the examples are mandatory, but can also be set on
 controller level which would act as a default for all resources with `WRITECACHE` in their
 `--layer-list`. However, please note that the `Writecache/PoolName` refers to
-the corresponding node. If the node does not have a storage-pool named `pmempool` you will
+the corresponding node. If the node does not have a storage pool named `pmempool` you will
 get an error message.
 
 The 4 mandatory parameters required by
@@ -1681,7 +1658,7 @@ Please see <<s-openflex, OpenFlex(TM) Layer>> for more details.
 * EXOS: This special storage provider is currently required to be run on a "special satellite".
 Please see the <<ch-exos, EXOS Integration>> chapter.
 
-* SPDK: The administrator is expected to speicify the logical volume store which LINSTOR should
+* SPDK: The administrator is expected to specify the logical volume store which LINSTOR should
 use. The usage of this storage provider implies the usage of the <<s-nvme-layer,NVME Layer>>.
 
 ** Remote-SPDK: This special storage provider currently requires to be run on a "special satellite".
@@ -1781,24 +1758,25 @@ interface for controller-satellite traffic by entering the following command:
 You can verify this change by using the `linstor node interface list node-0` command. Output
 from the command should show that the `StltCon` label applies to the `1G-satconn` interface.
 
-While the above methods can re-route DRBD traffic, and LINSTOR communication between the
-controller and satellite nodes, it is not possible through `linstor` commands only, to route
-LINSTOR controller-client traffic (commands that you issue from a LINSTOR client to the
-controller) through a specific NIC. To achieve this, you can either:
+While this method routes DRBD traffic through a specified NIC, it is not possible through
+`linstor` commands only, to route LINSTOR controller-client traffic through a specific NIC, for
+example, commands that you issue from a LINSTOR client to the controller. To achieve this, you
+can either:
 
-. Specify a LINSTOR controller using methods outlined in <<s-using_the_linstor_client>> *and*
+* Specify a LINSTOR controller by using methods outlined in <<s-using_the_linstor_client>> *and*
 have the only route to the controller as specified be through the NIC that you want to use for
 controller-client traffic.
-. Use Linux tools such as `ip route` and `iptables` to filter LINSTOR client-controller traffic,
+
+* Use Linux tools such as `ip route` and `iptables` to filter LINSTOR client-controller traffic,
 port number 3370, and route it through a specific NIC.
 
 [[s-creating-multiple-drbd-paths]]
 ==== Creating Multiple DRBD Paths with LINSTOR
 
-To use https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-configuring-multiple-paths[multiple network paths]
-for DRBD setups, the `PrefNic` property is not sufficient. Instead the
-`linstor node interface` and `linstor resource-connection path` commands
-should be used, as shown below.
+To use
+https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-configuring-multiple-paths[multiple
+network paths] for DRBD setups, the `PrefNic` property is not sufficient. Instead the `linstor
+node interface` and `linstor resource-connection path` commands should be used, as shown below.
 
 ----
 # linstor node interface create alpha nic1 192.168.43.221
@@ -1810,9 +1788,10 @@ should be used, as shown below.
 # linstor resource-connection path create alpha bravo myResource path2 nic2 nic2
 ----
 
-In the example above we define two network interfaces (`nic1` and `nic2`) for each node.
-The last two commands create network path entries in the generated DRBD `.res` file.
-This is the relevant part of the resulting `.res` file:
+The first four commands in the example define a network interface (`nic1` and `nic2`) for each
+node (`alpha` and `bravo`) by specifying the network interface's IP address. The last two
+commands create network path entries in the DRBD `.res` file that LINSTOR generates. This is the
+relevant part of the resulting `.res` file:
 
 ----
 resource myResource {
@@ -1834,6 +1813,43 @@ NOTE: While it is possible to specify a port number to be used for LINSTOR satel
 traffic when creating a node interface, this port number is ignored when creating a
 DRBD resource connection path. Instead, the command will assign a port number
 dynamically, starting from port number 7000 and incrementing up.
+
+[[s-linstor-effects-of-new-paths-on-default-path]]
+===== How Adding a New DRBD Path Affects the Default Path
+
+The NIC that is first in order on a LINSTOR satellite node is named the `default` net interface.
+DRBD traffic traveling between two nodes that do not have an explicitly configured resource
+connection path will take an implicit path that uses the two nodes' `default` net interfaces.
+
+When you add a resource connection path between two nodes for a DRBD-backed resource, DRBD
+traffic between the two nodes will use this new path only, although a `default` network
+interface will still exist on each node. This may be significant if your new path uses different
+NICs than the implicit default path.
+
+To use the default path again, in addition to any new paths, you will need to explicitly add it.
+For example:
+
+====
+# linstor resource-connection path create alpha bravo myResource path3 default default
+====
+
+Although the newly created `path3` uses net interfaces that are named `default` on the two
+nodes, the path itself is not a default path because other paths exist, namely `path1` and
+`path2`. The new path, `path3`, will just act as a third possible path, and DRBD traffic and
+path selection behavior will be as described in the next section.
+
+===== Multiple DRBD Paths Behavior
+
+The behavior of a multiple DRBD paths configuration will be different depending on the DRBD
+transport type. From the DRBD User's
+Guidefootnote:[https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-configuring-multiple-paths]:
+
+"The TCP transport uses one path at a time. If the backing TCP connections get dropped, or show
+timeouts, the TCP transport implementation tries to establish a connection over the next path.
+It goes over all paths in a round-robin fashion until a connection gets established.
+
+"The RDMA transport uses all paths of a connection concurrently and it balances the network
+traffic between the paths evenly."
 
 // if customers request, we should be able to also extend this to `node-connection` level
 
@@ -2317,6 +2333,29 @@ backup shipping for `localRsc` will ship to the remote cluster but they will not
 the remote cluster. The same is true if you specify the `--download-only` option with the
 `linstor backup ship` command.
 
+[[s-shipping_snapshots-concurrently]]
+===== Controlling How Many Shipments Are Active at the Same Time
+
+There might be cases where an automated task (be it LINSTOR's scheduled shipping or an external
+tool) starts too many shipments at once, leading to an overload of the network or
+some of the nodes sending the backups.
+
+In a case like this the solution is to reduce the amount of shipments that can happen at the same
+time on the same node. This is done by using the property `BackupShipping/MaxConcurrentBackupsPerNode`.
+This property can be set either on the controller or on a specific node.
+
+The expected value for this property is a number. Setting it to any negative number will be interpreted
+as "no limit", while setting it to zero will result in this specific node not being eligible to
+ship any backups - or completely disabling backup shipping if the property is set to 0 on the controller.
+
+Any other positive number is treated as a limit of concurrently active shippings per node.
+To determine which node will send a backup shipment, LINSTOR uses the following logic in the order shown:
+
+1. The node specified in the command (`--source-node` for shippings to another cluster, `--node` for
+   shipping to S3 compatible storage) will ship the backup.
+2. The node that has the most available backup slots will ship the backup.
+3. If no node has an available backup slot, the shipment will be added to a queue and started as soon as
+   a different shipment has finished which leads to a backup slot becoming available.
 
 [[s-shipping_snapshots-old]]
 ===== Shipping a Snapshot in the Same Cluster
@@ -3165,9 +3204,18 @@ A recent configuration example can be found here: https://github.com/LINBIT/lins
 
 LINSTOR uses https://www.slf4j.org/[SLF4J] with https://logback.qos.ch/[Logback] as binding. This gives
 LINSTOR the possibility to distinguish between the log levels `ERROR`, `WARN`, `INFO`, `DEBUG` and `TRACE`
-(in order of increasing verbosity). In the current linstor version (1.1.2) the user has the following
-four methods to control the logging level, ordered by priority (first has highest priority):
+(in order of increasing verbosity). The following are
+the different ways that you can set the logging level, ordered by priority (first has highest priority):
 
+. Since LINSTOR *client* version 1.20.1, you can use the command `controller set-log-level` to change the log level used by LINSTOR's running configuration. Various arguments can be used with this command. Refer to the command's `--help` text for details. For example, to set the log level to `TRACE` on the LINSTOR controller and all satellites, enter the following command:
++
+----
+$ linstor controller set-log-level --global TRACE
+----
++
+To change the LINSTOR log level on a particular node, you can use the LINSTOR client (since version 1.20.1) command `node set-log-level`.
++
+NOTE: Changes that you make to the log level by using the LINSTOR client will not persist LINSTOR service restarts, for example, if a node reboots.
 
 . `TRACE` mode can be `enabled` or `disabled` using the debug console:
 +

@@ -1,0 +1,1751 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:562
+#: UG9/en/drbd-administration-manual.adoc:1234
+#: UG9/en/drbd-administration-manual.adoc:1347
+#: UG9/en/drbd-administration-manual.adoc:1843 UG9/en/drbd-configure.adoc:687
+#, no-wrap
+msgid "# drbdadm up <resource>\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1825 UG9/en/drbd-configure.adoc:672
+#, no-wrap
+msgid ""
+"# drbdadm create-md <resource>\n"
+"v09 Magic number not found\n"
+"Writing meta data...\n"
+"initialising activity log\n"
+"NOT initializing bitmap\n"
+"New drbd meta data block successfully created.\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-configure.adoc:2
+#, no-wrap
+msgid "Configuring DRBD"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:5
+#, no-wrap
+msgid "Preparing your lower-level storage"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:12
+msgid ""
+"After you have installed DRBD, you must set aside a roughly identically "
+"sized storage area on both cluster nodes. This will become the _lower-level "
+"device_ for your DRBD resource. You may use any type of block device found "
+"on your system for this purpose. Typical examples include:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:14
+msgid "A hard drive partition (or a full physical hard drive),"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:16
+msgid "a software RAID device,"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:19
+msgid ""
+"an LVM Logical Volume or any other block device configured by the Linux "
+"device-mapper infrastructure,"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:21
+msgid "any other block device type found on your system."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:26
+msgid ""
+"You may also use _resource stacking_, meaning you can use one DRBD device as "
+"a lower-level device for another. Some specific considerations apply to "
+"stacked resources; their configuration is covered in detail in <<s-three-"
+"nodes>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:29
+msgid ""
+"While it is possible to use loop devices as lower-level devices for DRBD, "
+"doing so is not recommended due to deadlock issues."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:35
+msgid ""
+"It is _not_ necessary for this storage area to be empty before you create a "
+"DRBD resource from it. In fact it is a common use case to create a two-node "
+"cluster from a previously non-redundant single-server system using DRBD "
+"(some caveats apply -- please refer to <<s-metadata>> if you are planning to "
+"do this)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:37 UG9/en/drbd-configure.adoc:79
+msgid "For the purposes of this guide, we assume a very simple setup:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:40
+msgid "Both hosts have a free (currently unused) partition named `/dev/sda7`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:42
+msgid "We are using <<s-internal-meta-data,internal metadata>>."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:45
+#, no-wrap
+msgid "Preparing your network configuration"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:53
+msgid ""
+"It is recommended, though not strictly required, that you run your DRBD "
+"replication over a dedicated connection. At the time of this writing, the "
+"most reasonable choice for this is a direct, back-to-back, Gigabit Ethernet "
+"connection. When DRBD is run over switches, use of redundant components and "
+"the _bonding_ driver (in _active-backup_ mode) is recommended."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:57
+msgid ""
+"It is generally not recommended to run DRBD replication via routers, for "
+"reasons of fairly obvious performance drawbacks (adversely affecting both "
+"throughput and latency)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:64
+msgid ""
+"In terms of local firewall considerations, it is important to understand "
+"that DRBD (by convention) uses TCP ports from 7788 upwards, with every "
+"resource listening on a separate port. DRBD uses _two_ TCP connections for "
+"every resource configured. For proper DRBD functionality, it is required "
+"that these connections are allowed by your firewall configuration."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:69
+msgid ""
+"Security considerations other than firewalling may also apply if a Mandatory "
+"Access Control (MAC) scheme such as SELinux or AppArmor is enabled. You may "
+"have to adjust your local security policy so it does not keep DRBD from "
+"functioning properly."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:72
+msgid ""
+"You must, of course, also ensure that the TCP ports for DRBD are not already "
+"used by another application."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:76
+msgid ""
+"Since DRBD version 9.2.6, it is possible to configure a DRBD resource to "
+"support more than one TCP connection pair, for traffic load balancing "
+"purposes. Refer to the <<s-tcp-load-balancing>> section for details."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:83
+msgid ""
+"Our two DRBD hosts each have a currently unused network interface, `eth1`, "
+"with IP addresses `10.1.1.31` and `10.1.1.32` assigned to it, respectively."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:86
+msgid "No other services are using TCP ports 7788 through 7799 on either host."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:89
+msgid ""
+"The local firewall configuration allows both inbound and outbound TCP "
+"connections between the hosts over these ports."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:92
+#, no-wrap
+msgid "Configuring your resource"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:97
+msgid ""
+"All aspects of DRBD are controlled in its configuration file, `/etc/drbd."
+"conf`. Normally, this configuration file is just a skeleton with the "
+"following contents:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:101
+#, no-wrap
+msgid ""
+"include \"/etc/drbd.d/global_common.conf\";\n"
+"include \"/etc/drbd.d/*.res\";\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:107
+msgid ""
+"By convention, `/etc/drbd.d/global_common.conf` contains the <<s-drbdconf-"
+"global,`global`>> and <<s-drbdconf-common,`common`>> sections of the DRBD "
+"configuration, whereas the `.res` files contain one <<s-drbdconf-resource,"
+"`resource`>> section each."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:112
+msgid ""
+"It is also possible to use `drbd.conf` as a flat configuration file without "
+"any `include` statements at all. Such a configuration, however, quickly "
+"becomes cluttered and hard to manage, which is why the multiple-file "
+"approach is the preferred one."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:116
+msgid ""
+"Regardless of which approach you employ, you should always make sure that "
+"`drbd.conf`, and any other files it includes, are _exactly identical_ on all "
+"participating cluster nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:122
+msgid ""
+"The DRBD source tarball contains an example configuration file in the "
+"`scripts` subdirectory. Binary installation packages will either install "
+"this example configuration directly in `/etc`, or in a package-specific "
+"documentation directory such as `/usr/share/doc/packages/drbd`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:127
+msgid ""
+"This section describes only those few aspects of the configuration file "
+"which are absolutely necessary to understand in order to get DRBD up and "
+"running. The configuration file's syntax and contents are documented in "
+"great detail in the man page of `drbd.conf`."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-configure.adoc:130
+#, no-wrap
+msgid "Example configuration"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:135
+msgid ""
+"For the purposes of this guide, we assume a minimal setup in line with the "
+"examples given in the previous sections:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:136
+#, no-wrap
+msgid "Simple DRBD configuration (`/etc/drbd.d/global_common.conf`)"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:146
+#, no-wrap
+msgid ""
+"global {\n"
+"  usage-count yes;\n"
+"}\n"
+"common {\n"
+"  net {\n"
+"    protocol C;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:148
+#, no-wrap
+msgid "Simple DRBD resource configuration (`/etc/drbd.d/r0.res`)"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:154
+#, no-wrap
+msgid ""
+"resource \"r0\" {\n"
+"  device minor 1;\n"
+"  disk \"/dev/sda7\";\n"
+"  meta-disk internal;\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:166
+#, no-wrap
+msgid ""
+"  on \"alice\" {\n"
+"    node-id 0;\n"
+"  }\n"
+"  on \"bob\" {\n"
+"    node-id 1;\n"
+"  }\n"
+"  connection {\n"
+"    host \"alice\" address 10.1.1.31:7789;\n"
+"    host \"bob\" address 10.1.1.32:7789;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:169
+msgid "This example configures DRBD in the following fashion:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:172
+msgid ""
+"You \"opt in\" to be included in DRBD's usage statistics (see <<fp-usage-"
+"count>>)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:176
+msgid ""
+"Resources are configured to use fully synchronous replication (<<s-"
+"replication-protocols,Protocol C>>) unless explicitly specified otherwise."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:178
+msgid "Our cluster consists of two nodes, 'alice' and 'bob'."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:182
+msgid ""
+"We have a resource arbitrarily named `r0` which uses `/dev/sda7` as the "
+"lower-level device, and is configured with <<s-internal-meta-data,internal "
+"metadata>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:185
+msgid ""
+"The resource uses TCP port 7789 for its network connections, and binds to "
+"the IP addresses 10.1.1.31 and 10.1.1.32, respectively."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:190
+msgid ""
+"The configuration above implicitly creates one volume in the resource, "
+"numbered zero (`0`). For multiple volumes in one resource, modify the syntax "
+"as follows (assuming that the same lower-level storage block devices are "
+"used on both nodes):"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:191
+#, no-wrap
+msgid "Multi-volume DRBD resource configuration (`/etc/drbd.d/r0.res`)"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:218
+#, no-wrap
+msgid ""
+"resource \"r0\" {\n"
+"  volume 0 {\n"
+"    device minor 1;\n"
+"    disk \"/dev/sda7\";\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  volume 1 {\n"
+"    device minor 2;\n"
+"    disk \"/dev/sda8\";\n"
+"    meta-disk internal;\n"
+"  }\n"
+"  on \"alice\" {\n"
+"    node-id 0;\n"
+"  }\n"
+"  on \"bob\" {\n"
+"    node-id 1;\n"
+"    volume 1 {\n"
+"      disk \"/dev/sda9\";\n"
+"    }\n"
+"  }\n"
+"  connection {\n"
+"    host \"alice\" address 10.1.1.31:7789;\n"
+"    host \"bob\" address 10.1.1.32:7789;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:223
+msgid ""
+"Host sections ('on' keyword) inherit _volume_ sections from the resource "
+"level. They may contain _volume_ themselves, these values have precedence "
+"over inherited values."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:226
+msgid ""
+"Volumes may also be added to existing resources on the fly. For an example "
+"see <<s-lvm-add-pv>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:229
+msgid ""
+"For compatibility with older releases of DRBD it supports also drbd-8.4 like "
+"configuration files."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:230
+#, no-wrap
+msgid "An old(8.4) style configuration file"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:245
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  on alice {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    meta-disk internal;\n"
+"    address 10.1.1.31:7789;\n"
+"  }\n"
+"  on bob {\n"
+"    device    /dev/drbd1;\n"
+"    disk      /dev/sda7;\n"
+"    meta-disk internal;\n"
+"    address   10.1.1.32:7789;\n"
+"  }\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:249
+msgid ""
+"Strings that do not contain keywords, might be gives without double quotes "
+"`\"`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:252
+msgid ""
+"In the old (8.4) version, the way to specify the device was by using a "
+"string that specified the name of the resulting `/dev/drbd__X__` device file."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:254
+msgid "Two node configurations get node numbers assigned by drbdadm."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:256
+msgid "A pure two node configuration gets an implicit connection."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-configure.adoc:258
+#, no-wrap
+msgid "The `global` section"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:265
+msgid ""
+"This section is allowed only once in the configuration. It is normally in "
+"the `/etc/drbd.d/global_common.conf` file. In a single-file configuration, "
+"it should go to the very top of the configuration file. Of the few options "
+"available in this section, only one is of relevance to most users:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:267
+#, no-wrap
+msgid "`usage-count`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:273
+msgid ""
+"The DRBD project keeps statistics about the usage of various DRBD versions. "
+"This is done by contacting an HTTP server every time a new DRBD version is "
+"installed on a system. This can be disabled by setting `usage-count no;`.  "
+"The default is `usage-count ask;` which will prompt you every time you "
+"upgrade DRBD."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:276
+msgid ""
+"DRBD's usage statistics are, of course, publicly available: see http://usage."
+"drbd.org."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-configure.adoc:279
+#, no-wrap
+msgid "The `common` section"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:285
+msgid ""
+"This section provides a shorthand method to define configuration settings "
+"inherited by every resource. It is normally found in `/etc/drbd.d/"
+"global_common.conf`. You may define any option you can also define on a per-"
+"resource basis."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:289
+msgid ""
+"Including a `common` section is not strictly required, but strongly "
+"recommended if you are using more than one resource. Otherwise, the "
+"configuration quickly becomes convoluted by repeatedly-used options."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:295
+msgid ""
+"In the example above, we included `net { protocol C; }` in the `common` "
+"section, so every resource configured (including `r0`)  inherits this option "
+"unless it has another `protocol` option configured explicitly. For other "
+"synchronization protocols available, see <<s-replication-protocols>>."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-configure.adoc:297
+#, no-wrap
+msgid "The `resource` sections"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:305
+msgid ""
+"A per-resource configuration file is usually named `/etc/drbd.d/__resource__."
+"res`.  Any DRBD resource you define must be named by specifying a resource "
+"name in the configuration. The convention is to use only letters, digits, "
+"and the underscore; while it is technically possible to use other characters "
+"as well, you won't like the result if you ever need the more specific "
+"`__resource__:___peer__/__volume__` syntax."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:310
+msgid ""
+"Every resource configuration must also have at least two `on _host_` sub-"
+"sections, one for every cluster node. All other configuration settings are "
+"either inherited from the `common` section (if it exists), or derived from "
+"DRBD's default settings."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:314
+msgid ""
+"In addition, options with equal values on all hosts can be specified "
+"directly in the `resource` section. Thus, we can further condense our "
+"example configuration as follows:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:327
+#, no-wrap
+msgid ""
+"resource \"r0\" {\n"
+"  device minor 1;\n"
+"  disk \"/dev/sda7\";\n"
+"  meta-disk internal;\n"
+"  on \"alice\" {\n"
+"    address   10.1.1.31:7789;\n"
+"  }\n"
+"  on \"bob\" {\n"
+"    address   10.1.1.32:7789;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:331
+#, no-wrap
+msgid "Defining network connections"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:336
+msgid ""
+"Currently the communication links in DRBD 9 must build a full mesh, i.e. in "
+"every resource every node must have a direct connection to every other node "
+"(excluding itself, of course)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:339
+msgid ""
+"For the simple case of two hosts `drbdadm` will insert the (single) network "
+"connection by itself, for ease of use and backwards compatibility."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:344
+msgid ""
+"The net effect of this is a quadratic number of network connections over "
+"hosts. For the \"traditional\" two nodes one connection is needed; for three "
+"hosts there are three node pairs; for four, six pairs; 5 hosts: 10 "
+"connections, and so on. For (the current)  maximum of 16 nodes there'll be "
+"120 host pairs to connect."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:346
+#, no-wrap
+msgid "Number of connections for _N_ hosts"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-configure.adoc:347
+#, no-wrap
+msgid "images/connection-mesh.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:351
+msgid "An example configuration file for three hosts would be this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:373
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  device    minor 1;\n"
+"  disk      \"/dev/sda7\";\n"
+"  meta-disk internal;\n"
+"  on alice {\n"
+"    address   10.1.1.31:7000;\n"
+"    node-id   0;\n"
+"  }\n"
+"  on bob {\n"
+"    address   10.1.1.32:7000;\n"
+"    node-id   1;\n"
+"  }\n"
+"  on charlie {\n"
+"    address   10.1.1.33:7000;\n"
+"    node-id   2;\n"
+"  }\n"
+"  connection-mesh {\n"
+"    hosts alice bob charlie;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:380
+msgid ""
+"If have enough network cards in your servers, you can create direct cross-"
+"over links between server pairs.  A single four-port ethernet card allows "
+"you to have a single management interface, and to connect three other "
+"servers, to get a full mesh for four cluster nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:382
+msgid ""
+"In this case you can specify a different IP address to use the direct link:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:399
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  ...\n"
+"  connection {\n"
+"    host alice   address 10.1.2.1:7010;\n"
+"    host bob     address 10.1.2.2:7001;\n"
+"  }\n"
+"  connection {\n"
+"    host alice   address 10.1.3.1:7020;\n"
+"    host charlie address 10.1.3.2:7002;\n"
+"  }\n"
+"  connection {\n"
+"    host bob     address 10.1.4.1:7021;\n"
+"    host charlie address 10.1.4.2:7012;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:404
+msgid ""
+"For easier maintenance and debugging, it’s recommended that you have "
+"different ports for each endpoint. This will allow you to more easily "
+"associate packets to an endpoint when doing a `tcpdump`.  The examples below "
+"will still be using two servers only; please see <<s-4node-example>> for a "
+"four-node example."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:407
+#, no-wrap
+msgid "Configuring multiple paths"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:410
+msgid ""
+"DRBD allows configuring multiple paths per connection, by introducing "
+"multiple path sections in a connection. Please see the following example:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:426
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  ...\n"
+"  connection {\n"
+"    path {\n"
+"      host alpha address 192.168.41.1:7900;\n"
+"      host bravo address 192.168.41.2:7900;\n"
+"    }\n"
+"    path {\n"
+"      host alpha address 192.168.42.1:7900;\n"
+"      host bravo address 192.168.42.2:7900;\n"
+"    }\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:431
+msgid ""
+"Obviously the two endpoint hostnames need to be equal in all paths of a "
+"connection. Paths may be on different IPs (potentially different NICs)  or "
+"may only be on different ports."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:436
+msgid ""
+"The TCP transport uses one path at a time, unless you have configured load "
+"balancing (refer to <<s-tcp-load-balancing>>). If the backing TCP "
+"connections get dropped, or show timeouts, the TCP transport implementation "
+"tries to establish a connection over the next path. It goes over all paths "
+"in a round-robin fashion until a connection gets established."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:439
+msgid ""
+"The RDMA transport uses all paths of a connection concurrently and it "
+"balances the network traffic between the paths evenly."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:441
+#, no-wrap
+msgid "Configuring transport implementations"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:444
+msgid ""
+"DRBD supports multiple network transports. A transport implementation can be "
+"configured for each connection of a resource."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-configure.adoc:446
+#, no-wrap
+msgid "TCP/IP"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:451
+msgid ""
+"TCP is the default transport for DRBD replication traffic. Each DRBD "
+"resource connection where the `transport` option is not specified in the "
+"resource configuration will use the TCP transport."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:459
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    transport \"tcp\";\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:465
+msgid ""
+"You can configure the `tcp` transport with the following options, by "
+"specifying them in the `net` section of a resource configuration: `sndbuf-"
+"size`, `rcvbuf-size`, `connect-int`, `socket-check-timeout`, `ping-timeout`, "
+"`timeout`, `load-balance-paths`, and `tls`. Refer to `man drbd.conf-9.0` for "
+"more details about each option."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:468
+msgid "====== Load Balancing DRBD Traffic"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:476
+msgid ""
+"By default, the TCP transport establishes a connection path between DRBD "
+"resource peers serially, that is, one at a time. Since DRBD version 9.2.6, "
+"by setting the option `load-balance-paths` to `yes`, you can enable the "
+"transport to establish all paths in parallel.  Also, when load balancing is "
+"configured, the transport will always send replicated traffic into the path "
+"with the shortest send queue. Data can arrive out of order on the receiving "
+"side when multiple paths are established. The DRBD transport implementation "
+"takes care of sorting the received data packets and provides the data to the "
+"DRBD core in the original sending order."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:481
+msgid ""
+"Using the load balancing feature also requires a `drbd-utils` version 9.26.0 "
+"or later. If you have an earlier version of `drbd-utils` installed, you "
+"might get \"bad parser\" error messages when trying to run `drbdadm` "
+"commands against resources for which you have configured load balancing."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:484
+msgid ""
+"An example configuration with load balancing configured for a DRBD resource "
+"named `drbd-lb-0`, is as follows:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:485
+#, no-wrap
+msgid "`drbd-lb-0.res`"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:495
+#, no-wrap
+msgid ""
+"resource \"drbd-lb-0\"\n"
+"{\n"
+"[...]\n"
+"    net\n"
+"    {\n"
+"        load-balance-paths      yes;\n"
+"        [...]\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:504
+#, no-wrap
+msgid ""
+"    on \"linbit-0\"\n"
+"    {\n"
+"        volume 0\n"
+"        {\n"
+"        [...]\n"
+"        }\n"
+"        node-id    0;\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:513
+#, no-wrap
+msgid ""
+"    on \"linbit-1\"\n"
+"    {\n"
+"        volume 0\n"
+"        {\n"
+"        [...]\n"
+"        }\n"
+"        node-id    1;\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:522
+#, no-wrap
+msgid ""
+"    on \"linbit-2\"\n"
+"    {\n"
+"        volume 0\n"
+"        {\n"
+"        [...]\n"
+"        }\n"
+"        node-id    2;\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:536
+#, no-wrap
+msgid ""
+"    connection\n"
+"    {\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-0\" address ipv4 192.168.220.60:7900;\n"
+"            host \"linbit-1\" address ipv4 192.168.220.61:7900;\n"
+"        }\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-0\" address ipv4 192.168.221.60:7900;\n"
+"            host \"linbit-1\" address ipv4 192.168.221.61:7900;\n"
+"        }\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:564
+#, no-wrap
+msgid ""
+"    connection\n"
+"    {\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-0\" address ipv4 192.168.220.60:7900;\n"
+"            host \"linbit-2\" address ipv4 192.168.220.62:7900;\n"
+"        }\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-0\" address ipv4 192.168.221.60:7900;\n"
+"            host \"linbit-2\" address ipv4 192.168.221.62:7900;\n"
+"        }\n"
+"    }\n"
+"        connection\n"
+"    {\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-1\" address ipv4 192.168.220.61:7900;\n"
+"            host \"linbit-2\" address ipv4 192.168.220.62:7900;\n"
+"        }\n"
+"        path\n"
+"        {\n"
+"            host \"linbit-1\" address ipv4 192.168.221.61:7900;\n"
+"            host \"linbit-2\" address ipv4 192.168.221.62:7900;\n"
+"        }\n"
+"    }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:574
+msgid ""
+"While the above configuration shows three DRBD connection paths, only two "
+"are necessary in a three-node cluster. For example, if the above "
+"configuration was on node `linbit-0`, the connection between `linbit-1` and "
+"`linbit-2` would be unnecessary in the configuration. On `linbit-1`, the "
+"connection between `linbit-0` and `linbit-2` would be unnecessary, and so "
+"on, for the configuration on `linbit-2`. Nevertheless, it can be helpful to "
+"have all possible connections in your resource configuration. This way, you "
+"can use a single configuration file on all the nodes in your cluster without "
+"having to edit and customize the configuration on each node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:577
+msgid "====== Securing DRBD Connections with TLS"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:580
+msgid ""
+"You can enable authenticated and encrypted DRBD connections via the `tcp` "
+"transport by adding the `tls` net option to a DRBD resource configuration "
+"file."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:588
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    tls yes;\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:593
+msgid ""
+"DRBD will temporarily pass the sockets to a user space utility (`tlshd`, "
+"part of the `ktls-utils` package)  when establishing connections. `tlshd` "
+"will use the keys configured in `/etc/tlshd.conf` to set up authentication "
+"and encryption."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:594
+#, no-wrap
+msgid "/etc/tlshd.conf"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:600
+#, no-wrap
+msgid ""
+"[authenticate.client]\n"
+"x509.certificate=/etc/tlshd.d/tls.crt\n"
+"x509.private_key=/etc/tlshd.d/tls.key\n"
+"x509.truststore=/etc/tlshd.d/ca.crt\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:605
+#, no-wrap
+msgid ""
+"[authenticate.server]\n"
+"x509.certificate=/etc/tlshd.d/tls.crt\n"
+"x509.private_key=/etc/tlshd.d/tls.key\n"
+"x509.truststore=/etc/tlshd.d/ca.crt\n"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-configure.adoc:608
+#, no-wrap
+msgid "RDMA"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:612
+msgid ""
+"You can configure DRBD resource replication traffic to use RDMA rather than "
+"TCP as a transport type by specifying it explicitly in a DRBD resource "
+"configuration."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:620
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    transport \"rdma\";\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:626
+msgid ""
+"You can configure the `rdma` transport with the following options, by "
+"specifying them in the `net` section of the resource configuration: `sndbuf-"
+"size`, `rcvbuf-size`, `max_buffers`, `connect-int`, `socket-check-timeout`, "
+"`ping-timeout`, `timeout`. Refer to `man drbd.conf-9.0` for more details "
+"about each option."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:629
+msgid ""
+"The `rdma` transport is a zero-copy-receive transport. One implication of "
+"that is that the `max_buffers` configuration option must be set to a value "
+"big enough to hold all `rcvbuf-size`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:633
+msgid ""
+"`rcvbuf-size` is configured in bytes, while `max_buffers` is configured in "
+"pages. For optimal performance `max_buffers` should be big enough to hold "
+"all of `rcvbuf-size` and the amount of data that might be in transit to the "
+"back-end device at any point in time."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:638
+msgid ""
+"In case you are using InfiniBand host channel adapters (HCAs) with the "
+"`rdma` transport, you also need to configure IP over InfiniBand (IPoIB). The "
+"IP address is not used for data transfer, but it is used to find the right "
+"adapters and ports while establishing the connection."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:642
+msgid ""
+"The configuration options `sndbuf-size` and `rcvbuf-size` are only "
+"considered at the time a connection is established. While you can change "
+"their values when the connection is established, your changes will only take "
+"effect when the connection is re-established."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-configure.adoc:644
+#, no-wrap
+msgid "Performance considerations for RDMA"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:650
+msgid ""
+"By looking at the pseudo file _/sys/kernel/debug/drbd/<resource>/connections/"
+"<peer>/transport_, the counts of available receive descriptors (rx_desc) and "
+"transmit descriptors (tx_desc)  can be monitored. If one of the descriptor "
+"kinds becomes depleted you should increase `sndbuf-size` or `rcvbuf-size`."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:652
+#, no-wrap
+msgid "Enabling your resource for the first time"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:656
+msgid ""
+"After you have completed initial resource configuration as outlined in the "
+"previous sections, you can bring up your resource."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:658
+msgid "Each of the following steps must be completed on both nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:660
+msgid ""
+"Please note that with our example config snippets (`resource r0 { ... }`), "
+"`<resource>` would be `r0`."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:661
+#, no-wrap
+msgid "Create device metadata"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:664
+msgid ""
+"This step must be completed only on initial device creation. It initializes "
+"DRBD's metadata:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:679
+msgid ""
+"Please note that the number of bitmap slots that are allocated in the meta-"
+"data depends on the number of hosts for this resource; per default the hosts "
+"in the resource configuration are counted.  If all hosts are specified "
+"_before_ creating the meta-data, this will \"just work\"; adding bitmap "
+"slots for further nodes is possible later, but incurs some manual work."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:681
+#, no-wrap
+msgid "Enable the resource"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:685
+msgid ""
+"This step associates the resource with its backing device (or devices, in "
+"case of a multi-volume resource), sets replication parameters, and connects "
+"the resource to its peer:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:689
+#, no-wrap
+msgid "Observe the status via `drbdadm status`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:692
+msgid ""
+"The status command output should now contain information similar to the "
+"following:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:699
+#, no-wrap
+msgid ""
+"# drbdadm status r0\n"
+"r0 role:Secondary\n"
+"  disk:Inconsistent\n"
+"  bob role:Secondary\n"
+"    disk:Inconsistent\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:703
+msgid "The _Inconsistent/Inconsistent_ disk state is expected at this point."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:708
+msgid ""
+"By now, DRBD has successfully allocated both disk and network resources and "
+"is ready for operation. What it does not know yet is which of your nodes "
+"should be used as the source of the initial device synchronization."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:710
+#, no-wrap
+msgid "The initial device synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:714
+msgid "There are two more steps required for DRBD to become fully operational:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:715
+#, no-wrap
+msgid "Select an initial sync source"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:722
+msgid ""
+"If you are dealing with newly-initialized, empty disks, this choice is "
+"entirely arbitrary. If one of your nodes already has valuable data that you "
+"need to preserve, however, _it is of crucial importance_ that you select "
+"that node as your synchronization source.  If you do initial device "
+"synchronization in the wrong direction, you will lose that data. Exercise "
+"caution."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-configure.adoc:724
+#, no-wrap
+msgid "Start the initial full synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:728
+msgid ""
+"This step must be performed on only one node, only on initial resource "
+"configuration, and only on the node you selected as the synchronization "
+"source. To perform this step, issue this command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:731
+#, no-wrap
+msgid "# drbdadm primary --force <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:737
+msgid ""
+"After issuing this command, the initial full synchronization will commence. "
+"You will be able to monitor its progress via `drbdadm status`. It may take "
+"some time depending on the size of the device."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:744
+msgid ""
+"By now, your DRBD device is fully operational, even before the initial "
+"synchronization has completed (albeit with slightly reduced performance). If "
+"you started with empty disks you may now already create a filesystem on the "
+"device, use it as a raw block device, mount it, and perform any other "
+"operation you would with an accessible block device."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:747
+msgid ""
+"You will now probably want to continue with <<p-work>>, which describes "
+"common administrative tasks to perform on your resource."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:749
+#, no-wrap
+msgid "Skipping initial resynchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:755
+msgid ""
+"If (and only if) you are starting DRBD resources from scratch (with no "
+"valueable data on them) you can use following command sequence to skip "
+"initial resync (don't do that with data you want to keep on the devices):"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:757
+msgid "On all nodes:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:761
+#, no-wrap
+msgid ""
+"# drbdadm create-md <res>\n"
+"# drbdadm up <res>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:764
+msgid ""
+"The command `drbdadm status` should now show all disks as _Inconsistent_."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:766
+msgid "Then, on one node execute the following command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:769
+#, no-wrap
+msgid "# drbdadm new-current-uuid --clear-bitmap <resource>/<volume>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:771 UG9/en/drbd-install-packages.adoc:260
+#: UG9/en/drbd-latency.adoc:229 UG9/en/drbd-lvm.adoc:176
+#: UG9/en/linstor-opennebula.adoc:35
+#, no-wrap
+msgid "or"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:773 UG9/en/drbd-configure.adoc:807
+msgid "# drbdsetup new-current-uuid --clear-bitmap <minor>"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:774 UG9/en/drbd-configure.adoc:808
+#: UG9/en/drbd-configure.adoc:874
+#, no-wrap
+msgid "--\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:779
+msgid ""
+"Running `drbdadm status` now shows the disks as _UpToDate_ (even tough the "
+"backing devices might be out of sync). You can now create a file system on "
+"the disk and start using it."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:782
+msgid ""
+"IMPORTANT: Don't do the above with data you want to keep or it gets "
+"corrupted."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:784
+msgid "[[s-using-truck-based-replication]]"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:784
+#, no-wrap
+msgid "Using truck based replication"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:789
+msgid ""
+"In order to preseed a remote node with data which is then to be kept "
+"synchronized, and to skip the initial full device synchronization, follow "
+"these steps."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:796
+msgid ""
+"This assumes that your local node has a configured, but disconnected DRBD "
+"resource in the _Primary_ role.  That is to say, device configuration is "
+"completed, identical `drbd.conf` copies exist on both nodes, and you have "
+"issued the commands for <<s-initial-full-sync,initial resource promotion>> "
+"on your local node -- but the remote node is not connected yet."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:800
+#, no-wrap
+msgid ""
+"* On the local node, issue the following command:\n"
+"+\n"
+"--\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:803
+msgid "# drbdadm new-current-uuid --clear-bitmap <resource>/<volume>"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:805
+#, no-wrap
+msgid "or\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:818
+#, no-wrap
+msgid ""
+"* Create a consistent, verbatim copy of the resource's data _and its\n"
+"  metadata_. You may do so, for example, by removing a hot-swappable\n"
+"  drive from a RAID-1 mirror.  You would, of course, replace it with a\n"
+"  fresh drive, and rebuild the RAID set, to ensure continued\n"
+"  redundancy. But the removed drive is a verbatim copy that can now be\n"
+"  shipped off site.  If your local block device supports snapshot\n"
+"  copies (such as when using DRBD on top of LVM), you may also create\n"
+"  a bitwise copy of that snapshot using `dd`.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:822
+#, no-wrap
+msgid ""
+"* On the local node, issue:\n"
+"+\n"
+"--\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:825
+msgid "# drbdadm new-current-uuid <resource>"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:827
+#, no-wrap
+msgid "or the matching `drbdsetup` command.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:830
+#, no-wrap
+msgid ""
+"Note the absence of the `--clear-bitmap` option in this second\n"
+"invocation.\n"
+"--\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:833
+#, no-wrap
+msgid "* Physically transport the copies to the remote peer location.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:839
+#, no-wrap
+msgid ""
+"* Add the copies to the remote node. This may again be a matter of\n"
+"  plugging in a physical disk, or grafting a bitwise copy of your shipped\n"
+"  data onto existing storage on the remote node.  Be sure to restore\n"
+"  or copy not only your replicated data, but also the associated DRBD\n"
+"  metadata. If you fail to do so, the disk shipping process is moot.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:844
+#, no-wrap
+msgid ""
+"* On the new node we need to fix the node ID in the metadata, and exchange\n"
+"  the peer-node info for the two nodes. Please see the following lines as\n"
+"  example for changing node id from 2 to 1 on a resource `r0` volume `0`.\n"
+"+\n"
+"--\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:847
+msgid "This must be done while the volume is not in use."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:853
+msgid ""
+"You need to edit the first four lines to match your needs. V is the resource "
+"name with the volume number. NODE_FROM is the node ID of the node the data "
+"originates from. NODE_TO is the node ID of the node where data will be "
+"replicated to. META_DATA_LOCATION is the location of the metadata which "
+"might be internal or flex-external."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:859
+msgid "V=r0/0 NODE_FROM=2 NODE_TO=1 META_DATA_LOCATION=internal"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:866
+#, no-wrap
+msgid ""
+"drbdadm -- --force dump-md $V > /tmp/md_orig.txt\n"
+"sed -e \"s/node-id $NODE_FROM/node-id $NODE_TO/\" \\\n"
+"\t-e \"s/^peer.$NODE_FROM. /peer-NEW /\" \\\n"
+"\t-e \"s/^peer.$NODE_TO. /peer[$NODE_FROM] /\" \\\n"
+"\t-e \"s/^peer-NEW /peer[$NODE_TO] /\" \\\n"
+"\t< /tmp/md_orig.txt > /tmp/md.txt\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:868
+msgid ""
+"drbdmeta --force $(drbdadm sh-minor $V) v09 $(drbdadm sh-md-dev $V) "
+"$META_DATA_LOCATION restore-md /tmp/md.txt"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:873
+#, no-wrap
+msgid ""
+".NOTE\n"
+"`drbdmeta` before 8.9.7 cannot cope with out-of-order `peer` sections; you'll\n"
+"need to exchange the blocks via an editor.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:878
+#, no-wrap
+msgid ""
+"* Bring up the resource on the remote node:\n"
+"+\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:880
+msgid "# drbdadm up <resource>"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:886
+#, no-wrap
+msgid ""
+"After the two peers connect, they will not initiate a full device\n"
+"synchronization. Instead, the automatic synchronization that now\n"
+"commences only covers those blocks that changed since the invocation\n"
+"of `drbdadm{nbsp}--clear-bitmap{nbsp}new-current-uuid`.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:892
+#, no-wrap
+msgid ""
+"Even if there were _no_ changes whatsoever since then, there may still\n"
+"be a brief synchronization period due to areas covered by the\n"
+"<<s-activity-log,Activity Log>> being rolled back on the new\n"
+"Secondary. This may be mitigated by the use of\n"
+"<<p-checksum-sync,checksum-based synchronization>>.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:896
+#, no-wrap
+msgid ""
+"You may use this same procedure regardless of whether the resource is\n"
+"a regular DRBD resource, or a stacked resource. For stacked resources,\n"
+"simply add the `-S` or `--stacked` option to `drbdadm`.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:899
+#, no-wrap
+msgid "[[s-4node-example]]\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-configure.adoc:899
+#, no-wrap
+msgid "Example configuration for four nodes"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:902
+msgid "Here is an example for a four-node cluster."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:904
+msgid "[[s-connection-mesh]]"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:909
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  device      minor 0;\n"
+"  disk        /dev/vg/r0;\n"
+"  meta-disk   internal;\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:926
+#, no-wrap
+msgid ""
+"  on store1 {\n"
+"    address   10.1.10.1:7100;\n"
+"    node-id   1;\n"
+"  }\n"
+"  on store2 {\n"
+"    address   10.1.10.2:7100;\n"
+"    node-id   2;\n"
+"  }\n"
+"  on store3 {\n"
+"    address   10.1.10.3:7100;\n"
+"    node-id   3;\n"
+"  }\n"
+"  on store4 {\n"
+"    address   10.1.10.4:7100;\n"
+"    node-id   4;\n"
+"  }\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:931
+#, no-wrap
+msgid ""
+"  connection-mesh {\n"
+"\thosts     store1 store2 store3 store4;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:934
+#, no-wrap
+msgid "In case you want to see the `connection-mesh` configuration expanded, try `drbdadm dump _<resource>_ -v`.\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:941
+#, no-wrap
+msgid ""
+"[[s-connection-mesh-distinct-interfaces]]\n"
+"As another example, if the four nodes have enough interfaces to provide\n"
+"a complete mesh via direct linksfootnote:[i.e. three crossover and at least one\n"
+"outgoing/management interface], you can specify the IP addresses of the\n"
+"interfaces:\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:945
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  ...\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:959
+#, no-wrap
+msgid ""
+"  # store1 has crossover links like 10.99.1x.y\n"
+"  connection {\n"
+"    host store1  address 10.99.12.1 port 7012;\n"
+"    host store2  address 10.99.12.2 port 7021;\n"
+"  }\n"
+"  connection {\n"
+"    host store1  address 10.99.13.1  port 7013;\n"
+"    host store3  address 10.99.13.3  port 7031;\n"
+"  }\n"
+"  connection {\n"
+"    host store1  address 10.99.14.1  port 7014;\n"
+"    host store4  address 10.99.14.4  port 7041;\n"
+"  }\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:969
+#, no-wrap
+msgid ""
+"  # store2 has crossover links like 10.99.2x.y\n"
+"  connection {\n"
+"    host store2  address 10.99.23.2  port 7023;\n"
+"    host store3  address 10.99.23.3  port 7032;\n"
+"  }\n"
+"  connection {\n"
+"    host store2  address 10.99.24.2  port 7024;\n"
+"    host store4  address 10.99.24.4  port 7042;\n"
+"  }\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-configure.adoc:976
+#, no-wrap
+msgid ""
+"  # store3 has crossover links like 10.99.3x.y\n"
+"  connection {\n"
+"    host store3  address 10.99.34.3  port 7034;\n"
+"    host store4  address 10.99.34.4  port 7043;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-configure.adoc:980
+#, no-wrap
+msgid ""
+"Please note the numbering scheme used for the IP addresses and ports. Another\n"
+"resource could use the same IP addresses, but ports `71__xy__`, the next one\n"
+"`72__xy__`, and so on.\n"
+msgstr ""

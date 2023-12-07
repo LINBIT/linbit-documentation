@@ -1,14 +1,14 @@
 [[ch-linstor-gateway]]
-== LINSTOR Gateway for Highly Available NFS/iSCSI Storage
+== LINSTOR Gateway for Highly Available NFS/iSCSI/NVMe-oF Storage
 
-*LINSTOR Gateway* manages highly available iSCSI targets and NFS exports by leveraging both LINSTOR and
-DRBD Reactor.
+*LINSTOR Gateway* manages highly available NVMe-oF targets, iSCSI targets, and NFS exports by leveraging both
+LINSTOR and DRBD Reactor.
 
 [[s-linstor-gateway-requirements]]
 === LINSTOR Gateway Requirements
 
-LINSTOR Gateway requires an initialized LINSTOR cluster, DRBD Reactor, as well as NFS, iSCSI, or both utilities
-be installed and configured before it can be used. The following sections cover these requirements in detail.
+Before you can use LINSTOR Gateway, you will need to have an initialized LINSTOR cluster, with DRBD Reactor, as well as NVMe-oF, NFS, iSCSI utilities
+installed and configured. The following sections detail how to meet these requirements.
 
 ==== LINSTOR Cluster
 
@@ -16,7 +16,7 @@ The LINSTOR cluster needs to be set up as a prerequisite to using LINSTOR Gatewa
 LINSTOR's configuration options, please refer to the
 https://linbit.com/drbd-user-guide/LINSTOR-guide-1_0-en/#s-storage_pools[LINSTOR User's Guide].
 
-For both iSCSI and NFS, a LINSTOR `storage-pool` , `resource-group` and `volume-group` for LINSTOR Gateway needs to be
+For NVMe-oF, iSCSI, and NFS, a LINSTOR `storage-pool`, `resource-group`, and `volume-group` for LINSTOR Gateway need to be
 created before use. The following section provides example commands for setting up the prerequisites in a three-node
 LINSTOR cluster.
 
@@ -36,11 +36,13 @@ Create resource-groups and volume-groups backed by the storage-pool created in t
 ----
 # linstor resource-group create iscsi_group --storage-pool lvmpool --place-count 2
 # linstor resource-group create nfs_group --storage-pool lvmpool --place-count 3
+# linstor resource-group create nvme_group --storage-pool lvm --place-count 2
 ----
 
 ----
 # linstor volume-group create iscsi_group
 # linstor volume-group create nfs_group
+# linstor volume-group create nvmeof_group
 ----
 
 LINSTOR Gateway requires modification of the LINSTOR Satellite's configuration on each Satellite node.
@@ -100,17 +102,26 @@ DRBD Reactor uses Pacemaker's resource agents when integrated with LINSTOR Gatew
 agents on all nodes in the cluster. This package is named `resource-agents` in both RPM and DEB based distributions:
 
 ----
-# yum -y install resource-agents
+# dnf -y install resource-agents
 ----
 
-==== iSCSI and NFS Utilities
+==== NVME-oF, iSCSI, and NFS Utilities
+
+To configure NVMe-oF targets for LINSTOR Gateway, you will need to install the NVMe-of command line interface on
+all nodes.
+
+The `nvmetcli` package can be installed on RPM based systems using the following command:
+
+----
+# dnf -y install nvmetcli
+----
 
 LINSTOR Gateway requires the LIO iSCSI implementation be installed on all nodes.
 
 The `targetcli` package can be installed on RPM based systems using the following command:
 
 ----
-# yum -y install targetcli
+# dnf -y install targetcli
 ----
 
 For NFS support in LINSTOR Gateway, nfs-server utilities need to be installed on each node.
@@ -118,7 +129,7 @@ For NFS support in LINSTOR Gateway, nfs-server utilities need to be installed on
 The `nfs-utils` package can be installed on RPM based systems using the following command:
 
 ----
-# yum -y install nfs-utils
+# dnf -y install nfs-utils
 ----
 
 The NFS server should not be enabled in systemd since that will conflict with DRBD Reactors ability to manage the
@@ -153,6 +164,7 @@ In addition to the initialized LINSTOR cluster, the following tools need to be p
 
 * linstor-client
 * drbd-reactor
+* nvmetcli
 * targetcli
 * nfs-utils (RPM) or nfs-common (DEB)
 * nfs-server (RPM) or nfs-kernel-server (DEB)
@@ -224,6 +236,9 @@ resource-group has a corresponding volume-group:
 ┊ iscsi_group   ┊ PlaceCount: 2           ┊ 0      ┊             ┊
 ┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊
 ╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡
+┊ nvmeof_group  ┊ PlaceCount: 2           ┊ 0      ┊             ┊
+┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊
+╞┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╡
 ┊ nfs_group     ┊ PlaceCount: 3           ┊ 0      ┊             ┊
 ┊               ┊ StoragePool(s): lvmpool ┊        ┊             ┊
 ╰────────────────────────────────────────────────────────────────╯
@@ -234,6 +249,12 @@ resource-group has a corresponding volume-group:
 ┊ 0        ┊       ┊
 ╰──────────────────╯
 # linstor volume-group list nfs_group
+╭──────────────────╮
+┊ VolumeNr ┊ Flags ┊
+╞══════════════════╡
+┊ 0        ┊       ┊
+╰──────────────────╯
+# linstor volume-group list nvmeof_group
 ╭──────────────────╮
 ┊ VolumeNr ┊ Flags ┊
 ╞══════════════════╡
@@ -333,3 +354,45 @@ The following command will delete the NFS export from DRBD Reactor as well as th
 ----
 # linstor-gateway nfs delete -r nfstest
 ----
+
+[[s-linstor-gateway-create-nvmeof]]
+=== Creating NVMe-oF Targets
+
+The `linstor-gateway` command line utility will be used to manage all NVMe-oF target related actions.
+
+TIP: Use `linstor-gateway nvme help` for detailed information regarding the `nvme` subcommand.
+
+The following command will create a new DRBD resource in the LINSTOR cluster with the specified name and resource group.
+This command also creates the DRBD Reactor configuration files to enable high availability of the NVMe-oF target.
+
+----
+# linstor-gateway nvme create linbit:nvme:vol0 192.168.221.69/24 2G
+----
+
+After running the command above, you will have a highly available 2GiB NVMe-oF target created in your cluster that is discoverable
+on the IP address used in the command. The target will be backed by a DRBD device managed by LINSTOR. The DRBD resource
+was created by LINSTOR in the `nvmeof_group` resource group. The DRBD Reactor configuration files created by the above
+command can be found in `/etc/drbd-reactor.d/`.
+
+You can list the NVMe-oF resources that you created by using LINSTOR Gateway by entering the `linstor-gateway nvme list` command:
+
+----
+# linstor-gateway nvme list
++------------------+-------------------+---------------+-----------+---------------+
+|       NQN        |    Service IP     | Service state | Namespace | LINSTOR state |
++------------------+-------------------+---------------+-----------+---------------+
+| linbit:nvme:vol0 | 192.168.221.69/24 | Started       |         1 | OK            |
++------------------+-------------------+---------------+-----------+---------------+
+----
+
+TIP: You can check the DRBD Reactor status using the `drbd-reactorctl status` command.
+
+[[s-linstor-gateway-delete-nvmeof]]
+=== Deleting NVMe-oF Targets
+
+The following command will delete the NVMe-oF target from DRBD Reactor as well as the LINSTOR Cluster:
+
+----
+# linstor-gateway nvme delete linbit:nvme:vol0
+----
+

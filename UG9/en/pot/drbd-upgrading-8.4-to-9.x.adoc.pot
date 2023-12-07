@@ -1,0 +1,626 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:3
+#, no-wrap
+msgid "Upgrading DRBD From 8.4 to 9.x"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:8
+msgid ""
+"This section covers the process of upgrading DRBD from version 8.4.x to 9.x "
+"in detail. For upgrades within version 9, and for special considerations "
+"when upgrading to a particular DRBD 9.x version, refer to the <<drbd-"
+"upgrading.adoc#s-upgrading-drbd, Upgrading DRBD>> chapter in this guide."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:9 UG9/en/drbd-upgrading.adoc:22
+#, no-wrap
+msgid "Compatibility"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:13
+msgid ""
+"DRBD 9.a.b releases are generally protocol compatible with DRBD 8.c.d. In "
+"particular, all DRBD 9.a.b releases other than DRBD 9.1.0 to 9.1.7 inclusive "
+"are compatible with DRBD 8.c.d."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:15
+#, no-wrap
+msgid "General Overview"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:18
+msgid "The general process for upgrading 8.4 to 9.x is as follows:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:20
+msgid ""
+"Configure the <<s-updating-your-repo-v8-to-v9,new repositories>> (if using "
+"packages from LINBIT)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:21
+msgid "Verify that the current situation <<s-upgrade-check-v8-to-v9,is okay>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:22
+msgid "<<s-upgrade-pausing-the-cluster-v8-to-v9,Pause>> any cluster manager."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:23
+msgid ""
+"Upgrade packages to install <<s-upgrading-the-packages-v8-to-v9,new "
+"versions>> ."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:25
+msgid ""
+"If you want to move to more than two nodes, you will need to resize the "
+"lower-level storage to provide room for the additional metadata. This topic "
+"is discussed in the <<ch-lvm,LVM Chapter>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:27
+msgid ""
+"Unconfigure resources, unload DRBD 8.4, and <<s-upgrade-reload-kernel-mod-v8-"
+"to-v9,load the v9 kernel module>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:29
+msgid ""
+"<<s-upgrade-convert-v8-to-v9,Convert DRBD metadata>> to format `v09`, "
+"perhaps changing the number of bitmaps in the same step."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:31
+msgid ""
+"<<s-upgrade-start-drbd-v8-to-v9,Start the DRBD resources>> and bring the "
+"cluster node _online_ again if you are using a cluster manager."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:34
+#, no-wrap
+msgid "Updating Your Repository"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:41
+msgid ""
+"Due to the number of changes between the 8.4 and 9.x branches, LINBIT has "
+"created separate repositories for each. The best way to get LINBIT's "
+"software installed on your machines, if you have a LINBIT customer or "
+"evaluation account, is to download a small https://my.linbit.com/linbit-"
+"manage-node.py[Python helper script] and run it on your target machines."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:43
+#, no-wrap
+msgid "Using the LINBIT Manage Node Helper Script to Enable LINBIT Repositories"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:47
+msgid ""
+"Running the LINBIT helper script will allow you to enable certain LINBIT "
+"package repositories. When upgrading from DRBD 8.4, it is recommended that "
+"you enable the `drbd-9` package repository."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:52
+msgid ""
+"While the helper script does give you the option of enabling a `drbd-9.0` "
+"package repository, this is not recommended as a way to upgrade from DRBD "
+"8.4, as that branch only contains DRBD 9.0 and related software. It will "
+"likely be discontinued in the future and the DRBD versions 9.1+ that are "
+"available in the `drbd-9` package repository are protocol compatible with "
+"version 8.4."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:56
+msgid ""
+"To use the script to enable the `drbd-9` repository, refer to the "
+"instructions in this guide for <<drbd-install-packages.adoc#s-linbit-manage-"
+"node-script, Using a LINBIT Helper Script to Register Nodes and Configure "
+"Package Repositories>>"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:58
+#, no-wrap
+msgid "Debian/Ubuntu Systems"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:65
+msgid ""
+"When using LINBIT package repositories to update DRBD 8.4 to 9.1+, note that "
+"LINBIT currently only keeps two LTS Ubuntu versions up-to-date: Focal "
+"(20.04) and Jammy (22.04). If you are running DRBD v8.4, you are likely on "
+"an older version of Ubuntu Linux than these. Before using the helper script "
+"to add LINBIT package repositories to update DRBD, you would first need to "
+"update your system to a LINBIT supported LTS version."
+msgstr ""
+
+#.  STEP 1
+#. type: Title =====
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:68 UG9/en/drbd-upgrading.adoc:52
+#, no-wrap
+msgid "Checking the DRBD State"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:72
+msgid ""
+"Before you update DRBD, verify that your resources are in sync. The output "
+"of `cat /proc/drbd` should show an _UpToDate/UpToDate_ status for your "
+"resources."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:75
+#, no-wrap
+msgid "node-2# cat /proc/drbd\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:79
+#, no-wrap
+msgid ""
+"version: 8.4.9-1 (api:1/proto:86-101)\n"
+"GIT-hash: [...] build by linbit@buildsystem, 2016-11-18 14:49:21\n"
+"GIT-hash: [...] build by linbit@buildsystem, 2016-11-18 14:49:21\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:82
+#, no-wrap
+msgid ""
+" 0: cs:Connected ro:Secondary/Secondary ds:UpToDate/UpToDate C r-----\n"
+"     ns:0 nr:211852 dw:211852 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:d oos:0\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:87
+msgid ""
+"The `cat /proc/drbd` command is deprecated in DRBD versions 9.x for getting "
+"resource status information. After upgrading DRBD, use the `drbdadm status` "
+"command to get resource status information."
+msgstr ""
+
+#.  STEP 3
+#. type: Title =====
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:89 UG9/en/drbd-upgrading.adoc:90
+#, no-wrap
+msgid "Pausing the Services"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:94
+msgid ""
+"Now that you know the resources are in sync, start by upgrading the "
+"secondary node.  This can be done manually or according to your cluster "
+"manager's documentation."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:97 UG9/en/drbd-upgrading.adoc:97
+msgid ""
+"Both processes are covered below. If you are running Pacemaker as your "
+"cluster manager do not use the manual method."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:99
+#, no-wrap
+msgid "Manual Method"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:103
+#, no-wrap
+msgid "node-2# systemctl stop drbd@<resource>.target\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:108 UG9/en/drbd-upgrading.adoc:108
+msgid ""
+"To use the `systemctl stop` command with a DRBD resource target, you would "
+"have needed to have enabled the `drbd.service` previously. You can verify "
+"this by using the `systemctl is-enabled drbd.service` command."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:110
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:273 UG9/en/drbd-upgrading.adoc:186
+#, no-wrap
+msgid "Pacemaker"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:113
+msgid ""
+"Put the secondary node into standby mode. In this example `node-2` is "
+"secondary."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:116
+#, no-wrap
+msgid "node-2# crm node standby node-2\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:120 UG9/en/drbd-upgrading.adoc:120
+msgid ""
+"You can watch the status of your cluster using `crm_mon -rf` or watch `cat /"
+"proc/drbd` until it shows _Unconfigured_ for your resources."
+msgstr ""
+
+#.  STEP 2
+#. type: Title =====
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:123 UG9/en/drbd-upgrading.adoc:68
+#, no-wrap
+msgid "Upgrading the Packages"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:126
+msgid "Now update your packages."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:128
+msgid "RHEL/CentOS:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:131
+#, no-wrap
+msgid "node-2# dnf -y upgrade\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:134
+msgid "Debian/Ubuntu:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:137
+#, no-wrap
+msgid "node-2# apt-get update && apt-get upgrade\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:141
+msgid ""
+"Once the upgrade is finished you will have the latest DRBD 9.x kernel module "
+"and `drbd-utils` installed on your secondary node, `node-2`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:143
+msgid "But the kernel module is not active yet."
+msgstr ""
+
+#.  STEP 4
+#. type: Title =====
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:145 UG9/en/drbd-upgrading.adoc:124
+#, no-wrap
+msgid "Loading the New Kernel Module"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:149
+msgid ""
+"By now the DRBD module should not be in use anymore, so unload it by "
+"entering the following command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:152
+#, no-wrap
+msgid "node-2# rmmod drbd_transport_tcp; rmmod drbd\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:156 UG9/en/drbd-upgrading.adoc:135
+msgid ""
+"If there is a message like `ERROR: Module drbd is in use`, then not all "
+"resources have been correctly stopped."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:159
+msgid ""
+"Retry <<s-upgrading-the-packages-v8-to-v9, upgrading packages>>, or run the "
+"command `drbdadm down all` to find out which resources are still active."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:161 UG9/en/drbd-upgrading.adoc:140
+msgid ""
+"Some typical issues that might prevent you from unloading the kernel module "
+"are:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:163 UG9/en/drbd-upgrading.adoc:142
+msgid "NFS export on a DRBD-backed filesystem (see `exportfs -v` output)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:164
+msgid "Filesystem still mounted - check `grep drbd /proc/mounts`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:165 UG9/en/drbd-upgrading.adoc:144
+msgid "Loopback device active (`losetup -l`)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:166 UG9/en/drbd-upgrading.adoc:145
+msgid "Device mapper using DRBD, directly or indirectly (`dmsetup ls --tree`)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:167 UG9/en/drbd-upgrading.adoc:146
+msgid "LVM with a DRBD-PV (`pvs`)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:169 UG9/en/drbd-upgrading.adoc:148
+msgid "This list is not complete. These are just the most common examples."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:171 UG9/en/drbd-upgrading.adoc:150
+msgid "Now you can load the new DRBD module."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:174
+#, no-wrap
+msgid "node-2# modprobe drbd\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:181
+msgid ""
+"Next, you can verify that the version of the DRBD kernel module that is "
+"loaded is the updated 9.x version. If the installed package is for the wrong "
+"kernel version, the `modprobe` would be successful, but output from a "
+"`drbdadm --version` command would show that the DRBD kernel version "
+"(`DRBD_KERNEL_VERSION_CODE`) was still at the older 8.4 (`0x08040` in "
+"hexadecimal)  version."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:184
+msgid ""
+"The output of `drbdadm --version` should show 9.x.y and look similar to this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:192
+#, no-wrap
+msgid ""
+"DRBDADM_BUILDTAG=GIT-hash:\\ [...]\\ build\\ by\\ @buildsystem\\,\\ 2022-09-19\\ 12:15:10\n"
+"DRBDADM_API_VERSION=2\n"
+"DRBD_KERNEL_VERSION_CODE=0x09010b\n"
+"DRBD_KERNEL_VERSION=9.1.11\n"
+"DRBDADM_VERSION_CODE=0x091600\n"
+"DRBDADM_VERSION=9.22.0\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:195
+msgid "On the primary node, `node-1`, `drbdadm --version` will still show the"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:197
+#, no-wrap
+msgid "Migrating Your Configuration Files"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:207
+msgid ""
+"DRBD 9.x is backward compatible with the 8.4 configuration files; however, "
+"some syntax has changed. See <<s-recent-changes-config>> for a full list of "
+"changes. In the meantime you can port your old configs fairly easily by "
+"using `drbdadm dump all` command. This will output both a new global "
+"configuration followed by the new resource configuration files. Take this "
+"output and make changes accordingly."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:210
+#, no-wrap
+msgid "Changing the Metadata"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:214
+msgid ""
+"Now you need to convert the on-disk metadata to the new version. You can do "
+"this by using the `drbdadm create-md` command and answering two questions."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:220
+msgid ""
+"If you want to change the number of nodes, you should already have increased "
+"the size of the lower level device, so that there is enough space to store "
+"the additional bitmaps; in that case, you would run the command below with "
+"an additional argument `--max-peers=__<N>__`. When determining the number of "
+"(possible) peers please take setups like the <<s-drbd-client>> into account."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:226
+#, no-wrap
+msgid ""
+"# drbdadm create-md <resource>\n"
+"You want me to create a v09 style flexible-size internal meta data block.\n"
+"There appears to be a v08 flexible-size internal meta data block\n"
+"already in place on <disk> at byte offset <offset>\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:229
+#, no-wrap
+msgid ""
+"Valid v08 meta-data found, convert to v09?\n"
+"[need to type 'yes' to confirm] yes\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:233
+#, no-wrap
+msgid ""
+"md_offset <offsets...>\n"
+"al_offset <offsets...>\n"
+"bm_offset <offsets...>\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:235
+#, no-wrap
+msgid "Found some data\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:237
+#, no-wrap
+msgid " ==> This might destroy existing data! <==\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:240
+#, no-wrap
+msgid ""
+"Do you want to proceed?\n"
+"[need to type 'yes' to confirm] yes\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:244
+#, no-wrap
+msgid ""
+"Writing meta data...\n"
+"New drbd meta data block successfully created.\n"
+"success\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:248
+msgid ""
+"Of course, you can pass `all` for the resource names, too. And if you feel "
+"lucky, brave, or both you can avoid the questions by using the `--force` "
+"flag like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:251
+#, no-wrap
+msgid "drbdadm -v --max-peers=<N>  -- --force create-md <resources>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:255
+msgid ""
+"The order of these arguments is important. Make sure you understand the "
+"potential data loss implications of this command before you enter it."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:257
+#, no-wrap
+msgid "Starting DRBD Again"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:260 UG9/en/drbd-upgrading.adoc:173
+msgid ""
+"Now, the only thing left to do is to get the DRBD devices up and running "
+"again. You can do this by using the `drbdadm up all` command."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:264
+msgid ""
+"Next, depending on whether you are using a cluster manager or if you keep "
+"track of your DRBD resources manually, there are two different ways to bring "
+"up your resources. If you are using a cluster manager follow its "
+"documentation."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:266 UG9/en/drbd-upgrading.adoc:179
+msgid "Manually"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:269
+#, no-wrap
+msgid "node-2# systemctl start drbd@<resource>.target\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:276 UG9/en/drbd-upgrading.adoc:189
+#, no-wrap
+msgid "# crm node online node-2\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:281 UG9/en/drbd-upgrading.adoc:194
+msgid ""
+"This should make DRBD connect to the other node, and the resynchronization "
+"process will start."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-upgrading-8.4-to-9.x.adoc:285
+msgid ""
+"When the two nodes are _UpToDate_ on all resources again, you can move your "
+"applications to the already upgraded node (here `node-2`), and then follow "
+"the same steps on the cluster node still running version 8.4."
+msgstr ""

@@ -10,9 +10,9 @@ the https://github.com/linbit/linstor-proxmox[LINSTOR Proxmox Plug-in].
 http://www.proxmox.com/en/[Proxmox VE] is an easy to use, complete server
 virtualization environment with KVM, Linux Containers and HA.
 
-'linstor-proxmox' is a Perl plug-in for Proxmox that, in combination with LINSTOR, allows you to replicate VM
+'linstor-proxmox' is a Perl plugin for Proxmox that, in combination with LINSTOR, allows you to replicate VM
 //(LVM volumes on DRBD)
-disks  on several Proxmox VE nodes. This allows to live-migrate
+disks on several Proxmox VE nodes. This allows to live-migrate
 active VMs within a few seconds and with no downtime without needing a central SAN, as the data is already
 replicated to multiple nodes.
 
@@ -27,7 +27,7 @@ Make sure that your LINSTOR setup (controller and satellites) use at least that 
 
 [[s-proxmox-ls-upgrades-plug-4-5]]
 ==== Upgrading Plug-in from 4.x to 5.x
-Version 5 of the plug-in drops compatibility with the legacy configuration options "storagepool" and
+Version 5 of the plugin drops compatibility with the legacy configuration options "storagepool" and
 "redundancy". Version 5 *requires* a "resourcegroup" option, and obviously a LINSTOR resource group. The old
 options should be removed from the configuration.
 
@@ -46,7 +46,7 @@ drbd: drbdstorage
 
 [[s-proxmox-ls-upgrades-plug-5-6]]
 ==== Upgrading Plug-in from 5.x to 6.x
-Version 6.0.0 of the plug-in drops all code related to the `redundancy` setting. This is handled by LINSTOR
+Version 6.0.0 of the plugin drops all code related to the `redundancy` setting. This is handled by LINSTOR
 resource groups (`resourcegroup` setting) for a very long time. No change should be required.
 
 The `controllervm` setting, which was intended for executing a LINSTOR controller in a VM manged by LINSTOR is
@@ -57,13 +57,13 @@ The settings `statuscache` and `preferlocal` are now enabled by default.
 [[s-proxmox-ls-upgrades-pve-5-6]]
 ==== Upgrading PVE from 5.x to 6.x
 With version 6 PVE added additional parameters to some functions and rightfully reset their "APIAGE". This
-means that old plug-ins, while actually usable as they don't use any of these changed functions do not work
-anymore. Please upgrade to plug-in version 5.2.1 at least.
+means that old plugins, while actually usable as they don't use any of these changed functions do not work
+anymore. Please upgrade to plugin version 5.2.1 at least.
 
 [[s-proxmox-ls-install]]
 === Installing the LINSTOR Proxmox Plug-in
 
-To use LINSTOR in Proxmox, you will need to install the LINSTOR Proxmox plug-in.
+To use LINSTOR in Proxmox, you will need to install the LINSTOR Proxmox plugin.
 
 [[s-proxmox-pve-headers-install]]
 ==== Installing the Proxmox VE Kernel Headers
@@ -94,7 +94,7 @@ If you are a LINBIT customer, or you have an evaluation account, you can enable 
 `drbd-9` repository on your node and then update your repositories by using an `apt update`
 command.
 
-You can then install the DRBD kernel module, DRBD utilities, and the LINSTOR Proxmox plug-in by
+You can then install the DRBD kernel module, DRBD utilities, and the LINSTOR Proxmox plugin by
 entering:
 
 ----
@@ -109,16 +109,26 @@ endif::de-brand[]
 [[s-proxmox-installing-from-linbit-public-repos]]
 ==== Installing the Proxmox Plug-in By Using LINBIT Public Repositories
 
-LINBIT provides a dedicated public repository for Proxmox VE users. This repository not only contains the Proxmox plug-in, but the whole DRBD SDS stack including a DRBD SDS kernel module and user-space utilities.
+LINBIT provides a dedicated public repository for Proxmox VE users. This repository not only contains the Proxmox plugin, but the whole DRBD SDS stack including a DRBD SDS kernel module and user-space utilities.
 
-LINBIT's repository can be enabled as follows, where "$PVERS" should be set to your Proxmox VE *major version*
-(for example, "7", not "7.1"):
+
+You can add LINBIT's public repository by entering the commands below, setting `$PVERS` to your
+Proxmox VE *major version* (for example, "7", not "7.1"):
 
 ----
-# wget -O- https://packages.linbit.com/package-signing-pubkey.asc | apt-key add -
-# PVERS=7 && echo "deb http://packages.linbit.com/public/ proxmox-$PVERS drbd-9" > \
-/etc/apt/sources.list.d/linbit.list
-# apt update && apt -y install linstor-proxmox
+# wget -O /tmp/package-signing-pubkey.asc \
+https://packages.linbit.com/package-signing-pubkey.asc
+# gpg --yes -o /etc/apt/trusted.gpg.d/linbit-keyring.gpg --dearmor \
+/tmp/package-signing-pubkey.asc
+# PVERS=7 && echo "deb [signed-by=/etc/apt/trusted.gpg.d/linbit-keyring.gpg] \
+http://packages.linbit.com/public/ proxmox-$PVERS drbd-9" > /etc/apt/sources.list.d/linbit.list
+----
+
+After adding the LINBIT package repository, you can install the Proxmox plugin and other
+necessary components (DRBD kernel module and utilities), by entering the following command:
+
+----
+# apt update && apt -y install drbd-dkms drbd-utils linstor-proxmox
 ----
 
 [[s-proxmox-ls-ls-configuration]]
@@ -135,7 +145,7 @@ Type=notify
 TimeoutStartSec=infinity
 ----
 
-The preferred way to use the plug-in, starting from version 4.1.0, is through LINSTOR resource groups and a
+The preferred way to use the plugin, starting from version 4.1.0, is through LINSTOR resource groups and a
 single volume group within every resource group. LINSTOR resource groups are described in
 <<s-linstor-resource-groups>>. All the required LINSTOR configuration (e.g., redundancy count) has to be set
 on the resource group.
@@ -185,7 +195,7 @@ drbd: slowdrbd
 By now, you should be able to create VMs using Proxmox's web GUI by selecting "__drbdstorage__", or any other of
 the defined pools as storage location.
 
-Starting from version 5 of the plug-in, you can set the option "preferlocal yes". If it is set, the plug-in tries
+Starting from version 5 of the plugin, you can set the option "preferlocal yes". If it is set, the plugin tries
 to create a diskful assignment on the node that issued the storage create command. With this option you can
 ensure that the VM gets local storage if possible. Without that option LINSTOR might place the storage on nodes
 'B' and 'C', while the VM is initially started on node 'A'. This would still work as node 'A' then would get a
@@ -204,7 +214,7 @@ and you will see no interruption at all.
 
 | `controller`    | The IP of the LINSTOR controller (',' separated list allowed)
 | `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above
-| `preferlocal`   | Prefer to create local storage (yes/no). As decribed above 
+| `preferlocal`   | Prefer to create local storage (yes/no). As decribed above
 | `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storages in `/etc/pve/storage.cfg` to take effect.
 | `apicrt`        | Path to the client certificate
 | `apikey`        | Path to the client private key
@@ -216,10 +226,10 @@ and you will see no interruption at all.
 Making LINSTOR highly available is a matter of making the LINSTOR controller
 highly-available. This step is described in Section <<s-linstor_ha>>.
 
-The last -- but crucial -- step is to configure the Proxmox plug-in to be
+The last -- but crucial -- step is to configure the Proxmox plugin to be
 able to connect to multiple LINSTOR controllers. It will use the first one it
 receives an answer from. This is done by adding a comma-separated list of
-controllers in the `controller` section of the plug-in like this:
+controllers in the `controller` section of the plugin like this:
 
 ----
 drbd: drbdstorage

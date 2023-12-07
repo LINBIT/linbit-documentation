@@ -1,0 +1,4084 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-11-01 20:08+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: UG9/en/drbd-administration-manual.adoc:10
+#, no-wrap
+msgid "Common Administrative Tasks"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:15
+msgid ""
+"This chapter outlines typical administrative tasks encountered during day-to-"
+"day operations. It does not cover troubleshooting tasks, these are covered "
+"in detail in <<ch-troubleshooting>>."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:19
+#, no-wrap
+msgid "Checking DRBD Status"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:22
+#, no-wrap
+msgid "Monitoring DRBD Resources in Real-time"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:26
+msgid ""
+"One convenient way to examine DRBD's status is the `drbdmon` utility. It "
+"updates the state of DRBD resources in real-time."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:28
+#, no-wrap
+msgid "Retrieving Status Information Through the DRBD Process File"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:33
+msgid ""
+"Monitoring DRBD status by using `/proc/drbd` is deprecated. We recommend "
+"that you switch to other means, like <<s-drbdadm-status>>, or for even more "
+"convenient monitoring, <<s-drbdsetup-events2>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:38
+msgid ""
+"indexterm:[/proc/drbd]`/proc/drbd` is a virtual file displaying basic "
+"information about the DRBD module.  It was used extensively up to DRBD 8.4, "
+"but couldn't keep up with the amount of information provided by DRBD 9."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:43
+#, no-wrap
+msgid ""
+"$ cat /proc/drbd\n"
+"version: 9.0.0 (api:1/proto:86-110)\n"
+"GIT-hash: XXX build by linbit@buildsystem.linbit, 2011-10-12 09:07:35\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:48
+msgid ""
+"The first line, prefixed with `version:`, shows the DRBD version used on "
+"your system. The second line contains information about this specific build."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:51
+#, no-wrap
+msgid "Retrieving Status Information Using the DRBD Administration Tool"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:55
+msgid ""
+"indexterm:[drbdadm, status]In its simplest invocation, we just ask for the "
+"status of a single resource."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:65
+#, no-wrap
+msgid ""
+"# drbdadm status home\n"
+"home role:Secondary\n"
+"  disk:UpToDate\n"
+"  nina role:Secondary\n"
+"    disk:UpToDate\n"
+"  nino role:Secondary\n"
+"    disk:UpToDate\n"
+"  nono connection:Connecting\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:70
+msgid ""
+"This here just says that the resource _home_ is locally, on 'nina', and on "
+"'nino' _UpToDate_ and _Secondary_; so the three nodes have the same data on "
+"their storage devices, and nobody is using the device currently."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:73
+msgid ""
+"The node 'nono' is not connected, its state is reported as _Connecting_; "
+"please see <<s-connection-states>> below for more details."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:77
+msgid ""
+"You can get more information by passing the `--verbose` and/or `--"
+"statistics` arguments to `drbdsetup` (lines broken for readability):"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:97
+#, no-wrap
+msgid ""
+"# drbdsetup status home --verbose --statistics\n"
+"home node-id:1 role:Secondary suspended:no\n"
+"    write-ordering:none\n"
+"  volume:0 minor:0 disk:UpToDate\n"
+"      size:1048412 read:0 written:1048412 al-writes:0 bm-writes:48 upper-pending:0\n"
+"                                        lower-pending:0 al-suspended:no blocked:no\n"
+"  nina local:ipv4:10.9.9.111:7001 peer:ipv4:10.9.9.103:7010 node-id:0\n"
+"                                               connection:Connected role:Secondary\n"
+"      congested:no\n"
+"    volume:0 replication:Connected disk:UpToDate resync-suspended:no\n"
+"        received:1048412 sent:0 out-of-sync:0 pending:0 unacked:0\n"
+"  nino local:ipv4:10.9.9.111:7021 peer:ipv4:10.9.9.129:7012 node-id:2\n"
+"                                               connection:Connected role:Secondary\n"
+"      congested:no\n"
+"    volume:0 replication:Connected disk:UpToDate resync-suspended:no\n"
+"        received:0 sent:0 out-of-sync:0 pending:0 unacked:0\n"
+"  nono local:ipv4:10.9.9.111:7013 peer:ipv4:10.9.9.138:7031 node-id:3\n"
+"                                                           connection:Connecting\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:102
+msgid ""
+"Every few lines in this example form a block that is repeated for every node "
+"used in this resource, with small format exceptions for the local node - see "
+"below for more details."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:106
+msgid ""
+"The first line in each block shows the `node-id` (for the current resource; "
+"a host can have different ``node-id``s in different resources).  Furthermore "
+"the `role` (see <<s-roles>>) is shown."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:116
+msgid ""
+"The next important line begins with the `volume` specification; normally "
+"these are numbered starting by zero, but the configuration may specify other "
+"IDs as well. This line shows the indexterm:[connection state] connection "
+"state in the `replication` item (see <<s-connection-states>> for details) "
+"and the remote indexterm:[disk state] disk state in `disk` (see <<s-disk-"
+"states>>).  Then there's a line for this volume giving a bit of statistics - "
+"data `received`, `sent`, `out-of-sync`, and so on. Please see <<s-"
+"performance-indicators>> and <<s-conn-info>> for more information."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:120
+msgid ""
+"For the local node the first line shows the resource name, _home_, in our "
+"example. As the first block always describes the local node, there is no "
+"_Connection_ or address information."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:122
+msgid "please see the `drbd.conf` manual page for more information."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:126
+msgid ""
+"The other four lines in this example form a block that is repeated for every "
+"DRBD device configured, prefixed by the device minor number. In this case, "
+"this is `0`, corresponding to the device `/dev/drbd0`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:129
+msgid ""
+"The resource-specific output contains various pieces of information about "
+"the resource:"
+msgstr ""
+
+#. //FIXME
+#. .Replication protocol
+#. The Replication protocol used by the resource. Either `A`, `B`, or `C`. See
+#. <<s-replication-protocols>> for details.
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:138
+#, no-wrap
+msgid "Retrieving Status Information Using the DRBD Setup Command"
+msgstr ""
+
+#.  and 8.4.6
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:141
+msgid "This is available only with userspace versions 8.9.3 and up."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:145
+msgid ""
+"Using the command `drbdsetup events2` with additional options and arguments "
+"is a low-level mechanism to get information out of DRBD, suitable for use in "
+"automated tools, like monitoring."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-administration-manual.adoc:146
+#, no-wrap
+msgid "One-shot Monitoring"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:150
+msgid ""
+"In its simplest invocation, showing only the current status, the output "
+"looks like this (but, when running on a terminal, will include colors):"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:162
+#, no-wrap
+msgid ""
+"# drbdsetup events2 --now r0\n"
+"exists resource name:r0 role:Secondary suspended:no\n"
+"exists connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connected role:Secondary\n"
+"exists device name:r0 volume:0 minor:7 disk:UpToDate\n"
+"exists device name:r0 volume:1 minor:8 disk:UpToDate\n"
+"exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:0\n"
+"    replication:Established peer-disk:UpToDate resync-suspended:no\n"
+"exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:1\n"
+"    replication:Established peer-disk:UpToDate resync-suspended:no\n"
+"exists -\n"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/drbd-administration-manual.adoc:164
+#, no-wrap
+msgid "Real-time Monitoring"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:167
+msgid ""
+"Without the ''--now'', the process will keep running, and send continuous "
+"updates like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:174
+#, no-wrap
+msgid ""
+"# drbdsetup events2 r0\n"
+"...\n"
+"change connection name:r0 peer-node-id:1 conn-name:remote-host connection:StandAlone\n"
+"change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Unconnected\n"
+"change connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connecting\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:178
+msgid ""
+"Then, for monitoring purposes, there's another argument ''--statistics'', "
+"that will produce some performance counters and other facts:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:180
+msgid "'drbdsetup' **verbose output** (lines broken for readability):"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:199
+#, no-wrap
+msgid ""
+"# drbdsetup events2 --statistics --now r0\n"
+"exists resource name:r0 role:Secondary suspended:no write-ordering:drain\n"
+"exists connection name:r0 peer-node-id:1 conn-name:remote-host connection:Connected\n"
+"                                                        role:Secondary congested:no\n"
+"exists device name:r0 volume:0 minor:7 disk:UpToDate size:6291228 read:6397188\n"
+"            written:131844 al-writes:34 bm-writes:0 upper-pending:0 lower-pending:0\n"
+"                                                         al-suspended:no blocked:no\n"
+"exists device name:r0 volume:1 minor:8 disk:UpToDate size:104854364 read:5910680\n"
+"          written:6634548 al-writes:417 bm-writes:0 upper-pending:0 lower-pending:0\n"
+"                                                         al-suspended:no blocked:no\n"
+"exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:0\n"
+"          replication:Established peer-disk:UpToDate resync-suspended:no received:0\n"
+"                                      sent:131844 out-of-sync:0 pending:0 unacked:0\n"
+"exists peer-device name:r0 peer-node-id:1 conn-name:remote-host volume:1\n"
+"          replication:Established peer-disk:UpToDate resync-suspended:no received:0\n"
+"                                     sent:6634548 out-of-sync:0 pending:0 unacked:0\n"
+"exists -\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:202
+msgid "You might also like the ''--timestamp'' parameter."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:205
+#, no-wrap
+msgid "Connection States"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:209
+msgid ""
+"indexterm:[drbdadm, cstate]indexterm:[connection state, using drbdadm]A "
+"resource's connection state can be observed either by issuing the `drbdadm "
+"cstate` command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:215
+#, no-wrap
+msgid ""
+"# drbdadm cstate <resource>\n"
+"Connected\n"
+"Connected\n"
+"StandAlone\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:218
+msgid ""
+"If you are interested in only a single connection of a resource, specify the "
+"connection name, too:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:220
+msgid "The default is the peer's hostname as given in the configuration file."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:224
+#, no-wrap
+msgid ""
+"# drbdadm cstate <peer>:<resource>\n"
+"Connected\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:227
+msgid "A resource may have one of the following connection states:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:228
+#, no-wrap
+msgid "_StandAlone_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:233
+msgid ""
+"indexterm:[connection state, StandAlone]No network configuration available. "
+"The resource has not yet been connected, or has been administratively "
+"disconnected (using `drbdadm disconnect`), or has dropped its connection due "
+"to failed authentication or split brain."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:234
+#, no-wrap
+msgid "_Disconnecting_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:237
+msgid ""
+"indexterm:[connection state, Disconnecting]Temporary state during "
+"disconnection. The next state is _StandAlone_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:238
+#, no-wrap
+msgid "_Unconnected_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:241
+msgid ""
+"indexterm:[connection state, Unconnected]Temporary state, prior to a "
+"connection attempt. Possible next states: _Connecting_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:242
+#, no-wrap
+msgid "_Timeout_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:245
+msgid ""
+"indexterm:[connection state, Timeout]Temporary state following a timeout in "
+"the communication with the peer. Next state: _Unconnected_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:246
+#, no-wrap
+msgid "_BrokenPipe_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:249
+msgid ""
+"indexterm:[connection state, BrokenPipe]Temporary state after the connection "
+"to the peer was lost. Next state: _Unconnected_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:250
+#, no-wrap
+msgid "_NetworkFailure_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:253
+msgid ""
+"indexterm:[connection state, NetworkFailure]Temporary state after the "
+"connection to the partner was lost. Next state: _Unconnected_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:254
+#, no-wrap
+msgid "_ProtocolError_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:257
+msgid ""
+"indexterm:[connection state, ProtocolError]Temporary state after the "
+"connection to the partner was lost. Next state: _Unconnected_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:258
+#, no-wrap
+msgid "_TearDown_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:261
+msgid ""
+"indexterm:[connection state, TearDown]Temporary state. The peer is closing "
+"the connection. Next state: _Unconnected_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:262
+#, no-wrap
+msgid "_Connecting_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:265
+msgid ""
+"indexterm:[connection state, Connecting]This node is waiting until the peer "
+"node becomes visible on the network."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:266
+#, no-wrap
+msgid "_Connected_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:269
+msgid ""
+"indexterm:[connection state, Connected]A DRBD connection has been "
+"established, data mirroring is now active. This is the normal state."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:271
+#, no-wrap
+msgid "Replication States"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:275
+msgid ""
+"Each volume has a replication state for each connection. The possible "
+"replication states are:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:276
+#, no-wrap
+msgid "_Off_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:279
+msgid ""
+"indexterm:[replication state, Off]The volume is not replicated over this "
+"connection, since the connection is not _Connected_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:280
+#, no-wrap
+msgid "_Established_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:283
+msgid ""
+"indexterm:[replication state, Established]All writes to that volume are "
+"replicated online. This is the normal state."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:284
+#, no-wrap
+msgid "_StartingSyncS_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:288
+msgid ""
+"indexterm:[replication state, StartingSyncS]Full synchronization, initiated "
+"by the administrator, is just starting. The next possible states are: "
+"_SyncSource_ or _PausedSyncS_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:289
+#, no-wrap
+msgid "_StartingSyncT_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:292
+msgid ""
+"indexterm:[replication state, StartingSyncT]Full synchronization, initiated "
+"by the administrator, is just starting. Next state: _WFSyncUUID_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:293
+#, no-wrap
+msgid "_WFBitMapS_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:296
+msgid ""
+"indexterm:[replication state, WFBitMapS]Partial synchronization is just "
+"starting. Next possible states: _SyncSource_ or _PausedSyncS_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:297
+#, no-wrap
+msgid "_WFBitMapT_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:300
+msgid ""
+"indexterm:[replication state, WFBitMapT]Partial synchronization is just "
+"starting. Next possible state: _WFSyncUUID_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:301
+#, no-wrap
+msgid "_WFSyncUUID_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:304
+msgid ""
+"indexterm:[replication state, WFSyncUUID]Synchronization is about to begin. "
+"Next possible states: _SyncTarget_ or _PausedSyncT_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:305
+#, no-wrap
+msgid "_SyncSource_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:308
+msgid ""
+"indexterm:[replication state, SyncSource]Synchronization is currently "
+"running, with the local node being the source of synchronization."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:309
+#, no-wrap
+msgid "_SyncTarget_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:312
+msgid ""
+"indexterm:[replication state, SyncTarget]Synchronization is currently "
+"running, with the local node being the target of synchronization."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:313
+#, no-wrap
+msgid "_PausedSyncS_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:319
+msgid ""
+"indexterm:[replication state, PausedSyncS]The local node is the source of an "
+"ongoing synchronization, but synchronization is currently paused. This may "
+"be due to a dependency on the completion of another synchronization process, "
+"or due to synchronization having been manually interrupted by `drbdadm pause-"
+"sync`."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:320
+#, no-wrap
+msgid "_PausedSyncT_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:326
+msgid ""
+"indexterm:[replication state, PausedSyncT]The local node is the target of an "
+"ongoing synchronization, but synchronization is currently paused. This may "
+"be due to a dependency on the completion of another synchronization process, "
+"or due to synchronization having been manually interrupted by `drbdadm pause-"
+"sync`."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:327
+#, no-wrap
+msgid "_VerifyS_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:330
+msgid ""
+"indexterm:[replication state, VerifyS]On-line device verification is "
+"currently running, with the local node being the source of verification."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:331
+#, no-wrap
+msgid "_VerifyT_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:334
+msgid ""
+"indexterm:[replication state, VerifyT]On-line device verification is "
+"currently running, with the local node being the target of verification."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:335
+#, no-wrap
+msgid "_Ahead_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:339
+msgid ""
+"indexterm:[replication state, Ahead]Data replication was suspended, since "
+"the link can not cope with the load. This state is enabled by the "
+"configuration `on-congestion` option (see <<s-configure-congestion-policy>>)."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:340
+#, no-wrap
+msgid "_Behind_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:344
+msgid ""
+"indexterm:[replication state, Behind]Data replication was suspended by the "
+"peer, since the link can not cope with the load. This state is enabled by "
+"the configuration `on-congestion` option on the peer node (see <<s-configure-"
+"congestion-policy>>)."
+msgstr ""
+
+#.  At the `drbdsetup` level, a connection is addressed by its two replication
+#.  endpoints identified by address family (optional), address (required), and
+#.  port (optional).
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:346 UG9/en/drbd-fundamentals.adoc:138
+#, no-wrap
+msgid "Resource Roles"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:350
+msgid ""
+"indexterm:[resource]A resource's role can be observed by issuing the "
+"indexterm:[drbdadm, role]`drbdadm role` command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:354
+#, no-wrap
+msgid ""
+"# drbdadm role <resource>\n"
+"Primary\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:357
+msgid "You may see one of the following resource roles:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:358
+#, no-wrap
+msgid "_Primary_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:362
+msgid ""
+"indexterm:[role, Primary]The resource is currently in the primary role, and "
+"may be read from and written to. This role only occurs on one of the two "
+"nodes, unless <<s-dual-primary-mode,dual-primary mode>> is enabled."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:363
+#, no-wrap
+msgid "_Secondary_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:368
+msgid ""
+"indexterm:[role, Secondary]The resource is currently in the secondary role. "
+"It normally receives updates from its peer (unless running in disconnected "
+"mode), but may neither be read from nor written to. This role may occur on "
+"one or both nodes."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:369
+#, no-wrap
+msgid "_Unknown_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:373
+msgid ""
+"indexterm:[role, Unknown]The resource's role is currently unknown. The local "
+"resource role never has this status. It is only displayed for the peer's "
+"resource role, and only in disconnected mode."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:376
+#, no-wrap
+msgid "Disk States"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:380
+msgid ""
+"A resource's disk state can be observed either by issuing the `drbdadm "
+"dstate` command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:384
+#, no-wrap
+msgid ""
+"# drbdadm dstate <resource>\n"
+"UpToDate\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:387
+msgid "The disk state may be one of the following:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:388
+#, no-wrap
+msgid "_Diskless_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:394
+msgid ""
+"indexterm:[disk state, Diskless]No local block device has been assigned to "
+"the DRBD driver. This may mean that the resource has never attached to its "
+"backing device, that it has been manually detached using `drbdadm detach`, "
+"or that it automatically detached after a lower-level I/O error."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:395
+#, no-wrap
+msgid "_Attaching_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:397
+msgid ""
+"indexterm:[disk state, Attaching]Transient state while reading metadata."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:398
+#, no-wrap
+msgid "_Detaching_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:401
+msgid ""
+"indexterm:[disk state, Detaching]Transient state while detaching and waiting "
+"for ongoing I/O operations to complete."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:402
+#, no-wrap
+msgid "_Failed_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:405
+msgid ""
+"indexterm:[disk state, Failed]Transient state following an I/O failure "
+"report by the local block device. Next state: _Diskless_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:406
+#, no-wrap
+msgid "_Negotiating_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:409
+msgid ""
+"indexterm:[disk state, Negotiating]Transient state when an _Attach_ is "
+"carried out on an already-__Connected__ DRBD device."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:410
+#, no-wrap
+msgid "_Inconsistent_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:415
+msgid ""
+"indexterm:[disk state, Inconsistent]The data is inconsistent. This status "
+"occurs immediately upon creation of a new resource, on both nodes (before "
+"the initial full sync). Also, this status is found in one node (the "
+"synchronization target) during synchronization."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:416
+#, no-wrap
+msgid "_Outdated_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:419
+msgid ""
+"indexterm:[disk state, Outdated]Resource data is consistent, but <<s-outdate,"
+"outdated>>."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:420
+#, no-wrap
+msgid "_DUnknown_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:423
+msgid ""
+"indexterm:[disk state, DUnknown]This state is used for the peer disk if no "
+"network connection is available."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:424
+#, no-wrap
+msgid "_Consistent_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:428
+msgid ""
+"indexterm:[disk state, Consistent]Consistent data of a node without "
+"connection. When the connection is established, it is decided whether the "
+"data is _UpToDate_ or _Outdated_."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:429
+#, no-wrap
+msgid "_UpToDate_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:432
+msgid ""
+"indexterm:[disk state, UpToDate]Consistent, up-to-date state of the data. "
+"This is the normal state."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:435
+#, no-wrap
+msgid "Connection Information Data"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:437
+#, no-wrap
+msgid "_local_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:440
+msgid ""
+"Shows the network family, the local address and port that is used to accept "
+"connections from the peer."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:441
+#, no-wrap
+msgid "_peer_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:444
+msgid ""
+"Shows the network family, the peer address and port that is used to connect."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:445
+#, no-wrap
+msgid "_congested_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:447
+msgid ""
+"This flag tells whether the TCP send buffer of the data connection is more "
+"than 80% filled."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:450
+#, no-wrap
+msgid "Performance Indicators"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:457
+msgid ""
+"indexterm:[performance indicators] The command ``drbdsetup status --verbose "
+"--statistics`` can be used to show performance statistics.  These are also "
+"available in ``drbdsetup events2 --statistics``, although there will not be "
+"a _changed_ event for every change.  The statistics include the following "
+"counters and gauges:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:459
+msgid "Per volume/device:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:460
+#, no-wrap
+msgid "_read_ (disk read)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:462
+msgid "Net data read from local disk; in KiB."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:463
+#, no-wrap
+msgid "_written_ (disk written)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:465
+msgid "Net data written to local disk; in KiB."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:466
+#, no-wrap
+msgid "_al-writes_ (activity log)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:468
+msgid "Number of updates of the activity log area of the metadata."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:469
+#, no-wrap
+msgid "_bm-writes_ (bitmap)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:471
+msgid "Number of updates of the bitmap area of the metadata."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:472
+#, no-wrap
+msgid "_upper-pending_ (application pending)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:475
+msgid ""
+"Number of block I/O requests forwarded to DRBD, but not yet answered "
+"(completed)  by DRBD."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:476
+#, no-wrap
+msgid "_lower-pending_ (local count)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:478
+msgid "Number of open requests to the local I/O sub-system issued by DRBD."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:479
+#, no-wrap
+msgid "_blocked_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:481
+msgid "indexterm:[blocked]Shows local I/O congestion."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:484
+msgid "_no_: No congestion."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:485
+msgid ""
+"_upper_: I/O _above_ the DRBD device is blocked, that is, to the filesystem. "
+"Typical causes are"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:486
+msgid ""
+"I/O suspension by the administrator, see the `suspend-io` command in "
+"`drbdadm`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:487
+msgid "Transient blocks, for example, during attach/detach."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:488
+msgid "Buffers depleted, see <<p-performance>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:489
+msgid "Waiting for bitmap I/O."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:490
+msgid "_lower_: Backing device is congested."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:491
+msgid "_upper,lower_: Both _upper_ and _lower_ are blocked."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:494
+msgid "Per connection:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:495
+#, no-wrap
+msgid "_ap-in-flight_ (application in-flight)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:499
+msgid ""
+"Application data that is being written by the peer.  That is, DRBD has sent "
+"it to the peer and is waiting for the acknowledgement that it has been "
+"written.  In sectors (512 bytes)."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:500
+#, no-wrap
+msgid "_rs-in-flight_ (resync in-flight)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:505
+msgid ""
+"Resync data that is being written by the peer.  That is, DRBD is "
+"_SyncSource_, has sent data to the peer as part of a resync and is waiting "
+"for the acknowledgement that it has been written.  In sectors (512 bytes)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:507
+msgid "Per connection and volume (\"peer device\"):"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:508
+#, no-wrap
+msgid "_done_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:510
+msgid "Percentage of data synchronized out of the amount to be synchronized."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:511
+#, no-wrap
+msgid "_resync-suspended_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:514
+msgid ""
+"Whether the resynchronization is currently suspended or not. Possible values "
+"are _no_, _user_, _peer_, _dependency_.  Comma separated."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:515
+#, no-wrap
+msgid "_received_ (network receive)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:517
+msgid "Net data received from the peer; in KiB."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:518
+#, no-wrap
+msgid "_sent_ (network send)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:520
+msgid "Net data sent to the peer; in KiB."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:521
+#, no-wrap
+msgid "_out-of-sync_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:524
+msgid ""
+"indexterm:[out-of-sync]indexterm:[oos]Amount of data currently out of sync "
+"with this peer, according to the bitmap that DRBD has for it; in KiB."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:525
+#, no-wrap
+msgid "_pending_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:528
+msgid ""
+"Number of requests sent to the peer, but that have not yet been acknowledged "
+"by the peer."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:529
+#, no-wrap
+msgid "_unacked_ (unacknowledged)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:532
+msgid ""
+"Number of requests received from the peer, but that have not yet been "
+"acknowledged by DRBD on this node."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:533
+#, no-wrap
+msgid "_dbdt1_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:538
+msgid ""
+"Rate of synchronization within the last few seconds, reported as MiB/"
+"seconds. You can affect the synchronization rate by configuring options that "
+"are detailed in the link:https://linbit.com/drbd-user-guide/drbd-guide-9_0-"
+"en/#s-configure-sync-rate[Configuring the Rate of Synchronization] section "
+"of this user's guide."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:539
+#, no-wrap
+msgid "_eta_"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:542
+msgid ""
+"Number of seconds remaining for the synchronization to complete. This number "
+"is calculated based on the synchronization rate within the last few seconds "
+"and the size of the resource's backing device that remains to be "
+"synchronized."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:544
+#, no-wrap
+msgid "Enabling and Disabling Resources"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:547
+#, no-wrap
+msgid "Enabling Resources"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:551
+msgid ""
+"indexterm:[resource]Normally, all configured DRBD resources are "
+"automatically enabled"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:554
+msgid ""
+"by a cluster resource management application at its discretion, based on "
+"your cluster configuration, or"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:556
+msgid "by the systemd units (e.g., `drbd@.target`)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:559
+msgid ""
+"If, however, you need to enable resources manually for any reason, you may "
+"do so by issuing the command"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:562
+#: UG9/en/drbd-administration-manual.adoc:1234
+#: UG9/en/drbd-administration-manual.adoc:1347
+#: UG9/en/drbd-administration-manual.adoc:1843 UG9/en/drbd-configure.adoc:687
+#, no-wrap
+msgid "# drbdadm up <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:567
+msgid ""
+"As always, you may use the keyword `all` instead of a specific resource name "
+"if you want to enable all resources configured in `/etc/drbd.conf` at once."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:569
+#, no-wrap
+msgid "Disabling Resources"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:573
+msgid ""
+"indexterm:[resource]You may temporarily disable specific resources by "
+"issuing the command"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:576
+#: UG9/en/drbd-administration-manual.adoc:1192
+#: UG9/en/drbd-administration-manual.adoc:1294
+#: UG9/en/drbd-administration-manual.adoc:1887
+#, no-wrap
+msgid "# drbdadm down <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:581
+msgid ""
+"Here, too, you may use the keyword `all` in place of a resource name if you "
+"want to temporarily disable all resources listed in `/etc/drbd.conf` at once."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:583
+#, no-wrap
+msgid "Reconfiguring Resources"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:587
+msgid ""
+"indexterm:[resource]DRBD allows you to reconfigure resources while they are "
+"operational. To that end,"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:590
+msgid ""
+"make any necessary changes to the resource configuration in `/etc/drbd.conf`,"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:592
+msgid "synchronize your `/etc/drbd.conf` file between both nodes,"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:595
+msgid ""
+"issue the indexterm:[drbdadm, adjust]`drbdadm adjust <resource>` command on "
+"both nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:600
+msgid ""
+"`drbdadm adjust` then hands off to `drbdsetup` to make the necessary "
+"adjustments to the configuration. As always, you are able to review the "
+"pending `drbdsetup` invocations by running `drbdadm` with the `-d` (dry-run) "
+"option."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:604
+msgid ""
+"When making changes to the `common` section in `/etc/drbd.conf`, you can "
+"adjust the configuration for all resources in one run, by issuing `drbdadm "
+"adjust all`."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:606
+#, no-wrap
+msgid "Promoting and Demoting Resources"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:611
+msgid ""
+"indexterm:[resource]Manually switching a <<s-resource-roles,resource's "
+"role>> from secondary to primary (promotion) or vice versa (demotion)  is "
+"done using one of the following commands:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:615
+#, no-wrap
+msgid ""
+"# drbdadm primary <resource>\n"
+"# drbdadm secondary <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:623
+msgid ""
+"In <<s-single-primary-mode,single-primary mode>> (DRBD's default), any "
+"resource can be in the primary role on only one node at any given time while "
+"the <<s-connection-states,connection state>> is _Connected_. Therefore, "
+"issuing `drbdadm primary <resource>` on one node while the specified "
+"resource is still in the primary role on another node will result in an "
+"error."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:627
+msgid ""
+"A resource configured to allow <<s-dual-primary-mode,dual-primary mode>> can "
+"be switched to the primary role on two nodes; this is, for example, needed "
+"for online migration of virtual machines."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:629
+#, no-wrap
+msgid "Basic Manual Failover"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:633
+msgid ""
+"If not using a cluster manager and looking to handle failovers manually in a "
+"passive/active configuration, the process is as follows."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:636
+msgid ""
+"On the current primary node stop any applications or services using the DRBD "
+"device, unmount the DRBD device, and demote the resource to secondary."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:640
+#, no-wrap
+msgid ""
+"# umount /dev/drbd/by-res/<resource>/<vol-nr>\n"
+"# drbdadm secondary <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:643
+msgid ""
+"Now on the node you want to make primary promote the resource and mount the "
+"device."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:647
+#, no-wrap
+msgid ""
+"# drbdadm primary <resource>\n"
+"# mount /dev/drbd/by-res/<resource>/<vol-nr> <mountpoint>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:652
+msgid ""
+"If you're using the `auto-promote` feature, you don't need to change the "
+"roles (_Primary_/_Secondary_) manually; only stopping of the services and "
+"unmounting, respectively mounting, is necessary."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:660
+#, no-wrap
+msgid "Using Online Device Verification"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:663
+#, no-wrap
+msgid "Enabling Online Verification"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:669
+msgid ""
+"indexterm:[online device verification]<<s-online-verify,Online device "
+"verification>> for resources is not enabled by default. To enable it, add "
+"the following lines to your resource configuration in `/etc/drbd.conf`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:678
+#, no-wrap
+msgid ""
+"resource <resource>\n"
+"  net {\n"
+"    verify-alg <algorithm>;\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:683
+#: UG9/en/drbd-administration-manual.adoc:935
+#: UG9/en/drbd-administration-manual.adoc:1062
+msgid ""
+"_<algorithm>_ may be any message digest algorithm supported by the kernel "
+"crypto API in your system's kernel configuration. Normally, you should be "
+"able to choose at least from `sha1`, `md5`, and `crc32c`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:687
+#: UG9/en/drbd-administration-manual.adoc:939
+#: UG9/en/drbd-administration-manual.adoc:1066
+msgid ""
+"If you make this change to an existing resource, as always, synchronize your "
+"`drbd.conf` to the peer, and run `drbdadm adjust _<resource>_` on both nodes."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:689
+#, no-wrap
+msgid "Invoking Online Verification"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:694
+msgid ""
+"indexterm:[online device verification]After you have enabled online "
+"verification, you will be able to initiate a verification run using the "
+"following command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:697
+#, no-wrap
+msgid "# drbdadm verify <resource>:<peer>/<volume>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:705
+msgid ""
+"When you do so, DRBD starts an online verification run for _<volume>_ to "
+"_<peer_> in _<resource>_, and if it detects any blocks that are not in sync, "
+"will mark those blocks as such and write a message to the kernel log. Any "
+"applications using the device at that time can continue to do so unimpeded, "
+"and you may also <<s-switch-resource-roles,switch resource roles>> at will."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:708
+msgid ""
+"_<Volume>_ is optional, if ommited, it will verify all volumes in that "
+"resource."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:712
+msgid ""
+"If out-of-sync blocks were detected during the verification run, you may "
+"resynchronize them using the following commands after verification has "
+"completed."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:714
+msgid "Since drbd-9.0.29 the preferred way is one of these commands:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:718
+#, no-wrap
+msgid ""
+"# drbdadm invalidate <resource>:<peer>/volume --reset-bitmap=no\n"
+"# drbdadm invalidate-remote <resource>:<peer>/volume --reset-bitmap=no\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:722
+msgid ""
+"The first command will cause the local differences to be overwritten by the "
+"remote version. The second command does it in the opposite direction."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:726
+msgid ""
+"Before drbd-9.0.29 one needs to initiate a resync. A way to do that is "
+"disconnecting from a primary and ensuring that the primary changes at least "
+"one block while the peer is away."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:731
+#, no-wrap
+msgid ""
+"# drbdadm disconnect <resource>:<peer>\n"
+"## write one block on the primary\n"
+"# drbdadm connect <resource>:<peer>\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:735
+#, no-wrap
+msgid "Automating Online Verification"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:741
+msgid ""
+"indexterm:[online device verification]Most users will want to automate "
+"online device verification. This can be easily accomplished. Create a file "
+"with the following contents, named `/etc/cron.d/drbd-verify` on *one* of "
+"your nodes:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:745
+#, no-wrap
+msgid "42 0 * * 0    root    /sbin/drbdadm verify <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:752
+msgid ""
+"This will have `cron` invoke a device verification every Sunday at 42 "
+"minutes past midnight; so, if you come into the office on Monday morning, a "
+"quick examination of the resource's status would show the result. If your "
+"devices are very big, and the \\~32 hours were not enough, then you'll "
+"notice _VerifyS_ or _VerifyT_ as connection state, meaning that the `verify` "
+"is still in progress."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:756
+msgid ""
+"If you have enabled online verification for all your resources (for example, "
+"by adding `verify-alg _<algorithm>_` to the `common` section in `/etc/drbd.d/"
+"global_common.conf`), you may also use:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:760
+#, no-wrap
+msgid "42 0 * * 0    root    /sbin/drbdadm verify all\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:764
+#, no-wrap
+msgid "Configuring the Rate of Synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:775
+msgid ""
+"indexterm:[synchronization]Normally, one tries to ensure that background "
+"synchronization (which makes the data on the synchronization target "
+"temporarily inconsistent) completes as quickly as possible. However, it is "
+"also necessary to keep background synchronization from hogging all bandwidth "
+"otherwise available for foreground replication, which would be detrimental "
+"to application performance. Therefore, you must configure the "
+"synchronization bandwidth to match your hardware -- which you may do in a "
+"permanent fashion or on-the-fly."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:781
+msgid ""
+"It does not make sense to set a synchronization rate that is higher than the "
+"maximum write throughput on your secondary node. You must not expect your "
+"secondary node to miraculously be able to write faster than its I/O "
+"subsystem allows, just because it happens to be the target of an ongoing "
+"device synchronization."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:785
+msgid ""
+"Likewise, and for the same reasons, it does not make sense to set a "
+"synchronization rate that is higher than the bandwidth available on the "
+"replication network."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:788
+#, no-wrap
+msgid "Estimating a Synchronization Speed"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:795
+msgid ""
+"A good rule for this value is to use about 30% of the available replication "
+"bandwidth. Therefore, if you had an I/O subsystem capable of sustaining "
+"write throughput of 400MB/s, and a Gigabit Ethernet network capable of "
+"sustaining 110 MB/s network throughput (the network being the bottleneck), "
+"you would calculate:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:797
+#, no-wrap
+msgid "Syncer rate example, 110MB/s effective available bandwidth"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:798
+#, no-wrap
+msgid "images/sync-rate-example1.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:801
+msgid "Therefore, the recommended value for the `rate` option would be `33M`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:805
+msgid ""
+"By contrast, if you had an I/O subsystem with a maximum throughput of 80MB/s "
+"and a Gigabit Ethernet connection (the I/O subsystem being the bottleneck), "
+"you would calculate:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:807
+#, no-wrap
+msgid "Syncer rate example, 80MB/s effective available bandwidth"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:808
+#, no-wrap
+msgid "images/sync-rate-example2.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:812
+msgid ""
+"In this case, the recommended value for the `rate` option would be `24M`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:815
+msgid ""
+"Similarly, for a storage speed of 800MB/s and a 10Gbe network connection, "
+"you would shoot for \\~240MB/s synchronization rate."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:817
+#, no-wrap
+msgid "Variable Synchronization Rate Configuration"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:828
+msgid ""
+"When multiple DRBD resources share a single replication/synchronization "
+"network, synchronization with a fixed rate may not be an optimal approach. "
+"So, in DRBD 8.4.0 the variable-rate synchronization was enabled by default. "
+"In this mode, DRBD uses an automated control loop algorithm to determine, "
+"and adjust, the synchronization rate. This algorithm ensures that there is "
+"always sufficient bandwidth available for foreground replication, greatly "
+"mitigating the impact that background synchronization has on foreground I/O."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:832
+msgid ""
+"The optimal configuration for variable-rate synchronization may vary greatly "
+"depending on the available network bandwidth, application I/O pattern and "
+"link congestion."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:839
+msgid ""
+"Ideal configuration settings also depend on whether <<s-drbd-proxy,DRBD "
+"Proxy>> is in use or not.  It may be wise to engage professional consultancy "
+"to optimally configure this DRBD feature. An _example_ configuration (which "
+"assumes a deployment in conjunction with DRBD Proxy) is provided below:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:849
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  disk {\n"
+"    c-plan-ahead 5;\n"
+"    c-max-rate 10M;\n"
+"    c-fill-target 2M;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:855
+msgid ""
+"A good starting value for `c-fill-target` is _BDP * 2_, where _BDP_ is your "
+"bandwidth-delay-product on the replication link."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:860
+#, no-wrap
+msgid ""
+"For example, when using a 1GBit/s crossover connection, you'll end up with about 200µs latencyfootnote:[The rule-of-thumb is using the time reported by `ping`.].\n"
+"1GBit/s means about 120MB/s; times 200*10^-6^ seconds gives 24000 Byte. Just round that value up to the next MB, and you're good to go."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:864
+msgid ""
+"Another example: a 100MBit WAN connection with 200ms latency means 12MB/s "
+"times 0.2s, or about 2.5MB \"on the wire\". Here a good starting value for "
+"`c-fill-target` would be 3MB."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:867
+msgid ""
+"Please see the `drbd.conf` manual page for more details on the other "
+"configuration items."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:870
+#, no-wrap
+msgid "Permanent Fixed Synchronization Rate Configuration"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:876
+msgid ""
+"In a few, very restricted situationsfootnote:[Like benchmarking.], it might "
+"make sense to just use some fixed synchronization rate. In this case, first "
+"of all you need to turn the dynamic sync rate controller off, by using `c-"
+"plan-ahead 0;`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:881
+msgid ""
+"Then, the maximum bandwidth a resource uses for background re-"
+"synchronization is determined by the `resync-rate` option for a resource. "
+"This must be included in the resource's `disk` section in `/etc/drbd.conf`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:891
+#, no-wrap
+msgid ""
+"resource <resource>\n"
+"  disk {\n"
+"    resync-rate 40M;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:895
+msgid ""
+"Note that the rate setting is given in _bytes_, not _bits_ per second; the "
+"default unit is _Kibibyte_, so a value of `4096` would be interpreted as "
+"`4MiB`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:899
+msgid ""
+"This just defines a rate that DRBD tries to achieve. If there is a "
+"bottleneck with lower throughput (network, storage speed), the defined speed "
+"(aka the \"wished-for\" performance ;) won't be reached."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:901
+#, no-wrap
+msgid "Further Synchronization Hints"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:906
+msgid ""
+"When some amount of the to-be-synchronized data isn't really in use anymore "
+"(for example, because files got deleted while one node wasn't connected), "
+"you might benefit from the <<s-trim-discard>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:913
+#, no-wrap
+msgid ""
+"Furthermore, `c-min-rate` is easy to misunderstand - it doesn't define a *minimum* synchronization speed, but rather a limit below which DRBD will not slow down further *on purpose*.\n"
+"Whether you manage to *reach* that synchronization rate depends on your network and storage speed, network latency (which might be highly variable for shared links), and application I/O (which you might not be able to do anything about)."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:915
+#, no-wrap
+msgid "Configuring Checksum-based Synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:921
+msgid ""
+"indexterm:[checksum-based synchronization]<<p-checksum-sync,Checksum-based "
+"synchronization>> is not enabled for resources by default. To enable it, add "
+"the following lines to your resource configuration in `/etc/drbd.conf`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:930
+#, no-wrap
+msgid ""
+"resource <resource>\n"
+"  net {\n"
+"    csums-alg <algorithm>;\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:941
+#, no-wrap
+msgid "Configuring Congestion Policies and Suspended Replication"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:948
+msgid ""
+"In an environment where the replication bandwidth is highly variable (as "
+"would be typical in WAN replication setups), the replication link may "
+"occasionally become congested. In a default configuration, this would cause "
+"I/O on the primary node to block, which is sometimes undesirable."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:954
+msgid ""
+"Instead, you may configure DRBD to _suspend_ the ongoing replication in this "
+"case, causing the Primary's data set to _pull ahead_ of the Secondary. In "
+"this mode, DRBD keeps the replication channel open -- it never switches to "
+"disconnected mode -- but does not actually replicate until sufficient "
+"bandwidth becomes available again."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:956
+msgid "The following example is for a DRBD Proxy configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:968
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    on-congestion pull-ahead;\n"
+"    congestion-fill 2G;\n"
+"    congestion-extents 2000;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:972
+msgid ""
+"It is usually wise to set both `congestion-fill` and `congestion-extents` "
+"together with the `pull-ahead` option."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:974
+msgid "A good value for `congestion-fill` is 90%"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:977
+msgid ""
+"of the allocated DRBD proxy buffer memory, when replicating over DRBD Proxy, "
+"or"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:978
+msgid "of the TCP network send buffer, in non-DRBD Proxy setups."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:981
+msgid ""
+"A good value for `congestion-extents` is 90% of your configured `al-extents` "
+"for the affected resources."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:984
+#, no-wrap
+msgid "Configuring I/O Error Handling Strategies"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:990
+msgid ""
+"indexterm:[I/O errors]indexterm:[drbd.conf]DRBD's <<s-handling-disk-errors,"
+"strategy for handling lower-level I/O errors>> is determined by the `on-io-"
+"error` option, included in the resource `disk` configuration in `/etc/drbd."
+"conf`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1000
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  disk {\n"
+"    on-io-error <strategy>;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1004
+msgid ""
+"You may, of course, set this in the `common` section too, if you want to "
+"define a global I/O error handling policy for all resources."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1006
+msgid "_<strategy>_ may be one of the following options:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1007
+#, no-wrap
+msgid "`detach`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1011
+msgid ""
+"This is the default and recommended option. On the occurrence of a lower-"
+"level I/O error, the node drops its backing device, and continues in "
+"diskless mode."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1012
+#, no-wrap
+msgid "`pass-on`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1017
+msgid ""
+"This causes DRBD to report the I/O error to the upper layers. On the primary "
+"node, it is reported to the mounted file system. On the secondary node, it "
+"is ignored (because the secondary has no upper layer to report to)."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1018
+#, no-wrap
+msgid "`call-local-io-error`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1024
+msgid ""
+"Invokes the command defined as the local I/O error handler. This requires "
+"that a corresponding `local-io-error` command invocation is defined in the "
+"resource's `handlers` section. It is entirely left to the administrator's "
+"discretion to implement I/O error handling using the command (or script) "
+"invoked by `local-io-error`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1031
+msgid ""
+"Early DRBD versions (prior to 8.0) included another option, `panic`, which "
+"would forcibly remove the node from the cluster by way of a kernel panic, "
+"whenever a local I/O error occurred. While that option is no longer "
+"available, the same behavior may be mimicked through the `local-io-error`/"
+"`call-local-io-error` interface. You should do so only if you fully "
+"understand the implications of such behavior."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1034
+msgid ""
+"You may reconfigure a running resource's I/O error handling strategy by "
+"following this process:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1036
+msgid "Edit the resource configuration in `/etc/drbd.d/__<resource>__.res`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1038
+msgid "Copy the configuration to the peer node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1040
+msgid "Issue `drbdadm adjust _<resource>_` on both nodes."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:1042
+#, no-wrap
+msgid "Configuring Replication Traffic Integrity Checking"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1048
+msgid ""
+"indexterm:[replication traffic integrity checking]<<s-integrity-check,"
+"Replication traffic integrity checking>> is not enabled for resources by "
+"default. To enable it, add the following lines to your resource "
+"configuration in `/etc/drbd.conf`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1057
+#, no-wrap
+msgid ""
+"resource <resource>\n"
+"  net {\n"
+"    data-integrity-alg <algorithm>;\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1070
+msgid ""
+"This feature is not intended for production use. Enable only if you need to "
+"diagnose data corruption problems, and want to see whether the transport "
+"path (network hardware, drivers, switches) might be at fault!"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:1072
+#, no-wrap
+msgid "Resizing Resources"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1078
+msgid ""
+"When growing (extending) DRBD volumes, you need to grow from bottom to top.  "
+"You need to extend the backing block devices on all nodes first.  Then you "
+"can tell DRBD to use the new space."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1082
+msgid ""
+"Once the DRBD volume is extended, you need to still propagate that into "
+"whatever is using DRBD: extend the file system, or make a VM running with "
+"this volume attached aware of the new \"disk size\"."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1084
+msgid "That all typically boils down to"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1092
+#, no-wrap
+msgid ""
+"# # on all nodes, resize the backing LV:\n"
+"# lvextend -L +${additional_gb}g VG/LV\n"
+"# # on one node:\n"
+"# drbdadm resize ${resource_name}/${volume_number}\n"
+"# # on the Primary only:\n"
+"# # resize the file system using the file system specific tool, see below\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1095
+msgid "See also the next sections <<s-growing-online>> and following."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1099
+msgid ""
+"Note that different file systems have different capabilities and different "
+"sets of management tools. For example XFS can only grow.  You point its tool "
+"to the active mount point: `xfs_growfs /where/you/have/it/mounted`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1104
+msgid ""
+"While the EXT family can both grow (even online), and also shrink (only "
+"offline; you have to unmount it first). To resize an ext3 or ext4, you would "
+"point the tool not to the mount point, but to the (mounted)  block device: "
+"`resize2fs /dev/drbd#`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1112
+msgid ""
+"Obviously use the correct DRBD (as displayed by `mount` or `df -T`, while "
+"mounted), and *not* the backing block device. If DRBD is up, that's not "
+"supposed to work anyways (`resize2fs: Device or resource busy while trying "
+"to open /dev/mapper/VG-LV Couldn't find valid filesystem superblock.`).  If "
+"you tried to do that offline (with DRBD stopped), you may corrupt DRBD "
+"metadata if you ran the file system tools directly against the backing LV or "
+"partition. So don't."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1116
+msgid ""
+"You do the file system resize only *once* on the Primary, against the active "
+"DRBD device. DRBD replicates the changes to the file system structure.  That "
+"is what you have it for."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1119
+msgid ""
+"Also, don't use resize2fs on XFS volumes, or XFS tools on EXT, or ...  but "
+"the right tool for the file system in use."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1124
+msgid ""
+"`resize2fs: Bad magic number in super-block while trying to open /dev/drbd7` "
+"is probably just trying to tell you that this is *not* an EXT file system, "
+"and you should try an other tool instead. Maybe `xfs_growfs`? But as "
+"mentioned, that does not take the block device, but the mount point as "
+"argument."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1131
+msgid ""
+"When shrinking (reducing) DRBD volumes, you need to shrink from top to "
+"bottom.  So first verify that no one is using the space you want to cut "
+"off.  Next, shrink the file system (if your file system supports that).  "
+"Then tell DRBD to stop using that space, which is not so easy with DRBD "
+"internal metadata, because they are by design \"at the end\" of the backing "
+"device."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1134
+msgid ""
+"Once you are sure that DRBD won't use the space anymore either, you can cut "
+"it off from the backing device, for example using `lvreduce`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1136
+msgid "See also <<s-shrinking-online>>, <<s-shrinking-offline>>."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1139
+#, no-wrap
+msgid "Growing Online"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1145
+msgid ""
+"indexterm:[resource]If the backing block devices can be grown while in "
+"operation (online), it is also possible to increase the size of a DRBD "
+"device based on these devices during operation. To do so, two criteria must "
+"be fulfilled:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1148
+msgid ""
+"The affected resource's backing device must be one managed by a logical "
+"volume management subsystem, such as LVM."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1150
+msgid "The resource must currently be in the _Connected_ connection state."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1153
+msgid ""
+"Having grown the backing block devices on all nodes, ensure that only one "
+"node is in primary state. Then enter on one node:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1156
+#, no-wrap
+msgid "# drbdadm resize <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1160
+msgid ""
+"This triggers a synchronization of the new section. The synchronization is "
+"done from the primary node to the secondary node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1163
+msgid ""
+"If the space you're adding is clean, you can skip syncing the additional "
+"space by using the --assume-clean option."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1166
+#, no-wrap
+msgid "# drbdadm -- --assume-clean resize <resource>\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1169
+#, no-wrap
+msgid "Growing Offline"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1178
+msgid ""
+"indexterm:[resource]When the backing block devices on both nodes are grown "
+"while DRBD is inactive, and the DRBD resource is using <<s-external-meta-"
+"data,external metadata>>, then the new size is recognized automatically. No "
+"administrative intervention is necessary. The DRBD device will have the new "
+"size after the next activation of DRBD on both nodes and a successful "
+"establishment of a network connection."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1183
+msgid ""
+"If however the DRBD resource is configured to use <<s-internal-meta-data,"
+"internal metadata>>, then this metadata must be moved to the end of the "
+"grown device before the new size becomes available. To do so, complete the "
+"following steps:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1185
+#: UG9/en/drbd-administration-manual.adoc:1286
+msgid "This is an advanced procedure. Use at your own discretion."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1187
+#: UG9/en/drbd-administration-manual.adoc:1291
+msgid "Unconfigure your DRBD resource:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1195
+msgid "Save the metadata in a text file prior to resizing:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1198
+#, no-wrap
+msgid "# drbdadm dump-md <resource> > /tmp/metadata\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1203
+msgid ""
+"You must do this on both nodes, using a separate dump file for every node. "
+"*Do not* dump the metadata on one node, and simply copy the dump file to the "
+"peer. *This. will. not. work.*"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1205
+msgid "Grow the backing block device on both nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1209
+msgid ""
+"Adjust the size information (`la-size-sect`) in the file `/tmp/metadata` "
+"accordingly, on both nodes. Remember that `la-size-sect` must be specified "
+"in sectors."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1211
+msgid "Re-initialize the metadata area:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1214
+#: UG9/en/drbd-administration-manual.adoc:1324
+#, no-wrap
+msgid "# drbdadm create-md <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1217
+msgid "Re-import the corrected metadata, on both nodes:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1224
+#, no-wrap
+msgid ""
+"# drbdmeta_cmd=$(drbdadm -d dump-md <resource>)\n"
+"# ${drbdmeta_cmd/dump-md/restore-md} /tmp/metadata\n"
+"Valid meta-data in place, overwrite? [need to type 'yes' to confirm]\n"
+"yes\n"
+"Successfully restored meta data\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1229
+msgid ""
+"This example uses `bash` parameter substitution. It may or may not work in "
+"other shells. Check your `SHELL` environment variable if you are unsure "
+"which shell you are currently using."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1231
+#: UG9/en/drbd-administration-manual.adoc:1344
+msgid "Re-enable your DRBD resource:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1237
+msgid "On one node, promote the DRBD resource:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1240
+#, no-wrap
+msgid "# drbdadm primary <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1244
+msgid ""
+"Finally, grow the file system so it fills the extended size of the DRBD "
+"device."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1246
+#, no-wrap
+msgid "Shrinking Online"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1249
+msgid "Online shrinking is only supported with external metadata."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1254
+msgid ""
+"indexterm:[resource]Before shrinking a DRBD device, you _must_ shrink the "
+"layers above DRBD (usually the file system). Since DRBD cannot ask the file "
+"system how much space it actually uses, you have to be careful to not cause "
+"data loss."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1258
+msgid ""
+"Whether or not the _filesystem_ can be shrunk online depends on the "
+"filesystem being used. Most filesystems do not support online shrinking. XFS "
+"does not support shrinking at all."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1261
+msgid ""
+"To shrink DRBD online, issue the following command _after_ you have shrunk "
+"the file system residing on top of it:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1265
+#, no-wrap
+msgid "# drbdadm resize --size=<new-size> <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1270
+msgid ""
+"You may use the usual multiplier suffixes for _<new-size>_ (K, M, G, and so "
+"on). After you have shrunk DRBD, you may also shrink the containing block "
+"device (if it supports shrinking)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1274
+msgid ""
+"It might be a good idea to issue `drbdadm resize _<resource>_` after "
+"resizing the lower level device, so that the DRBD metadata *really* gets "
+"written into the expected space at the end of the volume."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1276
+#, no-wrap
+msgid "Shrinking Offline"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1284
+msgid ""
+"indexterm:[resource]If you were to shrink a backing block device while DRBD "
+"is inactive, DRBD would refuse to attach to this block device during the "
+"next attach attempt, because the block device would now be too small (if "
+"external metadata was in use), or it would be unable to find its metadata "
+"(if internal metadata was in use because DRBD metadata is written to the end "
+"of the backing block device). To work around these issues, use this "
+"procedure (if you cannot use <<s-shrinking-online,online shrinking>>):"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1289
+msgid "Shrink the file system from one node, while DRBD is still configured."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1297
+msgid "Save the metadata in a text file prior to shrinking:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1300
+#, no-wrap
+msgid "# drbdadm dump-md <resource> > /tmp/<resource>-metadata\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1305
+msgid ""
+"If the `dump-md` command fails with a warning about \"unclean\" metadata, "
+"you will first need to run the command `drbdadm apply-al <resource>` to "
+"apply the activity log of the specified resource. You can then retry the "
+"`dump-md` command."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1308
+msgid ""
+"You must dump the metadata on all nodes that are configured for the DRBD "
+"resource, by using a separate dump file for each node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1311
+#, no-wrap
+msgid ""
+"*Do not* dump the metadata on one node and then simply copy the dump file to peer\n"
+"nodes. *This. Will. Not. Work.*\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1313
+msgid ""
+"Shrink the backing block device on each node configured for the DRBD "
+"resource."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1317
+msgid ""
+"Adjust the size information (`la-size-sect`) in the file `/tmp/<resource>-"
+"metadata` accordingly, on each node. Remember that `la-size-sect` must be "
+"specified in sectors."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1321
+#, no-wrap
+msgid ""
+"*Only if you are using internal metadata* (which at this time have\n"
+"probably been lost due to the shrinking process), re-initialize the\n"
+"metadata area:\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1327
+msgid "Reimport the corrected metadata, on each node:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1333
+#, no-wrap
+msgid ""
+"# drbdmeta_cmd=$(drbdadm --dry-run dump-md <resource>)\n"
+"# ${drbdmeta_cmd/dump-md/restore-md} /tmp/<resource>-metadata\n"
+"Valid meta-data in place, overwrite?\n"
+"[need to type 'yes' to confirm] yes\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1336
+#, no-wrap
+msgid ""
+"reinitializing\n"
+"Successfully restored meta data\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1342
+msgid ""
+"This example uses BASH parameter substitution to generate the `drbdmeta "
+"restore-md` command necessary to restore the modified metadata for the "
+"resource. It might not work in other shells. Check your `SHELL` environment "
+"variable if you are unsure which shell you are currently using."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:1350
+#, no-wrap
+msgid "Disabling Backing Device Flushes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1357
+msgid ""
+"You should only disable device flushes when running DRBD on devices with a "
+"battery-backed write cache (BBWC). Most storage controllers allow to "
+"automatically disable the write cache when the battery is depleted, "
+"switching to write-through mode when the battery dies. It is strongly "
+"recommended to enable such a feature."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1361
+msgid ""
+"Disabling DRBD's flushes when running without BBWC, or on BBWC with a "
+"depleted battery, is _likely to cause data loss_ and should not be attempted."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1367
+msgid ""
+"DRBD allows you to enable and disable <<s-disk-flush-support,backing device "
+"flushes>> separately for the replicated data set and DRBD's own metadata. "
+"Both of these options are enabled by default. If you want to disable either "
+"(or both), you would set this in the `disk` section for the DRBD "
+"configuration file, `/etc/drbd.conf`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1370
+msgid ""
+"To disable disk flushes for the replicated data set, include the following "
+"line in your configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1380
+#, no-wrap
+msgid ""
+"resource <resource>\n"
+"  disk {\n"
+"    disk-flushes no;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1385
+msgid "To disable disk flushes on DRBD's metadata, include the following line:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1395
+#, no-wrap
+msgid ""
+"resource <resource>\n"
+"  disk {\n"
+"    md-flushes no;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1400
+msgid ""
+"After you have modified your resource configuration (and synchronized your `/"
+"etc/drbd.conf` between nodes, of course), you may enable these settings by "
+"issuing this command on both nodes:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1403
+#: UG9/en/drbd-administration-manual.adoc:1837
+#: UG9/en/drbd-administration-manual.adoc:1874
+#, no-wrap
+msgid "# drbdadm adjust <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1408
+msgid ""
+"If only one of the servers has a BBWCfootnote:[For example, in the DR site "
+"you might be using different hardware, right?], you should move the setting "
+"into a host section, like this:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1415
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  disk {\n"
+"    ... common settings ...\n"
+"  }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1424
+#, no-wrap
+msgid ""
+"  on host-1 {\n"
+"    disk {\n"
+"      md-flushes no;\n"
+"    }\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:1428
+#, no-wrap
+msgid "Configuring Split Brain Behavior"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1431
+#, no-wrap
+msgid "Split Brain Notification"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1436
+msgid ""
+"DRBD invokes the `split-brain` handler, if configured, at any time split "
+"brain is _detected_. To configure this handler, add the following item to "
+"your resource configuration:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1445
+#, no-wrap
+msgid ""
+"resource <resource>\n"
+"  handlers {\n"
+"    split-brain <handler>;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1448
+msgid "_<handler>_ may be any executable present on the system."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1455
+msgid ""
+"The DRBD distribution contains a split brain handler script that installs as "
+"`/usr/lib/drbd/notify-split-brain.sh`. It simply sends a notification e-mail "
+"message to a specified address. To configure the handler to send a message "
+"to `root@localhost` (which is expected to be an email address that forwards "
+"the notification to a real system administrator), configure the `split-brain "
+"handler` as follows:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1464
+#, no-wrap
+msgid ""
+"resource <resource>\n"
+"  handlers {\n"
+"    split-brain \"/usr/lib/drbd/notify-split-brain.sh root\";\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1470
+msgid ""
+"After you have made this modification on a running resource (and "
+"synchronized the configuration file between nodes), no additional "
+"intervention is needed to enable the handler. DRBD will simply invoke the "
+"newly-configured handler on the next occurrence of split brain."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1472
+#, no-wrap
+msgid "Automatic Split Brain Recovery Policies"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1478
+msgid ""
+"Configuring DRBD to automatically resolve data divergence situations "
+"resulting from split-brain (or other) scenarios is configuring for potential "
+"*automatic data loss*.  Understand the implications, and don't do it if you "
+"don't mean to."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1482
+msgid ""
+"You rather want to look into fencing policies, quorum settings, cluster "
+"manager integration, and redundant cluster manager communication links to "
+"*avoid* data divergence in the first place."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1490
+msgid ""
+"To be able to enable and configure DRBD's automatic split brain recovery "
+"policies, you must understand that DRBD offers several configuration options "
+"for this purpose. DRBD applies its split brain recovery procedures based on "
+"the number of nodes in the Primary role at the time the split brain is "
+"detected. To that end, DRBD examines the following keywords, all found in "
+"the resource's `net` configuration section:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1491
+#, no-wrap
+msgid "`after-sb-0pri`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1495
+msgid ""
+"Split brain has just been detected, but at this time the resource is not in "
+"the Primary role on any host. For this option, DRBD understands the "
+"following keywords:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1499
+msgid ""
+"`disconnect`: Do not recover automatically, simply invoke the `split-brain` "
+"handler script (if configured), drop the connection and continue in "
+"disconnected mode."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1502
+msgid ""
+"`discard-younger-primary`: Discard and roll back the modifications made on "
+"the host which assumed the Primary role last."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1505
+msgid ""
+"`discard-least-changes`: Discard and roll back the modifications on the host "
+"where fewer changes occurred."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1509
+msgid ""
+"`discard-zero-changes`: If there is any host on which no changes occurred at "
+"all, simply apply all modifications made on the other and continue."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1510
+#, no-wrap
+msgid "`after-sb-1pri`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1514
+msgid ""
+"Split brain has just been detected, and at this time the resource is in the "
+"Primary role on one host. For this option, DRBD understands the following "
+"keywords:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1518
+msgid ""
+"`disconnect`: As with `after-sb-0pri`, simply invoke the `split-brain` "
+"handler script (if configured), drop the connection and continue in "
+"disconnected mode."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1523
+msgid ""
+"`consensus`: Apply the same recovery policies as specified in `after-"
+"sb-0pri`. If a split brain victim can be selected after applying these "
+"policies, automatically resolve. Otherwise, behave exactly as if "
+"`disconnect` were specified."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1530
+msgid ""
+"`call-pri-lost-after-sb`: Apply the recovery policies as specified in `after-"
+"sb-0pri`. If a split brain victim can be selected after applying these "
+"policies, invoke the `pri-lost-after-sb` handler on the victim node. This "
+"handler must be configured in the `handlers` section and is expected to "
+"forcibly remove the node from the cluster."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1533
+msgid ""
+"`discard-secondary`: Whichever host is currently in the Secondary role, make "
+"that host the split brain victim."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1534
+#, no-wrap
+msgid "`after-sb-2pri`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1538
+msgid ""
+"Split brain has just been detected, and at this time the resource is in the "
+"Primary role on both hosts. This option accepts the same keywords as `after-"
+"sb-1pri` except `discard-secondary` and `consensus`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1543
+msgid ""
+"DRBD understands additional keywords for these three options, which have "
+"been omitted here because they are very rarely used. Refer to the man page "
+"of `drbd.conf` for details on split brain recovery keywords not discussed "
+"here."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1547
+msgid ""
+"For example, a resource which serves as the block device for a GFS or OCFS2 "
+"file system in dual-Primary mode may have its recovery policy defined as "
+"follows:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1562
+#, no-wrap
+msgid ""
+"resource <resource> {\n"
+"  handlers {\n"
+"    split-brain \"/usr/lib/drbd/notify-split-brain.sh root\"\n"
+"    ...\n"
+"  }\n"
+"  net {\n"
+"    after-sb-0pri discard-zero-changes;\n"
+"    after-sb-1pri discard-secondary;\n"
+"    after-sb-2pri disconnect;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:1566
+#, no-wrap
+msgid "Creating a Stacked Three-node Setup"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1569
+msgid "A three-node setup involves one DRBD device _stacked_ atop another."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1573 UG9/en/drbd-pacemaker.adoc:238
+msgid ""
+"Stacking is deprecated in DRBD version 9.x, as more nodes can be implemented "
+"on a single level. See <<s-drbdconf-conns>> for details."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1575
+#, no-wrap
+msgid "Device Stacking Considerations"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1578
+msgid "The following considerations apply to this type of setup:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1583
+msgid ""
+"The stacked device is the active one. Assume you have configured one DRBD "
+"device `/dev/drbd0`, and the stacked device atop it is `/dev/drbd10`, then `/"
+"dev/drbd10` will be the device that you mount and use."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1589
+msgid ""
+"Device metadata will be stored twice, on the underlying DRBD device _and_ "
+"the stacked DRBD device. On the stacked device, you must always use <<s-"
+"internal-meta-data,internal metadata>>. This means that the effectively "
+"available storage area on a stacked device is slightly smaller, compared to "
+"an unstacked device."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1592
+msgid ""
+"To get the stacked upper level device running, the underlying device must be "
+"in the primary role."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1595
+msgid ""
+"To be able to synchronize the backup node, the stacked device on the active "
+"node must be up and in the primary role."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1598
+#, no-wrap
+msgid "Configuring a Stacked Resource"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1603
+msgid ""
+"In the following example, nodes are named 'alice', 'bob', and 'charlie', "
+"with 'alice' and 'bob' forming a two-node cluster, and 'charlie' being the "
+"backup node."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1611
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  protocol C;\n"
+"  device    /dev/drbd0;\n"
+"  disk      /dev/sda6;\n"
+"  meta-disk internal;\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1615
+#, no-wrap
+msgid ""
+"  on alice {\n"
+"    address    10.0.0.1:7788;\n"
+"  }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1620
+#, no-wrap
+msgid ""
+"  on bob {\n"
+"    address   10.0.0.2:7788;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1623
+#, no-wrap
+msgid ""
+"resource r0-U {\n"
+"  protocol A;\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1628
+#, no-wrap
+msgid ""
+"  stacked-on-top-of r0 {\n"
+"    device     /dev/drbd10;\n"
+"    address    192.168.42.1:7789;\n"
+"  }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1636
+#, no-wrap
+msgid ""
+"  on charlie {\n"
+"    device     /dev/drbd10;\n"
+"    disk       /dev/hda6;\n"
+"    address    192.168.42.2:7789; # Public IP of the backup node\n"
+"    meta-disk  internal;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1642
+msgid ""
+"As with any `drbd.conf` configuration file, this must be distributed across "
+"all nodes in the cluster -- in this case, three nodes. Notice the following "
+"extra keyword not found in an unstacked resource configuration:"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1643
+#, no-wrap
+msgid "`stacked-on-top-of`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1648
+msgid ""
+"This option informs DRBD that the resource which contains it is a stacked "
+"resource. It replaces one of the `on` sections normally found in any "
+"resource configuration. Do not use `stacked-on-top-of` in an lower-level "
+"resource."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1653
+msgid ""
+"It is not a requirement to use <<fp-protocol-a,Protocol A>> for stacked "
+"resources. You may select any of DRBD's replication protocols depending on "
+"your application."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1655
+#, no-wrap
+msgid "Single stacked setup"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:1656
+#, no-wrap
+msgid "images/single-stacked.svg"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1660
+#, no-wrap
+msgid "Enabling Stacked Resources"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1664
+msgid ""
+"To enable a stacked resource, you first enable its lower-level resource and "
+"promote it:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1667
+#, no-wrap
+msgid ""
+"drbdadm up r0\n"
+"drbdadm primary r0\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1671
+msgid ""
+"As with unstacked resources, you must create DRBD metadata on the stacked "
+"resources. This is done using the following command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1674
+#, no-wrap
+msgid "# drbdadm create-md --stacked r0-U\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1677
+msgid "Then, you may enable the stacked resource:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1681
+#, no-wrap
+msgid ""
+"# drbdadm up --stacked r0-U\n"
+"# drbdadm primary --stacked r0-U\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1685
+msgid ""
+"After this, you may bring up the resource on the backup node, enabling three-"
+"node replication:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1689
+#, no-wrap
+msgid ""
+"# drbdadm create-md r0-U\n"
+"# drbdadm up r0-U\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1693
+msgid ""
+"To automate stacked resource management, you may integrate stacked resources "
+"in your cluster manager configuration."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1696
+msgid ""
+"See <<s-pacemaker-stacked-resources>> for information on doing this in a "
+"cluster managed by the Pacemaker cluster management framework."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:1699
+#, no-wrap
+msgid "Permanently Diskless Nodes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1704
+msgid ""
+"A node might be permanently diskless in DRBD. Here is a configuration "
+"example showing a resource with 3 diskful nodes (servers) and one "
+"permanently diskless node (client)."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1710
+#, no-wrap
+msgid ""
+"resource kvm-mail {\n"
+"  device      /dev/drbd6;\n"
+"  disk        /dev/vg/kvm-mail;\n"
+"  meta-disk   internal;\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1723
+#, no-wrap
+msgid ""
+"  on store1 {\n"
+"    address   10.1.10.1:7006;\n"
+"    node-id   0;\n"
+"  }\n"
+"  on store2 {\n"
+"    address   10.1.10.2:7006;\n"
+"    node-id   1;\n"
+"  }\n"
+"  on store3 {\n"
+"    address   10.1.10.3:7006;\n"
+"    node-id   2;\n"
+"  }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1728
+#, no-wrap
+msgid ""
+"  on for-later-rebalancing {\n"
+"    address   10.1.10.4:7006;\n"
+"    node-id   3;\n"
+"  }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1734
+#, no-wrap
+msgid ""
+"  # DRBD \"client\"\n"
+"  floating 10.1.11.6:8006 {\n"
+"    disk      none;\n"
+"    node-id   4;\n"
+"  }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1738
+#, no-wrap
+msgid ""
+"  # rest omitted for brevity\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1743
+msgid ""
+"For permanently diskless nodes no bitmap slot gets allocated. For such nodes "
+"the diskless status is displayed in green color since it is not an error or "
+"unexpected state. See <<s-drbd-client-internals>> for internal details."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:1745
+#, no-wrap
+msgid "Data Rebalancing"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1749
+msgid ""
+"indexterm:[rebalance]Given the (example) policy that data needs to be "
+"available on 3 nodes, you need at least 3 servers for your setup."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1753 UG9/en/drbd-features.adoc:713
+msgid ""
+"Now, as your storage demands grow, you will encounter the need for "
+"additional servers. Rather than having to buy 3 more servers at the same "
+"time, you can _rebalance_ your data across a single additional node."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/drbd-administration-manual.adoc:1755 UG9/en/drbd-features.adoc:714
+#, no-wrap
+msgid "DRBD data rebalancing"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:1756 UG9/en/drbd-features.adoc:715
+#, no-wrap
+msgid "images/rebalance.svg"
+msgstr ""
+
+#. [scaledwidth="75"]
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1761 UG9/en/drbd-features.adoc:722
+msgid ""
+"In the figure above you can see the _before_ and _after_ states: from 3 "
+"nodes with three 25TiB volumes each (for a net 75TiB), to 4 nodes, with net "
+"100TiB."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1768
+#, no-wrap
+msgid ""
+"To redistribute the data across your cluster you have to choose a _new_ node, and one where you want to remove this DRBD resource.\n"
+"Please note that removing the resource from a currently _active_ node (that is, where DRBD is _Primary_) will involve either migrating the service or running this resource on this node as a <<s-drbd-client,DRBD client>>; it's easier to choose a node in _Secondary_ role. (Of course, that might not always be possible.)"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1771
+#, no-wrap
+msgid "Prepare a Bitmap Slot"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1775
+msgid ""
+"You will need to have a free <<s-quick-sync-bitmap,bitmap slot>> for "
+"temporary use, on each of the nodes that have the resource that is to be "
+"moved."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1779
+msgid ""
+"You can allocate one more at <<s-first-time-up,`drbdadm create-md` time>>, "
+"or simply put a placeholder in your configuration, so that `drbdadm` sees "
+"that it should reserve one more slot:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1788
+#, no-wrap
+msgid ""
+"resource r0 {\n"
+"  ...\n"
+"  on for-later-rebalancing {\n"
+"    address   10.254.254.254:65533;\n"
+"    node-id   3;\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-administration-manual.adoc:1794
+msgid ""
+"If you need to make that slot available during live use, you will have to"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-administration-manual.adoc:1796
+msgid "dump the metadata,"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-administration-manual.adoc:1797
+msgid "enlarge the metadata space,"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-administration-manual.adoc:1798
+msgid "edit the dumpfile,"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-administration-manual.adoc:1799
+msgid "load the changed metadata."
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-administration-manual.adoc:1803
+msgid ""
+"In a future version `drbdadm` will have a shortcut for you; most probably "
+"you'll be able to say `drbdadm resize --peers _N_` and have the kernel "
+"rewrite the metadata for you."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1807
+#, no-wrap
+msgid "Preparing and Activating the New Node"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1814
+msgid ""
+"First of all you have to create the underlying storage volume on the new "
+"node (using e.g. `lvcreate`).  Then the placeholder in the configuration can "
+"be filled with the correct host name, address, and storage path. Now copy "
+"the resource configuration to all relevant nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1817
+msgid "On the new node initialize the meta-data (once) by doing"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1825 UG9/en/drbd-configure.adoc:672
+#, no-wrap
+msgid ""
+"# drbdadm create-md <resource>\n"
+"v09 Magic number not found\n"
+"Writing meta data...\n"
+"initialising activity log\n"
+"NOT initializing bitmap\n"
+"New drbd meta data block successfully created.\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1829
+#, no-wrap
+msgid "Starting the Initial Synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1832
+msgid "Now the new node needs to get the data."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1834
+msgid ""
+"This is done by defining the network connection on the existing nodes using "
+"the command:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1840
+msgid "and starting the DRBD device on the new node using the command:"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1847
+#, no-wrap
+msgid "Check Connectivity"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1851
+msgid ""
+"At this time, show the status of your DRBD resource by entering the "
+"following command on the new node:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1854
+#, no-wrap
+msgid "# drbdadm status <resource>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1857
+msgid "Verify that _all_ other nodes are connected."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1859
+#, no-wrap
+msgid "After the Initial Synchronization"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1864
+msgid ""
+"As soon as the new host is _UpToDate_, one of the other nodes in the "
+"configuration can be renamed to `for-later-rebalancing`, and kept for "
+"another migration."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1869
+#, no-wrap
+msgid ""
+"Perhaps you want to comment the section; although that has the risk that doing a `drbdadm create-md` for a new node has too few bitmap slots for the next rebalancing.\n"
+"It might be easier to use a reserved (unused) IP address and host name."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1871
+msgid "Copy the changed configuration around again, and use it by running"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1877
+msgid "on all nodes."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1880
+#, no-wrap
+msgid "Cleaning Up"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1884
+msgid ""
+"On the one node that had the data up to now, but isn't used anymore for this "
+"resource, you can now take the DRBD device down by entering:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1892
+msgid ""
+"Now the lower level storage device isn't used anymore, and can either be re-"
+"used for other purposes or, if it is a logical volume, its space can be "
+"returned to the volume group using the `lvremove` command."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1894
+#, no-wrap
+msgid "Conclusion and Further Steps"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1899
+msgid ""
+"One of the resources has been migrated to the new node. The same could be "
+"done for one or more other resources, to make free space on two or three "
+"nodes in the existing cluster."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1902
+msgid ""
+"Then new resources can be configured, as there are enough nodes with free "
+"space to achieve 3-way redundancy again."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:1904
+#, no-wrap
+msgid "Configuring Quorum"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1912
+msgid ""
+"To avoid split brain or diverging data of replicas one has to configure "
+"fencing. All the options for fencing rely on redundant communication in the "
+"end.  That might be in the form of a management network that connects the "
+"nodes to the IPMI network interfaces of the peer machines. In case of the "
+"crm-fence-peer script it is necessary that Pacemaker's communication stays "
+"available when DRBD's network link breaks."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1919
+msgid ""
+"The quorum mechanism, however, takes a completely different approach. The "
+"basic idea is that a cluster partition may only modify the replicated data "
+"set if the number of nodes that can communicate is greater than half of the "
+"overall number of nodes. A node of such a partition _has quorum_.  However, "
+"a node that does not have quorum needs to guarantee that the replicated data "
+"set is not touched, so that the node does not create a diverging data set."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1923
+msgid ""
+"The quorum implementation in DRBD gets enabled by setting the `quorum` "
+"resource option to `majority`, `all` or a numeric value. Where `majority` "
+"selects the behavior that was described in the previous paragraph."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1925
+#, no-wrap
+msgid "Guaranteed Minimal Redundancy"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1933
+msgid ""
+"By default every node with a disk gets a vote in the quorum election. That "
+"is, only diskless nodes do not count. So a partition with two _Inconsistent_ "
+"disks gets quorum, while a partition with one _UpToDate_ node will have "
+"quorum in a 3 node cluster. By configuring `quorum-minimum-redundancy` this "
+"behavior can be changed so that only nodes that are `UpToDate` have a vote "
+"in the quorum election. The option takes the same arguments as the `quorum` "
+"option."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1938
+msgid ""
+"With this option you express that you rather want to wait until eventually "
+"necessary resync operations finish before any services start. So in a way "
+"you prefer that the minimal redundancy of your data is guaranteed over the "
+"availability of your service. Financial data and services is an example that "
+"comes to mind."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1941
+msgid ""
+"Consider the following example for a five node cluster. It requires a "
+"partitions to have at least three nodes, and two of them must be `UpToDate`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1950
+#, no-wrap
+msgid ""
+"resource quorum-demo {\n"
+"  options {\n"
+"    quorum majority;\n"
+"    quorum-minimum-redundancy 2;\n"
+"    ...\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1953
+#, no-wrap
+msgid "Actions on Loss of Quorum"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1960
+msgid ""
+"When a node that is running the service loses quorum it needs to cease write-"
+"operations on the data set immediately. That means that I/O immediately "
+"starts to complete all I/O requests with errors. Usually that means that a "
+"graceful shutdown is not possible, since that would require more "
+"modifications to the data set. The I/O errors propagate from the block level "
+"to the file system and from the file system to the user space application(s)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1965
+msgid ""
+"Ideally the application simply terminates in case of I/O errors. This then "
+"allows Pacemaker to unmount the filesystem and to demote the DRBD resource "
+"to secondary role.  If that is true you should set the `on-no-quorum` "
+"resource option to `io-error`.  Here is an example:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1974
+#, no-wrap
+msgid ""
+"resource quorum-demo {\n"
+"  options {\n"
+"    quorum majority;\n"
+"    on-no-quorum io-error;\n"
+"    ...\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1978
+msgid ""
+"If your application does not terminate on the first I/O error, you can "
+"choose to freeze I/O instead and to reboot the node. Here is a configuration "
+"example:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1986
+#, no-wrap
+msgid ""
+"resource quorum-demo {\n"
+"  options {\n"
+"    quorum majority;\n"
+"    on-no-quorum suspend-io;\n"
+"    ...\n"
+"  }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/drbd-administration-manual.adoc:1992
+#, no-wrap
+msgid ""
+"  handlers {\n"
+"    quorum-lost \"echo b > /proc/sysrq-trigger\";\n"
+"  }\n"
+"  ...\n"
+"}\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:1995
+#, no-wrap
+msgid "Using a Diskless Node as a Tiebreaker"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:1999
+msgid ""
+"A diskless node with connections to all nodes in a cluster can be used to "
+"break ties in the quorum negotiation process."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2001
+msgid ""
+"Consider the following two-node cluster, where node A is the primary and "
+"node B is a secondary:"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:2002
+#, no-wrap
+msgid "images/quorum-tiebreaker-without.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2006
+msgid ""
+"As soon as the connection between the two nodes is interrupted, they lose "
+"quorum and the application on top of the cluster cannot write data anymore."
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:2007
+#, no-wrap
+msgid "images/quorum-tiebreaker-without-disconnect.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2011
+msgid ""
+"Now if we add a third node, C, to the cluster and configure it as diskless, "
+"we can take advantage of the tiebreaker mechanism."
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:2012
+#, no-wrap
+msgid "images/quorum-tiebreaker.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2018
+msgid ""
+"In this case, when the primary and secondary nodes lose connection, they can "
+"still \"see\" the diskless tiebreaker. Because of this, the primary can "
+"continue working, while the secondary demotes its disk to Outdated and the "
+"service can therefore not be migrated there."
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:2019
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2023
+msgid ""
+"There are a few special cases if two connections fail. Consider the "
+"following scenario:"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:2024
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect-case2.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2030
+msgid ""
+"In this case, the tiebreaker node forms a partition with the primary node. "
+"The primary therefore keeps quorum, while the secondary becomes outdated. "
+"Note that the secondary's disk state will be \"UpToDate\", but regardless it "
+"cannot be promoted to primary because it lacks quorum."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2032
+msgid ""
+"Let's consider the possibility of the primary losing connection to the "
+"tiebreaker:"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:2033
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect-case3.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2038
+msgid ""
+"In this case, the primary becomes unusable and goes into a \"quorum "
+"suspended\" state. This effectively results in the application on top of "
+"DRBD receiving I/O errors. A cluster manager could then promote node B to "
+"primary and keep the service running there instead."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2041
+msgid ""
+"In case the diskless tiebreaker \"switches sides\", we need to avoid data "
+"divergence. Consider this scenario:"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:2042
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect-case1a.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2046
+msgid ""
+"The connection between the primary and secondary has failed, and the "
+"application is continuing to run on the primary, when the primary suddenly "
+"loses its connection to the diskless node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2048
+msgid ""
+"In this case, no node can be promoted to primary and the cluster cannot "
+"continue to operate."
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-administration-manual.adoc:2052
+msgid ""
+"Protecting from data divergence always takes priority over ensuring service "
+"availability."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2055
+msgid "Examining another scenario:"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/drbd-administration-manual.adoc:2056
+#, no-wrap
+msgid "images/quorum-tiebreaker-disconnect-case2a.svg"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2062
+msgid ""
+"Here, the application is running on the primary, while the secondary is "
+"unavailable. Then, the tiebreaker first loses connection to the primary, and "
+"then reconnects to the secondary.  It is important to note here that *a node "
+"that has lost quorum cannot regain quorum by connecting to a diskless node*. "
+"Therefore, in this case, no node has quorum and the cluster halts."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/drbd-administration-manual.adoc:2064
+#, no-wrap
+msgid "Last Man Standing"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2070
+msgid ""
+"It needs to be mentioned that nodes that leave a cluster gracefully are "
+"counted differently from failed nodes. In this context _leaving gracefully_ "
+"means that the leaving node marked its data as Outdated, and that it was "
+"able to tell the remaining nodes that its data is Outdated."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2074
+msgid ""
+"In a group of nodes where all disks are Outdated no one in that group can "
+"promote to Primary footnote:[The exception is a manual promotion with the `--"
+"force` flag. It's assumed that before you use the `--force` flag, you know "
+"what you are doing.]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2079
+msgid ""
+"An implication is that, if one node remains in a cluster where all the other "
+"nodes left gracefully, the remaining node can keep quorum. However, if any "
+"of the other nodes left ungracefully, the remaining node must assume that "
+"the departed nodes could form a partition and have access to up-to-date data."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-administration-manual.adoc:2081
+#, no-wrap
+msgid "Removing DRBD"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2084
+msgid ""
+"For the unlikely case that you want to remove DRBD, here are the necessary "
+"steps."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2087
+msgid ""
+"Stop the services and unmount the filesystems on top of the DRBD volumes. In "
+"case you are using a cluster manager, verify that it ceases to control the "
+"services first."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2088
+msgid ""
+"Stop the DRBD resource(s) by using `drbdadm down <res>` or `drbdadm down all`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2094
+msgid ""
+"In case the DRBD resource was using internal meta-data you might choose to "
+"resize the filesystem to cover all of the backing device's space. This step "
+"effectively removes DRBD's meta-data. This is an action that can not be "
+"reversed easily. You can do that with `resize2fs <backing_dev>` for ext[234] "
+"family of file systems.  It supports resizing of unmounted filesystem and "
+"under certain conditions also online grow. XFS can be grown online only with "
+"the `xfs_growfs` command."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2095
+msgid "Mount the backing device(s) directly, start the services on top of them"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2096
+msgid ""
+"Unload the DRBD kernel driver modules with `rmmod drbd_transport_tcp` and "
+"`rmmod drbd`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-administration-manual.adoc:2097
+msgid "Uninstall the DRBD software packages."
+msgstr ""

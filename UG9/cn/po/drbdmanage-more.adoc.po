@@ -1,0 +1,324 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2020-03-02 15:09+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: drbdmanage-more.adoc:2
+#, no-wrap
+msgid "More Information about DRBD Manage"
+msgstr "有关DRBD Manage的更多信息"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:5
+msgid ""
+"Here you will find some more information about DRBD Manage internals, "
+"techniques, and strategies."
+msgstr "在这里，您将找到有关DRBD管理内幕、技术和策略的更多信息。"
+
+#. type: Title ===
+#: drbdmanage-more.adoc:8
+#, no-wrap
+msgid "Free Space reporting"
+msgstr "可用空间报告"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:11
+msgid "DRBD Manage can report free space in two ways:"
+msgstr "DRBD Manage可以通过两种方式报告可用空间："
+
+#. type: Plain text
+#: drbdmanage-more.adoc:15
+msgid ""
+"indexterm:[free space]Per node, via `drbdmanage nodes`; this will tell the "
+"\"physical\" space available, which might not mean much if using Thin LVs "
+"for storing data."
+msgstr ""
+"indexterm:[free space]在每个节点上，可通过 `drbdmanage "
+"nodes` 查看可用空间；这将列出 `物理` 可用空间，如果使用精简LVs存储数据，这可能没有多大意义。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:19
+msgid ""
+"indexterm:[free space]Via `drbdmanage list-free-space`; this will return the"
+" size for the single largest volume that can be created with the defined "
+"replication count."
+msgstr ""
+"indexterm:[free space]通过 `drbdmanage list-free-space`；这将返回可使用定义的复制计数创建的单个最大卷的大小。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:23
+msgid ""
+"So, with 10 storage nodes each having 1TiB free space, the value returned "
+"will be 1TiB, and allocating such a volume will not change the free space "
+"value."
+msgstr "因此，如果10个存储节点每个都有1TiB可用空间，则返回的值将为1TiB，并且分配这样的卷不会更改可用空间值。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:26
+msgid ""
+"For storage nodes with 20GiB, 15GiB, 10GiB, and 5GiB, the free space for "
+"3-way-redundancy will be 10GiB, and 15GiB for 2-way."
+msgstr "对于具有20GiB、15GiB、10GiB和5GiB的存储节点，3路冗余的可用空间为10GiB，2路冗余的可用空间为15GiB。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:31
+msgid ""
+"The free space issue is further muddled quite a bit by thin LVM pools (one "
+"or multiple, depending on storage backend in DRBD Manage - please see "
+"<<s-drbdmanage-storage-plugins>> for more details), and DRBD Manage "
+"snapshots."
+msgstr ""
+"精简LVM池（一个或多个，取决于DRBD Manage中的存储后端-请参见<<s-drbdmanage-storage-"
+"plugins>>了解更多详细信息）和DRBD Manage快照进一步混淆了可用空间问题。"
+
+#. type: Title ===
+#: drbdmanage-more.adoc:34
+#, no-wrap
+msgid "Policy plugin, waiting for deployment"
+msgstr "策略插件，正在等待部署"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:38
+msgid ""
+"When deploying a resource (resp. volume), a snapshot, or when resizing a "
+"volume, you might need to trade between performance and availability."
+msgstr "当部署资源（resp. 卷）、快照或调整卷大小时，可能需要在性能和可用性之间进行权衡。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:42
+msgid ""
+"For a small example, if you have 3 storage servers, but one is down because "
+"of a hardware or software upgrade, and you choose to create a new resource "
+"that should keep three copies - what should happen?"
+msgstr "举个小例子，如果您有3台存储服务器，但其中一台由于硬件或软件升级而停机，并且您选择创建一个新的资源，该资源应保留三个副本—会发生什么情况？"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:44
+msgid ""
+"Should volume creation block until the third node is available again (hours,"
+" days, weeks)?"
+msgstr "在第三个节点再次可用（小时、天、周）之前是否应该阻止卷创建？"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:46
+msgid ""
+"Should volume creation just continue? Should it continue even if only one "
+"storage server is available, even if 3-way redundancy was requested?"
+msgstr "是否应该继续创建卷？即使只有一个存储服务器可用，即使请求了3路冗余，它是否应该继续？"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:47
+msgid ""
+"Should snapshot creation wait, or continue if at least one server was able "
+"to create the snapshot?"
+msgstr "快照创建应该等待，还是在至少有一台服务器能够创建快照时继续？"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:51
+msgid ""
+"The more server you have, the more likely it is that at least one of them is"
+" non-operating at any given time; so you need to decide on your policies, "
+"and configure them."
+msgstr "服务器越多，它们中的至少一个在任何给定时间都不运行的可能性就越大；因此，您需要决定策略并对其进行配置。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:58
+msgid ""
+"To avoid having to make such decisions in each driver accessing DRBD "
+"Managefootnote:[Like OpenAttic, OpenNebula, <<ch-openstack,Openstack>>, "
+"ProxMox, etc.] individually (duplicating quite a lot of code), we provide "
+"one DRBD Manage pluginfootnote:[\"Plugin\" might not be the best term here; "
+"the code is in the standard DRBD Manage distribution, but it gets called via"
+" the `run_external_plugin` API.] that aims to provide these functionality."
+msgstr ""
+"为了避免在访问DRBD Manage的每个驱动程序中做出这样的决定 footnote:[Like OpenAttic，OpenNebula，<<ch-"
+"openstack,Openstack>>，ProxMox，etc.]单独地（复制相当多的代码），我们提供了一个DRBD Manage "
+"pluginfootnote:[ \"Plugin\" 可能不是最好的术语；代码在标准的DRBD "
+"Manage发行版中，但是它通过旨在提供这些功能的 `run_external_plugin` API.]用于提供这些功能调用。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:63
+msgid ""
+"The exact configuration depends on the specific service using DRBD Manage, "
+"of course; but the basic approach is to allow the admin to specify the "
+"waiting behaviour via a JSON blob, which might be given in the configuration"
+" via simple text string (see e.g. <<s-openstack-addtl-conf,Policy "
+"configuration for OpenStack>>)."
+msgstr ""
+"当然，确切的配置取决于使用DRBD Manage的特定服务；但基本方法是允许管理员通过JSON "
+"blob指定等待行为，该blob可以在配置中通过简单的文本字符串给出（请参见<<s-openstack-addtl-conf,Policy "
+"configuration for OpenStack>>）。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:66
+msgid ""
+"The available policies for `WaitForResource` and `WaitForSnapshot` are:"
+msgstr "`WaitForResource` 和 `WaitForSnapshot` 的可用策略是："
+
+#. type: Plain text
+#: drbdmanage-more.adoc:72
+msgid ""
+"(((Policy,count)))`count` will wait for an absolute number of deployments; "
+"note that these don't have to be in syncfootnote:[On thick LVM a 1TiB "
+"deployment would take some time for the initial sync, and you most probably "
+"don't plan to wait for that, right?] but just *deployed*."
+msgstr ""
+"(((Policy，count)))`count` 将等待绝对数量的部署；请注意，这些部署不必全部同步footnote:[在厚LVM上，1TiB部署需要一些时间进行初始同步，您很可能不打算等待，对吧？], 但仅仅只是 *部署* 了。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:76
+msgid ""
+"(((Policy,ratio)))`ratio` is similar, but uses a value from `0.0` to `1.0`, "
+"which gets multiplied with the number of _planned_ deployments. So, for a "
+"resource that has (diskful) assignments on 5 servers, and 3 of them are "
+"available, a ratio of `0.6` would work."
+msgstr ""
+"(((Policy，ratio)))`ratio` 类似，但使用从 `0.0` 到 `1.0` 的值，该值与计划的部署数相乘。因此，对于一个在5台服务器上有（磁盘）分配，并且其中3台服务器可用的资源，`0.6` 的比率将起作用。"
+
+#. type: Block title
+#: drbdmanage-more.adoc:77
+#, no-wrap
+msgid "NOTE"
+msgstr "注意"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:81
+msgid ""
+"The given _``ratio``_ will be compared using \"greater-or-equal\"; so "
+"passing `0.5` in does *not* mean \"wait for majority\", as one-of-two "
+"deployments available would already be sufficient! Use `0.51` to get the "
+"intended meaning."
+msgstr ""
+"给定的 _``ratio``_ 将使用 `大于或等于` 进行比较；因此，传入 `0.5` 并不意味着 \"等待多数\" ，因为两个可用的部署之一已经足够了！使用 `0.51` 获得预期含义。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:84
+msgid ""
+"If you pass in more than one policy, _any_ of them is sufficient; so, for "
+"`count=3` and `ratio=0.75`, 3-out-of-5 servers would return `result=true`."
+msgstr ""
+"如果传入多个策略，其中任何一个都足够；因此，对于 `count=3` 和 `ratio=0.75` ，五分之三的服务器将返回 `result=true`。"
+
+#. type: Title ====
+#: drbdmanage-more.adoc:87
+#, no-wrap
+msgid "More detailed information for driver-writers"
+msgstr "驱动程序编写器的更详细信息"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:91
+msgid ""
+"For people implementing software that accesses DRBDmanage via the DBus API, "
+"here's an example usage (in mostly Python syntax):"
+msgstr "对于实现通过DBus API访问DRBDmanage的软件的人，下面是一个使用示例（主要使用Python语法）："
+
+#. type: Plain text
+#: drbdmanage-more.adoc:98
+#, no-wrap
+msgid ""
+"    result, data = run_external_plugin(\n"
+"                        \"drbdmanage.plugins.plugins.wait_for.WaitForResource\",\n"
+"                        { \"resource\": \"foo\",\n"
+"                          \"starttime\": <unix-timestamp, i.e. time(NULL), of first call>\n"
+"                          \"count\": \"3\",\n"
+"                          \"timeout\": \"15\"})\n"
+msgstr ""
+"    result, data = run_external_plugin(\n"
+"                        \"drbdmanage.plugins.plugins.wait_for.WaitForResource\",\n"
+"                        { \"resource\": \"foo\",\n"
+"                          \"starttime\": <unix-timestamp, i.e. time(NULL), of first call>\n"
+"                          \"count\": \"3\",\n"
+"                          \"timeout\": \"15\"})\n"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:103
+msgid ""
+"would return the normal array of success/error datafootnote:[Which will "
+"always mean some calling/internal error; \"Policy not satisfied\" or "
+"\"timeout\" will be reported _on this level_ as \"completed succesfully\"!],"
+" and an additional dict with detailed status data:"
+msgstr ""
+"将返回正常的成功/错误数据数组footnote:[这始终意味着某些调用/内部错误； \"策略未满足\" 或 \"超时\" 将被报告为 \"已成功完成\"！]，以及带有详细状态数据的附加dict："
+
+#. type: Plain text
+#: drbdmanage-more.adoc:109
+#, no-wrap
+msgid ""
+"    {\n"
+"        \"policy\": \"count\",\n"
+"        \"result\": \"true\",\n"
+"        \"timeout\": \"false\"\n"
+"    }\n"
+msgstr ""
+"    {\n"
+"        \"policy\": \"count\",\n"
+"        \"result\": \"true\",\n"
+"        \"timeout\": \"false\"\n"
+"    }\n"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:112
+msgid ""
+"If at least 3 servers had the given resource deployed (at the time of the "
+"call), `result` got `\"true\"` because the `count` policy was satisfied."
+msgstr "如果至少有3个服务器部署了给定的资源（在调用时），`result` 会为 `true` ，因为满足 `count` 策略。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:115
+msgid "You can wait with/for these plugins/events:"
+msgstr "您可以使用/等待这些插件/事件："
+
+#. type: Plain text
+#: drbdmanage-more.adoc:118
+msgid ""
+"(((Policy,resource "
+"creation)))`drbdmanage.plugins.plugins.wait_for.WaitForResource` needs a "
+"`resource` key as input data;"
+msgstr ""
+"(((Policy,resource creation)))`drbdmanage.plugins.plugins.wait_for.WaitForResource` "
+"需要一个 `resource` 键作为输入数据；"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:120
+msgid ""
+"(((Policy,snapshot "
+"creation)))`drbdmanage.plugins.plugins.wait_for.WaitForSnapshot` needs a "
+"`resource` and a `snapshot` key as input data;"
+msgstr ""
+"(((Policy,snapshot creation)))`drbdmanage.plugins.plugins.wait_for.WaitForSnapshot` "
+"需要一个 `resource` 和一个 `snapshot` 键作为输入数据；"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:122
+msgid ""
+"(((Policy,resizing "
+"volumes)))`drbdmanage.plugins.plugins.wait_for.WaitForVolumeSize` requires "
+"`resource`, `volnr`, and `req_size` (net size, in KiB) input arguments."
+msgstr ""
+"(((Policy.resizing volumes)))`drbdmanage.plugins.plugins.wait_for.WaitForVolumeSize` "
+"需要 `resource`、`volnr` 和 `req-size` （网络大小，以KiB为单位）输入参数。"
+
+#. type: Plain text
+#: drbdmanage-more.adoc:129
+msgid ""
+"Please note that because of DBus timeouts this API function does *not* "
+"block; it will return immediately. That's the reason for the `starttime` and"
+" `timeout` values in the input dictionary; if the plugin sees that the "
+"current time is after `starttime` plus `timeout`, it will set the `timeout` "
+"result to `\"true\"`, so that the driver knows to abort and return an error."
+msgstr ""
+"请注意，由于DBus超时，此API函数 *不会* 阻塞；它将立即返回。这就是输入字典中 `starttime` 和 `timeout` 值的原因；如果插件看到当前时间在 `starttime` 加上 `timeout` 之后，它会将 `timeout` 结果设置为 `true` ，以便驱动程序知道中止并返回错误。"

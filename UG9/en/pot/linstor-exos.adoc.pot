@@ -1,0 +1,551 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#.  vim: :set ft=asciidoc tw=70 fo-=a sw=8 ts=8 noet spell
+#. type: Title ==
+#: UG9/en/linstor-exos.adoc:3
+#, no-wrap
+msgid "LINSTOR Exos Integration"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:9
+msgid ""
+"The https://www.seagate.com/support/raid-storage-systems/all-flash-and-disk-"
+"arrays/[Exos] storage manager from Seagate could be configured as one large "
+"block device managed by LINSTOR like a local drive, but this would prevent "
+"concurrent sharing of LINSTOR resources between multiple servers out of the "
+"same pool."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:15
+msgid ""
+"LINSTOR integration with Exos enables multiple server nodes to allocate and "
+"connect to LINSTOR resources serviced by the same Exos pool.  Therefore all "
+"of the Exos storage management features such as SSD/HDD tiering, SSD "
+"caching, snapshots, and thin provisioning are available for LINSTOR "
+"resources and Kubernetes Storage Classes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:18
+msgid ""
+"After configuration, LINSTOR will dynamically map Resource replicas as LUNs "
+"presented to server nodes through one of the two Exos controllers."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:22
+msgid ""
+"Since the Exos controllers are managed by a secure network API, LINSTOR must "
+"be configured with proper networking and username/password combination. The "
+"diagram below is showing the relationship between LINSTOR cluster and Exos "
+"Enclosures."
+msgstr ""
+
+#. type: Positional ($1) AttributeList argument for macro 'image'
+#: UG9/en/linstor-exos.adoc:23
+#, no-wrap
+msgid "ExosIntegeration"
+msgstr ""
+
+#. type: Target for macro image
+#: UG9/en/linstor-exos.adoc:23
+#, no-wrap
+msgid "images/linstor-exos-integration.png"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:27
+msgid ""
+"Multi-host setup allows up to eight LINSTOR nodes to be directly connected "
+"with 48Gbit SAS links for low latency and high throughput."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:30
+msgid ""
+"Load balancing and server failover are managed & enabled by LINSTOR while "
+"volume creation is handled by the Exos hardware RAID engine."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:32
+msgid ""
+"The Exos storage provider in LINSTOR offers native integration with Exos' "
+"REST-API."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:35
+msgid ""
+"This section will describe how to enable Exos integration and configure "
+"LINSTOR to manage storage backed by an Exos enclosure."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:39
+msgid ""
+"Exos storage systems offer a feature rich set of configuration options to "
+"match any enterprise storage demand. To maximize ease of use, this guide is "
+"based on the following defaults and assumptions:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:42
+msgid ""
+"Dual Controllers - Exos systems controllers are Active/Active with automatic "
+"failover.  Both controllers IP address must be configured also in the "
+"LINSTOR properties for full support."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:46
+msgid ""
+"Dual Exos Pools - Optimal performance is achieved when data from pool A is "
+"accessed through Controller A.  If a node is connected to both Controller A "
+"and B of same controller, LINSTOR will configure Linux multipath which will "
+"detect best route."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:51
+msgid ""
+"Exos Pool Serial Numbers - When a Exos pool is created, it receives a unique "
+"serial number.  Each one has to be configured as a backing storage in "
+"LINSTOR to create a link between Exos enclosure & LINSTOR. With that "
+"information, LINSTOR can understand if you are referring to Exos Pool A or "
+"Pool B."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:55
+msgid ""
+"Creating Exos Pools - The administrator is required to create Exos Pools A "
+"and B prior to configuring LINSTOR.  Exos features such as thin "
+"provisioning, auto tiering, and snapshot options are selected at this time."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:60
+msgid ""
+"Replicas Within Enclosures - Exos system have redundant controllers, power "
+"supplies and communication paths to the drives. Some administrators may "
+"require that resource replicas are not stored in the same enclosure. In this "
+"case the administrator must create multiple LINSTOR Pools configured with "
+"only one Exos pool member from each enclosure."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-exos.adoc:61
+#, no-wrap
+msgid "Exos Properties as a LINSTOR Storage Provider"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:66
+msgid ""
+"LINSTOR's native integration with Exos is configured by setting a few "
+"properties on the LINSTOR Controller and creating the appropriate LINSTOR "
+"objects specific to your Exos enclosures, as described in the sections below."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:71
+msgid ""
+"The information in the table below is needed from your Exos enclosures. This "
+"information will be used to populate the appropriate LINSTOR Controller "
+"properties and LINSTOR objects in the sub-sections that follow."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-exos.adoc:72
+#, no-wrap
+msgid "Required Information"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:82
+#, no-wrap
+msgid ""
+"|*Exos Information*|*Description*|*Placeholder in Command Examples*\n"
+"|Exos Enclosure Name|Uniquely selected by the Admin for a given Exos enclosure|`<exos_encl_name>`\n"
+"|Controller Hostname|The DNS resolvable hostname for one of the Controllers |`<exos_ctrlr_name>`\n"
+"|Controller IP|IP address of controller |`<exos_ctrlr_ip>`\n"
+"|REST-API Username|Username for REST-API of all Exos controllers under the given enclosure|`<exos_rest_user>`\n"
+"|REST-API Password|Password for REST-API of all Exos controllers under the given enclosure|`<exos_rest_pass>`\n"
+"|Exos Pool Serial Number|The serial number of an Exos pool to become a member of a LINSTOR Pool|`<exos_pool_sn>`\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-exos.adoc:84
+#, no-wrap
+msgid "Configuring a LINSTOR and Exos Integration"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:87
+msgid ""
+"Configuring a topology of LINSTOR server nodes and multiple Exos Storage "
+"systems is described by these steps:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:89
+msgid "Setting global or unique Exos Controller usernames and passwords."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:91
+msgid "Defining Exos enclosures and Controller network identities."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:93
+msgid ""
+"Creating node to enclosure to pool mapping matching physical SAS cabling."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-exos.adoc:96
+#, no-wrap
+msgid "Setting Exos Usernames and Passwords"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:103
+msgid ""
+"Usernames and passwords can be unique for each Exos enclosure or be common "
+"for all enclosures depending on how the system administrator has deployed "
+"the Exos systems.  The default Exos username and password will be used if "
+"not set for a given Exos controller."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:105
+msgid "The defaults are set as follows:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-exos.adoc:110
+#, no-wrap
+msgid ""
+"# linstor exos set-defaults --username <exos_rest_name>\n"
+"# linstor exos set-defaults --password <exos_rest_pass>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:113
+msgid "Unique usernames and passwords For Exos controllers are set by:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-exos.adoc:120
+#, no-wrap
+msgid ""
+"# linstor controller set-property\n"
+"    StorDriver/Exos/<exos_encl_name>/username <exos_rest_name>\n"
+"# linstor controller set-property\n"
+"    StorDriver/Exos/<exos_encl_name>/Password <exos_rest_pass>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:124
+msgid ""
+"Passwords entered in this fashion will show up as plain text when using `get-"
+"defaults`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:131
+msgid ""
+"With the above command, LINSTOR will store your password in plain text in "
+"the LINSTOR properties and visible by a simple `linstor controller list-"
+"properties` command. You can hide it under an environment variable, and use "
+"the `UsernameEnv` and/or `PasswordEnv` properties. This tells LINSTOR to "
+"look in environment variable for the actual username/password, as shown in "
+"the following example:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:134
+msgid ""
+"LINSTOR will not modify the environment variables, only read from them. "
+"Storage admin has to verify that the environment variables are correctly set."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-exos.adoc:141
+#, no-wrap
+msgid ""
+"# echo $EXOS_PW\n"
+"mySecretPassword\n"
+"# linstor controller set-property \\\n"
+"    StorDriver/Exos/<exos_encl_name>/PasswordEnv EXOS_PW\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:145
+msgid ""
+"If both property-versions (i.e. `Password` and `PasswordEnv`) are set, the "
+"non-environment version is preferred."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:149
+msgid ""
+"If the satellite is started before the environment variable is set, the "
+"satellite needs to be restarted to see the new environment variable."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-exos.adoc:151
+#, no-wrap
+msgid "Defining Exos Enclosures and Controller Identities"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:155
+msgid ""
+"Registering an Exos enclosure in LINSTOR can be done with the `create` "
+"command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-exos.adoc:159
+#, no-wrap
+msgid "# linstor exos create <exos_encl_name> <exos_ctrl_a_ip> [<exos_ctrl_b_ip>]\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:163
+msgid ""
+"If no special `--username` or `--password` is given, the above mentioned "
+"defaults are used."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:165
+msgid "The Controller's DNS name and IP address may be used interchangeably."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:170
+msgid ""
+"If you want to use a hostname that is not DNS resolvable to reference your "
+"Exos enclosure within LINSTOR, you may use any name in place of "
+"`<exos_hostname>`, but you will also have to supply the enclosure's IP "
+"address: `linstor node create <desired_name> <enclosure_ip>`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:172
+msgid ""
+"Use the following example to create and inspect the current controller "
+"settings:"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:182
+#, no-wrap
+msgid ""
+"# linstor exos create Alpha 172.16.16.12 172.16.16.13\n"
+"# linstor exos list\n"
+"+------------------------------------------------------------------+\n"
+"| Enclosure | Ctrl A IP    | Ctrl B IP    | Health | Health Reason |\n"
+"| Alpha     | 172.16.16.12 | 172.16.16.13 | OK     |               |\n"
+"+------------------------------------------------------------------+\n"
+"----\n"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:188
+#, no-wrap
+msgid ""
+"For a more in-depth view, you can always ask the LINSTOR controller\n"
+"or the LINSTOR nodes for the `Exos`-related properties:\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:192
+#, no-wrap
+msgid ""
+"# linstor controller list-properties | grep Exos\n"
+"| StorDriver/Exos/Alpha/A/IP                | 172.16.16.12         |\n"
+"| StorDriver/Exos/Alpha/B/IP                | 172.16.16.13         |\n"
+"----\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-exos.adoc:195
+#, no-wrap
+msgid "Creating Node to Enclosure to Pool Mapping"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:200
+#, no-wrap
+msgid ""
+"A LINSTOR Satellite node can be created as usual.\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:202
+#, no-wrap
+msgid ""
+"# linstor node create <satellite_hostname>\n"
+"----\n"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:209
+#, no-wrap
+msgid ""
+"The storage pool can also be created as usual in LINSTOR. Only\n"
+"the name of the previously registered Exos enclosure as well as the\n"
+"serial number of the Exos pool needs to be specified:\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:212
+#, no-wrap
+msgid ""
+"# linstor storage-pool create exos \\\n"
+"  <satellite_hostname> <linstor_pool_name> <exos_encl_name> <exos_pool_sn>\n"
+"----\n"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:220
+#, no-wrap
+msgid ""
+"the linstor_pool_name can be set to (almost) any unique string for\n"
+"the LINSTOR deployment.\n"
+"\n"
+"Here is an example of mapping an Exos Pool in Exos enclosure Alpha to two Satellite nodes:\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:225
+#, no-wrap
+msgid ""
+"# linstor storage-pool create exos \\\n"
+"   node1 poolA Alpha 00c0ff29a5f5000095a2075d01000000\n"
+"# linstor storage-pool create exos \\\n"
+"   node2 poolA Alpha 00c0ff29a5f5000095a2075d01000000\n"
+"----\n"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:232
+#, no-wrap
+msgid ""
+"After creating an `exos` storage pool the LINSTOR Satellite will scan\n"
+"the given Exos enclosure for connected ports. If cabled, these ports will be\n"
+"listed in the following command:\n"
+"\n"
+"[bash]\n"
+"----\n"
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-exos.adoc:236
+msgid ""
+"# linstor exos map -p +----------------------------------------------+ | "
+"Node Name | Enclosure Name | Connected Ports |"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:240
+#, no-wrap
+msgid ""
+"| node1     | Alpha          | A0, B0          |\n"
+"| node2     | Alpha          | A1, B1          |\n"
+"+----------------------------------------------+\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-exos.adoc:243
+#, no-wrap
+msgid "The pool configuration is shown by:\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-exos.adoc:245 UG9/en/linstor-exos.adoc:258
+#, no-wrap
+msgid "[bash]\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:249
+#, no-wrap
+msgid ""
+"hr01u09:~ # linstor sp list -s poolA -p\n"
+"+----------------------------------------------------------------------------------------------+\n"
+"| StoragePool | Node  | Driver   | PoolName                               | FreeCapacity | ... |\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:253
+#, no-wrap
+msgid ""
+"| poolA       | node1 | EXOS     | Alpha_00c0ff29a5f5000095a2075d01000000 |      581 TiB | ... |\n"
+"| poolA       | node2 | EXOS     | Alpha_00c0ff29a5f5000095a2075d01000000 |      581 TiB | ... |\n"
+"+----------------------------------------------------------------------------------------------+\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-exos.adoc:256
+#, no-wrap
+msgid "Detailed description of all the available Exos commands is found with built-in help.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-exos.adoc:260
+msgid "# linstor exos -h"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-exos.adoc:262
+#, no-wrap
+msgid "Creating Resources Backed by Exos Storage Pools"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-exos.adoc:270
+msgid ""
+"Creating LINSTOR resources from Exos backed storage-pools follows normal "
+"LINSTOR usage patterns as described in other sections of the LINSTOR User's "
+"Guide such as the sections describing <<s-linstor-resource-groups,LINSTOR "
+"resource groups>> or the more granular <<s-linstor-new-volume,resource-"
+"definition, volume-definition, resource creation>> workflow."
+msgstr ""

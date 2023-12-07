@@ -1,0 +1,1443 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Plain text
+#: UG9/en/drbd-install-packages.adoc:221 UG9/en/linstor-administration.adoc:206
+#: UG9/en/linstor-nomad.adoc:28
+msgid ""
+"LINBIT's container image repository (http://drbd.io) is only available to "
+"LINBIT customers or through LINBIT customer trial accounts.  link:https://"
+"linbit.com/contact-us/[Contact LINBIT for information on pricing or to begin "
+"a trial]. Alternatively, you may use LINSTOR SDS' upstream project named "
+"link:https://github.com/piraeusdatastore/piraeus-operator[Piraeus], without "
+"being a LINBIT customer."
+msgstr ""
+
+#. type: Title ==
+#: UG9/en/linstor-nomad.adoc:2
+#, no-wrap
+msgid "LINSTOR Volumes in Nomad"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:5
+msgid "indexterm:[Nomad]"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:9
+msgid ""
+"This chapter describes using LINSTOR and DRBD to provision volumes in Nomad."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-nomad.adoc:11
+#, no-wrap
+msgid "Introduction to Nomad"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:15
+msgid ""
+"https://www.nomadproject.io/[Nomad] is a simple and flexible workload "
+"orchestrator to deploy and manage containers and non-containerized "
+"applications across on-premises and cloud environments."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:18
+msgid ""
+"Nomad supports provisioning storage volumes using https://www.nomadproject."
+"io/docs/internals/plugins/csi[plug-ins] conforming to the https://github.com/"
+"container-storage-interface/spec[Container Storage Interface (CSI)]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:21
+msgid ""
+"LINBIT distributes a CSI plug-in in the form of container images from http://"
+"drbd.io[drbd.io]. The plug-in can be configured to work with a LINSTOR "
+"cluster that is deployed along or inside a Nomad cluster."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-nomad.adoc:30
+#, no-wrap
+msgid "Deploying LINSTOR on Nomad"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:33
+msgid ""
+"This section describes how you can deploy and configure a new LINSTOR "
+"cluster in Nomad."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:37
+msgid ""
+"If you want to install LINSTOR directly on your nodes, check out the <<s-"
+"installation, guide on installing LINSTOR>>. You can skip this section and "
+"jump directly to <<s-nomad-linstor-csi-deployment, deploying the CSI "
+"driver>>."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-nomad.adoc:39
+#, no-wrap
+msgid "Preparing Nomad"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:42
+msgid "To run LINSTOR, every Nomad agent needs to be configured to:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:45
+msgid ""
+"Support the https://www.nomadproject.io/docs/drivers/docker[docker driver] "
+"and allow executing privileged containers"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:47
+msgid ""
+"To allow running privileged containers, add the following snippet to your "
+"Nomad agent configuration and restart Nomad"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:48
+#, no-wrap
+msgid "/etc/nomad.d/docker-privileged.hcl"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:56
+#, no-wrap
+msgid ""
+"plugin \"docker\" {\n"
+"  config {\n"
+"    allow_privileged = true\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:61
+msgid ""
+"Support for container networking. If you don't have the https://www.cni.dev/"
+"[Container Network Interface] plug-ins installed, you will only be able to "
+"use `mode = \"host\"` in your job networks. For most production setups, we "
+"recommend installing the default plug-ins:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:65
+msgid ""
+"Head to the https://github.com/containernetworking/plugins/releases/[plug-in "
+"release page], select the release archive appropriate for your distribution "
+"and unpack them in `/opt/cni/bin`. You might need to create the directory "
+"before unpacking."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:66
+msgid ""
+"Provide a host volume, allowing a container access to the hosts `/dev` "
+"directory"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:68
+msgid ""
+"To create a host volume, add the following snippet to your Nomad agent "
+"configuration and restart Nomad."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:69
+#, no-wrap
+msgid "/etc/nomad.d/host-volume-dev.hcl"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:77
+#, no-wrap
+msgid ""
+"client {\n"
+"  host_volume \"dev\" {\n"
+"    path = \"/dev\"\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-nomad.adoc:79
+#, no-wrap
+msgid "Creating a LINSTOR Controller Job"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:84
+msgid ""
+"The LINSTOR Controller is deployed as a service with no replicas. At any "
+"point in time, there can only be one LINSTOR Controller running in a "
+"cluster. It is possible to restart the controller on a new node, provided it "
+"still has access to the database. See <<s-linstor_ha>> for more information."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:87
+msgid ""
+"The following example will create a Nomad job starting a single LINSTOR "
+"Controller in datacenter `dc1` and connect to an external database."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:88
+#, no-wrap
+msgid "linstor-controller.hcl"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:94
+#, no-wrap
+msgid ""
+"job \"linstor-controller\" {\n"
+"  datacenters = [\"dc1\"] <1>\n"
+"  type = \"service\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:103
+#, no-wrap
+msgid ""
+"  group \"linstor-controller\" {\n"
+"    network {\n"
+"      mode = \"bridge\"\n"
+"      # port \"linstor-api\" { <2>\n"
+"      #   static = 3370\n"
+"      #   to = 3370\n"
+"      # }\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:107
+#, no-wrap
+msgid ""
+"    service { <3>\n"
+"      name = \"linstor-api\"\n"
+"      port = \"3370\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:111
+#, no-wrap
+msgid ""
+"      connect {\n"
+"        sidecar_service {}\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:121
+#, no-wrap
+msgid ""
+"      check {\n"
+"        expose = true\n"
+"        type = \"http\"\n"
+"        name = \"api-health\"\n"
+"        path = \"/health\"\n"
+"        interval = \"30s\"\n"
+"        timeout = \"5s\"\n"
+"      }\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:126
+#, no-wrap
+msgid ""
+"    task \"linstor-controller\" {\n"
+"      driver = \"docker\"\n"
+"      config {\n"
+"        image = \"drbd.io/linstor-controller:v1.13.0\" <4>\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:132
+#, no-wrap
+msgid ""
+"        auth { <5>\n"
+"          username = \"example\"\n"
+"          password = \"example\"\n"
+"          server_address = \"drbd.io\"\n"
+"        }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:139
+#, no-wrap
+msgid ""
+"        mount {\n"
+"          type = \"bind\"\n"
+"          source = \"local\"\n"
+"          target = \"/etc/linstor\"\n"
+"        }\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:149
+#, no-wrap
+msgid ""
+"      # template { <6>\n"
+"      #  destination = \"local/linstor.toml\"\n"
+"      #  data = <<EOH\n"
+"      #    [db]\n"
+"      #    user = \"example\"\n"
+"      #    password = \"example\"\n"
+"      #    connection_url = \"jdbc:postgresql://postgres.internal.example.com/linstor\"\n"
+"      #  EOH\n"
+"      # }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:157
+#, no-wrap
+msgid ""
+"      resources {\n"
+"        cpu    = 500 # 500 MHz\n"
+"        memory = 700 # 700MB\n"
+"      }\n"
+"    }\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:160 UG9/en/linstor-nomad.adoc:530
+msgid "Replace `dc1` with your own data center name"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:162
+msgid "This exposes the LINSTOR API on the host on port `3370`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:165
+msgid ""
+"Uncomment this section if your cluster is not configured with {consul-"
+"connect}[Consul Connect]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:167
+msgid ""
+"The `service` block is used to expose the LINSTOR API to other jobs through "
+"the service mesh."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:169
+msgid ""
+"If your cluster is not configured for {consul-connect}[Consul Connect] you "
+"can remove this section."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:172
+msgid ""
+"This sets the LINSTOR Controller image to run. The latest images are "
+"available from http://drbd.io[drbd.io]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:175 UG9/en/linstor-nomad.adoc:368
+#: UG9/en/linstor-nomad.adoc:539
+msgid ""
+"The use of the `:latest` tag is strongly discouraged, as it can quickly lead "
+"to version mismatches and unintended upgrades."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:179 UG9/en/linstor-nomad.adoc:372
+#: UG9/en/linstor-nomad.adoc:543
+msgid ""
+"Sets the authentication to use when pulling the image. If pulling from `drbd."
+"io`, you need to use your LINBIT customer login here. Read more about "
+"pulling from a private repo https://www.nomadproject.io/docs/drivers/"
+"docker#authentication[here]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:184
+msgid ""
+"This template can be used to set arbitrary configuration options for "
+"LINSTOR. This example configures an external database for LINSTOR. You can "
+"find a more detailed explanation of LINSTOR's database options <<s-linstor-"
+"external-database,here>> and more on Nomad templates https://www."
+"nomadproject.io/docs/job-specification/template#template-examples[here]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:186 UG9/en/linstor-nomad.adoc:421
+#: UG9/en/linstor-nomad.adoc:557
+msgid "Apply the job by running:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:197
+#, no-wrap
+msgid ""
+"$ nomad job run linstor-controller.hcl\n"
+"==> Monitoring evaluation \"7d8911a7\"\n"
+"    Evaluation triggered by job \"linstor-controller\"\n"
+"==> Monitoring evaluation \"7d8911a7\"\n"
+"    Evaluation within deployment: \"436f4b2d\"\n"
+"    Allocation \"0b564c73\" created: node \"07754224\", group \"controller\"\n"
+"    Evaluation status changed: \"pending\" -> \"complete\"\n"
+"==> Evaluation \"7d8911a7\" finished with status \"complete\"\n"
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-nomad.adoc:199
+#, no-wrap
+msgid "Using a Host Volume for LINSTOR's Database"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:204
+msgid ""
+"If you want to try LINSTOR without setting up an external database, you can "
+"make use of LINSTOR's built-in filesystem based database. To make the "
+"database persistent, you need to ensure it is placed on a host volume."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:208
+msgid ""
+"Using a host volume means that only a single node is able to run the LINSTOR "
+"Controller. If the node is unavailable, the LINSTOR Cluster will also be "
+"unavailable. For alternatives, use an external (highly available) database "
+"or deploy the <<s-linstor_ha,LINSTOR cluster directly on the hosts>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:210
+msgid ""
+"To create a host volume for the LINSTOR database, first create the directory "
+"on the host with the expected permissions"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:215
+#, no-wrap
+msgid ""
+"$ mkdir -p /var/lib/linstor\n"
+"$ chown -R 1000:0 /var/lib/linstor\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:218
+msgid ""
+"Then add the following snippet to your Nomad agent configuration and restart "
+"Nomad"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:219
+#, no-wrap
+msgid "/etc/nomad.d/host-volume-linstor-db.hcl"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:227
+#, no-wrap
+msgid ""
+"client {\n"
+"  host_volume \"linstor-db\" {\n"
+"    path = \"/var/lib/linstor\"\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:231
+msgid ""
+"Then, add the following snippets to the `linstor-controller.hcl` example "
+"from above and adapt the `connection_url` option from the configuration "
+"template."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:232
+#, no-wrap
+msgid "`job > group`"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:239
+#, no-wrap
+msgid ""
+"volume \"linstor-db\" {\n"
+"  type = \"host\"\n"
+"  source = \"linstor-db\"\n"
+"}\n"
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:241
+#, no-wrap
+msgid "`job > group > task`"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:248
+#, no-wrap
+msgid ""
+"volume_mount {\n"
+"  volume = \"linstor-db\"\n"
+"  destination = \"/var/lib/linstor\"\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:258
+#, no-wrap
+msgid ""
+"template {\n"
+"  destination = \"local/linstor.toml\"\n"
+"  data = <<EOH\n"
+"    [db]\n"
+"    user = \"linstor\"\n"
+"    password = \"linstor\"\n"
+"    connection_url = \"jdbc:h2:/var/lib/linstor/linstordb\"\n"
+"  EOH\n"
+"}\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-nomad.adoc:260
+#, no-wrap
+msgid "Creating a LINSTOR Satellite Job"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:264
+msgid ""
+"In Nomad, the LINSTOR satellites are deployed as a system job that runs in a "
+"privileged container. In addition to the satellites, the job will also load "
+"the DRBD module along with other kernel modules used by LINSTOR."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:266
+msgid ""
+"The following example will create a Nomad job starting a LINSTOR satellite "
+"on every node in data center `dc1`."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:267
+#, no-wrap
+msgid "linstor-satellite.hcl"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:273
+#, no-wrap
+msgid ""
+"job \"linstor-satellite\" {\n"
+"  datacenters = [\"dc1\"] <1>\n"
+"  type = \"system\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:278
+#, no-wrap
+msgid ""
+"  group \"satellite\" {\n"
+"    network {\n"
+"      mode = \"host\"\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:283
+#, no-wrap
+msgid ""
+"    volume \"dev\" { <2>\n"
+"      type = \"host\"\n"
+"      source = \"dev\"\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:286
+#, no-wrap
+msgid ""
+"    task \"linstor-satellite\" {\n"
+"      driver = \"docker\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:289
+#, no-wrap
+msgid ""
+"      config {\n"
+"        image = \"drbd.io/linstor-satellite:v1.13.0\" <3>\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:295 UG9/en/linstor-nomad.adoc:503
+#, no-wrap
+msgid ""
+"        auth { <4>\n"
+"          username = \"example\"\n"
+"          password = \"example\"\n"
+"          server_address = \"drbd.io\"\n"
+"        }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:299
+#, no-wrap
+msgid ""
+"        privileged = true <5>\n"
+"        network_mode = \"host\" <6>\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:304
+#, no-wrap
+msgid ""
+"      volume_mount { <2>\n"
+"        volume = \"dev\"\n"
+"        destination = \"/dev\"\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:310
+#, no-wrap
+msgid ""
+"      resources {\n"
+"        cpu    = 500 # 500 MHz\n"
+"        memory = 500 # 500MB\n"
+"      }\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:316
+#, no-wrap
+msgid ""
+"    task \"drbd-loader\" {\n"
+"      driver = \"docker\"\n"
+"      lifecycle {\n"
+"        hook = \"prestart\" <7>\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:319
+#, no-wrap
+msgid ""
+"      config {\n"
+"        image = \"drbd.io/drbd9-rhel8:v9.0.29\" <8>\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:327
+#, no-wrap
+msgid ""
+"        privileged = true <5>\n"
+"        auth { <4>\n"
+"          username = \"example\"\n"
+"          password = \"example\"\n"
+"          server_address = \"drbd.io\"\n"
+"        }\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:331
+#, no-wrap
+msgid ""
+"      env {\n"
+"        LB_HOW = \"shipped_modules\" <9>\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:341
+#, no-wrap
+msgid ""
+"      volume_mount { <10>\n"
+"        volume = \"kernel-src\"\n"
+"        destination = \"/usr/src\"\n"
+"      }\n"
+"      volume_mount { <10>\n"
+"        volume = \"modules\"\n"
+"        destination = \"/lib/modules\"\n"
+"      }\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:347
+#, no-wrap
+msgid ""
+"    volume \"modules\" { <10>\n"
+"      type = \"host\"\n"
+"      source = \"modules\"\n"
+"      read_only = true\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:355
+#, no-wrap
+msgid ""
+"    volume \"kernel-src\" { <10>\n"
+"      type = \"host\"\n"
+"      source = \"kernel-src\"\n"
+"      read_only = true\n"
+"    }\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:358
+msgid "Replace `dc1` with your own data center name."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:361
+msgid ""
+"The `dev` host volume is the volume created in <<s-nomad-prepare>>, which "
+"allows the satellite to manage the hosts block devices."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:365
+msgid ""
+"This sets the LINSTOR Satellite image to run. The latest images are "
+"available from http://drbd.io[drbd.io]. The satellite image version has to "
+"match the version of the controller image."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:375
+msgid ""
+"To configure storage devices, DRBD and load kernel modules, the containers "
+"need to be running in privileged mode."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:378
+msgid ""
+"The satellite needs to communicate with DRBD, which requires access to the "
+"netlink interface running in the hosts network."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:381
+msgid ""
+"The `drbd-loader` task will be executed once at the start of the satellite "
+"and load DRBD and other useful kernel modules."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:383
+msgid ""
+"The `drbd-loader` is specific to the distribution you are using. Available "
+"options are:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:384
+msgid "`drbd.io/drbd9-bionic` for Ubuntu 18.04 (Bionic Beaver)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:385
+msgid "`drbd.io/drbd9-focal` for Ubuntu 20.04 (Focal Fossa)"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:386
+msgid "`drbd.io/drbd9-rhel8` for RHEL 8"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:387
+msgid "`drbd.io/drbd9-rhel7` for RHEL 7"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:390
+msgid ""
+"The `drbd-loader` container can be configured using environment variables. "
+"`LB_HOW` tells the container how to insert the DRBD kernel module. Available "
+"options are:"
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-nomad.adoc:391
+#, no-wrap
+msgid "`shipped_modules`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:392
+msgid "Uses the prepackaged RPMs or DEBs delivered with the container."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-nomad.adoc:393
+#, no-wrap
+msgid "`compile`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:394
+msgid ""
+"Compile DRBD from source. Requires access to the kernel headers (see below)."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-nomad.adoc:395
+#, no-wrap
+msgid "`deps_only`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:397
+msgid ""
+"Only try to load existing modules used by the LINSTOR satellite (for example "
+"`dm_thin_pool` and `dm_cache`)."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:400
+msgid ""
+"In order for the `drbd-loader` container to build DRBD or load existing "
+"modules, it needs access to a hosts `/usr/src` and `/lib/modules` "
+"respectively."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:404
+msgid ""
+"This requires setting up additional host volumes on every node. The "
+"following snippet needs to be added to every Nomad agent confiration, then "
+"Nomad needs to be restarted."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:405
+#, no-wrap
+msgid "/etc/nomad.d/drbd-loader-volumes.hcl"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:418
+#, no-wrap
+msgid ""
+"client {\n"
+"  host_volume \"modules\" {\n"
+"    path = \"/lib/modules\"\n"
+"    read_only = true\n"
+"  }\n"
+"  host_volume \"kernel-src\" {\n"
+"    path = \"/usr/src\"\n"
+"    read_only = true\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:430
+#, no-wrap
+msgid ""
+"$ nomad job run linstor-satellite.hcl\n"
+"==> Monitoring evaluation \"0c07469d\"\n"
+"    Evaluation triggered by job \"linstor-satellite\"\n"
+"==> Monitoring evaluation \"0c07469d\"\n"
+"    Evaluation status changed: \"pending\" -> \"complete\"\n"
+"==> Evaluation \"0c07469d\" finished with status \"complete\"\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-nomad.adoc:432
+#, no-wrap
+msgid "Configuring LINSTOR in Nomad"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:436
+msgid ""
+"Once the `linstor-controller` and `linstor-satellite` jobs are running, you "
+"can start configuring the cluster using the `linstor` command line tool."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:438
+msgid "This can done:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:440
+msgid "directly by `nomad exec`-ing into the `linstor-controller` container."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:441
+msgid ""
+"using the `drbd.io/linstor-client` container on the host running the "
+"`linstor-controller`:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:444
+#, no-wrap
+msgid "docker run -it --rm --net=host drbd.io/linstor-client node create\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:447
+msgid ""
+"by installing the `linstor-client` package on the host running the `linstor-"
+"controller`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:451
+msgid ""
+"In all cases, you need to <<s-adding_nodes_to_your_cluster,add the "
+"satellites to your cluster>> and <<s-storage_pools,create some storage "
+"pools>>. For example, to add the node `nomad-01.example.com` and configure a "
+"LVM Thin storage pool, you would run:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:456
+#, no-wrap
+msgid ""
+"$ linstor node create nomad-01.example.com\n"
+"$ linstor storage-pool create lvmthin nomad-01.example.com thinpool linstor_vg/thinpool\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:460
+msgid ""
+"The CSI driver requires your satellites to be named after their hostname. To "
+"be precise, the satellite name needs to match Nomads `attr.unique.hostname` "
+"attribute on the node."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-nomad.adoc:462
+#, no-wrap
+msgid "Deploying the LINSTOR CSI Driver in Nomad"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:465
+msgid ""
+"The CSI driver is deployed as a system job, meaning it runs on every node in "
+"the cluster."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:467
+msgid ""
+"The following example will create a Nomad job starting a LINSTOR CSI Driver "
+"on every node in data center `dc1`."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:468
+#, no-wrap
+msgid "linstor-csi.hcl"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:474
+#, no-wrap
+msgid ""
+"job \"linstor-csi\" {\n"
+"  datacenters = [\"dc1\"] <1>\n"
+"  type = \"system\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:479
+#, no-wrap
+msgid ""
+"  group \"csi\" {\n"
+"    network {\n"
+"      mode = \"bridge\"\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:492
+#, no-wrap
+msgid ""
+"    service {\n"
+"      connect {\n"
+"        sidecar_service { <2>\n"
+"          proxy {\n"
+"            upstreams {\n"
+"              destination_name = \"linstor-api\"\n"
+"              local_bind_port  = 8080\n"
+"            }\n"
+"          }\n"
+"        }\n"
+"      }\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:497
+#, no-wrap
+msgid ""
+"    task \"csi-plugin\" {\n"
+"      driver = \"docker\"\n"
+"      config {\n"
+"        image = \"drbd.io/linstor-csi:v0.13.1\" <3>\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:510
+#, no-wrap
+msgid ""
+"        args = [\n"
+"          \"--csi-endpoint=unix://csi/csi.sock\",\n"
+"          \"--node=${attr.unique.hostname}\", <5>\n"
+"          \"--linstor-endpoint=http://${NOMAD_UPSTREAM_ADDR_linstor_api}\", <6>\n"
+"          \"--log-level=info\"\n"
+"        ]\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:513
+#, no-wrap
+msgid ""
+"        privileged = true <7>\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:519
+#, no-wrap
+msgid ""
+"      csi_plugin { <8>\n"
+"        id = \"linstor.csi.linbit.com\"\n"
+"        type = \"monolith\"\n"
+"        mount_dir = \"/csi\"\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:527
+#, no-wrap
+msgid ""
+"      resources {\n"
+"        cpu    = 100 # 100 MHz\n"
+"        memory = 200 # 200MB\n"
+"      }\n"
+"    }\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:534
+msgid ""
+"The `sidecar_service` stanza enables use of the service mesh generated by "
+"using {consul-connect}[Consul Connect].  If you have not configured this "
+"feature in Nomad, or you are using an external LINSTOR Controller, you can "
+"skip this configuration."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:536
+msgid ""
+"This sets the LINSTOR CSI Driver image to run. The latest images are "
+"available from http://drbd.io[drbd.io]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:546
+msgid ""
+"This argument sets the node name used by the CSI driver to identify itself "
+"in the LINSTOR API. By default, this is set to the node's hostname."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:550
+msgid ""
+"This argument sets the LINSTOR API endpoint. If you are not using the consul "
+"service mesh (see Nr. 2 above), this needs to be set to the Controllers API "
+"endpoint. The endpoint needs to be reachable from every node this is "
+"deployed on."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:552
+msgid ""
+"The CSI driver needs to execute mount commands, requiring privileged "
+"containers."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:555
+msgid ""
+"The `csi_plugin` stanza informs Nomad that this task is a CSI plug-in. The "
+"Nomad agent will forward requests for volumes to one of the jobs containers."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:566
+#, no-wrap
+msgid ""
+"$ nomad job run linstor-csi.hcl\n"
+"==> Monitoring evaluation \"0119f19c\"\n"
+"    Evaluation triggered by job \"linstor-csi\"\n"
+"==> Monitoring evaluation \"0119f19c\"\n"
+"    Evaluation status changed: \"pending\" -> \"complete\"\n"
+"==> Evaluation \"0119f19c\" finished with status \"complete\"\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-nomad.adoc:568
+#, no-wrap
+msgid "Using LINSTOR Volumes in Nomad"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:571
+msgid ""
+"Volumes in Nomad are created using a https://www.nomadproject.io/docs/"
+"commands/volume/create#volume-specification[volume-specification]."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:573
+msgid ""
+"As an example, the following specification requests a 1GiB volume with 2 "
+"replicas from the LINSTOR storage pool `thinpool`."
+msgstr ""
+
+#. type: Block title
+#: UG9/en/linstor-nomad.adoc:574
+#, no-wrap
+msgid "vol1.hcl"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:579
+#, no-wrap
+msgid ""
+"id = \"vol1\" <1>\n"
+"name = \"vol1\" <2>\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:582
+#, no-wrap
+msgid ""
+"type = \"csi\"\n"
+"plugin_id = \"linstor.csi.linbit.com\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:585
+#, no-wrap
+msgid ""
+"capacity_min = \"1GiB\"\n"
+"capacity_max = \"1GiB\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:590
+#, no-wrap
+msgid ""
+"capability {\n"
+"  access_mode = \"single-node-writer\" <3>\n"
+"  attachment_mode = \"file-system\" <4>\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:594
+#, no-wrap
+msgid ""
+"mount_options {\n"
+"  fs_type = \"ext4\" <5>\n"
+"}\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:600
+#, no-wrap
+msgid ""
+"parameters { <6>\n"
+"  \"resourceGroup\" = \"default-resource\",\n"
+"  \"storagePool\" = \"thinpool\",\n"
+"  \"autoPlace\" = \"2\"\n"
+"}\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:604
+msgid ""
+"The `id` is used to reference this volume in Nomad. Used in the `volume."
+"source` field of a job specification."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:608
+msgid ""
+"The `name` is used when creating the volume in the back end (that is, "
+"LINSTOR). Ideally this matches the `id` and is a valid LINSTOR resource "
+"name. If the name would not be valid, LINSTOR CSI will generate a random "
+"compatible name."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:610
+msgid "What kind of access the volume should support. LINSTOR CSI supports:"
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-nomad.adoc:611
+#, no-wrap
+msgid "`single-node-reader-only`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:612
+msgid "Allow read only access on one node at a time."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-nomad.adoc:613
+#, no-wrap
+msgid "`single-node-writer`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:614
+msgid "Allow read and write access on one node at a time."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-nomad.adoc:615
+#, no-wrap
+msgid "`multi-node-reader-only`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:616
+msgid "Allow read only access from multiple nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:618
+msgid "Can be `file-system` or `block-device`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:620
+msgid "Specify the file system to use. LINSTOR CSI supports `ext4` and `xfs`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:624
+msgid ""
+"Additional parameters to pass to LINSTOR CSI. The example above requests the "
+"resource be part of the `default-resource` <<s-linstor-resource-groups,"
+"resource group>> and should deploy 2 replicas."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:627
+msgid ""
+"For a complete list of available parameters, you can check out the <<s-"
+"kubernetes-sc-parameters,guide on Kubernetes storage classes>>. Kubernetes, "
+"like Nomad, makes use of the CSI plug-in."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:629
+msgid "To create the volume, run the following command:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:645
+#, no-wrap
+msgid ""
+"$ nomad volume create vol1.hcl\n"
+"Created external volume vol1 with ID vol1\n"
+"$ nomad volume status\n"
+"Container Storage Interface\n"
+"ID    Name  Plugin ID               Schedulable  Access Mode\n"
+"vol1  vol1  linstor.csi.linbit.com  true         <none>\n"
+"$ linstor resource list\n"
+"╭──────────────────────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ ResourceName ┊ Node                 ┊ Port ┊ Usage  ┊ Conns ┊    State ┊ CreatedOn           ┊\n"
+"╞══════════════════════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ vol1         ┊ nomad-01.example.com ┊ 7000 ┊ Unused ┊ Ok    ┊ UpToDate ┊ 2021-06-15 14:56:32 ┊\n"
+"┊ vol1         ┊ nomad-02.example.com ┊ 7000 ┊ Unused ┊ Ok    ┊ UpToDate ┊ 2021-06-15 14:56:32 ┊\n"
+"╰──────────────────────────────────────────────────────────────────────────────────────────────╯\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-nomad.adoc:647
+#, no-wrap
+msgid "Using Volumes in Jobs"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:650
+msgid ""
+"To use the volume in a job, add the `volume` and `volume_mount` stanzas to "
+"the job specification:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:655
+#, no-wrap
+msgid ""
+"job \"example\" {\n"
+"  ...\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:663
+#, no-wrap
+msgid ""
+"  group \"example\" {\n"
+"    volume \"example-vol\" {\n"
+"      type = \"csi\"\n"
+"      source = \"vol1\"\n"
+"      attachment_mode = \"file-system\"\n"
+"      access_mode = \"single-node-writer\"\n"
+"    }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:669
+#, no-wrap
+msgid ""
+"    task \"mount-example\" {\n"
+"      volume_mount {\n"
+"        volume = \"example-vol\"\n"
+"        destination = \"/data\"\n"
+"      }\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:674
+#, no-wrap
+msgid ""
+"      ...\n"
+"    }\n"
+"  }\n"
+"}\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-nomad.adoc:676
+#, no-wrap
+msgid "Creating Snapshots of Volumes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:679
+msgid ""
+"LINSTOR can create snapshots of existing volumes, provided the underlying "
+"storage pool driver supports snapshots."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:681
+msgid ""
+"The following command creates a snapshot named `snap1` of the volume `vol1`."
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:693
+#, no-wrap
+msgid ""
+"$ nomad volume snapshot create vol1 snap1\n"
+"Snapshot ID  Volume ID  Size     Create Time  Ready?\n"
+"snap1        vol1       1.0 GiB  None         true\n"
+"$ linstor s l\n"
+"╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n"
+"┊ ResourceName ┊ SnapshotName ┊ NodeNames                                  ┊ Volumes  ┊ CreatedOn           ┊ State      ┊\n"
+"╞════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡\n"
+"┊ vol1         ┊ snap1        ┊ nomad-01.example.com, nomad-02.example.com ┊ 0: 1 GiB ┊ 2021-06-15 15:04:10 ┊ Successful ┊\n"
+"╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-nomad.adoc:696
+msgid ""
+"You can use a snapshot to pre-populate an existing volume with data from the "
+"snapshot"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:703
+#, no-wrap
+msgid ""
+"$ cat vol2.hcl\n"
+"id = \"vol2\"\n"
+"name = \"vol2\"\n"
+"snapshot_id = \"snap1\"\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:707
+#, no-wrap
+msgid ""
+"type = \"csi\"\n"
+"plugin_id = \"linstor.csi.linbit.com\"\n"
+"...\n"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-nomad.adoc:710
+#, no-wrap
+msgid ""
+"$ nomad volume create vol2.hcl\n"
+"Created external volume vol2 with ID vol2\n"
+msgstr ""

@@ -7,18 +7,16 @@ If you are interested in the rendered version of the User's Guide, please read t
 https://docs.linbit.com[docs.linbit.com].
 
 === Tech Guides
-You can download pdf versions for free from https://www.linbit.com/tech-guides-overview/[our home page].
-
+You can download PDF versions for free from https://www.linbit.com/tech-guides-overview/[our home page].
 
 == Build dependencies
 If you have `docker`, execute `make dockerimage`, which will generate a "linbit-documentation" base
-image containing all the dependencies for generating html and pdf outputs.
+Docker image containing all the dependencies for generating HTML and PDF outputs.
 
 Otherwise you will need `GNU make` and you have to install the following dependencies:
 
 === HTML targets (UGs/tech-guides)
 - asciidoctor
-- inkscape
 
 === HTML targets (man pages)
 - mandoc
@@ -27,24 +25,59 @@ Otherwise you will need `GNU make` and you have to install the following depende
 - https://github.com/asciidoctor/asciidoctor-pdf[asciidoctor-pdf]
 
 == Fonts
-=== Linbit Fonts
-We do not publish the official LINBIT fonts in that repository. Public projects have to be able to generated
-pdfs without LINBIT's fonts, private ones are allowed to fail if the `linbit-fonts` directory does not exist.
+=== LINBIT Fonts
+We do not publish the official LINBIT fonts that are used to generate official LINBIT
+documentation. Public projects have to be able to generate PDFs without LINBIT fonts, If you
+have a public project, create a `linbit-fonts` directory in the documentation root directory
+(`linbit-documentation`) and then download and extract into that directory the
+https://github.com/asciidoctor/asciidoctor-pdf/tree/main/data/fonts[necessary M+ fonts] that are
+used as a fallback font set:
+
+- mplus1mn-bold-subset.ttf
+- mplus1mn-bold_italic-subset.ttf
+- mplus1mn-italic-subset.ttf
+- mplus1mn-regular-subset.ttf
+
+Public projects should also download the GNU Unifont font (available
+https://ftp.gnu.org/gnu/unifont/[here]), rename the downloaded file `unifont.ttf`, and put it
+into a `linbit-fonts` directory, along with the M+ font files.
+
+Private projects are allowed to fail if the `linbit-fonts` directory does not exist.
 Actually they *should* fail, which is the default anyways.
 
-If you build official pdfs/private projects, make sure you cloned the internal `linbit-fonts` repository.
+If you build official PDFs/private projects, make sure that you cloned the internal `linbit-fonts` repository.
 
 === Japanese Fonts
-If you intend to generate the `pdf` versions of the Japanese users guides, make sure you downloaded this
+Before you generate PDF versions of the Japanese user's guides, download this
 https://packages.linbit.com/public/genshingothic-20150607.zip[zip archive]. Extract the archive to a
-`genshingothic-fonts` directory in the root of the documentation.
+`fonts/genshingothic-fonts` directory in the root of the documentation directory
+(`linbit-documentation`).
+
+=== Chinese Fonts
+Before you generate PDF versions of the Chinese user's guides, download these "Simplified
+Chinese" (`sc`) font files:
+
+- https://github.com/googlefonts/noto-cjk/raw/main/Sans/Variable/TTF/NotoSansCJKsc-VF.ttf
+- https://github.com/googlefonts/noto-cjk/raw/main/Sans/Variable/TTF/Mono/NotoSansMonoCJKsc-VF.ttf
+
+After downloading these files, place them in a `fonts/noto-cn` directory in the root of the
+documentation directory (`linbit-documentation`).
+
+=== Using Docker to Generate PDF Versions of Translated Documentation
+
+For Japanese and Chinese translated documentation, you can simply build the
+`linbit-documentation` Docker image and the build process will bring in the necessary font files
+for Japanese and Chinese PDF documentation building, as described above. You can then use the
+`-docker` make targets for various documentation building tasks, while setting `lang=`
+appropriately.
 
 == Tech Guides
-We do not publish the source of our tech guides, make sure you cloned the internal `tech-guides` repository.
+We do not publish the source of our tech guides, make sure that you cloned the internal `tech-guides` repository.
 
 == Makefile interface/API for projects
-Projects are organized in sub directories, for example the users guide for DRBD 9 is in `UG9`. The top level
-`Makefile` contains html and pdf targets for these (e.g., `make UG9-pdf-finalize`). The final output is
+
+Projects are organized in subdirectories, for example the user's guide for DRBD 9 is in `UG9`. The top level
+`Makefile` contains HTML and PDF targets for these (e.g., `make UG9-pdf-finalize`). The final output is
 generated in `$project/$lang/output-$format-finalize` (e.g. `UG9/en/output-pdf-finalize`).
 
 Every project needs a *proper* `Makefile` that has the following targets:
@@ -54,16 +87,16 @@ Every project needs a *proper* `Makefile` that has the following targets:
 - `html`
 - `html-finalize`
 
-If a project only generates pdf output, implement the html targets as empty.
+If a project only generates PDF output, implement the HTML targets as empty.
 
-=== pdf and html targets
+=== PDF and HTML targets
 These generate their output to `output-$format`. It is perfectly fine that these directories contain temporary
 files like symlinks. As already written, we want proper ``Makefile``s, so if the source does not change
 re-executing these targets should only process files that changed.
 
 === pdf-finalize and html-finalize targets
 These generate their output to `output-$format-finalize`. This is the *final* output. The one that is
-published to a web page/sent to a web developer. For example this generates tar-balls for `UG9` that can be
+published to a web page/sent to a web developer. For example this generates tar archive files for `UG9` that can be
 sent to someone who puts it on the web page.
 
 It is usually the final target that is executed after multiple iterations of `make pdf`/`make html` and it is
@@ -72,19 +105,21 @@ it should not, but it is not a strict requirement.
 
 === Docker targets
 The top-level ``Makefile`` also contains targets that end in "-docker". These can be used to generate the
-output with the previously describe "linbit-documentation" base image. For example one can execute
+output with the previously described "linbit-documentation" base image. For example one can execute
 `make UG9-html-finalize-docker`.
+
+The `-docker` `make` targets depend on the "local" `make` targets. Using the Docker targets is preferred, for consistent results, unless you have a reason not to use them. As of January 2023, local `make` targets are untested and unsupported, except as they are run through the `linbit-documentation` Docker image.
 
 === Internationalization
 The English version is the default, but if you want to build the Japanese version, you have to set the `make`
 variable "lang" accordingly (e.g., `make UG9-html-finalize-docker lang=ja`).
-Japanese version is created by English adoc files and Japanese po files.
+Japanese version is created by English `.adoc` files and Japanese `.po` files.
 Pot files used for localization can be created by the pot target,
 (e.g, `make UG9-pot-docker).
 Make sure created pot files include correct sentences.
 
 [[work-public]]
-== Working on a public project
+== Working on a Public Project
 - `cd` to the project (e.g, `cd UG9/en`)
 - modify sources accordingly
 - `make pdf` or `make html`
@@ -93,7 +128,7 @@ Output is generated in `output-$format`. These directories (in contrast to `outp
 contain temporary files (symlinks, processed adoc files,...). When you are satisfied, `make $format-finalize`,
 to generate the final output in `output-$format-finalize`.
 
-== Working on a private project
+== Working on a Private Project
 - make sure you are at the top-level of the framework (`linbit-documentation`)
 - `git clone` the private project
 - follow <<work-public>>
@@ -103,13 +138,13 @@ to generate the final output in `output-$format-finalize`.
 - Hostnames: 'bob' => 'bob'
 - Commands: \`rm -rf` => `rm -rf`
 - DRBD states: \_Primary_ => _Primary_
-- Blocks: Add newline before and after of the block.
+- Blocks: Add newline before and after the block. Delimit blocks using four (4) hyphens only. For example:
 ```
 * Re-enable your DRBD resource:
 
-----------------------------
+----
 # drbdadm up <resource>
-----------------------------
+----
 
 * On one node, promote the DRBD resource:
 ```

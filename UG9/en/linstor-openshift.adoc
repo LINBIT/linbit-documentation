@@ -17,74 +17,103 @@ these components where possible.
 Deploying LINBIT SDS on OpenShift is similar to deploying LINBIT SDS on other
 Kubernetes clusters. As prerequisites, you need:
 
-* https://helm.sh[Helm] installed.
 * Access to your OpenShift cluster through the `oc` utility.
 * Your LINBIT Customer Portal credentials for accessing `drbd.io`.
 
 IMPORTANT: LINBIT's container image repository (http://drbd.io) is only available to LINBIT
 customers or through LINBIT customer trial accounts.
 link:https://linbit.com/contact-us/[Contact LINBIT for information on pricing or to begin a
-trial]. Alternatively, you may use LINSTOR SDS' upstream project named
+trial]. Alternatively, you can use the LINSTOR SDS upstream project, named
 link:https://github.com/piraeusdatastore/piraeus-operator[Piraeus], without being a LINBIT
 customer.
 
-First, create a new project for LINBIT SDS and configure your
-credentials for `drbd.io` (replace `$USERNAME` and `$PASSWORD` with your own
-LINBIT Customer Portal credentials):
+First, create a new OpenShift project for LINBIT SDS which will also create a namespace for
+LINBIT SDS deployment:
 
 ----
-$ oc new-project storage
-Now using project "storage" on server ...
-$ oc create secret docker-registry drbdiocred --docker-server=drbd.io --docker-username=$USERNAME --docker-password=$PASSWORD
-secret/drbdiocred created
+$ oc new-project linbit-sds
+Now using project "linbit-sds" on server ...
 ----
 
-Then, create a file to override some of the Helm chart's default values,
-named `override.yaml`:
+Next, create a file named `kustomization.yaml` to customize some of the deployment's default
+values:
 
 [source,yaml]
-.override.yaml
+.kustomization.yaml
 ----
-global:
-  setSecurityContext: false <1>
-etcd:
-  enabled: false <2>
-operator:
-  controller:
-    dbConnectionURL: k8s <3>
-  satelliteSet:
-    kernelModuleInjectionImage: drbd.io/drbd9-rhel8:v9.1.6 <4>
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: linbit-sds
+resources:
+  - https://charts.linstor.io/static/v2.1.1.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+secretGenerator:
+  - name: drbdio-pull-secret
+    type: kubernetes.io/dockerconfigjson
+    literals:
+      - .dockerconfigjson={"auths":{"drbd.io":{"username":"MY_LINBIT_USER","password":"MY_LINBIT_PASSWORD"}}} <1>
 ----
 
-<1> Helm would set a https://kubernetes.io/docs/tasks/configure-pod-container/security-context/[SecurityContext]
-    for all Pods that would conflict with the SecurityContext.
-<2> Use of etcd, although still the default, will be phased out in favor of
-    the `k8s` backend for LINSTOR. New installations should not use etcd.
-<3> Use the new `k8s` backend for LINSTOR. The LINSTOR cluster state is stored
-    inside CustomResources in the Kubernetes API. No additional database setup
-    required.
-<4> OpenShift runs on Red Hat Core OS, which is based on Red Hat Enterprise
-    Linux 8 and uses the same Linux kernel.
+<1> Replace `MY_LINBIT_USER` and `MY_LINBIT_PASSWORD` with your LINBIT customer portal
+credentials.
 
-Make additional modifications to `override.yaml` based on your
-preference. Possible options are discussed in the
+NOTE: The YAML configuration manifest above is current at the time of writing. Refer to
+https://charts.linstor.io for the most up-to-date version or previous versions if needed.
+
+You can make additional modifications to the `kustomizaion.yaml` file based on your
+preferences and needs. Possible options are discussed in the
 <<s-kubernetes-advanced-deployments,Kubernetes advanced deployment section>>.
 
-Finally, deploy LINBIT SDS using Helm and wait until all Pods are ready:
+Finally, deploy LINBIT SDS by applying the customized configuration, and wait until all pods are
+ready, by entering the following commands in the same directory as your `kustomization.yaml`:
 
 ----
-$ helm install linstor-op linstor/linstor --values override.yaml
-NAME: linstor-op
-NAMESPACE: storage
-STATUS: deployed
-...
-$ oc wait --for=condition=Ready pod --all
-...
-$ oc get pods
-NAME                                         READY   STATUS    RESTARTS   AGE
-linstor-op-cs-controller-6588445756-mh9vn    1/1     Running   0          5m48s
-...
+$ oc apply -k . && \
+oc wait --for=condition=ready pod --all -n linbit-sds --timeout=5m && \
+oc get pods -n linbit-sds
 ----
+
+Output should eventually show that a LINSTOR controller pod is up and running.
+
+----
+NAME                                                   READY   STATUS    RESTARTS   AGE
+linstor-operator-controller-manager-59586c7bb5-qlfwb   1/1     Running   0          11s
+----
+
+After deploying the LINSTOR controller pod, enter the following command to complete the
+deployment of your LINBIT SDS in OpenShift cluster:
+
+----
+# oc apply -f - <<EOF
+apiVersion: piraeus.io/v1
+kind: LinstorCluster
+metadata:
+  name: linstorcluster
+spec: {}
+EOF
+# oc wait pod --for=condition=Ready -n linbit-sds --timeout=5m --all
+----
+
+Output should eventually show that your LINBIT SDS cluster pods are up and running.
+
+----
+NAME                                                   READY   STATUS    RESTARTS   AGE
+ha-controller-6fl6b                                    1/1     Running   0          60s
+ha-controller-c955w                                    1/1     Running   0          60s
+ha-controller-v4mdr                                    1/1     Running   0          60s
+kube-0                                                 2/2     Running   0          56s <1>
+kube-1                                                 2/2     Running   0          56s <1>
+kube-2                                                 2/2     Running   0          55s <1>
+linstor-controller-779bffbc59-6jjzd                    1/1     Running   0          61s
+linstor-csi-controller-8cd45658f-6f9t6                 7/7     Running   0          61s
+linstor-csi-node-blgk8                                 3/3     Running   0          61s
+linstor-csi-node-mn8p6                                 3/3     Running   0          61s
+linstor-csi-node-pncpz                                 3/3     Running   0          61s
+linstor-operator-controller-manager-59586c7bb5-qlfwb   1/1     Running   0          4m2s
+----
+
+<1> These pods are the LINSTOR satellite node pods. The pod name reflects each node's hostname.
 
 ==== Using LINBIT SDS on OpenShift
 
@@ -107,14 +136,14 @@ linstor-op-cs  linstor-op-cs-storage.apps.oc.example.com        linstor-op-cs  l
 
 The GUI is now accessible at `+https://linstor-op-cs-storage.apps.oc.example.com/ui/+`
 
-WARNING: This may enable external access to LINBIT GUI and LINSTOR API.
-Ensure that only authorized users can access it, for example by
+WARNING: This might enable external access to LINBIT GUI and LINSTOR API.
+Ensure that only authorized users can access it, for example, by
 requiring client side TLS certificates on the route.
 
 ==== Configuring Cluster Monitoring
 
 OpenShift includes a fully configured monitoring stack. While most of
-the monitoring stack is only intended for Openstack infrastructure, basic
+the monitoring stack is only intended for OpenStack infrastructure, basic
 monitoring for LINBIT SDS is possible.
 
 First, ensure that monitoring of user-defined projects is enabled in OpenShift

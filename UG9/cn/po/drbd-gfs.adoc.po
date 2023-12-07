@@ -1,0 +1,590 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2023-10-31 19:39+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. type: Title ==
+#: UG9/en/drbd-gfs.adoc:2
+#, no-wrap
+msgid "Using GFS with DRBD"
+msgstr "将GFS与DRBD结合使用"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:7
+msgid ""
+"indexterm:[GFS]indexterm:[Global File System]This chapter outlines the steps "
+"necessary to set up a DRBD resource as a block device holding a shared "
+"Global File System (GFS). It covers both GFS and GFS2."
+msgstr ""
+"indexterm:[GFS]indexterm:[Global File System]本章概述了将DRBD资源设置为包含共"
+"享的Global File System(GFS)的块设备所需的步骤。它包括GFS和GFS2。"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:11
+#, fuzzy
+#| msgid ""
+#| "In order to use GFS on top of DRBD, you must configure DRBD in indexterm:"
+#| "[dual-primary mode]<<s-dual-primary-mode,dual-primary mode>>."
+msgid ""
+"To use GFS on top of DRBD, you must configure DRBD in indexterm:[dual-"
+"primary mode]<<s-dual-primary-mode,dual-primary mode>>."
+msgstr ""
+"要在DRBD上使用GFS，必须在indexterm中配置DRBD:[dual-primary mode]<<s-dual-"
+"primary-mode,dual-primary mode>>。"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:16
+msgid ""
+"DRBD 9 supports exactly two nodes with its indexterm:[dual-primary mode]<<s-"
+"dual-primary-mode,dual-primary mode>>.  Attempting to use more than three "
+"nodes in the Primary state is _not_ supported and may lead to data loss."
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:21 UG9/en/drbd-ocfs2.adoc:13
+#, fuzzy
+msgid ""
+"All cluster file systems _require_ fencing - not only through the DRBD "
+"resource, but STONITH! A faulty member _must_ be killed."
+msgstr ""
+"#-#-#-#-#  drbd-gfs.adoc.po (PACKAGE VERSION)  #-#-#-#-#\n"
+"所有的集群文件系统都需要围栏-不仅通过DRBD资源，而且还需要STONITH！必须kill掉"
+"有问题的成员。\n"
+"#-#-#-#-#  drbd-ocfs2.adoc.po  #-#-#-#-#\n"
+"所有的群集文件系统都需要围栏-不仅通过DRBD资源，而且还需要STONITH！必须kill掉"
+"有问题的成员。"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:23
+#, fuzzy
+#| msgid "You'll want these settings:"
+msgid "You will want these settings:"
+msgstr "您需要这些设置："
+
+#. type: delimited block -
+#: UG9/en/drbd-gfs.adoc:34
+#, fuzzy, no-wrap
+#| msgid ""
+#| "\tnet {\n"
+#| "\t\tfencing resource-and-stonith;\n"
+#| "\t}\n"
+#| "\thandlers {\n"
+#| "\t\t# Make sure the other node is confirmed\n"
+#| "\t\t# dead after this!\n"
+#| "\t\toutdate-peer \"/sbin/kill-other-node.sh\";\n"
+#| "\t}\n"
+msgid ""
+"\tnet {\n"
+"\t\tfencing resource-and-stonith;\n"
+"\t}\n"
+"\thandlers {\n"
+"\t\t# Make sure the other node is confirmed\n"
+"\t\t# dead after this!\n"
+"        fence-peer \"/usr/lib/drbd/crm-fence-peer.9.sh\";\n"
+"        after-resync-target \"/usr/lib/drbd/crm-unfence-peer.9.sh\";\n"
+"\t}\n"
+msgstr ""
+"\tnet {\n"
+"\t\tfencing resource-and-stonith;\n"
+"\t}\n"
+"\thandlers {\n"
+"\t\t# Make sure the other node is confirmed\n"
+"\t\t# dead after this!\n"
+"\t\toutdate-peer \"/sbin/kill-other-node.sh\";\n"
+"\t}\n"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:39
+msgid ""
+"If a node becomes a disconnected primary, the `resource-and-stonith` network "
+"fencing setting will:"
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:41
+msgid "Freeze all the node's I/O operations."
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:43
+msgid "Call the node's fence-peer handler."
+msgstr ""
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:48
+msgid ""
+"If the fence-peer handler cannot reach the peer node, for example over an "
+"alternate network, then the fence-peer handler should STONITH the "
+"disconnected primary node. I/O operations will resume as soon as the "
+"situation is resolved."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/drbd-gfs.adoc:50
+#, fuzzy, no-wrap
+#| msgid "Introduction to DRBD"
+msgid "Introduction to GFS"
+msgstr "DRBD简介"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:58
+msgid ""
+"The Red Hat Global File System (GFS) is Red Hat's implementation of a "
+"concurrent-access shared storage file system. As any such filesystem, GFS "
+"allows multiple nodes to access the same storage device, in read/write "
+"fashion, simultaneously without risking data corruption. It does so by using "
+"a Distributed Lock Manager (DLM) which manages concurrent access from "
+"cluster members."
+msgstr ""
+"Red Hat全局文件系统（GFS）是redhat对并发访问共享存储文件系统的实现。与任何此"
+"类文件系统一样，GFS允许多个节点以读/写方式同时访问同一存储设备，而不会造成数"
+"据损坏的风险。它通过使用分布式锁管理器（DLM）来管理来自集群成员的并发访问。"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:67
+#, fuzzy
+#| msgid ""
+#| "GFS was designed, from the outset, for use with conventional shared "
+#| "storage devices. Regardless, it is perfectly possible to use DRBD, in "
+#| "dual-primary mode, as a replicated storage device for GFS. Applications "
+#| "may benefit from reduced read/write latency due to the fact that DRBD "
+#| "normally reads from and writes to local storage, as opposed to the SAN "
+#| "devices GFS is normally configured to run from. Also, of course, DRBD "
+#| "adds an additional physical copy to every GFS filesystem, thus adding "
+#| "redundancy to the concept."
+msgid ""
+"GFS was designed, from the outset, for use with conventional shared storage "
+"devices. Regardless, it is perfectly possible to use DRBD, in dual-primary "
+"mode, as a replicated storage device for GFS. Applications may benefit from "
+"reduced read/write latency due to the fact that DRBD normally reads from and "
+"writes to local storage, as opposed to the SAN devices GFS is normally "
+"configured to run from. Also, of course, DRBD adds an additional physical "
+"copy to every GFS filesystem, therefore adding redundancy to the concept."
+msgstr ""
+"GFS从一开始就被设计用于传统的共享存储设备。无论如何，完全有可能在dual-primary"
+"模式下使用DRBD作为GFS的复制存储设备。由于DRBD通常从本地存储器读取和写入数据，"
+"而GFS通常配置为从SAN设备运行，因此应用程序可能会从减少的读/写延迟中受益。当"
+"然，DRBD还为每个GFS文件系统添加了一个额外的物理拷贝，从而为这个概念增加了冗"
+"余。"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:72
+msgid ""
+"GFS makes use of a cluster-aware variant of LVM, indexterm:[LVM]termed "
+"Cluster Logical Volume Manager or indexterm:[CLVM]CLVM. As such, some "
+"parallelism exists between using DRBD as the data storage for GFS, and using "
+"<<s-lvm-drbd-as-pv,DRBD as a Physical Volume for conventional LVM>>."
+msgstr ""
+"GFS使用LVM的集群感知变量indexterm:[LVM]称为集群逻辑卷管理器或indexterm:"
+"[CLVM]CLVM。因此，在使用DRBD作为GFS的数据存储和使用<s-lvm-DRBD-As-pv，DRBD作"
+"为常规lvm的物理卷之间存在一些并行性。"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:77
+msgid ""
+"GFS file systems are usually tightly integrated with Red Hat's own cluster "
+"management framework, the indexterm:[Red Hat Cluster Suite]<<ch-rhcs,Red Hat "
+"Cluster>>. This chapter explains the use of DRBD in conjunction with GFS in "
+"the Red Hat Cluster context."
+msgstr ""
+"GFS文件系统通常与Red Hat自己的集群管理框架indexterm:[Red Hat cluster "
+"Suite]<<ch-rhcs,Red Hat Cluster>>紧密集成。本章解释在红帽集群上下文中DRBD与"
+"GFS的结合使用。"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:83
+msgid ""
+"GFS, CLVM, and Red Hat Cluster are available in Red Hat Enterprise Linux "
+"(RHEL) and distributions derived from it, such as indexterm:[CentOS]CentOS. "
+"Packages built from the same sources are also available in indexterm:[Debian "
+"GNU/Linux]Debian GNU/Linux. This chapter assumes running GFS on a Red Hat "
+"Enterprise Linux system."
+msgstr ""
+"GFS、CLVM和Red Hat Cluster在Red Hat Enterprise Linux（RHEL）及其派生的发行版"
+"中可用，例如indexterm:[CentOS]CentOS和indexterm:[Debian GNU/Linux]Debian GNU/"
+"Linux中也提供了从相同来源构建的包。本章假设在Red Hat Enterprise Linux系统上运"
+"行GFS。"
+
+#. type: Title ===
+#: UG9/en/drbd-gfs.adoc:85
+#, fuzzy, no-wrap
+#| msgid "Creating a DRBD resource suitable for GFS"
+msgid "Creating a DRBD Resource Suitable for GFS"
+msgstr "创建适合GFS的DRBD资源"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:96
+msgid ""
+"Since GFS is a shared cluster file system expecting concurrent read/write "
+"storage access from all cluster nodes, any DRBD resource to be used for "
+"storing a GFS filesystem must be configured in <<s-dual-primary-mode,dual-"
+"primary mode>>. Also, it is recommended to use some of DRBD's <<s-automatic-"
+"split-brain-recovery-configuration,features for automatic recovery from "
+"split brain>>. To do all this, include the following lines in the resource "
+"configuration: indexterm:[drbd.conf]"
+msgstr ""
+"由于GFS是一个共享的集群文件系统，需要从所有集群节点进行并发读/写存储访问，因"
+"此用于存储GFS文件系统的任何DRBD资源都必须在<<s-dual-primary-mode,dual-"
+"primary mode>>中配置。此外，建议使用一些DRBD的<<s-automatic-split-brain-"
+"recovery-configuration,features for automatic recovery from split brain>>。为"
+"此，在资源配置中包括以下行：indexterm:[drbd.conf]"
+
+#. type: delimited block -
+#: UG9/en/drbd-gfs.adoc:109
+#, fuzzy, no-wrap
+#| msgid ""
+#| "resource <resource> {\n"
+#| "  net {\n"
+#| "    allow-two-primaries yes;\n"
+#| "    after-sb-0pri discard-zero-changes;\n"
+#| "    after-sb-1pri discard-secondary;\n"
+#| "    after-sb-2pri disconnect;\n"
+#| "    ...\n"
+#| "  }\n"
+#| "  ...\n"
+#| "}\n"
+msgid ""
+"resource <resource> {\n"
+"  net {\n"
+"    allow-two-primaries yes;\n"
+"    after-sb-0pri discard-zero-changes;\n"
+"    after-sb-1pri discard-secondary;\n"
+"    after-sb-2pri disconnect;\n"
+"    [...]\n"
+"  }\n"
+"  [...]\n"
+"}\n"
+msgstr ""
+"resource <resource> {\n"
+"  net {\n"
+"    allow-two-primaries yes;\n"
+"    after-sb-0pri discard-zero-changes;\n"
+"    after-sb-1pri discard-secondary;\n"
+"    after-sb-2pri disconnect;\n"
+"    ...\n"
+"  }\n"
+"  ...\n"
+"}\n"
+
+#. type: delimited block =
+#: UG9/en/drbd-gfs.adoc:119
+msgid ""
+"By configuring auto-recovery policies, with the exception of the "
+"`disconnect` option, you are effectively configuring automatic data loss on "
+"one of your nodes after a split-brain scenario.  In a properly configured "
+"Pacemaker cluster with STONITH enabled, the settings above are considered "
+"safe. Be sure you understand the implications of the options you set should "
+"you choose different options.  See the `drbdsetup-9.0` man page for more "
+"details."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:127
+msgid ""
+"Once you have added these options to <<ch-configure,your freshly-configured "
+"resource>>, you may <<s-first-time-up,initialize your resource as you "
+"normally would>>. Since the indexterm:[drbd.conf]`allow-two-primaries` "
+"option is set to `yes` for this resource, you will be able to <<s-switch-"
+"resource-roles,promote the resource>>to the primary role on two nodes."
+msgstr ""
+"一旦您将这些选项添加到<<ch-configure,your freshly-configured resource>>中，您"
+"就可以<<s-first-time-up,initialize your resource as you normally would>>, 提"
+"升为两个节点上的主角色。"
+
+#. type: Title ===
+#: UG9/en/drbd-gfs.adoc:129
+#, fuzzy, no-wrap
+#| msgid "Configuring LVM to recognize the DRBD resource"
+msgid "Configuring LVM to Recognize the DRBD Resource"
+msgstr "配置LVM以识别DRBD资源"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:134
+#, fuzzy
+#| msgid ""
+#| "GFS uses CLVM, the cluster-aware version of LVM, to manage block devices "
+#| "to be used by GFS. In order to use CLVM with DRBD, ensure that your LVM "
+#| "configuration"
+msgid ""
+"GFS uses CLVM, the cluster-aware version of LVM, to manage block devices to "
+"be used by GFS. To use CLVM with DRBD, ensure that your LVM configuration"
+msgstr ""
+"GFS使用CLVM（LVM的集群感知版本）来管理GFS要使用的块设备。为了在DRBD中使用"
+"CLVM，请确保LVM配置"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:137
+msgid ""
+"uses clustered locking. To do this, set the following option in `/etc/lvm/"
+"lvm.conf`:"
+msgstr "使用集群锁定。为此，请在 `/etc/lvm/lvm.conf` 中设置以下选项："
+
+#. type: delimited block -
+#: UG9/en/drbd-gfs.adoc:141
+#, no-wrap
+msgid "locking_type = 3\n"
+msgstr "locking_type = 3\n"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:146
+msgid ""
+"scans your DRBD devices to recognize DRBD-based Physical Volumes (PVs). This "
+"applies as to conventional (non-clustered) LVM; see <<s-lvm-drbd-as-pv>> for "
+"details."
+msgstr ""
+"扫描DRBD设备以识别基于DRBD的物理卷（pv）。这适用于传统（非集群）LVM；有关详细"
+"信息，请参见<<s-lvm-drbd-as-pv>>。"
+
+#. type: Title ===
+#: UG9/en/drbd-gfs.adoc:148
+#, fuzzy, no-wrap
+#| msgid "Configuring your cluster to support GFS"
+msgid "Configuring Your cluster to Support GFS"
+msgstr "配置集群以支持GFS"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:154
+msgid ""
+"After you have created your new DRBD resource and <<s-rhcs-config,completed "
+"your initial cluster configuration>>, you must enable and start the "
+"following system services on both nodes of your GFS cluster:"
+msgstr ""
+"创建新的DRBD资源并 <<s-rhcs-config,completed your initial cluster "
+"configurations>>后，必须在GFS集群的两个节点上启用并启动以下系统服务："
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:156
+msgid "`cman` (this also starts `ccsd` and `fenced`),"
+msgstr "`cman`（这也会启动 `ccsd` 和 `fenced`），"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:158
+msgid "`clvmd`."
+msgstr "`clvmd`."
+
+#. type: Title ===
+#: UG9/en/drbd-gfs.adoc:162
+#, fuzzy, no-wrap
+#| msgid "Creating a GFS filesystem"
+msgid "Creating a GFS Filesystem"
+msgstr "创建GFS文件系统"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:167
+#, fuzzy
+#| msgid ""
+#| "In order to create a GFS filesystem on your dual-primary DRBD resource, "
+#| "you must first initialize it as a <<s-lvm-primer,Logical Volume for LVM>>."
+msgid ""
+"To create a GFS filesystem on your dual-primary DRBD resource, you must "
+"first initialize it as a <<s-lvm-primer,Logical Volume for LVM>>."
+msgstr ""
+"为了在dual-primary DRBD资源上创建GFS文件系统，必须首先将其初始化为<<s-lvm-"
+"primer,Logical Volume for LVM>>。"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:173
+msgid ""
+"Contrary to conventional, non-cluster-aware LVM configurations, the "
+"following steps must be completed on only one node due to the cluster-aware "
+"nature of CLVM: indexterm:[LVM]indexterm:[pvcreate (LVM command)]indexterm:"
+"[LVM]indexterm:[vgcreate (LVM command)]indexterm:[LVM]indexterm:[lvcreate "
+"(LVM command)]"
+msgstr ""
+"与传统的、非集群感知的LVM配置相反，由于CLVM的集群感知特性，只能在一个节点上完"
+"成以下步骤：indexterm:[LVM]indexterm:[pvcreate（LVM command）]indexterm:"
+"[LVM]indexterm:[vgcreate（LVM command）]indexterm:[LVM]indexterm:[lvcreate"
+"（LVM command）]"
+
+#. type: delimited block -
+#: UG9/en/drbd-gfs.adoc:181
+#, no-wrap
+msgid ""
+"# pvcreate /dev/drbd/by-res/<resource>/0\n"
+"Physical volume \"/dev/drbd<num>\" successfully created\n"
+"# vgcreate <vg-name> /dev/drbd/by-res/<resource>/0\n"
+"Volume group \"<vg-name>\" successfully created\n"
+"# lvcreate --size <size> --name <lv-name> <vg-name>\n"
+"Logical volume \"<lv-name>\" created\n"
+msgstr ""
+"# pvcreate /dev/drbd/by-res/<resource>/0\n"
+"Physical volume \"/dev/drbd<num>\" successfully created\n"
+"# vgcreate <vg-name> /dev/drbd/by-res/<resource>/0\n"
+"Volume group \"<vg-name>\" successfully created\n"
+"# lvcreate --size <size> --name <lv-name> <vg-name>\n"
+"Logical volume \"<lv-name>\" created\n"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:184 UG9/en/drbd-lvm.adoc:182 UG9/en/drbd-ocfs2.adoc:218
+#, fuzzy
+msgid "This example assumes a single-volume resource."
+msgstr ""
+"#-#-#-#-#  drbd-gfs.adoc.po (PACKAGE VERSION)  #-#-#-#-#\n"
+"本例假设一个单个卷资源。\n"
+"#-#-#-#-#  drbd-lvm.adoc.po (PACKAGE VERSION)  #-#-#-#-#\n"
+"本例假设一个含有单个卷的资源。\n"
+"#-#-#-#-#  drbd-ocfs2.adoc.po  #-#-#-#-#\n"
+"本例假设一个卷资源。"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:190
+msgid ""
+"CLVM will immediately notify the peer node of these changes; indexterm:"
+"[LVM]indexterm:[lvdisplay (LVM command)]indexterm:[LVM]indexterm:[lvs (LVM "
+"command)] issuing `lvs` (or `lvdisplay`) on the peer node will list the "
+"newly created logical volume."
+msgstr ""
+"CLVM将立即通知对等节点这些更改；indexterm:[LVM]indexterm:[lvdisplay (LVM "
+"command)]indexterm:[LVM]indexterm:[lvs (LVM command)]]在对等节点上发出 `lvs`"
+"（或 `lvdisplay` ）将列出新创建的逻辑卷。"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:192
+msgid "indexterm:[GFS]Now, you may proceed by creating the actual filesystem:"
+msgstr "indexterm:[GFS]现在，您可以通过创建实际的文件系统来继续："
+
+#. type: delimited block -
+#: UG9/en/drbd-gfs.adoc:195
+#, no-wrap
+msgid "# mkfs -t gfs -p lock_dlm -j 2 /dev/<vg-name>/<lv-name>\n"
+msgstr "# mkfs -t gfs -p lock_dlm -j 2 /dev/<vg-name>/<lv-name>\n"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:198
+msgid "Or, for a GFS2 filesystem:"
+msgstr "或者，对于GFS2文件系统："
+
+#. type: delimited block -
+#: UG9/en/drbd-gfs.adoc:202
+#, no-wrap
+msgid ""
+"# mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name>\n"
+"\t/dev/<vg-name>/<lv-name>\n"
+msgstr ""
+"# mkfs -t gfs2 -p lock_dlm -j 2 -t <cluster>:<name>\n"
+"\t/dev/<vg-name>/<lv-name>\n"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:208
+#, fuzzy
+#| msgid ""
+#| "The `-j` option in this command refers to the number of journals to keep "
+#| "for GFS. This must be identical to the number of nodes with concurrent "
+#| "_Primary_ role in the GFS cluster; since DRBD does not support more than "
+#| "two _Primary_ nodes until DRBD 9.1, the value to set here is always 2."
+msgid ""
+"The `-j` option in this command refers to the number of journals to keep for "
+"GFS. This must be identical to the number of nodes with concurrent _Primary_ "
+"role in the GFS cluster; since DRBD does not support more than two _Primary_ "
+"nodes the value to set here is always 2."
+msgstr ""
+"此命令中的 `-j` 选项指为GFS保留的日志数。这必须与GFS集群中具有并发主节点角色"
+"的节点数相同；因为在DRBD 9.1之前，DRBD不支持超过两个主节点，所以此处设置的值"
+"始终为2。"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:215
+#, fuzzy
+#| msgid ""
+#| "The `-t` option, applicable only for GFS2 filesystems, defines the lock "
+#| "table name. This follows the format _<cluster>:<name>_, where _<cluster>_ "
+#| "must match your cluster name as defined in `/etc/cluster/cluster.conf`. "
+#| "Thus, only members of that cluster will be permitted to use the "
+#| "filesystem. By contrast, _<name>_ is an arbitrary file system name unique "
+#| "in the cluster."
+msgid ""
+"The `-t` option, applicable only for GFS2 filesystems, defines the lock "
+"table name. This follows the format _<cluster>:<name>_, where _<cluster>_ "
+"must match your cluster name as defined in `/etc/cluster/cluster.conf`. "
+"Therefore, only members of that cluster will be permitted to use the "
+"filesystem. By contrast, _<name>_ is an arbitrary file system name unique in "
+"the cluster."
+msgstr ""
+"`-t` 选项仅适用于GFS2文件系统，它定义了锁表名。这遵循格式 _cluster>:"
+"<name>_ ，其中 _<cluster>_ 必须与 `/etc/cluster/cluster.conf` 中定义的集群名"
+"称匹配。因此，只允许该集群的成员使用文件系统。相比之下，集群中的任意文件系统"
+"名是唯一的。"
+
+#. type: Title ===
+#: UG9/en/drbd-gfs.adoc:217
+#, fuzzy, no-wrap
+#| msgid "Using your GFS filesystem"
+msgid "Using Your GFS Filesystem"
+msgstr "使用GFS文件系统"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:221
+msgid "After you have created your filesystem, you may add it to `/etc/fstab`:"
+msgstr "创建文件系统后，可以将其添加到 `/etc/fstab` ："
+
+#. type: delimited block -
+#: UG9/en/drbd-gfs.adoc:225
+#, no-wrap
+msgid "/dev/<vg-name>/<lv-name> <mountpoint> gfs defaults 0 0\n"
+msgstr "/dev/<vg-name>/<lv-name> <mountpoint> gfs defaults 0 0\n"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:228
+msgid "For a GFS2 filesystem, simply change the filesystem type:"
+msgstr "对于GFS2文件系统，只需更改文件系统类型："
+
+#. type: delimited block -
+#: UG9/en/drbd-gfs.adoc:232
+#, no-wrap
+msgid "/dev/<vg-name>/<lv-name> <mountpoint> gfs2 defaults 0 0\n"
+msgstr "/dev/<vg-name>/<lv-name> <mountpoint> gfs2 defaults 0 0\n"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:235
+#, fuzzy
+#| msgid ""
+#| "Do not forget to make this change on both (or, with DRBD 9.1, all) "
+#| "cluster nodes."
+msgid "Do not forget to make this change on both cluster nodes."
+msgstr "不要忘记在两个（或者，对于DRBD 9.1，all）集群节点上进行此更改。"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:238
+msgid ""
+"After this, you may mount your new filesystem by starting the `gfs` service "
+"(on both nodes): indexterm:[GFS]"
+msgstr ""
+"在此之后，您可以启动 `gfs` 服务（在两个节点上）来挂载新的文件系统：indexterm:"
+"[gfs]"
+
+#. type: delimited block -
+#: UG9/en/drbd-gfs.adoc:241
+#, no-wrap
+msgid "# service gfs start\n"
+msgstr "# service gfs start\n"
+
+#. type: Plain text
+#: UG9/en/drbd-gfs.adoc:246
+#, fuzzy
+#| msgid ""
+#| "From then onwards, as long as you have DRBD configured to start "
+#| "automatically on system startup, before the RHCS services and the `gfs` "
+#| "service, you will be able to use this GFS file system as you would use "
+#| "one that is configured on traditional shared storage."
+msgid ""
+"From then on, if you have DRBD configured to start automatically on system "
+"startup, before the Pacemaker services and the `gfs` service, you will be "
+"able to use this GFS file system as you would use one that is configured on "
+"traditional shared storage."
+msgstr ""
+"从那时起，只要您将DRBD配置为在系统启动时自动启动，在RHCS服务和 `gfs` 服务之"
+"前，您就可以使用这个gfs文件系统，就像使用在传统共享存储上配置的文件系统一样。"
