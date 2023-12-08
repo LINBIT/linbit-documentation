@@ -38,13 +38,12 @@ Users of existing Operator v1 deployments should continue to use their Helm depl
 [[s-kubernetes-deploy-linstor-operator-v2]]
 === Deploying LINSTOR Operator v2
 
-LINSTOR Operator v2 is deployed using
+You can deploy the LINSTOR Operator v2 by using either
 link:https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization[the Kustomize tool],
-integrated with `kubectl`.
+integrated with `kubectl`, or else by using link:https://helm.sh/[Helm] and a LINBIT Helm chart.
 
-[[s-kubernetes-deploy-linstor-operator-v2-prerequisites]]
-
-==== Creating the Operator
+[[s-kubernetes-creating-operator-v2-kustomize]]
+==== Creating the Operator v2 by Using Kustomize
 
 To deploy the Operator, create a `kustomization.yaml` file. This will declare your pull secret for `drbd.io` and
 allow you to pull in the Operator deployment. The Operator will be deployed in a new namespace `linbit-sds`.
@@ -82,10 +81,10 @@ pod/linstor-operator-controller-manager-6d9847d857-zc985 condition met
 
 The Operator is now ready to deploy LINBIT SDS for Kubernetes.
 
-[[s-kubernetes-deploy-linbit-sds-for-k8s-operator-v2]]
-==== Deploying LINBIT SDS for Kubernetes
+[[s-kubernetes-deploy-linbit-sds-for-k8s-operator-v2-kubectl]]
+==== Deploying LINBIT SDS for Kubernetes by Using the Command Line Tool
 
-Deploying LINBIT SDS for Kubernetes with the Operator is as simple as creating a new `LinstorCluster` resource and
+Deploying LINBIT SDS for Kubernetes with the Operator v2 is as simple as creating a new `LinstorCluster` resource and
 waiting for the Operator to complete the setup:
 
 ----
@@ -97,6 +96,11 @@ metadata:
 spec: {}
 EOF
 $ kubectl wait pod --for=condition=Ready -n linbit-sds --timeout=3m --all
+----
+
+Output should eventually show that the wait condition has been met and the LINBIT SDS pods are up and running.
+
+----
 pod/ha-controller-4tgcg condition met
 pod/k8s-1-26-10.test condition met
 pod/linstor-controller-76459dc6b6-tst8p condition met
@@ -105,8 +109,49 @@ pod/linstor-csi-node-9gcwj condition met
 pod/linstor-operator-controller-manager-6d9847d857-zc985 condition met
 ----
 
+[[s-kubernetes-creating-operator-helm]]
+==== Creating the Operator v2 by Using Helm
+
+To create the LINSTOR Operator v2 by Using Helm, first enter the following commands to add the
+`linstor` Helm chart repository:
+
+----
+$ MY_LINBIT_USER=<my-linbit-customer-username>
+$ MY_LINBIT_PASSWORD=<my-linbit-customer-password>
+$ helm repo add linstor https://charts.linstor.io
+----
+
+Next, enter the following command to install the LINSTOR Operator v2:
+
+----
+$ helm install linstor-operator linstor/linstor-operator \
+  --set imageCredentials.username=$MY_LINBIT_USER \
+  --set imageCredentials.password=$MY_LINBIT_PASSWORD \
+  --wait
+----
+
+[[s-kubernetes-deploy-linbit-sds-for-k8s-operator-v2-helm]]
+==== Deploying LINBIT SDS for Kubernetes by Using Helm
+
+After output from the command shows that the Operator v2 was installed, you can use Helm to
+deploy LINBIT SDS by installing the `linbit-sds` chart:
+
+----
+$ helm install linbit-sds linstor/linbit-sds
+----
+
+Output from this final `helm install` command should show a success message.
+
+----
+[...]
+LinstorCluster: linbit-sds
+
+Successfully deployed!
+[...]
+----
+
 [[s-kubernetes-configuring-storage-v2]]
-==== Configuring Storage
+==== Configuring Storage with Operator v2
 
 By default, LINBIT SDS for Kubernetes does not configure any storage. To add storage, you can configure a
 `LinstorSatelliteConfiguration`, which the Operator uses to configure one or more satellites.
