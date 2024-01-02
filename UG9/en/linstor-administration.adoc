@@ -2360,6 +2360,17 @@ To determine which node will send a backup shipment, LINSTOR uses the following 
 [[s-shipping_snapshots-old]]
 ===== Shipping a Snapshot in the Same Cluster
 
+Before you can ship a snapshot to a different node within the same LINSTOR cluster, you need to
+create a LINSTOR remote object that specifies your LINSTOR cluster's ID. Refer to the
+<<s-shipping_snapshots-l2l>> section for instructions on how to get your LINSTOR cluster's ID and create such a remote. An example command could look like this:
+
+----
+# linstor remote create linstor self 127.0.0.1 --cluster-id <LINSTOR_CLUSTER_ID>
+----
+
+NOTE: `self` is a user-specified, arbitrary name for your LINSTOR remote. You can specify a
+different name if you want.
+
 Both, the source as well as the target node have to have the resource for
 snapshot shipping deployed. Additionally, the target resource has to be
 deactivated.
@@ -2372,15 +2383,11 @@ WARNING: Deactivating a resource with DRBD in its layer-list can NOT be
 reactivated again. However, a successfully shipped snapshot of a DRBD resource
 can still be <<s-restoring_a_snapshot-linstor,restored into a new resource>>.
 
-To manually start the snapshot-shipping, use:
+To manually start the snapshot shipping, use:
 
 ----
-# linstor snapshot ship --from-node nodeSource --to-node nodeTarget --resource resource1
+# linstor backup ship self localRsc targetRsc
 ----
-
-WARNING: The `snapshot ship` command is considered deprecated and any bugs found
-with it will not be fixed. Instead, use the `backup ship` command with a remote pointing
-to your local controller. For more details, see <<s-shipping_snapshots-l2l,the previous section>>.
 
 By default, the snapshot-shipping uses TCP ports from the range 12000-12999. To change
 this range, the property `SnapshotShipping/TcpPortRange`, which accepts a to-from range,
