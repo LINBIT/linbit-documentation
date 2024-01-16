@@ -2765,8 +2765,245 @@ This ensures that LINSTOR will not place resources from a node that you are evac
 another node that you plan on evacuating.
 
 [[s-kubernetes-monitoring]]
+
 === Monitoring With Prometheus
-You can use https://prometheus.io/[Prometheus] to monitor LINSTOR components.
+
+A LINSTOR deployment in Kubernetes offers the possibility of integrating with the
+link:https://github.com/prometheus-operator/kube-prometheus[Prometheus monitoring stack]. You
+can use https://prometheus.io/[Prometheus] to monitor LINSTOR and related components in
+Kubernetes. This monitoring solution is configurable to suit your purposes and includes features
+such as a Grafana dashboard for Prometheus scraped metrics, and the ability to set up alert
+rules and get alerts for events.
+
+The Prometheus monitoring integration with LINSTOR configures:
+
+ - Metrics scraping for the LINSTOR and DRBD state.
+ - Alerts based on the cluster state
+ - A Grafana dashboard
+
+To configure monitoring for your LINSTOR in Kubernetes deployment, you should be familiar with:
+
+- Deploying workloads in Kubernetes using link:https://helm.sh/[Helm]
+- Deploying resources using link:https://kubernetes.io/docs/tasks/tools/[`kubectl`]
+
+[[s-kubernetes-monitoring-v2]]
+==== Configuring Monitoring with Prometheus in Operator v2 Deployments
+
+This section describes configuring monitoring with Prometheus for LINSTOR Operator v2
+deployments in Kubernetes. If you need to configure monitoring with Prometheus for a LINSTOR
+Operator v1 deployment, refer to the instructions in the <<s-kubernetes-monitoring-v1,>>
+section.
+
+[[s-kubernetes-prometheus-operator-deployment-v2]]
+===== Deploying the Prometheus Operator for LINSTOR Operator v2 Deployments
+
+NOTE: If you already have a working Prometheus Operator deployment, skip the steps in this
+section.
+
+To deploy the Prometheus monitoring integration in Kubernetes, you need to deploy the Prometheus
+Operator. A simple way to do this is to use the Helm chart provided by the Prometheus Community.
+
+First, add the Helm chart repository to your local Helm configuration, by entering the following
+command:
+
+----
+# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+----
+
+Then, deploy the
+link:https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack[`kube-prometheus-stack`]
+chart. This chart will set up Prometheus, Alertmanager, and Grafana for your cluster. Configure
+it to search for monitoring and alerting rules in all namespaces:
+
+----
+# helm install \
+--create-namespace -n monitoring prometheus prometheus-community/kube-prometheus-stack \
+--set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+--set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false \
+--set prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false
+----
+
+NOTE: By default, the deployment will only monitor resources in the `kube-system` and its own
+namespace. LINSTOR is usually deployed in a different namespace, `linbit-sds`, so you need to
+configure Prometheus to watch this namespace. In the example above, this is achieved by setting
+the various `*NilUsesHelmValues` parameters to false.
+
+[[s-kubernetes-prometheus-monitoring-and-alerting-deployment-v2]]
+===== Deploying Prometheus Monitoring and Alerting Rules for LINSTOR
+
+After creating a Prometheus Operator deployment and configuring it to watch all namespaces,
+apply the monitoring and alerting resources for LINSTOR. You can do this by either using the
+`kustomize` or `helm` utilities.
+
+[[s-kubernetes-monitoring-deploying-prometheus-kustomize-v2]]
+====== Using Kustomize to Deploy Prometheus Monitoring and Alerting Rules
+
+To deploy Prometheus monitoring and alerting rules for LINSTOR by using the `kustomize` utility,
+first create a `kustomization` YAML configuration file, by entering the following command:
+
+----
+# kubectl apply -k \
+"https://github.com/linbit/linstor-operator-builder//config/monitoring?ref=v2"
+----
+
+[IMPORTANT]
+====
+If you have configured SSL/TLS for your LINSTOR deployment in Kubernetes, you will need to apply
+a different version of the monitoring configuration file. You can do this by entering the
+following command:
+
+----
+kubectl apply -k \
+"https://github.com/linbit/linstor-operator-builder//config/monitoring-with-api-tls?ref=v2"
+----
+====
+
+Output from applying the monitoring configuration to your deployment should show the following:
+
+----
+configmap/linbit-sds-dashboard created
+podmonitor.monitoring.coreos.com/linstor-satellite created
+prometheusrule.monitoring.coreos.com/linbit-sds created
+servicemonitor.monitoring.coreos.com/linstor-controller created
+----
+
+[[s-kubernetes-monitoring-deploying-prometheus-helm-v2]]
+====== Using Helm to Deploy Prometheus Monitoring and Alerting Rules
+
+If you are using Helm, you can deploy Prometheus monitoring for your LINSTOR in Kubernetes
+deployment by enabling monitoring in the `linbit-sds` chart. Enter the following command to do
+this:
+
+----
+# helm repo update linstor && \
+helm install linbit-sds linstor/linbit-sds \
+--set monitoring.enabled=true \
+----
+
+NOTE: Unlike the `kustomize` deployment method, you can use the same `helm install` command for
+a regular and an SSL/TLS-enabled LINSTOR deployment. The Helm deployment configures the correct
+endpoint automatically.
+
+Output from the command above should show that the `linbit-sds` chart was successfully deployed.
+
+[[s-kubernetes-monitoring-verifying-deployment-v2]]
+===== Verifying a Monitoring Deployment
+
+You can verify that the monitoring configuration is working in your deployment by checking the
+local Prometheus, Alertmanager, and Grafana web consoles.
+
+[[s-kubernetes-monitoring-verifying-prometheus-web-console-v2]]
+====== Verifying the Prometheus Web Console Deployment
+
+First, get access to the Prometheus web console from your local browser by forwarding the
+Prometheus web console service to local port 9090:
+
+----
+# kubectl port-forward -n monitoring services/prometheus-kube-prometheus-prometheus 9090:9090
+----
+
+NOTE: If you need to access the Prometheus instance from a system other than `localhost`, you
+might need to add the `--address 0.0.0.0` argument to the previous command.
+
+Next, in a web browser, open `http://localhost:9090/graph` and display the `linstor_info` and
+`drbd_version` metrics, for example, by entering each metric into the search field, and clicking
+the Execute button.
+
+.The `linstor_info` Prometheus metric
+image::images/linstor-k8s-prometheus-linstor_info-metic.png[the `linstor_info` Prometheus metric]
+
+.The `drbd_version` Prometheus metric
+image::images/linstor-k8s-prometheus-drbd_version-metic.png[the `drbd_version` Prometheus metric]
+
+[[s-kubernetes-monitoring-verifying-alertmanager-web-console-v2]]
+====== Verifying the Prometheus Alertmanager Web Console Deployment
+
+To view the Alertmanager console, forward the Prometheus Alertmanager service to local port
+9093, by entering the following command:
+
+----
+# kubectl port-forward -n monitoring services/prometheus-kube-prometheus-alertmanager 9093:9093
+----
+
+NOTE: If you need to access the Prometheus Alertmanager instance from a system other than
+`localhost`, you might need to add the `--address 0.0.0.0` argument to the previous command.
+
+Next, in a web browser, open `http://localhost:9093`. The Alertmanager console should show an
+itemized list of alert groups for your deployment, including an alert group for the `linbit-sds`
+namespace.
+
+You can verify that an alert will fire and be shown in your Alertmanager console by running a
+command that will cause an event applicable to an alert that you want to test. For example, you
+can disconnect a DRBD resource. This will cause a `drbdResourceSuspended` alert. To test this,
+assuming that you have a LINSTOR satellite pod named `kube-0` that is running in the
+`linbit-sds` namespace and that the satellite is in a secondary role for a DRBD resource named
+`my-res`, enter the following command:
+
+----
+# kubectl exec -it -n linbit-sds kube-0 -- drbdadm disconnect --force my-res
+----
+
+WARNING: Use caution with the types of events that you use to test alerts, especially on a
+production system. The above `drbdadm disconnect` command should be safe if you run it on a
+satellite node pod that is in a secondary role for the resource you disconnect. You can verify
+the resource role state that the satellite node pod is in by using a `drbdadm status
+<resource-name>` command.
+
+.Alerts for the `my-res` DRBD resource in a disconnected state
+image::images/linstor-k8s-prometheus-alertmanager-drbdconnectionnotconnected.png[alerts for the
+`my-res` DRBD resource in a disconnected state]
+
+After verifying that the Prometheus Alertmanager web console shows new alerts that relate to the
+event you caused, you should revert your deployment to its previous state. To do this for the
+previous `drbdadm disconnect` example, enter the following command:
+
+----
+# kubectl exec -it -n linbit-sds kube-0 -- drbdadm connect my-res
+----
+
+You can verify that the `kube-0` satellite node pod is again connected to the `my-res` DRBD
+resource by entering a `drbdadm status` command:
+
+----
+# kubectl exec -it -n linbit-sds kube-0 -- drbdadm status my-res
+----
+
+Output from the command should show that the resource is in an up-to-date state on all diskful
+and connected nodes.
+
+----
+my-res role:Secondary
+  disk:UpToDate
+  kube-1 role:Secondary
+    peer-disk:Diskless
+  kube-2 role:Secondary
+    peer-disk:UpToDate
+----
+
+[[s-kubernetes-monitoring-verifying-grafana-web-console-v2]]
+====== Verifying the Grafana Web Console and LINBIT SDS Dashboard Deployment
+
+To view the Grafana console and LINBIT SDS dashboard, first forward the Grafana service to local
+port 3000, by entering the following command:
+
+----
+# kubectl port-forward -n monitoring services/prometheus-grafana 3000:http-web
+----
+
+NOTE: If you need to access the Grafana instance from a system other than the `localhost`, you
+might need to add the `--address 0.0.0.0` argument to the previous command.
+
+Next, in a web browser, open `http://localhost:3000` and log in. If you are using the example
+deployment from above, enter username `admin` and password `prom-operator` to log in to the
+Grafana instance. After logging in, change your password
+(`http://192.168.121.20:3000/profile/password`) to something other than the default password.
+
+Select "LINBIT SDS" from the available dashboards (`http://localhost:3000/dashboards`) to show
+an overview of the health status of your LINSTOR deployment, including various metrics and
+statistics.
+
+.The LINBIT SDS Grafana dashboard
+image::images/linstor-k8s-linbit-sds-grafana-dashboard.png[the LINBIT SDS Grafana dashboard]
 
 [[s-kubernetes-monitoring-v1]]
 ==== Monitoring with Prometheus in Operator v1 Deployments
