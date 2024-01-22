@@ -142,14 +142,11 @@ the OpenNebula installation guide for your distribution on how to manually
 configure the `oneadmin` user account.
 
 The storage nodes must use storage pools created with a driver that's capable
-of making snapshots, such as the thin LVM plug-in.
+of making snapshots, such as the thin LVM plugin.
 
-In this example preparation of thin-provisioned storage using LVM for LINSTOR,
-you must create a volume group and thinLV using LVM on each storage node.
-
-The following is an example of this process using two physical volumes (/dev/sdX and /dev/sdY) and
-generic names for the volume group and thinpool. Take care to set the thinLV's
-metadata volume to a reasonable size. once it becomes full it can be difficult to resize.
+Given two physical devices (`/dev/sdX` and `/dev/sdY`), the following example shows how you
+would prepare thin-provisioned storage, by using LVM commands, to back a LINSTOR storage pool or
+pools. The example uses generic names for the volume group and thin pool.
 
 ----
 pvcreate /dev/sdX /dev/sdY
@@ -157,11 +154,13 @@ vgcreate drbdpool /dev/sdX /dev/sdY
 lvcreate -l 95%VG --poolmetadatasize 8g -T /dev/drbdpool/drbdthinpool
 ----
 
-Then you'll create storage pool(s) on LINSTOR using this as the backing storage.
+IMPORTANT: Set the thin-provisioned logical volume's metadata space to a reasonable size
+because if it becomes full it can be difficult to resize. For this reason, you might also want
+to configure monitoring or automatic extension of your LVM thin-provisioned logical volumes.
+Refer to the "Size of pool metadata LV" section in `man lvmthin` for more details.
 
-NOTE: If you are using ZFS storage pools or thick-LVM, please use <<s-clone-mode>> `copy`
-otherwise you will have problems deleting linstor resources, because of ZFS parent-child snapshot
-relationships.
+Next, you would create a LINSTOR storage pool or pools using the `/dev/drbdpool/drbdthinpool`
+device as the backing storage.
 
 ==== Permissions for the Administrative Account
 
