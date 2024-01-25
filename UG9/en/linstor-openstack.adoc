@@ -2,7 +2,7 @@
 == LINSTOR Volumes in OpenStack
 
 indexterm:[OpenStack]indexterm:[Cinder]
-This chapter describes using LINSTOR to provision persistent, replicated, and
+This chapter describes using LINSTOR(R) to provision persistent, replicated, and
 high-performance block storage for OpenStack.
 
 [[s-openstack-linstor-overview]]
@@ -10,7 +10,7 @@ high-performance block storage for OpenStack.
 
 OpenStack consists of a wide range of individual services; The service responsible
 for provisioning and managing block storage is called
-https://docs.openstack.org/cinder/latest/[Cinder]. Other openstack services such
+https://docs.openstack.org/cinder/latest/[Cinder]. Other OpenStack services such
 as the compute instance service https://docs.openstack.org/nova/latest[Nova] can
 request volumes from Cinder. Cinder will then make a volume accessible to the
 requesting service.
@@ -23,8 +23,8 @@ translate to snapshots in LINSTOR and so on.
 [[s-openstack-linstor-install]]
 === Installing LINSTOR for OpenStack
 
-An initial installation and configuration of DRBD and LINSTOR must be completed
-prior to using the OpenStack driver.
+An initial installation and configuration of DRBD(R) and LINSTOR must be completed
+before using the OpenStack driver.
 
 * A detailed installation guide can be found <<s-installation,here>>.
 
@@ -101,7 +101,7 @@ Starting with OpenStack Stein, the LINSTOR driver is part of the Cinder project.
 might be missing features or fixes available in newer version. Due to OpenStacks update policy for stable versions, most
 improvements to the driver will not get back-ported to older stable releases.
 
-https://github.com/LINBIT/openstack-cinder[LINBIT maintains a fork] of the Cinder repository with all improvements to
+https://github.com/LINBIT/openstack-cinder[LINBIT(R) maintains a fork] of the Cinder repository with all improvements to
 the LINSTOR driver backported to the supported stable versions. Currently, these are:
 
 [frame="topbot",options="header"]
@@ -310,19 +310,19 @@ section should share the same name. This name is referenced again in `cinder.con
 Which driver you should use depends on your LINSTOR set up and requirements. Details on each
 choice are documented in <<s-openstack-linstor-transport-options, the section below.>>
 
-<3> The URL(s) of the LINSTOR Controller(s). Multiple Controllers can be specified to make use of <<s-linstor_ha,Linstor High Availability>>. If not set, defaults to `linstor://localhost`.
+<3> The URL(s) of the LINSTOR Controller(s). Multiple Controllers can be specified to make use of <<s-linstor_ha,LINSTOR high availability>>. If not set, defaults to `linstor://localhost`.
 +
-NOTE: In driver versions prior to 2.0.0, this option is called `linstor_default_uri`
+NOTE: In driver versions before 2.0.0, this option is called `linstor_default_uri`
 
 <4> If <<s-linstor-rest-api-https,HTTPS is enabled>> the referenced certificate is used to verify the LINSTOR Controller authenticity.
 
 <5> If <<s-linstor-rest-api-https,HTTPS is enabled>> the referenced key and certificate will be presented to the LINSTOR Controller for authentication.
 
-<6> *Deprecated in 2.0.0, use <<s-openstack-volume-types,volume types>> instead.* The storage pools to use when placing resources. Applies to all diskfull resources created. Defaults to `DfltStorPool`.
+<6> *Deprecated in 2.0.0, use <<s-openstack-volume-types,volume types>> instead.* The storage pools to use when placing resources. Applies to all diskful resources created. Defaults to `DfltStorPool`.
 
 <7> *Removed in 2.0.0, use <<s-openstack-volume-types,volume types>> instead.* The number of replicas to create for the given volume. A value of `0` will create a replica on all nodes. Defaults to `0`.
 
-<8> *Removed in 2.0.0, volumes are created on demand by the driver.* If set to true, ensures that at least one (diskless) replica is deployed on the Cinder Controller host. This is useful for ISCSI transports. Defaults to `true`.
+<8> *Removed in 2.0.0, volumes are created on-demand by the driver.* If set to true, ensures that at least one (diskless) replica is deployed on the Cinder Controller host. This is useful for ISCSI transports. Defaults to `true`.
 
 <9> You can specify more generic Cinder options here, for example `target_helper = tgtadm` for the ISCSI connector.
 
@@ -390,9 +390,9 @@ node running the iSCSI daemon crashes, other nodes lose access to their volumes.
 There are ways to configure Cinder for automatic fail-over to mitigate this, but
 it requires considerable effort.
 
-NOTE: In driver versions prior to 2.0.0, the Cinder host needs access to a local replica of every volume. This can be
+NOTE: In driver versions before 2.0.0, the Cinder host needs access to a local replica of every volume. This can be
 achieved by either setting `linstor_controller_diskless=True` or using `linstor_autoplace_count=0`. Newer driver
-versions will create such a volume on demand.
+versions will create such a volume on-demand.
 
 [[s-openstack-linstor-backend-status]]
 ==== Verifying the Status of LINSTOR Back Ends
@@ -413,8 +413,7 @@ $ openstack volume service list
 
 If you have the Horizon GUI deployed, check `Admin > System Information > Block Storage Service` instead.
 
-In the above example all configured services are `enabled` and `up`. If there are any issues, please check
-the logs of the Cinder Volume service.
+In the above example all configured services are `enabled` and `up`. If there are any issues, examine the logs of the Cinder Volume service.
 
 [[s-openstack-volume-types]]
 === Creating a New Volume Type for LINSTOR
@@ -464,34 +463,34 @@ and delete properties.
 
 ===== Available Volume Type Properties
 
-linstor:diskless_on_remaining::
+`linstor:diskless_on_remaining`::
 Create diskless replicas on non-selected nodes after auto-placing.
 
-linstor:do_not_place_with_regex::
-Do not place the resource on a node which has a resource with a name matching the regex.
+`linstor:do_not_place_with_regex`::
+Do not place the resource on a node which has a resource with a name matching the regular expression.
 
-linstor:layer_list::
+`linstor:layer_list`::
 Comma-separated list of layers to apply for resources. If empty, defaults to DRBD,Storage.
 
-linstor:provider_list::
+`linstor:provider_list`::
 Comma-separated list of providers to use. If empty, LINSTOR will automatically choose a suitable provider.
 
-linstor:redundancy::
+`linstor:redundancy`::
 Number of replicas to create. Defaults to two.
 
-linstor:replicas_on_different::
+`linstor:replicas_on_different`::
 A comma-separated list of key or key=value items used as autoplacement selection labels when autoplace is used to
 determine where to provision storage.
 
-linstor:replicas_on_same::
+`linstor:replicas_on_same`::
 A comma-separated list of key or key=value items used as autoplacement selection labels when autoplace is used to
 determine where to provision storage.
 
-linstor:storage_pool::
+`linstor:storage_pool`::
 Comma-separated list of storage pools to use when auto-placing.
 
 [subs="quotes"]
-linstor:property:__<key>__::
+`linstor:property:__<key>__`::
 If a __<key>__ is prefixed by `linstor:property:`, it is interpreted as a LINSTOR property. The property gets set on the <<s-linstor-resource-groups,Resource Group>>
 created for the volume type.
 +
