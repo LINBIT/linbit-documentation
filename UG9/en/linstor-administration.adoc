@@ -512,6 +512,9 @@ volume group UUID as the shared space identifier for a pool accessible by nodes 
 
 Exos pools will use the Exos pool serial number by default for the shared-space identifier.
 
+IMPORTANT: As of the release of `linstor-server` v1.26.0, the Exos integration for LINSTOR is
+deprecated.
+
 [[s-physical-storage-command]]
 ==== Creating Storage Pools by Using the Physical Storage Command
 
@@ -1433,107 +1436,6 @@ IMPORTANT: If your nodes have more than one NIC you should force the
 route between them for NVMe-of/NVME-TCP, otherwise multiple NICs
 could cause troubles.
 
-[[s-openflex]]
-==== OpenFlex(TM) Layer
-
-Since version 1.5.0 the additional Layer `openflex` can be used in LINSTOR.
-From LINSTOR's perspective, the
-https://www.westerndigital.com/products/storage-platforms/openflex-composable-infrastructure[OpenFlex
-Composable Infrastructure] takes the role of a combined layer acting as a
-storage layer (like LVM) and also providing the allocated space as an NVMe target.
-OpenFlex has a REST API which is also used by LINSTOR to operate with.
-
-As OpenFlex combines concepts of LINSTOR's storage and NVMe-layer, LINSTOR was
-added both, a new storage driver for the storage pools and a dedicated `openflex`
-layer which uses the mentioned REST API.
-
-In order for LINSTOR to communicate with the OpenFlex-API, LINSTOR needs some additional
-properties, which can be set once on `controller` level to take LINSTOR-cluster wide effect:
-
-* `StorDriver/Openflex/ApiHost` specifies the host or IP of the API entry-point
-* `StorDriver/Openflex/ApiPort` this property is glued with a colon to the previous to form
-the basic `http://ip:port` part used by the REST calls `StorDriver/Openflex/UserName` the
-REST username
-* `StorDriver/Openflex/UserPassword` the password for the REST user
-
-Once that is configured, we can now create LINSTOR objects to represent the OpenFlex architecture.
-The theoretical mapping of LINSTOR objects to OpenFlex objects are as follows:
-Obviously an OpenFlex storage pool is represented by a LINSTOR storage pool. As the next thing above
-a LINSTOR storage pool is already the node, a LINSTOR node represents an OpenFlex storage device.
-The OpenFlex objects above storage device are not mapped by LINSTOR.
-
-When using NVMe, LINSTOR was designed to run on both sides, the NVMe target and on the
-NVMe initiator side. In the case of OpenFlex, LINSTOR cannot (or even should not) run on the NVMe
-target side as that is completely managed by OpenFlex. As LINSTOR still needs nodes and storage pools
-to represent the OpenFlex counterparts, the LINSTOR client was extended with special node create commands
-since 1.0.14. These commands not only accept additionally needed configuration data, but also
-starts a "special satellite" besides the already running controller instance. These special satellites
-are completely LINSTOR managed. They will shut down when the controller shuts down and will be started
-again when the controller starts.
-
-The new client command for creating a "special satellite" representing an OpenFlex storage device is:
-
-----
-$ linstor node create-openflex-target ofNode1 192.168.166.7 000af795789d
-----
-
-The arguments are as follows:
-
-* `ofNode1` is the node name which is also used by the standard `linstor node create` command
-* `192.168.166.7` is the address on which the provided NVMe devices can be accessed. As the NVMe
-devices are accessed by a dedicated network interface, this address differs from the address
-specified with the property `StorDriver/Openflex/ApiHost`. The latter is used for the
-management / REST API.
-* `000af795789d` is the identifier for the OpenFlex storage device.
-
-The last step of the configuration is the creation of LINSTOR storage pools:
-
-----
-$ linstor storage-pool create openflex ofNode1 sp0 0
-----
-
-* `ofNode1` and `sp0` are the node name and storage pool name, respectively, just as usual for
-the LINSTOR's `create storage pool` command
-
-* The last `0` is the identifier of the OpenFlex storage pool within the previously defined
-storage device
-
-Once all necessary storage pools are created in LINSTOR, the next steps are similar to
-the usage of using an NVMe resource with LINSTOR. Here is a complete example:
-
-----
-# set the properties once
-linstor controller set-property StorDriver/Openflex/ApiHost 10.43.7.185
-linstor controller set-property StorDriver/Openflex/ApiPort 80
-linstor controller set-property StorDriver/Openflex/UserName myusername
-linstor controller set-property StorDriver/Openflex/UserPassword mypassword
-
-# create a node for openflex storage device "000af795789d"
-linstor node create-openflex-target ofNode1 192.168.166.7 000af795789d
-
-# create a usual linstor satellite. later used as nvme initiator
-linstor node create bravo
-
-# create a storage pool for openflex storage pool "0" within storage device "000af795789d"
-linstor storage-pool create openflex ofNode1 sp0 0
-
-# create resource- and volume-definition
-linstor resource-definition create backupRsc
-linstor volume-definition create backupRsc 10G
-
-# create openflex-based nvme target
-linstor resource create ofNode1 backupRsc --storage-pool sp0 --layer-list openflex
-
-# create openflex-based nvme initiator
-linstor resource create bravo backupRsc --nvme-initiator --layer-list openflex
-----
-
-NOTE: In case a node should access the OpenFlex REST API through a different host than specified with +
-`linstor controller set-property StorDriver/Openflex/ApiHost 10.43.7.185` you can always use LINSTOR's
-inheritance mechanism for properties. That means simply define the same property on the node-level
-you need it, i.e. +
-`linstor node set-property ofNode1 StorDriver/Openflex/ApiHost 10.43.8.185`
-
 [[s-writecache-layer]]
 ==== Writecache Layer
 
@@ -1651,10 +1553,7 @@ support following properties for fine-tuning:
 file in a given directory and will configure a
 https://man7.org/linux/man-pages/man4/loop.4.html[loop device] on top of that file.
 
-* OpenFlex: This special storage provider currently requires to be run on a "special satellite".
-Refer to <<s-openflex, OpenFlex(TM) Layer>> for more details.
-
-* EXOS: This special storage provider is currently required to be run on a "special satellite".
+* Exos [DEPRECATED]: This special storage provider is currently required to be run on a "special satellite".
 Refer to the <<ch-exos, EXOS Integration>> chapter.
 
 * SPDK: The administrator is expected to specify the logical volume store which LINSTOR should
