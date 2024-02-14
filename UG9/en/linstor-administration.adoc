@@ -362,7 +362,6 @@ file:
 Alternatively you can create the `/etc/linstor/linstor-client.conf`
 file and populate it like below.
 
-
 ----
 [global]
 controllers=alice
@@ -370,7 +369,7 @@ controllers=alice
 
 If you have multiple LINSTOR controllers configured you can simply
 specify them all in a comma-separated list. The LINSTOR client will
-simply try them in the order listed.
+try them in the order listed.
 
 NOTE: The LINSTOR client commands can also be used in a much faster
 and convenient way by only writing the starting letters of the parameters
@@ -384,23 +383,34 @@ The next step is to add nodes to your LINSTOR cluster.
 # linstor node create bravo 10.43.70.3
 ----
 
-If the IP is omitted, the client will try to resolve the given node-name as
-host-name by itself.
+If you omit the IP address, the LINSTOR client will try to resolve the specified node name, `bravo` in the preceding example, as a hostname. If the hostname does not resolve to a host on the network from the system where the LINSTOR controller service is running, then LINSTOR will show an error message when you try to create the node:
 
-LINSTOR will automatically detect the node's local `uname -n` which is
-later used for the DRBD-resource.
+----
+Unable to resolve ip address for 'bravo': [Errno -3] Temporary failure in name resolution
+----
 
-When you use `linstor node list` you will see that the new node
-is marked as offline. Now start and enable the linstor-satellite on that node
+[[s-linstor-naming-nodes]]
+==== Naming LINSTOR Nodes
+
+If you specify an IP address when you create a LINSTOR node, you can give your node an arbitrary name. The LINSTOR client will show an INFO message about this when you create the node:
+
+----
+    [...] 'arbitrary-name' and hostname 'node-1' doesn't match.
+----
+
+LINSTOR will automatically detect the created node's local `uname --nodename` which will be
+later used for DRBD resource configurations, rather than the arbitrary node name. To avoid confusing yourself and possibly others, in most cases, it would make sense to just use a node's hostname when creating a LINSTOR node.
+
+[[s-linstor-satellite-node-starting-and-enabling]]
+==== Starting and Enabling a LINSTOR Satellite Node
+
+When you use `linstor node list` LINSTOR will show that the new node
+is marked as offline. Now start and enable the LINSTOR satellite service on the new node
 so that the service comes up on reboot as well:
 
 ----
 # systemctl enable --now  linstor-satellite
 ----
-
-You can also use `systemctl start linstor-satellite`
-if you are sure that the service is already enabled as default and comes up on
-reboot.
 
 About 10 seconds later you will see the status in `linstor node list`
 becoming online. Of course the satellite process might be started before
@@ -417,6 +427,19 @@ corresponding `.service` file and change `Type=simple` to `Type=notify`.
 This will cause the satellite to delay sending the `READY=1` message to systemd
 until the controller connects, sends all required data to the satellite and the
 satellite at least tried once to get the devices up and running.
+
+[[s-linstor-specifying-node-type]]
+==== Specifying LINSTOR Node Types
+
+When you create a LINSTOR node, you can also specify a node type. Node type is a label that indicates the role that the node serves within your LINSTOR cluster. Node type can be one of `controller`, `auxiliary`, `combined`, or `satellite`. For example to create a LINSTOR node and label it as a controller and a satellite node, enter the following command:
+
+----
+# linstor node create bravo 10.43.70.3 --node-type combined
+----
+
+The `--node-type` argument is optional. If you do not specify a node type when you create a node, LINSTOR will use a default type of satellite.
+
+If you want to change a LINSTOR node's assigned type after creating the node, you can enter a `linstor node modify --node-type` command.
 
 [[s-storage_pools]]
 === Storage Pools
