@@ -15,8 +15,11 @@ Operator.
 IMPORTANT: During the upgrade process, the LINSTOR satellite pods will restart. This will stop replication of DRBD
 devices, freezing any writes on volumes, until the satellite pods are online again.
 
-To upgrade, change the tag referenced in the kustomization file:
+How you upgrade LINBIT SDS depends on your original deployment method:
 
+* If you used the <<s-kubernetes-creating-operator-v2-kustomize, `kustomize` route>>, apply the upgrade by changing the
+  resource link in your `kustomization.yaml` file.
++
 .kustomization.yaml
 [source,yaml]
 ----
@@ -24,23 +27,39 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: linbit-sds
 resources:
-- https://charts.linstor.io/static/v2.2.0.yaml
+  - https://charts.linstor.io/static/v2.4.0.yaml # <1>
 generatorOptions:
   disableNameSuffixHash: true
 secretGenerator:
-- name: drbdio-pull-secret
-  type: kubernetes.io/dockerconfigjson
-  literals:
-  - .dockerconfigjson={"auths":{"drbd.io":{"username":"MY_LINBIT_USER","password":"MY_LINBIT_PASSWORD"}}}
+  - name: drbdio-pull-secret
+    type: kubernetes.io/dockerconfigjson
+    literals:
+      - .dockerconfigjson={"auths":{"drbd.io":{"username":"MY_LINBIT_USER","password":"MY_LINBIT_PASSWORD"}}} # <2>
 ----
-
+<1> Replace with the latest release manifest from link:https://charts.linstor.io/[charts.linstor.io].
+<2> Replace `MY_LINBIT_USER` and `MY_LINBIT_PASSWORD` with your link:https://my.linbit.com/[my.linbit.com] credentials.
++
 Then, apply the `kustomization.yaml` file, by using the following `kubectl` command, and wait for the upgrade to complete:
-
++
 ----
 $ kubectl apply -k .
-namespace/linbit-sds created
+namespace/linbit-sds applied
 [...]
 $ kubectl -n linbit-sds  wait pod --for=condition=Ready --all
+pod/linstor-operator-controller-manager-6d9847d857-zc985 condition met
+[...]
+----
+
+* If you used the <<s-kubernetes-creating-operator-helm, Helm route>>, apply the upgrade by upgrading the `linstor-operator`
+  Helm chart.
++
+----
+$ helm repo update
+[...]
+Update Complete. ⎈Happy Helming!⎈
+$ helm install linstor-operator linstor/linstor-operator --wait
+Release "linstor-operator" has been upgraded. Happy Helming!
+[...]
 ----
 
 ==== Upgrading LINSTOR Operator v1
@@ -202,6 +221,36 @@ $ helm upgrade linstor-op charts/piraeus --set operator.controller.controllerIma
 ==== Upgrading Instructions for Specific Versions
 
 Some versions require special steps, see below.
+
+===== Upgrading to v2.4
+
+No additional steps necessary.
+
+LINSTOR Satellites are now managed via DaemonSet resources. Any patch targeting a `satellite` Pod resources is
+automatically converted to the equivalent DaemonSet resource patch. In the Pod list, you will see these Pods using
+a new `linstor-satellite` prefix.
+
+===== Upgrading to v2.3
+
+Version v2.3 removed the `NetworkPolicy` resource from default deployment. To clean up existing `NetworkPolicy`
+resources, run the following command:
+
+----
+$ kubectl delete networkpolicy -n linbit-sds satellite
+----
+
+===== Upgrading to v2.2
+
+Version v2.2 removed the dependency on cert-manager for the initial deployment. To clean up existing `Certificate`
+resource, run the following command:
+
+----
+$ kubectl delete certificate -n linbit-sds linstor-operator-serving-cert
+----
+
+===== Upgrading to v2.1
+
+No additional steps necessary.
 
 ===== Upgrading to 1.10
 
