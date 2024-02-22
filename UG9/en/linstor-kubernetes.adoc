@@ -2708,25 +2708,25 @@ WARNING: During this procedure, ensure that no new volumes or snapshots are crea
 First, you need to temporarily stop all DRBD replication and suspend all DRBD volume I/O operations by using the `drbdadm suspend-io all` command. Enter the command once on each LINSTOR satellite pod.
 
 ----
-$ kubectl exec node1.example.com -- drbdadm suspend-io all
-$ kubectl exec node2.example.com -- drbdadm suspend-io all
-$ kubectl exec node3.example.com -- drbdadm suspend-io all
+$ kubectl exec ds/linstor-satellite.node1.example.com -- drbdadm suspend-io all
+$ kubectl exec ds/linstor-satellite.node2.example.com -- drbdadm suspend-io all
+$ kubectl exec ds/linstor-satellite.node3.example.com -- drbdadm suspend-io all
 ----
 
 Next, disconnect all DRBD connections on all nodes.
 
 ----
-$ kubectl exec node1.example.com -- drbdadm disconnect --force all
-$ kubectl exec node2.example.com -- drbdadm disconnect --force all
-$ kubectl exec node3.example.com -- drbdadm disconnect --force all
+$ kubectl exec ds/linstor-satellite.node1.example.com -- drbdadm disconnect --force all
+$ kubectl exec ds/linstor-satellite.node2.example.com -- drbdadm disconnect --force all
+$ kubectl exec ds/linstor-satellite.node3.example.com -- drbdadm disconnect --force all
 ----
 
 Next, you can safely reset all DRBD connection paths. This frees the connection on each node to be moved to the container network.
 
 ----
-$ kubectl exec node1.example.com -- drbdadm del-path all
-$ kubectl exec node2.example.com -- drbdadm del-path all
-$ kubectl exec node3.example.com -- drbdadm del-path all
+$ kubectl exec ds/linstor-satellite.node1.example.com -- drbdadm del-path all
+$ kubectl exec ds/linstor-satellite.node2.example.com -- drbdadm del-path all
+$ kubectl exec ds/linstor-satellite.node3.example.com -- drbdadm del-path all
 ----
 
 Finally, remove the `LinstorSatelliteConfiguration` resource configuration that set `hostNetwork: true`. This will result in the creation of new LINSTOR satellite pods that use the container network.
