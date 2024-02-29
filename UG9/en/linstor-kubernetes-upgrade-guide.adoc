@@ -7,19 +7,25 @@ upgrade an existing LINSTOR Operator v1 deployment in Kubernetes to an Operator 
 WARNING: During the upgrade process, attaching, detaching or provisioning of volumes will be
 paused. Existing volumes and volumes already in use by a pod will continue to work.
 
+[[s-kubernetes-upgrade-operator-v2]]
 ==== Upgrading LINSTOR Operator v2
 
-If you deployed LINSTOR using Operator v2, you can upgrade LINBIT SDS by deploying the newer version of LINSTOR
-Operator.
+If you deployed LINSTOR using Operator v2, you can upgrade LINBIT SDS by deploying the newer
+version of LINSTOR Operator.
 
-IMPORTANT: During the upgrade process, the LINSTOR satellite pods will restart. This will stop replication of DRBD
-devices, freezing any writes on volumes, until the satellite pods are online again.
+IMPORTANT: During the upgrade process, the LINSTOR satellite pods will restart. This will stop
+replication of DRBD devices, freezing any writes on volumes, until the satellite pods are online
+again.
 
-How you upgrade LINBIT SDS depends on your original deployment method:
+How you upgrade LINBIT SDS depends on your original deployment method.
 
-* If you used the <<s-kubernetes-creating-operator-v2-kustomize, `kustomize` route>>, apply the upgrade by changing the
-  resource link in your `kustomization.yaml` file.
-+
+[[s-kubernetes-upgrade-operator-v2-kustomize]]
+===== Upgrading LINSTOR Operator v2 by Using `kustomize`
+
+If you deployed LINBIT SDS by using <<s-kubernetes-creating-operator-v2-kustomize,
+`kustomize`>>, upgrade to a new LINSTOR Operator version by changing the resource link in your
+`kustomization.yaml` file.
+
 .kustomization.yaml
 [source,yaml]
 ----
@@ -38,9 +44,10 @@ secretGenerator:
 ----
 <1> Replace with the latest release manifest from link:https://charts.linstor.io/[charts.linstor.io].
 <2> Replace `MY_LINBIT_USER` and `MY_LINBIT_PASSWORD` with your link:https://my.linbit.com/[my.linbit.com] credentials.
-+
-Then, apply the `kustomization.yaml` file, by using the following `kubectl` command, and wait for the upgrade to complete:
-+
+
+Then, apply the `kustomization.yaml` file, by using the following `kubectl` command, and wait
+for the upgrade to complete:
+
 ----
 $ kubectl apply -k .
 namespace/linbit-sds applied
@@ -50,9 +57,11 @@ pod/linstor-operator-controller-manager-6d9847d857-zc985 condition met
 [...]
 ----
 
-* If you used the <<s-kubernetes-creating-operator-helm, Helm route>>, apply the upgrade by upgrading the `linstor-operator`
-  Helm chart.
-+
+[[s-kubernetes-upgrade-operator-v2-helm]]
+===== Upgrading LINSTOR Operator v2 by Using Helm
+
+If you used <<s-kubernetes-creating-operator-helm,Helm>>, to deploy LINBIT SDS, upgrade to a new Operator version by upgrading the `linstor-operator` Helm chart.
+
 ----
 $ helm repo update
 [...]
@@ -64,10 +73,12 @@ Release "linstor-operator" has been upgraded. Happy Helming!
 
 ==== Upgrading LINSTOR Operator v1
 
-Before upgrading to a new release, you should ensure you have an up-to-date backup of the LINSTOR database.
-If you are using the etcd database packaged in the LINSTOR Chart, see <<s-kubernetes-etcd-backup,here>>
+Before upgrading to a new release, you should ensure you have an up-to-date backup of the
+LINSTOR database. If you are using the etcd database packaged in the LINSTOR Chart, see
+<<s-kubernetes-etcd-backup,here>>.
 
-IMPORTANT: Upgrades using the LINSTOR etcd deployment require etcd to use persistent storage. Only follow these steps if etcd was deployed using `etcd.persistentVolume.enabled=true`
+IMPORTANT: Upgrades using the LINSTOR etcd deployment require etcd to use persistent storage.
+Only follow these steps if etcd was deployed using `etcd.persistentVolume.enabled=true`
 
 Upgrades will update to new versions of the following components:
 
@@ -78,16 +89,17 @@ Upgrades will update to new versions of the following components:
 * etcd
 * Stork
 
-Some versions require special steps, refer to instructions <<s-kubernetes-upgrade-version,here>>
-The main command to upgrade to a new LINSTOR Operator version is:
+Some versions require special steps, refer to instructions
+<<s-kubernetes-upgrade-version,here>>. The main command to upgrade to a new LINSTOR Operator
+version is:
 
 ----
 helm repo update
 helm upgrade linstor-op linstor/linstor
 ----
 
-If you used any customizations on the initial install, pass the same options to `helm upgrade`. The options currently
-in use can be retrieved from Helm.
+If you used any customizations on the initial install, pass the same options to `helm upgrade`.
+The options currently in use can be retrieved from Helm.
 
 ----
 # Retrieve the currently set options
@@ -114,7 +126,8 @@ $ helm upgrade linstor-op linstor/linstor -f orig.yaml
 ----
 
 This triggers the rollout of new pods. After a short wait, all pods should be running and ready.
-Check that no errors are listed in the status section of LinstorControllers, LinstorSatelliteSets and LinstorCSIDrivers.
+Check that no errors are listed in the status section of LinstorControllers,
+LinstorSatelliteSets and LinstorCSIDrivers.
 
 [[s-kubernetes-upgrade-k8s-operator-v1-to-v2]]
 ==== Upgrading LINSTOR Operator v1 to LINSTOR Operator v2
@@ -131,16 +144,19 @@ out your new deployment.
 [[s-kubernetes-upgrade-k8s-backend]]
 ==== Upgrading a LINSTOR Cluster with Kubernetes Back End
 
-The LINSTOR Operator will create a backup of the database before upgrading. This makes it possible to roll back to a
-known state should something go wrong during the upgrade.
+The LINSTOR Operator will create a backup of the database before upgrading. This makes it
+possible to roll back to a known state should something go wrong during the upgrade.
 
-There are situations in which the Operator can't create the backup automatically. This might be because:
+There are situations in which the Operator can't create the backup automatically. This might be
+because:
 
-* The base version of the chart or operator is too old. Automatic backups are available starting with version 1.8.0
-  If upgrading from a version before 1.8.0, follow the manual steps in the next section.
-* The backup is too large to fit into a Kubernetes secret. In this case an error is reported in the status field
-  of the `LinstorController` resources. Follow the instructions by copying the created backup to a safe location and
-  creating the necessary secret.
+* The base version of the chart or operator is too old. Automatic backups are available starting
+with version 1.8.0 If upgrading from a version before 1.8.0, follow the manual steps in the next
+section.
+
+* The backup is too large to fit into a Kubernetes secret. In this case an error is reported in
+the status field of the `LinstorController` resources. Follow the instructions by copying the
+created backup to a safe location and creating the necessary secret.
 +
 ----
 kubectl cp <linstor-operator-pod>:/run/linstor-backups/linstor-backup-<some-hash>.tar.gz <destination-path>
@@ -226,14 +242,14 @@ Some versions require special steps, see below.
 
 No additional steps necessary.
 
-LINSTOR Satellites are now managed via DaemonSet resources. Any patch targeting a `satellite` Pod resources is
-automatically converted to the equivalent DaemonSet resource patch. In the Pod list, you will see these Pods using
-a new `linstor-satellite` prefix.
+LINSTOR Satellites are now managed via DaemonSet resources. Any patch targeting a `satellite`
+Pod resources is automatically converted to the equivalent DaemonSet resource patch. In the Pod
+list, you will see these Pods using a new `linstor-satellite` prefix.
 
 ===== Upgrading to v2.3
 
-Version v2.3 removed the `NetworkPolicy` resource from default deployment. To clean up existing `NetworkPolicy`
-resources, run the following command:
+Version v2.3 removed the `NetworkPolicy` resource from default deployment. To clean up existing
+`NetworkPolicy` resources, run the following command:
 
 ----
 $ kubectl delete networkpolicy -n linbit-sds satellite
@@ -241,8 +257,8 @@ $ kubectl delete networkpolicy -n linbit-sds satellite
 
 ===== Upgrading to v2.2
 
-Version v2.2 removed the dependency on cert-manager for the initial deployment. To clean up existing `Certificate`
-resource, run the following command:
+Version v2.2 removed the dependency on cert-manager for the initial deployment. To clean up
+existing `Certificate` resource, run the following command:
 
 ----
 $ kubectl delete certificate -n linbit-sds linstor-operator-serving-cert
@@ -254,8 +270,9 @@ No additional steps necessary.
 
 ===== Upgrading to 1.10
 
-Version 1.10 introduces an option to share DRBD configuration between host and container. If you need
-this option, you have to update the CRDs. Because Helm does not upgrade CRDs on chart upgrade, instead enter the following commands:
+Version 1.10 introduces an option to share DRBD configuration between host and container. If you
+need this option, you have to update the CRDs. Because Helm does not upgrade CRDs on chart
+upgrade, instead enter the following commands:
 
 ----
 $ helm repo update
@@ -268,8 +285,9 @@ customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbi
 
 ===== Upgrading to 1.9
 
-Version 1.9 disables the <<s-kubernetes-ha-controller,LINSTOR HA Controller>> deployment by default. The deployment has
-moved out of the LINSTOR Operator chart. If you want to keep using the old version, enable it again using this Helm command:
+Version 1.9 disables the <<s-kubernetes-ha-controller,LINSTOR HA Controller>> deployment by
+default. The deployment has moved out of the LINSTOR Operator chart. If you want to keep using
+the old version, enable it again using this Helm command:
 
 ----
 helm upgrade linstor-op linstor/linstor ... --set haController.enabled=true
@@ -296,9 +314,9 @@ $ kubectl get secret linstor-op-passphrase \
 NOTE: This upgrade requires a complete rebuild of the K8s database, so upgrades might take
 longer than normal.
 
-Version
-1.8 introduces new options to centrally set the log level and number of worker threads for the CSI driver. If you need
-these options, you have to update the CRDs. As Helm does not upgrade CRDs on chart upgrade, instead enter the following commands:
+Version 1.8 introduces new options to centrally set the log level and number of worker threads
+for the CSI driver. If you need these options, you have to update the CRDs. As Helm does not
+upgrade CRDs on chart upgrade, instead enter the following commands:
 
 ----
 $ helm repo update
@@ -334,10 +352,11 @@ No additional steps necessary.
 
 ===== Upgrading to v1.6
 
-This versions introduces a new option to support Kubernetes distributions which use different state directories than the
-default of `/var/lib/kubelet`. A notable example is microk8s, which uses `/var/snap/microk8s/common/var/lib/kubelet`.
-To support this, a small addition to the `LinstorCSIDriver` CRD was necessary. As Helm does not upgrade CRDs on chart
-upgrade, instead enter the following commands:
+This versions introduces a new option to support Kubernetes distributions which use different
+state directories than the default of `/var/lib/kubelet`. A notable example is microk8s, which
+uses `/var/snap/microk8s/common/var/lib/kubelet`. To support this, a small addition to the
+`LinstorCSIDriver` CRD was necessary. As Helm does not upgrade CRDs on chart upgrade, instead
+enter the following commands:
 
 ----
 $ helm repo update
@@ -354,15 +373,16 @@ If you do not apply the new CRDs, you will get errors such as the following:
 Error: UPGRADE FAILED: error validating "": error validating data: ValidationError(LinstorCSIDriver.spec): unknown field "kubeletPath" in com.linbit.linstor.v1.LinstorCSIDriver.spec
 ----
 
-If you previously used the included snapshot-controller to process `VolumeSnapshot` resources, you should replace it
-with the new charts provided by the Piraeus project. The <<s-kubernetes-add-snaphot-support,section on snapshots>> has
-been updated to include instructions on how you can add the snapshot-controller to your cluster.
+If you previously used the included snapshot-controller to process `VolumeSnapshot` resources,
+you should replace it with the new charts provided by the Piraeus project. The
+<<s-kubernetes-add-snaphot-support,section on snapshots>> has been updated to include
+instructions on how you can add the snapshot-controller to your cluster.
 
 ===== Upgrading to v1.5
 
-This version introduces a <<s-kubernetes-monitoring,monitoring>> component for DRBD resources. This requires a new image
-and a replacement of the existing `LinstorSatelliteSet` CRD. Helm does not upgrade the CRDs on a chart upgrade,
-instead enter the following commands:
+This version introduces a <<s-kubernetes-monitoring,monitoring>> component for DRBD resources.
+This requires a new image and a replacement of the existing `LinstorSatelliteSet` CRD. Helm does
+not upgrade the CRDs on a chart upgrade, instead enter the following commands:
 
 ----
 $ helm repo update
@@ -373,26 +393,30 @@ customresourcedefinition.apiextensions.k8s.io/linstorcsidrivers.linstor.linbit.c
 customresourcedefinition.apiextensions.k8s.io/linstorsatellitesets.linstor.linbit.com replaced
 ----
 
-If you do not plan to use the provided <<s-kubernetes-monitoring,monitoring>> you still need to apply the above steps,
-otherwise you will get an error such as the following:
+If you do not plan to use the provided <<s-kubernetes-monitoring,monitoring>> you still need to
+apply the above steps, otherwise you will get an error such as the following:
 
 ----
 Error: UPGRADE FAILED: error validating "": error validating data: ValidationError(LinstorSatelliteSet.spec): unknown field "monitoringImage" in com.linbit.linstor.v1.LinstorSatelliteSet.spec
 ----
 
-NOTE: Some Helm versions fail to set the monitoring image even after replacing the CRDs. In that case, the in-cluster
-LinstorSatelliteSet will show an empty `monitoringImage` value. Edit the resource using
-`kubectl edit linstorsatellitesets` and set the value to `drbd.io/drbd-reactor:v0.3.0` to enable monitoring.
+NOTE: Some Helm versions fail to set the monitoring image even after replacing the CRDs. In that
+case, the in-cluster LinstorSatelliteSet will show an empty `monitoringImage` value. Edit the
+resource using `kubectl edit linstorsatellitesets` and set the value to
+`drbd.io/drbd-reactor:v0.3.0` to enable monitoring.
 
 ===== Upgrading to v1.4
 
-This version introduces a new default version for the etcd image, so take extra care that etcd is using
-persistent storage. *Upgrading the etcd image without persistent storage will corrupt the cluster*.
+This version introduces a new default version for the etcd image, so take extra care that etcd
+is using persistent storage. *Upgrading the etcd image without persistent storage will corrupt
+the cluster*.
 
-If you are upgrading an existing cluster without making use of new Helm options, no additional steps are necessary.
+If you are upgrading an existing cluster without making use of new Helm options, no additional
+steps are necessary.
 
-If you plan to use the newly introduced `additionalProperties` and `additionalEnv` settings, you have to replace
-the installed CustomResourceDefinitions with newer versions. Helm does not upgrade the CRDs on a chart upgrade
+If you plan to use the newly introduced `additionalProperties` and `additionalEnv` settings, you
+have to replace the installed CustomResourceDefinitions with newer versions. Helm does not
+upgrade the CRDs on a chart upgrade
 
 ----
 $ helm pull linstor/linstor --untar
@@ -408,10 +432,12 @@ No additional steps necessary.
 
 ===== Upgrading to v1.2
 
-LINSTOR Operator v1.2 is supported on Kubernetes 1.17+. If you are using an older Kubernetes distribution, you might need
-to change the default settings, for example [the CSI provisioner](https://kubernetes-csi.github.io/docs/external-provisioner.html).
+LINSTOR Operator v1.2 is supported on Kubernetes 1.17+. If you are using an older Kubernetes
+distribution, you might need to change the default settings, for example [the CSI
+provisioner](https://kubernetes-csi.github.io/docs/external-provisioner.html).
 
-There is a known issue when updating the CSI components: the pods will not be updated to the newest image and the
-`errors` section of the LinstorCSIDrivers resource shows an error updating the DaemonSet. In this case, manually
-delete `deployment/linstor-op-csi-controller` and `daemonset/linstor-op-csi-node`. They will be re-created by the Operator.
+There is a known issue when updating the CSI components: the pods will not be updated to the
+newest image and the `errors` section of the LinstorCSIDrivers resource shows an error updating
+the DaemonSet. In this case, manually delete `deployment/linstor-op-csi-controller` and
+`daemonset/linstor-op-csi-node`. They will be re-created by the Operator.
 
