@@ -540,3 +540,24 @@ After you have committed this configuration, Pacemaker will
 automatically make the `r0` volume group available on whichever node
 currently has the Primary (Master) role for the DRBD resource.
 endif::drbd-only[]
+
+=== Using DRBD and LVM Without a Cluster Resource Manager
+
+The typical high availability use case for DRBD is to use a cluster resource manager (CRM) to handle the promoting and demoting of resources, such as DRBD replicated storage volumes. However, it is possible to use DRBD without a CRM.
+
+You might want to do this in a situation when you know that you always want a particular node to promote a DRBD resource and you know that the peer nodes are never going to take over but are only being replicated to for disaster recovery purposes.
+
+In this case, you can use a couple of systemd unit files to handle DRBD resource promotion and make sure that back-end LVM logical volumes are activated first. You also need to make the DRBD systemd unit file for your DRBD resource a dependency of whatever file system mount might be using the DRBD resource as a backing device.
+
+To set this up, for example, given a hypothetical DRBD resource named `webdata` and a file system mount point of `/var/lib/www`, you might enter the following commands:
+
+----
+# systemctl enable drbd-lvchange@webdata.service
+# systemctl enable drbd-wait-promotable@webdata.service
+# echo "/dev/drbdX /var/lib/www xfs defaults,nofail,x-systemd.requires=drbd@webdata.target 0 0" >> /etc/fstab
+----
+
+In this example, the `X` in `drbdX` is the volume number of your DRBD backing device for the `webdata` resource.
+
+The `drbd-wait-promotable@<DRBD-resource-name>.service` is a systemd unit file that is used to wait for DRBD to connect to its peers and establish access to good data, before DRBD promotes the resource on the node.
+
