@@ -1,26 +1,26 @@
 [[ch-linstor-gateway]]
-== LINSTOR Gateway for Highly Available NFS/iSCSI/NVMe-oF Storage
+== LINSTOR Gateway for Highly Available NFS, iSCSI, or NVMe-oF Storage
 
 *LINSTOR Gateway* manages highly available NVMe-oF targets, iSCSI targets, and NFS exports by leveraging both
-LINSTOR and DRBD Reactor.
+LINSTOR(R) and DRBD Reactor.
 
 [[s-linstor-gateway-requirements]]
 === LINSTOR Gateway Requirements
 
-Before you can use LINSTOR Gateway, you will need to have an initialized LINSTOR cluster, with DRBD Reactor, as well as NVMe-oF, NFS, iSCSI utilities
+Before you can use LINSTOR Gateway, you will need to have an initialized LINSTOR cluster, with DRBD Reactor, and NVMe-oF, NFS, iSCSI utilities
 installed and configured. The following sections detail how to meet these requirements.
 
 ==== LINSTOR Cluster
 
 The LINSTOR cluster needs to be set up as a prerequisite to using LINSTOR Gateway. For more detail regarding
-LINSTOR's configuration options, please refer to the
-https://linbit.com/drbd-user-guide/LINSTOR-guide-1_0-en/#s-storage_pools[LINSTOR User's Guide].
+LINSTOR's configuration options, refer to the
+https://linbit.com/drbd-user-guide/LINSTOR-guide-1_0-en/#s-storage_pools[_LINSTOR User's Guide_].
 
-For NVMe-oF, iSCSI, and NFS, a LINSTOR `storage-pool`, `resource-group`, and `volume-group` for LINSTOR Gateway need to be
+For NVMe-oF, iSCSI, and NFS, a LINSTOR storage pool, resource group`, and volume group for LINSTOR Gateway need to be
 created before use. The following section provides example commands for setting up the prerequisites in a three-node
 LINSTOR cluster.
 
-Create a LVM backed storage-pool on each node using the physical device `/dev/sdb`:
+Create a LVM backed storage pool on each node using the physical device `/dev/sdb`:
 
 ----
 # linstor physical-storage create-device-pool
@@ -31,7 +31,7 @@ Create a LVM backed storage-pool on each node using the physical device `/dev/sd
           --pool-name lvpool LVM LINSTOR3 /dev/sdb --storage-pool lvmpool
 ----
 
-Create resource-groups and volume-groups backed by the storage-pool created in the previous command:
+Create resource groups and volume groups backed by the storage pool created in the previous command:
 
 ----
 # linstor resource-group create iscsi_group --storage-pool lvmpool --place-count 2
@@ -45,14 +45,14 @@ Create resource-groups and volume-groups backed by the storage-pool created in t
 # linstor volume-group create nvmeof_group
 ----
 
-LINSTOR Gateway requires modification of the LINSTOR Satellite's configuration on each Satellite node.
+LINSTOR Gateway requires modification of the LINSTOR satellite's configuration on each satellite node.
 Edit or create the following file using your preferred text editor:
 
 ----
 # vim /etc/linstor/linstor_satellite.toml
 ----
 
-Add the following content to the Satellite configuration:
+Add the following content to the satellite configuration:
 
 ----
 [files]
@@ -63,84 +63,161 @@ Add the following content to the Satellite configuration:
   ]
 ----
 
-Save the changes to the Satellite configuration and restart the satellite service on all nodes to load the changes.
+Save the changes to the satellite configuration and restart the satellite service on all nodes to load the changes.
 
 ----
 # systemctl restart linstor-satellite
 ----
 
-==== DRBD Reactor
+[[s-linstor-gateway-drbd-reactor]]
+==== Using DRBD Reactor to Create Highly Available LINSTOR Gateway Resources
 
-DRBD Reactor is a daemon that will orchestrate the iSCSI, NFS or NVMe-oF resources in our cluster. It must be installed
+DRBD Reactor is a daemon that will orchestrate the iSCSI, NFS or NVMe-oF resources in the LINSTOR Gateway cluster. It must be installed
 and the service must be enabled on all nodes in the cluster.
 
 DRBD Reactor's main function could be summarized as such:
-each DRBD Reactor daemon tries to take over DRBD Reactor managed services. The daemon that wins the race prevents other
+Each DRBD Reactor daemon tries to take over DRBD Reactor managed services. The daemon that wins the race prevents other
 nodes from activating the services until the original winner is no longer able to. When that happens, a new winner will
 take over DRBD Reactor managed services, therefore achieving
-high-availability.
+high availability.
 
 For details regarding DRBD Reactor's installation and configuration options, refer to the
-https://github.com/LINBIT/drbd-reactor[DRBD Reactor GitHub page].
+link:https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#ch-drbd-reactor[DRBD Reactor chapter
+in the _DRBD(R) User's Guide_]. The open source code for the project is hosted at the
+link:https://github.com/LINBIT/drbd-reactor[project's GitHub repository]. The instructions that
+follow assume that you have installed DRBD Reactor by using a package manager. Instructions
+might vary for an installation from the GitHub project. Refer to the `README` file and other
+documentation at the GitHub repository for details.
 
-Start and enable the DRBD Reactor service on all nodes:
+===== Enabling and Starting the DRBD Reactor Service
+
+After installing DRBD Reactor on all your cluster nodes, start and enable the DRBD Reactor service on all nodes:
 
 ----
 # systemctl enable --now drbd-reactor
 ----
 
-In addition to this, DRBD Reactor needs to be configured to automatically reload
-when its configuration changes. Run this snippet on all nodes, as described in
-the https://github.com/LINBIT/drbd-reactor#automatic-reload[DRBD Reactor README]:
+===== Configuring DRBD Reactor to Automatically Reload Following Configuration Changes
+
+Besides enabling and starting the DRBD Reactor service on all nodes, you also need to configure
+DRBD Reactor to automatically reload when its configuration changes. To do this, enter the following command on all nodes:
 
 ----
-# cp examples/drbd-reactor-reload.{path,service} /etc/systemd/system/
+# cp /usr/share/doc/drbd-reactor/drbd-reactor-reload.{path,service} /etc/systemd/system/
 # systemctl enable --now drbd-reactor-reload.path
 ----
 
-DRBD Reactor uses Pacemaker's resource agents when integrated with LINSTOR Gateway. You also need to install resource
-agents on all nodes in the cluster. This package is named `resource-agents` in both RPM and DEB based distributions:
+===== Installing the Open Cluster Framework Resource Agents
 
-----
-# dnf -y install resource-agents
-----
+DRBD Reactor uses Open Cluster Framework (OCF) resource
+agents when integrated with LINSTOR Gateway. You need to install these resource agents on all nodes in the cluster. To do this, use a package manager to install the `resource-agents` package (in both RPM and DEB based distributions).
 
 ==== NVME-oF, iSCSI, and NFS Utilities
 
 To configure NVMe-oF targets for LINSTOR Gateway, you will need to install the NVMe-of command line interface on
 all nodes.
 
-The `nvmetcli` package can be installed on RPM based systems using the following command:
+On RPM based systems, install the `nvmetcli` package. On DEB based systems, install the `nvme-cli` package.
+
+===== Selecting and Installing the iSCSI Stack and Dependencies
+
+LINSTOR Gateway can use either the Linux-IO (LIO) or the Generic SCSI Target Subsystem for Linux (SCST) for an iSCSI implementation.
+
+LIO is the iSCSI implementation that the Linux kernel community chose as the
+SCSI target subsystem that is included in the mainline Linux kernel.
+
+SCST is a mature iSCSI implementation that is used in many iSCSI appliances,
+including the LINBIT(R)-developed VSAN solution since version 0.17.0.
+
+====== Option A: LIO
+
+TargetCLI is an interactive shell used to manage the LIO target. LIO
+is the SCSI target that has been included with the Linux kernel since 2.6.38, which
+makes the installation of its utilities and dependencies relatively simple.
+
+You can install TargetCLI by using a package manager to install the `targetcli` package on RPM-based systems, or the `targetcli-fb` package on DEB-based systems.
+
+====== Option B: SCST
+
+The SCST project consists of a kernel space core, device handlers, target
+drivers, and the `scstadmin` user space utility for managing its core
+components. All of which can be built from source, by following the
+instructions found on the project's
+link:https://github.com/SCST-project/scst/blob/master/INSTALL.md[GitHub repository].
+
+By following the installation instructions below, you will install all the necessary components
+for using SCST with LINSTOR Gateway.
+
+IMPORTANT: Enter and run all the commands in this section on all nodes. The instructions below are for installations on Red Hat Enterprise Linux (RHEL). Adjustments will be needed to install and configure SCST on DEB based systems.
+
+ELRepo, the RPM repository for Enterprise Linux packages that are not included
+in the standard RHEL distribution's repositories, is needed for installing
+DKMS. Development tools and other dependencies for building SCST's RPMs must
+also be installed:
 
 ----
-# dnf -y install nvmetcli
+# dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+# dnf groupinstall -y "Development Tools"
+# dnf install -y kernel-devel perl perl-Data-Dumper perl-ExtUtils-MakeMaker rpm-build dkms git
 ----
 
-LINSTOR Gateway requires the LIO iSCSI implementation be installed on all nodes.
-
-The `targetcli` package can be installed on RPM based systems using the following command:
+After installing build dependencies, you can build and install the SCST packages:
 
 ----
-# dnf -y install targetcli
+# git clone https://github.com/SCST-project/scst
+# cd scst/
+# make rpm-dkms
+# cd ~/
+# dnf install -y /usr/src/packages/RPMS/x86_64/scst*
 ----
 
-For NFS support in LINSTOR Gateway, nfs-server utilities need to be installed on each node.
-
-The `nfs-utils` package can be installed on RPM based systems using the following command:
+Finally, enter the commands below to create the necessary configuration for loading the SCST kernel
+module, create a systemd unit file for an `iscs-scst` service, and reload systemd services:
 
 ----
-# dnf -y install nfs-utils
+# echo -n "" > /etc/modules-load.d/scst.conf
+# for m in iscsi-scst scst scst_vdisk; do
+    echo $m >> /etc/modules-load.d/scst.conf
+    modprobe $m
+  done
+
+# cat << EOF > /etc/systemd/system/iscsi-scst.service
+[Unit]
+Description=iSCSI SCST Target Daemon
+Documentation=man:iscsi-scstd(8)
+After=network.target
+Before=scst.service
+Conflicts=shutdown.target
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/scst
+PIDFile=/var/run/iscsi-scstd.pid
+ExecStartPre=/sbin/modprobe iscsi-scst
+ExecStart=/sbin/iscsi-scstd $ISCSID_OPTIONS
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# systemctl daemon-reload
+# systemctl enable --now iscsi-scst
 ----
 
-The NFS server should not be enabled in systemd since that will conflict with DRBD Reactors ability to manage the
-service. Disable the nfs-server service and check that it has been disabled using the following commands:
+===== NFS Support in LINSTOR Gateway
+
+For NFS support in LINSTOR Gateway, you need to install NFS utilities on all cluster nodes.
+
+Install the `nfs-utils` package on RPM based systems or the `nfs-common` package on DEB based systems.
+
+The NFS server service should not be enabled in systemd since that will conflict with DRBD Reactor's ability to manage the
+service. Disable the `nfs-server` service and verify that it has been disabled using the following commands:
 
 ----
 # systemctl disable nfs-server --now
 # systemctl status nfs-server
 ----
 
-Ensure that the output of the command above lists the service as `inactive` and `disabled`:
+Verify that the output of the `status` command above lists the service as `inactive` and `disabled`:
 
 ----
 ● nfs-server.service - NFS server and services
@@ -148,29 +225,76 @@ Ensure that the output of the command above lists the service as `inactive` and 
    Active: inactive (dead)
 ----
 
-[[s-linstor-gateway-verification]]
-=== Verifying Requirements are Satisfied
+[[s-linstor-gateway-installing]]
+=== Installing LINSTOR Gateway
 
-The last thing we can do before starting to use LINSTOR Gateway is check that we've satisfied the prerequisites outlined
+After verifying that prerequisites are installed and configured, you can install LINSTOR
+Gateway.
+
+If you are a LINBIT customer, you can install LINSTOR Gateway by using your package manager to
+install the `linstor-gateway` package from LINBIT customer repositories. LINBIT maintains the
+open source LINSTOR Gateway code at the project's
+link:https://github.com/LINBIT/linstor-gateway/releases[GitHub page].
+
+IMPORTANT: LINSTOR Gateway communicates with the LINSTOR controller by using the LINSTOR client. For this reason, LINSTOR Gateway should be installed where a LINSTOR client is configured to communicate with a LINSTOR controller for the LINSTOR cluster. For more information on link:https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/#s-linstor_ha[configuring a LINSTOR client see the _LINSTOR User's Guide_].
+
+[[s-linstor-gateway-installing-server-component]]
+==== Installing the LINSTOR Gateway Server Component
+
+LINSTOR Gateway has a server component which needs to be running in the background on a node
+that the LINSTOR client is installed on in your cluster. Usually this will be your LINSTOR
+controller node, although it could be installed on multiple nodes in your cluster, if for
+example, you have configured a
+link:https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/#s-linstor_ha[highly available
+LINSTOR controller]. 
+However, you do not need to run the LINSTOR client on the same node as the LINSTOR controller, as long as the LINSTOR client on your LINSTOR Gateway server "knows" how to reach the LINSTOR controller, for example, by using a `controllers=` line in your LINSTOR client configuration file (`/etc/linstor/linstor-client.conf`).
+
+To install the LINSTOR Gateway server on a node, you will use a systemd service.
+Create the file `/etc/systemd/system/linstor-gateway.service` **on the
+same node as your LINSTOR client** and copy the following content into it to create the service:
+
+----
+[Unit]
+Description=LINSTOR Gateway
+After=network.target
+
+[Service]
+ExecStart=/usr/sbin/linstor-gateway server --addr ":8080"
+
+[Install]
+WantedBy=multi-user.target
+----
+
+Next, start and enable the LINSTOR Gateway service:
+
+```
+# systemctl daemon-reload
+# systemctl enable --now linstor-gateway
+```
+
+[[s-linstor-gateway-verification]]
+=== Verifying Requirements Are Satisfied
+
+As a final step before starting to use LINSTOR Gateway, verify that you have satisfied the prerequisites outlined
 in the previous sections.
 
-==== Verifying Components are Installed
+==== Verifying Components Are Installed
 
-Let's check that all the required components are present. This guide assumes you already installed and
-configured a LINSTOR cluster complete with storage-pools, resource-groups, and volume-groups before using
-linstor-gateway.
+The following instructions for verifying LINSTOR Gateway components assume that you already installed and
+configured a LINSTOR cluster complete with storage pools, resource groups, and volume groups before using
+LINSTOR Gateway.
 
-In addition to the initialized LINSTOR cluster, the following tools need to be present on all nodes:
+In addition to the initialized LINSTOR cluster, the following packages need to be present on all nodes:
 
-* linstor-client
-* drbd-reactor
-* nvmetcli
-* targetcli
-* nfs-utils (RPM) or nfs-common (DEB)
-* nfs-server (RPM) or nfs-kernel-server (DEB)
-* resource-agents
+* `linstor-client`
+* `drbd-reactor`
+* `nvmetcli`
+* `targetcli` (RPM) or `targetcli-fb` (DEB), if you are using LIO for an iSCSI implementation
+* `nfs-utils` (RPM) or `nfs-common` (DEB)
+* `nfs-server` (RPM) or `nfs-kernel-server` (DEB)
+* `resource-agents`
 
-LINSTOR Gateway provides a utility to check that the prerequisite tools are present:
+LINSTOR Gateway provides a utility to check that the prerequisite tools are present. To use this tool, enter the following command on your LINSTOR controller node:
 
 ----
 # linstor-gateway check-health
@@ -193,7 +317,7 @@ error is reported, you must resolve the error before proceeding.
 Verify that the LINSTOR cluster is initialized properly by comparing your outputs are similar to the outputs in the
 commands below.
 
-Ensure all your LINSTOR nodes are listed as a Satellite or Combined type, and that you have 3 (or more) to support
+Verify that all your LINSTOR nodes are listed as a satellite or combined type, and that you have three (or more) nodes to support
 quorum:
 
 ----
@@ -207,24 +331,22 @@ quorum:
 ╰────────────────────────────────────────────────────────────╯
 ----
 
-Check that LINSTOR's storage-pool list includes an LVM or ZFS backed storage-pool:
+Verify that LINSTOR's storage pool list includes an LVM or ZFS backed storage pool:
 
 ----
 # linstor storage-pool list
 ╭─────────────────────────────────────────────────────────..snip..─────────╮
 ┊ StoragePool          ┊ Node     ┊ Driver   ┊ PoolName ┊ ..snip.. ┊ State ┊
 ╞═════════════════════════════════════════════════════════..snip..═════════╡
-┊ DfltDisklessStorPool ┊ LINSTOR1 ┊ DISKLESS ┊          ┊ ..snip.. ┊ Ok    ┊
-┊ DfltDisklessStorPool ┊ LINSTOR2 ┊ DISKLESS ┊          ┊ ..snip.. ┊ Ok    ┊
-┊ DfltDisklessStorPool ┊ LINSTOR3 ┊ DISKLESS ┊          ┊ ..snip.. ┊ Ok    ┊
+[...]
 ┊ lvmpool              ┊ LINSTOR1 ┊ LVM      ┊ lvpool   ┊ ..snip.. ┊ Ok    ┊
 ┊ lvmpool              ┊ LINSTOR2 ┊ LVM      ┊ lvpool   ┊ ..snip.. ┊ Ok    ┊
 ┊ lvmpool              ┊ LINSTOR3 ┊ LVM      ┊ lvpool   ┊ ..snip.. ┊ Ok    ┊
 ╰─────────────────────────────────────────────────────────..snip..─────────╯
 ----
 
-Check that you've created at least one LINSTOR resource-group that uses your storage-pool. Also verify that each
-resource-group has a corresponding volume-group:
+Verify that you have created at least one LINSTOR resource group that uses your storage pool. Also verify that each
+resource group has a corresponding volume group:
 
 ----
 # linstor resource-group list
@@ -265,7 +387,7 @@ resource-group has a corresponding volume-group:
 [[s-linstor-gateway-create-iscsi]]
 === Creating iSCSI Targets
 
-Once the preparations are complete, you can start creating iSCSI luns. The `linstor-gateway` command line utility will
+Once the preparations are complete, you can start creating iSCSI LUNs. The `linstor-gateway` command line utility will
 be used to manage all iSCSI related actions. 
 
 TIP: Use `linstor-gateway iscsi help` for detailed information regarding the `iscsi` subcommand.
@@ -299,7 +421,7 @@ TIP: You can check the DRBD Reactor status using the `drbd-reactorctl status` co
 [[s-linstor-gateway-delete-iscsi]]
 === Deleting iSCSI Targets
 
-The following command will delete the iSCSI target from DRBD Reactor as well as the LINSTOR cluster:
+The following command will delete the iSCSI target from DRBD Reactor and the LINSTOR cluster:
 
 ----
 # linstor-gateway delete -i iqn.2021-04.com.linbit:lun4 -l 4
@@ -308,7 +430,7 @@ The following command will delete the iSCSI target from DRBD Reactor as well as 
 [[s-linstor-gateway-create-nfs]]
 === Creating NFS Exports
 
-Before creating a NFS export you need to tell LINSTOR which filesystem the DRBD resource should be formatted with.
+Before creating a NFS export you need to tell LINSTOR which file system the DRBD resource should be formatted with.
 This is done by setting the `FileSystem/Type` property on the resource-group created for NFS exports. Use
 the following LINSTOR command to do so:
 
@@ -349,7 +471,7 @@ TIP: You can check the DRBD Reactor status using the `drbd-reactorctl status` co
 [[s-linstor-gateway-delete-nfs]]
 === Deleting NFS Exports
 
-The following command will delete the NFS export from DRBD Reactor as well as the LINSTOR cluster:
+The following command will delete the NFS export from DRBD Reactor and the LINSTOR cluster:
 
 ----
 # linstor-gateway nfs delete -r nfstest
@@ -390,7 +512,7 @@ TIP: You can check the DRBD Reactor status using the `drbd-reactorctl status` co
 [[s-linstor-gateway-delete-nvmeof]]
 === Deleting NVMe-oF Targets
 
-The following command will delete the NVMe-oF target from DRBD Reactor as well as the LINSTOR Cluster:
+The following command will delete the NVMe-oF target from DRBD Reactor and the LINSTOR Cluster:
 
 ----
 # linstor-gateway nvme delete linbit:nvme:vol0
