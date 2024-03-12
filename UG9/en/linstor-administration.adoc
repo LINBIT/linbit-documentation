@@ -780,19 +780,21 @@ LINSTOR can select a storage pool on its own when you create (spawn) resources f
   * Ignore all storage pools not having enough free space
 
 The remaining storage pools will be rated by different strategies.
-LINSTOR has currently three strategies:
 
-  * `MaxFreeSpace`: This strategy maps the rating 1:1 to the remaining free
+`MaxFreeSpace`:: This strategy maps the rating 1:1 to the remaining free
 space of the storage pool. However, this strategy only considers the actually
 allocated space (in case of thin-provisioned storage pool this might grow
 with time without creating new resources)
-  * `MinReservedSpace`: Unlike the "MaxFreeSpace", this strategy considers the
+
+`MinReservedSpace`:: Unlike the "MaxFreeSpace", this strategy considers the
 reserved space. That is the space that a thin volume can grow to before reaching
 its limit. The sum of reserved spaces might exceed the storage pool's capacity,
 which is as overprovisioning.
-  * `MinRscCount`: Simply the count of resources already deployed in a given
+
+`MinRscCount`:: Simply the count of resources already deployed in a given
 storage pool
-  * `MaxThroughput`: For this strategy, the storage pool's
+
+`MaxThroughput`:: For this strategy, the storage pool's
 `Autoplacer/MaxThroughput` property is the base of the score, or 0 if the property
 is not present. Every Volume deployed in the given storage pool will subtract
 its defined `sys/fs/blkio_throttle_read` and `sys/fs/blkio_throttle_write` property-
@@ -802,13 +804,14 @@ The scores of the strategies will be normalized, weighted and summed up, where
 the scores of minimizing strategies will be converted first to allow an overall
 maximization of the resulting score.
 
-The weights of the strategies can be configured with the following command:
+You can configure the weights of the strategies to affect how LINSTOR selects a storage pool for resource placement when creating (spawning) resources for which you did not specify a storage pool. You do this by setting the following properties on the LINSTOR controller object. The weight can be an arbitrary decimal value.
 
 ----
-linstor controller set-property Autoplacer/Weights/$name_of_the_strategy $weight
+linstor controller set-property Autoplacer/Weights/MaxFreeSpace <weight>
+linstor controller set-property Autoplacer/Weights/MinReservedSpace <weight>
+linstor controller set-property Autoplacer/Weights/MinRscCount <weight>
+linstor controller set-property Autoplacer/Weights/MaxThroughput <weight>
 ----
-
-The strategy names are listed above and the weight can be an arbitrary decimal.
 
 NOTE: To keep the behavior of the Autoplacer compatible with previous LINSTOR versions, all
 strategies have a default-weight of 0, except the `MaxFreeSpace` which has a weight of 1.
