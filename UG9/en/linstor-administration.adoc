@@ -731,10 +731,24 @@ to named nodes explicitly.
 
 When you create (spawn) a resource from a resource group, it is possible to have LINSTOR automatically select nodes and storage pools to deploy the resource to. You can use the arguments mentioned in this section to specify constraints when you create or modify a resource group. These constraints will affect how LINSTOR automatically places resources that are deployed from the resource group.
 
+===== Automatically Maintaining Resource Group Placement Count
+
+Starting with LINSTOR version 1.26.0, there is a reoccurring LINSTOR task that tries to maintain
+the placement count set on a resource group for all deployed LINSTOR resources that belong to
+that resource group. This includes the default LINSTOR resource group and its placement count.
+
+If you want to disable this behavior, set the `BalanceResourcesEnabled` property to false on the 
+the LINSTOR controller, LINSTOR resource groups that your resources belong to, or the resource definitions themselves. Due to LINSTOR object hierarchy, if you set a property on a resource group, it will override the property value on the LINSTOR controller. Likewise, if you set a property on a resource definition, it will override the property value on the resource group that the resource definition belongs to.
+
+There are other additional properties related to this feature that you can set on the LINSTOR controller: 
+
+`BalanceResourcesInterval`:: The interval in seconds, at the LINSTOR controller level, that the balance resource placement task is triggered. By default, the interval is 3600 seconds (one hour).
+
+`BalanceResourcesGracePeriod`:: The period in seconds for how long new resources (after being created or spawned) are ignored for balancing. By default, the grace period is 3600 seconds (one hour).
+
 ===== Placement Count
 
 By using the `--place-count <replica_count>` argument when you create or modify a resource group, you can specify on how many nodes in your cluster LINSTOR should place diskful resources created from the resource group.
-
 
 [WARNING]
 .Creating a resource group with impossible placement constraints
