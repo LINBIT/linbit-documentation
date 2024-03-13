@@ -2745,14 +2745,16 @@ If you want to evacuate a LINSTOR node of its resources, so that they are placed
 nodes within your cluster, the process is detailed in <<s-linstor-node-evacuate>>. However,
 before evacuating a LINSTOR node in Kubernetes, you need to take an additional action.
 
-First move the node's workload to another node. You can do this by entering the command:
+First, prevent new Kubernetes workloads from being scheduled to the node and then move the
+node's workload to another node. You can do this by entering the following commands:
 
 ----
+# kubectl cordon <node_name>
 # kubectl drain --ignore-daemonsets <node_name>
 ----
 
-After verifying that your cluster is running as expected, you can continue to follow the steps in
-<<s-linstor-node-evacuate>>.
+After verifying that your cluster is running as expected, you can continue to follow the steps
+in <<s-linstor-node-evacuate>>.
 
 If you are planning on evacuating more than one node, enter the following command on all the
 nodes that you will be evacuating:
@@ -2764,8 +2766,59 @@ nodes that you will be evacuating:
 This ensures that LINSTOR will not place resources from a node that you are evacuating onto
 another node that you plan on evacuating.
 
-[[s-kubernetes-monitoring]]
+[[s-kubernetes-deleting-a-node]]
+=== Deleting a LINSTOR Node in Kubernetes
 
+Before you can delete a LINSTOR storage node from a Kubernetes cluster, the node must have no
+deployed LINSTOR resources or Kubernetes workloads. To remove resources and workloads from a
+node, you can follow the instructions in the <<s-kubernetes-evacuate-node>> section.
+
+Alternatively, let the LINSTOR Operator handle the node evacuation for you. To do this, you need
+to take a few preparatory steps.
+
+First, use `kubectl` to apply a label, `marked-for-deletion` in the following example, to the
+node that you want to delete from your Kubernetes cluster.
+
+----
+# kubectl label nodes <node-name> marked-for-deletion=
+----
+
+IMPORTANT: You must add an equals sign (`=`) to the end of your label name.
+
+Next, configure the `linstorcluster` Kubernetes resource so that it does not deploy LINSTOR
+resources to any node with the label that you have applied. To do this, edit the resource and
+replace the contents with the lines shown in the following example, including the `...` line.
+Change the `key` to match the label that you previously applied to your node. 
+
+----
+# kubectl edit linstorclusters linstorcluster
+...
+spec:
+  nodeAffinity:
+    nodeSelectorTerms:
+    - matchExpressions:
+      - key: marked-for-deletion
+        operator: DoesNotExist
+----
+
+After taking these steps, the LINSTOR Operator will automatically delete the corresponding
+`LinstorSatellite` resource. That will stop the LINSTOR satellite service on that node, but only
+after LINSTOR runs a `node evacuate` operation and there are no more resources on the node.
+Enter the following command to wait for the Operator to finish evacuating the node:
+
+----
+# kubectl wait linstorsatellite/<node> --for=condition=EvacuationCompleted
+----
+
+This can take some time. You can also use `kubectl describe linstorsatellite/<node>` to get a status update on the evacuation process.
+
+After the Operator finishes evacuating the node, you can delete the node by entering the following command:
+
+----
+# kubectl delete node <node-name>
+----
+
+[[s-kubernetes-monitoring]]
 === Monitoring With Prometheus
 
 A LINSTOR deployment in Kubernetes offers the possibility of integrating with the
