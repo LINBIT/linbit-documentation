@@ -3758,6 +3758,41 @@ the resource from any _Secondary_ nodes when that action is necessary to fulfill
 constraint that the resource might have. This could be the case, for example, if you have
 specified number of replicas for a resource by using the `--auto-place` option.
 
+[[s-linstor-drbd-skip-disk]]
+==== SkipDisk
+
+If a device is throwing I/O errors, for example, due to physical failure, DRBD detects this state and
+automatically detaches from the local disk. All read and write requests are forwarded to a still
+healthy peer, allowing the application to continue without interruption.
+
+This automatic detaching causes new event entries in the
+link:https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-drbdsetup-events2[`drbdsetup events2`]
+stream, changing the state of a DRBD volume from `UpToDate` to `Failed` and finally to `Diskless`.
+LINSTOR detects these state changes, and automatically sets the `DrbdOptions/SkipDisk` property to
+`True` on the given resource. This property causes the LINSTOR satellite service running on the node
+with the device throwing I/O errors to attach a `--skip-disk` to all `drbdadm adjust` commands.
+
+If this property is set, the `linstor resource list` command also shows it accordingly:
+----
+# linstor r l
+╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+┊ ResourceName ┊ Node  ┊ Port ┊ Usage  ┊ Conns ┊                   State ┊ CreatedOn           ┊
+╞══════════════════════════════════════════════════════════════════════════════════════════════╡
+┊ rsc          ┊ bravo ┊ 7000 ┊ Unused ┊ Ok    ┊ UpToDate, Skip-Disk (R) ┊ 2024-03-18 11:48:08 ┊
+╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+----
+
+The `\(R)` in this case already states that the property is set on the resource. The indicator would
+change to `(R, N)` if the property `DrbdOptions/SkipDisk` were to be set on the resource *and* on
+node levels.
+
+Although this property is automatically enabled by LINSTOR, after you resolve the cause of the I/O
+errors, you need to manually remove the property to get back to a healthy `UpToDate` state:
+
+----
+# linstor resource set-property bravo rsc DrbdOptions/SkipDisk
+----
+
 [[s-linstor-qos]]
 === QoS Settings
 
