@@ -356,16 +356,28 @@ your firewall.
 Output from this command should show you an empty list and not an error message.
 
 You can use the `linstor` command on any other machine, but then you need to tell the client how
-to find the linstor-controller. As shown, this can be specified as a command line option, an
-environment variable, or in a global file:
+to find the LINSTOR controller. As shown, this can be specified as a command line option, or by
+using an environment variable:
 
 ----
 # linstor --controllers=alice node list
 # LS_CONTROLLERS=alice linstor node list
 ----
 
-Alternatively you can create the `/etc/linstor/linstor-client.conf` file and populate it like
-below.
+If you have configured <<s-linstor-rest-api-https,HTTPS access to the LINSTOR controller REST
+API>> and you want the LINSTOR client to access the controller over HTTPS, then you need to use
+the following syntax:
+
+----
+# linstor --controllers linstor+ssl://<controller-node-name-or-ip-address>
+# LS_CONTROLLERS=linstor+ssl://<controller-node-name-or-ip-address> linstor node list
+----
+
+[[s-linstor-configuration-file-specifying-controllers]]
+==== Specifying Controllers in the LINSTOR Configuration File
+
+Alternatively, you can create the `/etc/linstor/linstor-client.conf` file and add a
+`controllers=` line in the `global` section.
 
 ----
 [global]
@@ -375,14 +387,21 @@ controllers=alice
 If you have multiple LINSTOR controllers configured you can simply specify them all in a
 comma-separated list. The LINSTOR client will try them in the order listed.
 
-NOTE: The LINSTOR client commands can also be used in a much faster and convenient way by only
-writing the starting letters of the parameters. For example, rather than entering `linstor node
-list` you can enter the LINSTOR short notation command `linstor n l`.
+[[s-linstor-client-abbreviated-notation]]
+==== Using LINSTOR Client Abbreviated Notation
+
+You can use LINSTOR client commands in a much faster and convenient way by only entering the
+starting letters of the commands, subcommands, or parameters. For example, rather than entering
+`linstor node list` you can enter the LINSTOR short notation command `linstor n l`.
+
+Entering the command `linstor commands` will show a list of possible LINSTOR client commands
+along with the abbreviated notation for each command. You can use the `--help` flag with any of
+these LINSTOR client commands to get the abbreviated notation for the command's subcommands.
 
 [[s-adding_nodes_to_your_cluster]]
 === Adding Nodes to Your Cluster
 
-The next step is to add nodes to your LINSTOR cluster.
+After initializing your LINSTOR cluster, the next step is to add nodes to the cluster.
 
 ----
 # linstor node create bravo 10.43.70.3
@@ -496,10 +515,10 @@ or using LINSTOR abbreviated notation:
 ----
 
 ////
-In case anything goes wrong with the storage pool's VG/zPool, e.g. the VG having been renamed or somehow
-became invalid you can delete the storage pool in LINSTOR with the following command, given that only
-resources with all their volumes in the so-called 'lost' storage pool are attached. This feature is available
-since LINSTOR v0.9.13.
+In case anything goes wrong with the storage pool's VG/zPool, e.g. the VG having been renamed or
+somehow became invalid you can delete the storage pool in LINSTOR with the following command,
+given that only resources with all their volumes in the so-called 'lost' storage pool are
+attached. This feature is available since LINSTOR v0.9.13.
 
 ----
 # linstor storage-pool lost alpha pool_ssd
@@ -511,11 +530,11 @@ or using the short version
 # linstor sp lo alpha pool_ssd
 ----
 
-Should the deletion of the storage pool be prevented due to attached resources or snapshots with some of its
-volumes in another still functional storage pool, hints will be given in the 'status' column of the
-corresponding list-command (e.g. `linstor resource list`). After deleting the LINSTOR-objects in the lost storage pool
-manually, the lost-command can be executed again to ensure a complete deletion of the storage pool and its
-remaining objects.
+Should the deletion of the storage pool be prevented due to attached resources or snapshots with
+some of its volumes in another still functional storage pool, hints will be given in the
+'status' column of the corresponding list-command (e.g. `linstor resource list`). After deleting
+the LINSTOR-objects in the lost storage pool manually, the lost-command can be executed again to
+ensure a complete deletion of the storage pool and its remaining objects.
 ////
 
 [[s-a_storage_pool_per_backend_device]]
@@ -3177,9 +3196,12 @@ Now (re)start the `linstor-controller` and the HTTPS REST API should be availabl
 More information about how to import other certificates can be found here:
 https://docs.oracle.com/javase/8/docs/technotes/tools/unix/keytool.html
 
-NOTE: When HTTPS is enabled, all requests to the HTTP /v1/ REST API will be redirected to the
-HTTPS redirect.
-
+IMPORTANT: After enabling HTTPS access, all requests to the HTTP v1 REST API will be redirected
+to the HTTPS redirect. If your have not
+<<s-linstor-configuration-file-specifying-controllers,specified a LINSTOR controller in the
+LINSTOR configuration TOML file>> (`/etc/linstor/linstor.toml`), then you will need to use a
+different syntax when using the LINSTOR client (`linstor`) as described in
+<<s-using_the_linstor_client>>. 
 
 [[s-rest-api-https-restricted-client]]
 ===== LINSTOR REST API HTTPS Restricted Client Access
