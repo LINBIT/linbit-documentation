@@ -201,6 +201,22 @@ ensure that the VM gets local storage if possible. Without that option LINSTOR m
 'B' and 'C', while the VM is initially started on node 'A'. This would still work as node 'A' then would get a
 diskless assignment, but having local storage might be preferred.
 
+An important setting that one should decide on before creating the first VM on a storage is `uuiddisknames`.
+Usually VM disks are named like `vm-100-disk-1`, which is the first disk for the VM with ID 100. LINSTOR/DRBD
+resources have the exact same names. If you intend to reassign VM disks from one VM to another, then you need
+to set `uuiddisknames` to `yes`. With this setting the plugin crates PVE visible names such as
+`pm-43c87a92_100`, where the first part is a shortened UUID, and the part after the `_` is the VM ID. The
+actual LINSTOR/DRBD devices are named like `pm-43c87a92` (without the `_` and without the VM ID part). For
+users the mapping between PVE names and LINSTOR/DRBD resources should be quite obvious. This naming scheme
+allows us to move disks from one VM to another in an efficient manner. If you move the given disk from VM
+100 to VM 101, the LINSTOR/DRBD names stay the same (i.e., `pm-43c87a92`), but the PVE visible name changes
+from `pm-43c87a92_100` to `pm-43c87a92_101`. After *initially* deciding if you want to set `uuiddisknames` to
+`yes` or `no`, do not change this setting. It is not possible to "upgrade" a storage configuration that
+started with legacy `vm-` names to one using `pm-$UUID_` names by just setting `uuiddisknames` later. What is
+possible is to define a new LINSTOR resource group that uses the same LINSTOR storage pools as the one with
+the `vm-` names and use that new resource group in a new storage configuration that has `uuiddisknames` set to
+`yes`.
+
 .NOTE: DRBD supports only the **raw** disk format at the moment.
 
 At this point you can try to live migrate the VM - as all data is accessible on all nodes (even on Diskless
@@ -214,6 +230,7 @@ and you will see no interruption at all.
 
 | `controller`    | The IP of the LINSTOR controller (',' separated list allowed)
 | `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above
+| `uuiddisknames` | Generate disk names based on UUID (allows reassigning disks)
 | `preferlocal`   | Prefer to create local storage (yes/no). As decribed above
 | `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storages in `/etc/pve/storage.cfg` to take effect.
 | `apicrt`        | Path to the client certificate
