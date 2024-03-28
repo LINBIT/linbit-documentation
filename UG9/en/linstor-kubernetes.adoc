@@ -1641,7 +1641,7 @@ using the usual Kubernetes workflows.
 Configuring the behavior and properties of LINSTOR volumes deployed through Kubernetes
 is accomplished using link:https://kubernetes.io/docs/concepts/storage/storage-classes/[Kubernetes __StorageClass__] objects.
 
-IMPORTANT: The `resourceGroup` parameter is mandatory. Usually you want it to be unique and the same as the storage class name.
+IMPORTANT: The `resourceGroup` parameter is mandatory. Because Kubernetes StorageClass objects have a one-to-one correspondence with LINSTOR resource groups, you usually want the `resourceGroup` parameter to be unique and the same as the storage class name.
 
 Here below is the simplest practical _StorageClass_ that can be used to deploy volumes:
 
@@ -1795,6 +1795,165 @@ parameters:
   property.linstor.csi.linbit.com/*: <x>
   # DRBD parameters
   DrbdOptions/*: <x>
+----
+
+[[s-kubernetes-drbd-options-setting]]
+==== Setting DRBD Options for Storage Resources in Kubernetes
+
+As shown in the <<s-kubernetes-sc-parameters,>> section, you can set DRBD options within a
+storage class configuration. Because of the one-to-one correspondence between a StorageClass
+Kubernetes object and its named LINSTOR resource group (`resourceGroup` parameter), setting DRBD
+options within a storage class configuration is similar to setting DRBD options on the LINSTOR
+resource group.
+
+There are some differences. If you set DRBD options within a storage class configuration, these
+options will only affect new volumes that are created from the storage class. The options will
+not affect existing volumes. Furthermore, because you cannot just update the storage class, you
+will have to delete it and create it again if you add DRBD options to the storage class's
+configuration. If you set DRBD options on the LINSTOR resource group object (`linstor
+resource-group set-property <rg-name> DrbdOptions/<option-name>`), changes will affect future
+and existing volumes belonging to the resource group. 
+
+WARNING: If you set DRBD options on a LINSTOR resource group that also corresponds to a
+Kubernetes storage class, the next time a volume is created, the CSI driver will revert changes
+to DRBD options that are only in the resource group, unless you also configure the DRBD options
+in the storage class. 
+
+Because of the potential pitfalls here, it is simpler to set DRBD options on the LINSTOR
+controller object. DRBD options set on the controller will apply to all resources groups,
+resources, and volumes, unless you have also set the same options on any of those LINSTOR
+objects. Refer to the <<s-linstor-introduction-linstor-object-hierarchy,>> section for more
+details about LINSTOR object hierarchy.
+
+You can list the properties, including DRBD options, that you can set on the LINSTOR controller
+object by entering the following command:
+
+----
+# kubectl exec -n linbit-sds deployment/linstor-controller -- \
+linstor controller set-property --help
+----
+
+[[s-kubernetes-drbd-options-setting-on-controller]]
+===== Setting DRBD Options on the LINSTOR Controller in Kubernetes
+
+To set DRBD options on the LINSTOR controller in a Kubernetes deployment, edit the
+link:https://github.com/piraeusdatastore/piraeus-operator/blob/v2/docs/reference/linstorcluster.md#specproperties[`LinstorCluster`
+configuration]. For example, to set transport encryption for all DRBD traffic: 
+
+----
+apiVersion: piraeus.io/v1
+kind: LinstorCluster
+metadata:
+  name: linstorcluster
+spec:
+  properties:
+    # This one will be set on the controller, verify with: linstor controller list-properties
+    # Enable TLS for all resources by default
+    - name: "DrbdOptions/Net/tls"
+      value: "yes"
+----
+
+After editing the `LinstorCluster` configuration, apply it to your deployment by entering
+`kubectl apply -f <configuration-file>`. 
+
+[[s-kubernetes-drbd-options-setting-on-node-connection]]
+===== Setting DRBD Options on a LINSTOR Node Connection in Kubernetes
+
+You can set DRBD options on LINSTOR node connections in Kubernetes, by editing the Kubernetes
+link:https://github.com/piraeusdatastore/piraeus-operator/blob/v2/docs/reference/linstornodeconnection.md#specproperties[`LinstorNodeConnection`]
+configuration. Instructions are similar for editing and applying a `LinstorCluster`
+configuration, described in the previous section.
+
+DRBD options set at the node connection level will take precedence over DRBD options set at the
+controller level and satellite node levels.
+
+The following is an example node connection configuration that will do two things:
+
+. Select pairs of nodes (a node connection by definition connects two nodes) that are in
+  different geographical regions, for example, two data centers.
+. Set a DRBD option to make DRBD use
+  link:file:///home/michael/linbit-documentation/UG9/en/output-html/drbd-users-guide-without-css.html#s-replication-protocols[protocol
+  A] (asynchronous replication) on the node level connection between nodes that match the
+  selection criterion.
+
+----
+apiVersion: piraeus.io/v1
+kind: LinstorNodeConnection
+metadata:
+  name: cross-region
+spec:
+  selector:
+    # Select pairs of nodes (A, B) where A is in a different region than node B.
+    - matchLabels:
+        - key: topology.kubernetes.io/region
+          op: NotSame
+  properties:
+    # This property will be set on the node connection, verify with:
+    # linstor node-connection list-properties <node1> <node2>
+    # Configure DRBD protocol A between regions for reduced latency
+    - name: DrbdOptions/Net/protocol
+      value: A
+----
+
+NOTE: Refer to
+link:https://github.com/piraeusdatastore/piraeus-operator/blob/v2/docs/reference/linstornodeconnection.md#specselector[documentation
+within the upstream Piraeus project] for more details about the node connection `selector`
+specification.
+
+[[s-kubernetes-drbd-options-setting-on-satellite]]
+===== Setting DRBD Options on LINSTOR Satellite Nodes in Kubernetes
+
+You can set DRBD options on LINSTOR satellite nodes in Kubernetes, by editing the Kubernetes
+`LinstorSatelliteConfiguration`] configuration. Instructions are similar for editing and
+applying a `LinstorCluster` or `LinstorNodeConnection` configuration, described in the previous
+sections.
+
+DRBD options set at the satellite node level will take precedence over DRBD options set at the
+controller level.
+
+To set a DRBD option that would prevent LINSTOR from automatically evicting a node, you could
+use the following configuration file, provided that you apply an `under-maintenance` label to
+the node that you want to disable the automatic eviction feature for. This might be useful
+during a system maintenance window on a node.
+
+----
+apiVersion: piraeus.io/v1
+kind: LinstorSatelliteConfiguration
+metadata:
+  name: nodes-under-maintenance
+spec:
+  nodeSelector:
+    under-maintenance: "yes"
+  properties:
+    - name: DrbdOptions/AutoEvictAllowEviction
+      value: "false"
+----
+
+[[s-kubernetes-linstor-properties-setting-on-storage-pools]]
+====== Setting LINSTOR Properties on LINSTOR Storage Pools in Kubernetes
+
+Additionaly, you can specify LINSTOR properties (not DRBD options) on LINSTOR storage pools that
+might exist on LINSTOR satellite nodes, as shown in the example configuration that follows.
+
+The example configuration would apply to all LINSTOR satellite nodes in your Kubernetes
+deployment. However, it is possible to select only certain nodes within a configuration, similar
+to the configuration example in <<s-kubernetes-drbd-options-setting-on-satellite,>>. Refer to
+link:https://github.com/piraeusdatastore/piraeus-operator/blob/v2/docs/reference/linstorsatelliteconfiguration.md#linstorsatelliteconfiguration[documentation
+in the upstream Piraeus project] for details.
+
+----
+apiVersion: piraeus.io/v1
+kind: LinstorSatelliteConfiguration
+spec:
+  storagePools:
+    - name: pool1
+      lvmThinPool: {}
+      properties:
+        # This one will be set on the storage pool, verify with:
+        # linstor storage-pool list-properties <node> <pool>
+        # Set the oversubscription ratio on the storage pool to 1, i.e. no oversubscription.
+        - name: MaxOversubscriptionRatio
+          value: "1"
 ----
 
 [[s-kubernetes-file-system]]
