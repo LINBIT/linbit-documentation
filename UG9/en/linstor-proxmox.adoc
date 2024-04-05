@@ -20,6 +20,29 @@ replicated to multiple nodes.
 === Upgrading Proxmox
 If this is a fresh installation, skip this section and continue with <<s-proxmox-ls-install>>.
 
+[[s-proxmox-ls-upgrades-plug-x-8]]
+==== Upgrading Plugin to 8.x
+This requires LINSTOR 1.27.0 or greater.
+
+In order to allow reassigning disks between VMs we had to change the naming scheme. New disks (also clones of
+old ones) will have names like `pm-12cf742a_101` on PVE level, and `pm-12cf742a` on LINSTOR/DRBD level. This
+is a static prefix (`pm-`), 8 characters of a UUID, and on PVE level the VMID separated by an underscore
+(`_101`). The new naming obsoletes the old `vm-101-disk-1` like names. Old VMs with legacy names still work
+with version 8 of the plugin. For the user this change should be completely transparent and should not require
+any changes besides getting accustomed to the new names.
+
+So far it was only possible to migrate data from external storage like LVM to LINSTOR/DRBD if the data was
+migrated offline. If you want to migrate data online you can now *temporarily* set `exactsize yes` in your
+`storage.cfg` for a particular DRBD storage and then migrate disks to it. After you are done, remove the
+`exactsize` option from the `storage.cfg` again. The LINSTOR property that allowed temporary online migration
+is then deleted when the disk is activated again (but not if it is currently active). If you want to delete
+the property for all active disks after migration, or you want to be extra sure, you can run a command like
+this:
+
+----
+# linstor -m --output-version v1 rd l | jq '.[][].name' | xargs -I {} linstor rd sp {} DrbdOptions/ExactSize False
+----
+
 [[s-proxmox-ls-upgrades-plug-x-7]]
 ==== Upgrading Plugin to 7.x
 Version 7 of the plugin uses a LINSTOR controller API that is available from LINSTOR version 1.21.1 onwards.
@@ -216,6 +239,8 @@ and you will see no interruption at all.
 | `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above
 | `preferlocal`   | Prefer to create local storage (yes/no). As decribed above
 | `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storages in `/etc/pve/storage.cfg` to take effect.
+| `exactsize`     | Set this temporarily to `yes` to allow storage migration from external storage such as LVM
+to DRBD/LINSTOR.
 | `apicrt`        | Path to the client certificate
 | `apikey`        | Path to the client private key
 | `apica`         | Path to the CA certificate
