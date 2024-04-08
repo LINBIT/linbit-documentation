@@ -603,6 +603,17 @@ name.
 
 For more options and exact command usage refer to the LINSTOR client `--help` text.
 
+[[s-linstor-storage-pool-mixing]]
+==== Mixing Storage Pools
+
+With some setup and configuration, you can use storage pools of different <<s-storage-providers,storage provider>> types to back a LINSTOR resource.
+This is called storage pool mixing.
+For example, you might have a storage pool on one node that uses an LVM thick-provisioned volume while on another node you have a storage pool that uses a thin-provisioned ZFS zpool. 
+
+Because most LINSTOR deployments will use homogenous storage pools to back resources, storage pool mixing is only mentioned here so that you know that the feature exists.
+It might be a useful feature when migrating storage resources, for example.
+You can find further details about this, including prerequisites, in <<s-linstor-storage-providers-storage-pool-mixing>>. 
+
 [[s-linstor-resource-groups]]
 === Using Resource Groups to Deploy LINSTOR Provisioned Volumes
 
@@ -1609,7 +1620,7 @@ The storage layer will provide new devices from well known volume managers like 
 others. Every layer combination needs to be based on a storage layer, even if the resource
 should be diskless - for that type there is a dedicated `diskless` provider type.
 
-For a list of providers with their properties refer to <<s-storage-proviers, Storage Providers>>.
+For a list of providers with their properties refer to <<s-storage-providers, Storage Providers>>.
 
 For some storage providers LINSTOR has special properties:
 
@@ -1656,6 +1667,47 @@ two providers there are already sub-types for their thin-provisioned variants.
 
 ** Remote-SPDK: This special storage provider currently requires to be run on a "special
    satellite". Refer to <<s-remote-spdk, Remote SPDK Provider>> for more details.
+
+[[s-linstor-storage-providers-storage-pool-mixing]]
+==== Mixing Storage Pools of Different Storage Providers
+
+While LINSTOR resources are most often backed by storage pools that consist of only one <<s-storage-providers,storage provider>> type, it is possible to user storage pools of different types to back a LINSTOR resource.
+This is called mixing storage pools.
+This might be useful when migrating storage resources but could also have some consequences.
+Read this section carefully before configuring mixed storage pools. 
+
+[[s-linstor-storage-providers-storage-pool-mixing-prereqs]]
+===== Prerequisites For Mixing Storage Pools
+
+Mixing storage pools has the following prerequisites:
+
+- LINSTOR version 1.27.0 or later
+- LINSTOR satellite nodes need to have DRBD version 9.2.7 (or 9.1.18 if on the 9.1 branch) or later
+- The LINSTOR property `AllowMixingStoragePoolDriver` set to `true` on the LINSTOR controller, resource group, or resource definition LINSTOR object level
+
+NOTE: Because of LINSTOR object hierarchy, if you set the `AllowMixingStoragePoolDriver` property on the LINSTOR controller object (`linstor controller set-property AllowMixingStoragePoolDriver true`), the property will apply to all LINSTOR resources, except for any resource groups or resource definitions where you have set the property to `false`. 
+
+[[s-linstor-storage-providers-storage-pool-mixing-criteria]]
+===== When Storage Pools Are Considered Mixed
+
+If one of following criteria is met, LINSTOR will consider the setup as storage pool mixing:
+
+1. The storage pools have different extent sizes.
+For example, by default LVM has a 4MiB extent size while ZFS (since version 2.2.0) has a 16KiB extent size.
+
+2. The storage pools have different DRBD initial synchronization strategies, for example, a full initial synchronization, or a day 0 based partial synchronization.
+Using `zfs` and `zfthin` storage provider-backed storage pools together would not meet this criterion because they each use an initial day 0-based partial DRBD synchronization strategy.
+
+[[s-linstor-storage-providers-storage-pool-mixing-consequences]]
+===== Consequences of Mixing Storage Pools
+
+When you create a LINSTOR resource that is backed by mixing storage pools, there might be consequences that affect LINSTOR features.
+For example, when you mix `lvm` and `lvmthin` storage pools, any resource backed by such a mix will be considered a thick resource.
+This is the mechanism by which LINSTOR allows for storage pool mixing.
+
+An exception to this is the previously mentioned example of using `zfs` and `zfsthin` storage pools.
+LINSTOR does not consider this mixing storage pools because combining a `zfs` and a `zfsthin` storage pool does not meet either of the two storage pool mixing criteria described earlier.
+This is because the two storage pools will have the same extent size, and both storage pools will use the same DRBD initial synchronization strategy: day 0-based partial synchronization.
 
 [[s-remote-spdk]]
 ==== Remote SPDK Provider
