@@ -453,3 +453,38 @@ to host your CloudStack VMs.
 LINBIT has also made available a video demonstrating deploying LINSTOR and CloudStack into a
 three-node VM cluster. You can view the video https://www.youtube.com/watch?v=hI_kTlsbNeU[here].
 
+=== High Availability and LINSTOR Volumes in Cloudstack
+
+The CloudStack documentation on
+http://docs.cloudstack.apache.org/en/4.19.0.0/adminguide/reliability.html#ha-enabled-instances[HA-enabled instances]
+explains that in case of KVM hypervisors, only HA-enabled hosts are safe from split-brain
+situations. HA-enabled hosts need to have the ability of "out-of-band management" which is IPMI.
+
+That documentation is correct for KVM instances on NFS or iSCSI storage. When the instances' virtual
+disks are on LINSTOR, HA-enabled hosts are not necessary and not recommended. No "out-of-band
+management" is necessary, and no IPMI is required. CloudStack's "VM-HA" is sufficient and safe.
+
+The quorum mechanism built into DRBD and enabled by LINSTOR prevents any split-brain to happen.
+
+==== Explanation and Reasoning
+
+If CloudStack loses contact with a hypervisor, CloudStack initiates a process to ensure the
+continuity of operations. Specifically, it will automatically restart the VMs that were running on
+the lost hypervisor on another available hypervisor node. This process is designed to minimize
+downtime and ensure the smooth operation of your CloudStack environment.
+
+There are two possible cases to consider. In one case, while CloudStack has lost connection to a
+hypervisor, DRBD still has network connections to and from that hypervisor. In
+this case, the VMs running on the hypervisor host can still access their storage volumes. DRBD will therefore refuse any
+attempts of starting the KVM process on another hypervistor host, by failing the `open()` system call.
+
+In the other case, DRBD also loses connections to that hypervisor and the remaining nodes have a quorum for that
+specific DRBD resource. In this case, DRBD will allow CloudStack to start a KVM process on one of the
+remaining nodes. This is because it is granted that the unreachable hypervisor has lost quorum on its DRBD
+devices. DRBD will then suspended I/O on the isolated hypervisor for the VMs running on those DRBD storage devices.
+So, in case the unreachable host was only isolated from the network, but other services and
+processes were unaffected, for example, the hypervisor was not lost due to a reboot, the VM
+instances running on the lost hypervisor will remain in a frozen I/O state.
+
+For details on automatic recovery from such situations refer to details in the
+{url-drbd-ug}#s-force-secondary[Recovering a Primary Node that Lost Quorum] section of the _DRBD User's Guide_.
