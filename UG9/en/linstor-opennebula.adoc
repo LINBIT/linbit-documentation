@@ -23,7 +23,7 @@ own transport protocol.
 [[s-opennebula-linstor-install]]
 === Installing the OpenNebula Add-on
 
-Installation of the LINSTOR storage add-on for OpenNebula requires a working OpenNebula cluster as well as a working LINSTOR cluster.
+To install the LINSTOR storage add-on for OpenNebula, you need both a working OpenNebula cluster and a working LINSTOR cluster.
 
 With access to the LINBIT(R) customer repositories you can install the `linstor-opennebula` package with:
 
@@ -44,7 +44,7 @@ A DRBD cluster with LINSTOR can be installed and configured by following the
 instructions in this guide, see <<s-linstor-init-cluster>>.
 
 The OpenNebula and DRBD clusters can be somewhat independent of one another
-with the following exception: OpenNebula's Front-End and Host nodes must be
+with the following exception: OpenNebula's front end and host nodes must be
 included in both clusters.
 
 Host nodes do not need a local LINSTOR storage pool, as virtual machine
@@ -54,15 +54,24 @@ storage node, it will use a local copy of an image if that is available].
 [[s-opennebula-deployment-options]]
 === Deployment Options
 
-It is recommended to use LINSTOR resource groups to configure the deployment
-how you like it, see <<s-opennebula-resource-group>>.
+It is recommended to use LINSTOR resource groups to configure resource deployment
+as you want it, refer to <<s-opennebula-resource-group>>.
 Previous auto-place and deployment nodes modes are deprecated.
-
 
 [[s-opennebula-configuration]]
 === Configuring the OpenNebula Add-on
 
-==== Adding the Driver to OpenNebula
+Configuring the OpenNebula LINSTOR add-on involves:
+
+1. Adding the OpenNebula LINSTOR driver to your OpenNebula configuration
+1. Configuring cluster nodes
+1. Configuring correct permissions for the `oneadmin` user
+1. Creating a LINSTOR OpenNebula image datastore
+1. Creating LINSTOR resource groups from which to deploy storage resources
+1. Configuring optional LINSTOR plugin attributes
+1. Configuring LINSTOR as an OpenNebula system datastore
+
+=== Adding the Driver to OpenNebula
 
 Modify the following sections of `/etc/one/oned.conf`
 
@@ -83,7 +92,7 @@ DATASTORE_MAD = [
 ]
 ----
 
-NOTE: `linstor` is specified *twice* in the `DATASTORE_MAD` arguments.
+IMPORTANT: Specify `linstor` *twice* in the `DATASTORE_MAD` arguments setting.
 
 Add new TM_MAD_CONF and DS_MAD_CONF sections:
 
@@ -100,12 +109,13 @@ DS_MAD_CONF = [
     MARKETPLACE_ACTIONS = "export"
 ]
 ----
+
 After making these changes, restart the OpenNebula service.
 
 [[s-opennebula-configuring-nodes]]
 ==== Configuring the Nodes
 
-The Front-End node issues commands to the Storage and Host nodes through LINSTOR.
+The front-end node issues commands to the storage and host nodes through LINSTOR.
 
 Storage nodes hold disk images of VMs locally.
 
@@ -116,24 +126,24 @@ diskless mode.
 All nodes must have DRBD9 and LINSTOR installed. This process is detailed in the
 http://docs.linbit.com/doc/users-guide-90/ch-admin-linstor/[User's Guide for DRBD9]
 
-It is possible to have Front-End and Host nodes act as storage nodes in
+It is possible to have front-end and host nodes act as storage nodes in
 addition to their primary role provided that they the meet all the requirements
 for both roles.
 
 
 ===== Configuring the Front-end Node
 
-Please verify that the control node(s) that you hope to communicate with are
+Verify that the control node(s) that you hope to communicate with are
 reachable from the front-end node. `linstor node list` for locally running
 LINSTOR controllers and `linstor --controllers "<IP:PORT>" node list` for
-remotely running LINSTOR Controllers is a handy way to test this.
+remotely running LINSTOR controllers are ways you can to test this.
 
 ===== Configuring Host Nodes
 
 Host nodes must have LINSTOR satellite processes running on them and be members
-of the same LINSTOR cluster as the Front-End and Storage nodes, and may optionally
-have storage locally. If the `oneadmin` user is able to passwordlessly SSH between
-hosts then live migration may be used with the even with the SSH system datastore.
+of the same LINSTOR cluster as the front-end and storage nodes, and can optionally
+have storage locally. If the `oneadmin` user is able to connect via SSH between
+hosts without using a password, then live migration is possible, even with the SSH system datastore.
 
 ===== Configuring Storage Nodes
 
@@ -165,8 +175,8 @@ device as the backing storage.
 
 ==== Permissions for the Administrative Account
 
-The `oneadmin`, "Cloud Administrator", user account must have passwordless sudo access to the `mkfs` command on
-the Storage nodes
+The `oneadmin`, "Cloud Administrator", user account must have passwordless `sudo` access to the `mkfs` command on
+the storage nodes
 
 ----
 oneadmin ALL=(root) NOPASSWD: /sbin/mkfs
@@ -208,7 +218,7 @@ linstor resource-group create OneRscGrp --place-count 2 --storage-pool opennebul
 linstor volume-group create OneRscGrp
 ----
 
-Now add a OpenNebula datastore using the LINSTOR plug-in:
+Now add a OpenNebula datastore using the LINSTOR plugin:
 
 ----
 cat >ds.conf <<EOI
@@ -225,13 +235,13 @@ EOI
 onedatastore create ds.conf
 ----
 
-==== Plug-in Attributes
+==== Plugin Attributes
 
 ===== LINSTOR_CONTROLLERS
 
-`LINSTOR_CONTROLLERS` can be used to pass a comma separated list of controller
-ips and ports to the LINSTOR client in the case where a LINSTOR controller
-process is not running locally on the Front-End, e.g.:
+`LINSTOR_CONTROLLERS` can be used to pass a comma-separated list of controller
+IP addresses and ports to the LINSTOR client in the case where a LINSTOR controller
+process is not running locally on the front-End, e.g.:
 
 `LINSTOR_CONTROLLERS = "192.168.1.10:8080,192.168.1.11:6000"`
 
@@ -272,8 +282,9 @@ nodes automatically based on the level of redundancy.
 ===== LINSTOR_DEPLOYMENT_NODES
 
 Using `LINSTOR_DEPLOYMENT_NODES` allows you to select a group of nodes that
-resources will always be assigned to. Please note that the
-bridge list still contains all of the storage nodes in the LINSTOR cluster.
+resources will always be assigned to.
+
+NOTE: The bridge list still contains all of the storage nodes in the LINSTOR cluster.
 
 ==== Configuring LINSTOR as a System Datastore
 
@@ -293,7 +304,7 @@ EOI
 onedatastore create system_ds.conf
 ----
 
-Also add the new sys datastore id to the `COMPATIBLE_SYS_DS` to your image datastores (COMMA separated), otherwise the scheduler will ignore them.
+Also add the new system datastore ID to the `COMPATIBLE_SYS_DS` to your image datastores (comma-separated), otherwise the scheduler will ignore them.
 
 If you want live migration with volatile disks you need to enable the `--unsafe` option for KVM, see:
 https://docs.opennebula.org/5.8/deployment/open_cloud_host_setup/kvm_driver.html#live-migration-for-other-cache-settings[opennebula-doc]
@@ -302,7 +313,7 @@ https://docs.opennebula.org/5.8/deployment/open_cloud_host_setup/kvm_driver.html
 === Live Migration
 
 Live migration is supported even with the use of the SSH system datastore, as
-well as the nfs shared system datastore.
+well as the NFS shared system datastore.
 
 [[s-opennebula-linstor-free-space]]
 === Free Space Reporting
