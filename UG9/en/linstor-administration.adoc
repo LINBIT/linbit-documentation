@@ -1199,35 +1199,72 @@ multiple LINSTOR controller nodes where only one is active at a time, and a serv
 (here DRBD Reactor) that takes care of mounting and unmounting the highly available storage as
 well as starting and stopping the LINSTOR controller service on nodes.
 
-==== Configuring Highly Available Storage
+[[s-linstor_ha-configuring-ha-linstor-database-storage]]
+==== Configuring Highly Available LINSTOR Database Storage
 
-For configuring the highly available (HA) storage, you can use LINSTOR itself. One of the
+To configure the highly available storage, you can use LINSTOR itself. One of the
 benefits of having the storage under LINSTOR control is that you can easily extend the HA
 storage to new cluster nodes.
 
-First, create a new resource that is 200MiB in size and set the necessary DRBD options, as shown
-in the example commands below. You will need to adapt the storage pool name to match an existing
-storage pool in your environment.
+[[s-linstor_ha-creating-res-group-for-ha-database-storage]]
+===== Creating a Resource Group For The HA LINSTOR Database Storage Resource 
+
+First, create a resource group, here named `linstor-db-grp`, from which you will later spawn the
+resource that will back the LINSTOR database. You will need to adapt the storage pool name to
+match an existing storage pool in your environment.
 
 ----
-# linstor resource-definition create linstor_db
-# linstor rd drbd-options --auto-promote=no linstor_db
-# linstor rd drbd-options --quorum=majority linstor_db
-# linstor rd drbd-options --on-suspended-primary-outdated=force-secondary linstor_db
-# linstor rd drbd-options --on-no-quorum=io-error linstor_db
-# linstor rd drbd-options --on-no-data-accessible=io-error linstor_db
-# linstor rd drbd-options --rr-conflict=retry-connect linstor_db
-# linstor volume-definition create linstor_db 200M
-# linstor resource create linstor_db --storage-pool pool1 --auto-place 3
+# linstor resource-group create \
+--storage-pool my-thin-pool \
+--place-count 3 \
+--diskless-on-remaining true \
+linstor-db-grp
 ----
 
-It is crucial that your cluster qualifies for auto-quorum and uses the `io-error` policy (see
-Section <<s-linstor-auto-quorum>>), and that `auto-promote` is disabled.
+Next, set the necessary DRBD options on the resource group. Resources that you spawn from the
+resource group will inherit these options.
 
-From now on it is assumed that the resource's name is `linstor_db`. After creating the
-`linstor_db` resource, you can move the LINSTOR database to the new storage and create a
-systemd mount service. First, stop the current controller service and disable it, as it will
-be managed by DRBD Reactor later.
+----
+# linstor resource-group drbd-options \
+--auto-promote=no \
+--quorum=majority \
+--on-suspended-primary-outdated=force-secondary \
+--on-no-quorum=io-error \
+--on-no-data-accessible=io-error \
+--rr-conflict=retry-connect \
+linstor-db-grp
+----
+
+IMPORTANT: It is crucial that your cluster qualifies for auto-quorum and uses the `io-error`
+policy (see Section <<s-linstor-auto-quorum>>), and that `auto-promote` is disabled.
+
+[[s-linstor_ha-creating-vol-group-for-ha-database-storage]]
+===== Creating a Volume Group For The HA LINSTOR Database Storage Resource 
+
+Next, create a volume group that references your resource group.
+
+----
+# linstor volume-group create linstor-db-grp
+----
+
+[[s-linstor_ha-creating-resource-for-ha-database-storage]]
+===== Creating a Resource For The HA LINSTOR Database Storage
+
+Now you can spawn a new LINSTOR resource from the resource group that you created. The resource
+is named `linstor_db` and will be 200MiB in size, Because of the parameters that you specified
+when you created the resource group, LINSTOR will place the resource in the `my-thin-pool`
+storage pool on three satellite nodes in your cluster.
+
+----
+# linstor resource-group spawn-resources linstor-db-grp linstor_db 200M
+----
+
+[[s-linstor_ha-moving-linstor-database-to-ha-storage]]
+==== Moving the LINSTOR Database to HA Storage
+
+After creating the `linstor_db` resource, you can move the LINSTOR database to the new storage
+and create a systemd mount service. First, stop the current controller service and disable it,
+as it will be managed by DRBD Reactor later.
 
 ----
 # systemctl disable --now linstor-controller
