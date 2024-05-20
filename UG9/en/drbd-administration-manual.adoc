@@ -651,7 +651,7 @@ online migration of virtual machines.
 If not using a cluster manager and looking to handle failovers manually in a
 passive/active configuration, the process is as follows.
 
-On the current primary node stop any applications or services using the DRBD device,
+On the current primary node, stop any applications or services using the DRBD device,
 unmount the DRBD device, and demote the resource to secondary.
 
 ----
@@ -669,6 +669,30 @@ Now on the node you want to make primary promote the resource and mount the devi
 If you're using the `auto-promote` feature, you don't need to change the roles
 (_Primary_/_Secondary_) manually; only stopping of the services and unmounting,
 respectively mounting, is necessary.
+
+[[s-drbd-graceful-shutdown]]
+=== Shutting Down Gracefully By Using a systemd Service
+
+Included with `drbd-utils` versions since 9.26.0, there is a "graceful shutdown" service,
+`drbd-graceful-shutdown.service`. This service ensures that the DRBD
+<<s-quorum_last_man_standing,"last man standing">> behavior applies to your cluster when
+shutting down nodes. 
+
+The graceful shutdown service is started automatically by the udev service at the moment the
+first DRBD device is created. At system shutdown, the graceful shutdown service ensures that all
+nodes hosting DRBD resources shut down services in a proper sequence so that the last node keeps
+quorum.
+
+During a normal system shutdown sequence without this intervention, networking often stops
+before a system unmounts file systems and takes down DRBD devices. Without the graceful shutdown
+service, to make it so that the last node to shut down keeps DRBD quorum, you would need to
+manually unmount file systems and down DRBD resources before shutting down nodes. 
+
+By virtue of the graceful shutdown service running on a node, when shutting down, a node marks
+its DRBD resources outdated, stops its running DRBD services, and then networking services are
+allowed to stop. This shutdown sequence makes it so that the DRBD peer nodes leaving the cluster
+are able to communicate their outdated status over the network to the last node, and in this way
+the last node to leave the cluster will keep quorum.
 
 [[s-upgrading-drbd]]
 include::drbd-upgrading.adoc[]
