@@ -1,136 +1,77 @@
-# This Makefile is used in the GitLab "deploy" pipeline
-# to upload user's guides to the LINBIT staging *and*
-# production WordPress sites
-include Makefile
+stages:
+  - build
+  - preview
+  - deploy
 
-DOCKER ?= yes
-DOCKERPOST =
-ifeq ($(DOCKER),yes)
-DOCKERPOST = -docker
-endif
+build:
+  stage: build
+  image:
+    name: $CI_REGISTRY/linbit/linbit-documentation
+    entrypoint: [""]
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  script:
+    - make UG9-html-finalize
+  artifacts:
+    paths:
+      - UG9/en/output-html-finalize/*.zip
 
-STAGING ?= no
-STAGINGPOST =
-ifeq ($(STAGING),yes)
-STAGINGPOST = staging
-endif
+lint:
+  stage: build
+  image:
+    name: $LINBIT_DOCKER_REGISTRY/lb-vale:latest
+    entrypoint: [""]
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == 'master'
+  script:
+    - /bin/vale --config=/vale_app/.vale.ini --no-exit --output=JSON **/en/*.adoc | tee vale.json
+    - /bin/vale2climate vale.json > vale-climate.json
+  artifacts:
+    paths:
+    - vale.json
+    when: always
+    reports:
+      codequality:
+        - vale-climate.json
 
-SKIPGENERATE ?= no
+preview:
+  stage: preview
+  image: $LINBIT_DOCKER_REGISTRY/ug-preview:latest
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  environment:
+    name: preview/$CI_COMMIT_REF_SLUG
+    url: $LINBIT_REGISTRY_URL/repository/pages/$CI_COMMIT_REF_SLUG/
+  script:
+    - zips=$(realpath ./UG9/en/output-html-finalize/*.zip)
+    - mkdir /index
+    - cd /build
+    - |
+      for zip in $zips; do
+        prefix=$(basename $zip .zip)
+        php linbit-drbd.php $zip /out
+        ./upload.sh $CI_COMMIT_REF_SLUG /out $prefix
+        echo "<a href='./$prefix/'><h2>$prefix</h2></a>" >> /index/index.html
+      done
+      ./upload.sh $CI_COMMIT_REF_SLUG /index .
+  dependencies:
+    - build
 
-# FTPHOST=am9.siteground.biz
-
-# SFTPUSER can be "username,password", then lftp does not ask
-SFTPUSER=linbit-linbitadmin
-SFTPHOST=linbit$(STAGINGPOST).sftp.wpengine.com
-SFTPPORT=2222
-SFTPURL=sftp://$(SFTPHOST):$(SFTPPORT)
-
-SSHUSER=linbit$(STAGINGPOST)
-SSHHOST=linbit$(STAGINGPOST).ssh.wpengine.net
-SSHURL=$(SSHUSER)@$(SSHHOST)
-
-HUBSPOTSAPIURL="https://api.hubapi.com/filemanager/api/v3/files/upload"
-HUBSPOTUGSDIR=/documentation/ugs-api-upload-test
-# HSAPIKEY variable defined as a GitLab CI/CD secret
-UGPDFSCN=$(wildcard ./UG9/cn/output-pdf/*.pdf)
-UGPDFSEN=$(wildcard ./UG9/en/output-pdf/*.pdf)
-UGPDFSJA=$(wildcard ./UG9/ja/output-pdf/*.pdf)
-
-.PHONY: all all-clean g-update-html g-update-pdf g-clean
-
-all: g-update-html g-update-pdf g-trigger-update
-all-clean: g-clean all
-
-trusthosts:
-	ssh-keyscan -p$(SFTPPORT) $(SFTPHOST) >> ~/.ssh/known_hosts
-	ssh-keyscan $(SSHHOST) >> ~/.ssh/known_hosts
-
-g-clean:
-	make clean-all
-
-g-update-html: g-update-html-en g-update-html-ja g-update-html-cn
-
-g-update-html-en:
-	if [ "$(SKIPGENERATE)" = "no" ]; then make UG9-html-finalize$(DOCKERPOST); fi
-	lftp -u '$(SFTPUSER)' -e "put -O /guides-src ./UG9/en/output-html-finalize/drbd.zip -o users-guide-en-9.0.zip;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /guides-src ./UG9/en/output-html-finalize/linstor.zip -o linstor-guide-en-1.0.zip;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /guides-src ./UG9/en/output-html-finalize/vsan.zip -o vsan-guide-en-1.0.zip;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /guides-src ./UG9/en/output-html-finalize/linstorgateway.zip -o linstorgateway-guide-en-1.0.zip;bye" $(SFTPURL)
-
-g-update-html-ja:
-	if [ "$(SKIPGENERATE)" = "no" ]; then make UG9-html-finalize$(DOCKERPOST) lang=ja; fi
-	lftp -u '$(SFTPUSER)' -e "put -O /guides-src ./UG9/ja/output-html-finalize/drbd.zip -o users-guide-ja-9.0.zip;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /guides-src ./UG9/ja/output-html-finalize/linstor.zip -o linstor-guide-ja-1.0.zip;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /guides-src ./UG9/ja/output-html-finalize/vsan.zip -o vsan-guide-ja-1.0.zip;bye" $(SFTPURL)
-
-g-update-html-cn:
-	if [ "$(SKIPGENERATE)" = "no" ]; then make UG9-html-finalize$(DOCKERPOST) lang=cn; fi
-	lftp -u '$(SFTPUSER)' -e "put -O /guides-src ./UG9/cn/output-html-finalize/drbd.zip -o users-guide-cn-9.0.zip;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /guides-src ./UG9/cn/output-html-finalize/linstor.zip -o linstor-guide-cn-1.0.zip;bye" $(SFTPURL)
-
-g-update-pdf: g-update-pdf-en g-update-pdf-ja g-update-pdf-cn
-
-g-update-pdf-en:
-	if [ "$(SKIPGENERATE)" = "no" ]; then make UG9-pdf-finalize$(DOCKERPOST); fi
-	lftp -u '$(SFTPUSER)' -e "put -O /downloads/tech-guides ./UG9/en/output-pdf/drbd-users-guide.pdf -o User_Guide_DRBD_9.pdf;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /downloads/tech-guides ./UG9/en/output-pdf/linstor-users-guide.pdf -o User_Guide_LINSTOR.pdf;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /downloads/tech-guides ./UG9/en/output-pdf/vsan-users-guide.pdf -o User_Guide_VSAN.pdf;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /downloads/tech-guides ./UG9/en/output-pdf/linstorgw-users-guide.pdf -o User_Guide_LINSTORGATEWAY.pdf;bye" $(SFTPURL)
-
-g-update-pdf-ja:
-	if [ "$(SKIPGENERATE)" = "no" ]; then make UG9-pdf-finalize$(DOCKERPOST) lang=ja; fi
-	lftp -u '$(SFTPUSER)' -e "put -O /downloads/tech-guides ./UG9/ja/output-pdf/drbd-users-guide.pdf -o User_Guide_DRBD_9_JA.pdf;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /downloads/tech-guides ./UG9/ja/output-pdf/linstor-users-guide.pdf -o User_Guide_LINSTOR_JA.pdf;bye" $(SFTPURL)
-
-g-update-pdf-cn:
-	if [ "$(SKIPGENERATE)" = "no" ]; then make UG9-pdf-finalize$(DOCKERPOST) lang=cn; fi
-	lftp -u '$(SFTPUSER)' -e "put -O /downloads/tech-guides ./UG9/cn/output-pdf/drbd-users-guide.pdf -o User_Guide_DRBD_9_CN.pdf;bye" $(SFTPURL)
-	lftp -u '$(SFTPUSER)' -e "put -O /downloads/tech-guides ./UG9/cn/output-pdf/linstor-users-guide.pdf -o User_Guide_LINSTOR_CN.pdf;bye" $(SFTPURL)
-
-.PHONY: g-upload-ug-pdfs
-g-upload-ug-pdfs: g-upload-ug-pdfs-to-hubspot-cn g-upload-ug-pdfs-to-hubspot-en g-upload-ug-pdfs-to-hubspot-ja
-
-.PHONY: g-upload-ug-pdfs-to-hubspot-en
-g-upload-ug-pdfs-to-hubspot-en: $(UGPDFSEN)
-	for userguide in $(UGPDFSEN); do \
-        echo $$userguide && \
-        curl -X POST \
-        $(HUBSPOTSAPIURL) \
-        -H "Authorization: Bearer $(HUBSPOTAPIKEY)" \
-        -H 'Content-Type: multipart/form-data' \
-        -F "file=@$$userguide" \
-        -F "fileName=`basename $$userguide)`" \
-        -F 'options={"access": "PUBLIC_NOT_INDEXABLE", "overwrite": true, "duplicateValidationStrategy": "NONE", "duplicateValidationScope": "EXACT_FOLDER"}' \
-        -F "folderPath=$(HUBSPOTUGSDIR)/en"\
-        ;done
-
-.PHONY: g-upload-ug-pdfs-to-hubspot-ja
-g-upload-ug-pdfs-to-hubspot-ja: $(UGPDFSJA)
-	for userguide in $(UGPDFSJA); do \
-        echo $$userguide && \
-        curl -X POST \
-        $(HUBSPOTSAPIURL) \
-        -H "Authorization: Bearer $(HUBSPOTAPIKEY)" \
-        -H 'Content-Type: multipart/form-data' \
-        -F "file=@$$userguide" \
-        -F "fileName=`basename $$userguide)`" \
-        -F 'options={"access": "PUBLIC_NOT_INDEXABLE", "overwrite": true, "duplicateValidationStrategy": "NONE", "duplicateValidationScope": "EXACT_FOLDER"}' \
-        -F "folderPath=$(HUBSPOTUGSDIR)/ja"\
-        ;done
-
-.PHONY: g-upload-ug-pdfs-to-hubspot-cn
-g-upload-ug-pdfs-to-hubspot-ja: $(UGPDFSCN)
-	for userguide in $(UGPDFSCN); do \
-        echo $$userguide && \
-        curl -X POST \
-        $(HUBSPOTSAPIURL) \
-        -H "Authorization: Bearer $(HUBSPOTAPIKEY)" \
-        -H 'Content-Type: multipart/form-data' \
-        -F "file=@$$userguide" \
-        -F "fileName=`basename $$userguide)`" \
-        -F 'options={"access": "PUBLIC_NOT_INDEXABLE", "overwrite": true, "duplicateValidationStrategy": "NONE", "duplicateValidationScope": "EXACT_FOLDER"}' \
-        -F "folderPath=$(HUBSPOTUGSDIR)/cn"\
-        ;done
-
-g-trigger-update:
-	ssh $(SSHURL) 'cd /sites/linbit$(STAGINGPOST)/ && /usr/local/bin/wp linbit_sync_guides'
+deploy:
+  stage: deploy
+  image:
+    name: $CI_REGISTRY/linbit/linbit-documentation
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'master'
+  before_script:
+    - echo "DEPLOY"
+  script:
+    - mkdir -p ~/src && cp -r . ~/src && cd ~/src
+    - cp /linbit-documentation/GNUmakefile .
+    - cp -r /fonts .
+    - make trusthosts all-clean DOCKER=no SFTPUSER=$SFTPUSERSTAGING STAGING=yes
+    - make trusthosts all DOCKER=no SFTPUSER=$SFTPUSER SKIPGENERATE=yes
+    - echo "next running g-upload-ug-pdfs-to-hubspot-en make target"
+    - make g-upload-ug-pdfs-to-hubspot-en
