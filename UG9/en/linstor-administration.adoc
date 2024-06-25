@@ -3095,6 +3095,179 @@ the `linstor <LINSTOR_object> drbd-options --help` (or `drbd-peer-options --help
 output for the default values of options. You can also refer to the `drbd.conf-9.0` man page to
 get information about DRBD options.
 
+[[s-linstor-over-provisioning-storage-ratios]]
+=== Over Provisioning Storage in LINSTOR
+
+Since LINSTOR server version 1.26.0, it is possible to control how LINSTOR limits over
+provisioning storage by using three LINSTOR object properties: `MaxOversubscriptionRatio`,
+`MaxFreeCapacityOversubscriptionRatio`, and `MaxTotalCapacityOversubscriptionRatio`. You can set
+these properties on either a LINSTOR storage pool or a LINSTOR controller object. Setting these
+properties at the controller level will affect all LINSTOR storage pools in the cluster, unless
+the same property is also set on a specific storage pool. In this case, the property value set
+on the storage pool will take precedence over the property value set on the controller.
+
+By setting values for over subscription ratios, you can control how LINSTOR limits the over
+provisioning that you can do with your storage pools. This might be useful in cases where you do
+not want over provisioning of storage to reach a level that you cannot account for physically,
+if you needed to.
+
+The following subsections discuss the different over provisioning limiting properties.
+
+[[s-linstor-over-provisioning-storage-ratios-max-free-capacity]]
+==== Configuring a Maximum Free Capacity Over Provisioning Ratio
+
+In LINSTOR server versions before 1.26.0, configuring over provisioning of a storage pool backed
+by a thin-provisioned LVM volume or ZFS zpool was based on the amount of free space left in the
+storage pool. In LINSTOR server versions from 1.26.0, this method of over provisioning is still
+possible. You do this by setting a value for the `MaxFreeCapacityOversubscriptionRatio` property
+on either a LINSTOR storage pool or the LINSTOR controller. When you configure a value for this
+ratio, the remaining free space in a storage pool is multiplied by the ratio value and this
+becomes the maximum allowed size for a new volume that you can provision from the storage pool.
+
+By default, the `MaxFreeCapacityOversubscriptionRatio` has a value of 20.
+
+To configure a different value for the `MaxFreeCapacityOversubscriptionRatio` property on a
+LINSTOR storage pool named `my_thin_pool` on three LINSTOR satellite nodes in a cluster, named
+`node-0` through `node-2`, enter the following command:
+
+----
+# for node in node-{0..2}; do \
+linstor storage-pool set-property $node my_thin_pool MaxFreeCapacityOversubscriptionRatio 10
+done
+----
+
+If you had already deployed some storage resources and the storage pool had 10GiB free capacity
+remaining (shown by entering `linstor storage-pool list`), then when provisioning a new storage
+resource from the storage pool, you could at most provision a 100GiB volume.
+
+Before spawning new LINSTOR resources (and volumes) from a resource group, you can list the
+maximum volume size that LINSTOR will let you provision from the resource group. To do this,
+enter a `resource-group query-size-info` command. For example, to list information about the
+`DfltRscGrp` resource group, enter the following command:
+
+----
+# linstor resource-group query-size-info DfltRscGrp
+----
+
+Output from the command will show a table of values for the specified resource group:
+
+----
++-------------------------------------------------------------------+
+| MaxVolumeSize | AvailableSize | Capacity | Next Spawn Result      |
+|===================================================================|
+|     99.72 GiB |      9.97 GiB | 9.97 GiB | my_thin_pool on node-0 |
+|               |               |          | my_thin_pool on node-2 |
++-------------------------------------------------------------------+
+----
+
+[[s-linstor-over-provisioning-storage-ratios-max-total-capacity]]
+==== Configuring a Maximum Total Capacity Over Provisioning Ratio
+
+Since LINSTOR server version 1.26.0, there is an additional way that you can limit over
+provisioning storage. By setting a value for the `MaxTotalCapacityOversubscriptionRatio` on
+either a LINSTOR storage pool or LINSTOR controller, LINSTOR will limit the maximum size of a
+new volume that you can deploy from a storage pool, based on the total capacity of the storage
+pool.
+
+This is a more relaxed way to limit over provisioning, compared to limiting the maximum volume
+size based on the amount of free space that remains in a storage pool. As you provision and use
+more storage in a storage pool, the free space decreases. However, the total capacity of a
+storage pool does not change, unless you add more backing storage to the storage pool.
+
+By default, the `MaxTotalCapacityOversubscriptionRatio` has a value of 20.
+
+To configure a different value for the `MaxTotalCapacityOversubscriptionRatio` property on a
+LINSTOR storage pool named `my_thin_pool` on three LINSTOR satellite nodes in a cluster, named
+`node-0` through `node-2`, enter the following command:
+
+----
+# for node in node-{0..2}; do \
+linstor storage-pool set-property $node my_thin_pool MaxTotalCapacityOversubscriptionRatio 4
+done
+----
+
+If you had a storage pool backed by a thin-provisioned logical volume that had a total capacity
+of 10GiB, then each new storage resource that you created from the storage pool could
+have a maximum size of 40GiB, regardless of how much free space remained in the storage pool. 
+
+[[s-linstor-over-provisioning-storage-ratios-max-oversubscription-ratio]]
+==== Configuring a Maximum Over Subscription Ratio for Over Provisioning
+
+If you set the `MaxOversubscriptionRatio` property on either a LINSTOR storage pool or LINSTOR
+controller object, it can act as the value for both the `MaxFreeCapacityOversubscriptionRatio`
+and `MaxTotalCapacityOversubscriptionRatio` properties. However, the `MaxOversubscriptionRatio`
+property will only act as the value for either of the other two over subscription properties if
+the other property is not set. By default, the value for the `MaxOversubscriptionRatio` property
+is 20, the same as the default values for the other two over subscription properties.
+
+To configure a different value for the `MaxOversubscriptionRatio` property on a LINSTOR
+controller, for example, enter the following command:
+
+----
+# linstor controller set-property MaxOversubscriptionRatio 5
+----
+
+By setting the property value to 5 in the command example, you would be able to over provision a
+10GiB storage pool, for example, by up to 40GiB.
+
+[[s-linstor-over-provisioning-storage-ratios-setting-multiple-properties]]
+==== The Effects of Setting Values on Multiple Over Provisioning Properties
+
+As previously mentioned, the default value for each of the three over provisioning limiting
+LINSTOR properties is 20. If you set the same property on a storage pool and the controller,
+then the value of the property set on the storage pool takes precedence for that storage pool.
+
+If either `MaxTotalCapacityOversubscriptionRatio` or `MaxFreeCapacityOversubscriptionRatio` is
+not set, the value of `MaxOversubscriptionRatio` is used as the value for the unset property
+or properties.
+
+For example, consider the following commands:
+
+----
+# for node in node-{0..2}; do \
+linstor storage-pool set-property $node my_thin_pool MaxOversubscriptionRatio 4
+done
+# for node in node-{0..2}; do \
+linstor storage-pool set-property $node my_thin_pool MaxTotalCapacityOversubscriptionRatio 3
+done
+----
+
+Because you set the `MaxTotalCapacityOversubscriptionRatio` property to 3, LINSTOR will use that
+value for the property, rather than the value that you set for the `MaxOversubscriptionRatio`
+property. Because you did not set the `MaxFreeCapacityOversubscriptionRatio` property, LINSTOR
+will use the value that you set for the `MaxOversubscriptionRatio` property, 4, for the
+`MaxFreeCapacityOversubscriptionRatio` property. 
+
+When determining resource placement, that is, when LINSTOR decides whether or not a resource can
+be placed in a storage pool, LINSTOR will compare two values: the ratio set by the
+`MaxTotalCapacityOversubscriptionRatio` property multiplied by the total capacity of the storage
+pool, and the ratio set by the `MaxFreeCapacityOversubscriptionRatio` property multiplied by the
+available free space of the storage pool. LINSTOR will use the lower of the two calculated
+values to determine whether the storage pool has enough space to place the resource.
+
+Consider the case of values set by earlier commands and given a total capacity of 10GiB for the
+storage pool. Also assume that there are no deployed LINSTOR resources associated with the
+storage pool and that the available free space of the storage pool is also 10GiB.
+
+NOTE: This example is simplistic. It might be the case that depending on the storage provider
+that backs the storage pool, for example, ZFS or LVM, free space might not be equal to total
+capacity in a storage pool with no deployed resources. This is because there might be overhead
+from the storage provider infrastructure that uses storage pool space, even before deploying
+resources.
+
+In this example, `MaxTotalCapacityOversubscriptionRatio`, 3, multiplied by the total capacity,
+10GiB, is less than the `MaxFreeCapacityOversubscriptionRatio`, 4, multiplied by the free
+capacity, 10GiB. Remember here that because the `MaxFreeCapacityOversubscriptionRatio` is unset,
+LINSTOR uses the `MaxOversubscriptionRatio` value.
+
+Therefore, when deploying a new resource backed by the storage pool, LINSTOR would use the total
+capacity calculation, rather than the free capacity calculation, to limit over provisioning the
+storage pool and determine whether a new resource can be placed. However, as you deploy more
+storage resources and they fill up with data, the available free space in the storage pool will
+decrease. For this reason, it might not always be the case that LINSTOR will use the total
+capacity calculation to limit over provisioning the storage pool, even though its ratio is less
+that the free capacity ratio.
+
 [[s-linstor-toggle-disk]]
 === Adding and Removing Disks
 
