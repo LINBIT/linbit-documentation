@@ -4104,6 +4104,80 @@ errors, you need to manually remove the property to get back to a healthy `UpToD
 # linstor resource set-property bravo rsc DrbdOptions/SkipDisk
 ----
 
+[[s-linstor-drbd-external-metadata]]
+=== Using External DRBD Metadata
+
+By default, LINSTOR uses
+link:https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-internal-meta-data[internal DRBD
+metadata] when creating DRBD resources.  If you want to use
+link:https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-external-meta-data[external DRBD
+metadata], you can do this by setting the `StorPoolNameDrbdMeta` property to the name of a
+LINSTOR storage pool within your cluster.
+
+You can set the `StorPoolNameDrbdMeta` property on the following LINSTOR objects, listed in
+increasing order of priority:
+
+- `node`
+- `resource-group`
+- `resource-definition`
+- `resource`
+- `volume-group`
+- `volume-definition`
+
+For example, setting the property at the node level will apply to all LINSTOR objects higher in
+the order of priority. However, if the property is also set on a higher-priority LINSTOR object
+or objects, then the property value set on the highest-priority LINSTOR object takes precedence
+for applicable DRBD resources.
+
+When using LINSTOR to create a new DRBD resource, if the `StorPoolNameDrbdMeta` property applies
+to the DRBD resource, based on which LINSTOR object you set the property, then LINSTOR will
+create two new logical volumes within the storage pool. One volume will be for resource data
+storage and a second volume will be for storing the resource's DRBD metadata.
+
+Setting, modifying, or deleting the `StorPoolNameDrbdMeta` property will not affect existing
+LINSTOR-managed DRBD resources.
+
+[[s-linstor-drbd-external-metadata-setting-property]]
+==== Setting the External DRBD Metadata LINSTOR Property
+
+To set the property at the node level, for example, enter the following command:
+
+----
+# linstor node set-property <node-name> StorPoolNameDrbdMeta <storage-pool-name>
+----
+
+[[s-linstor-drbd-external-metadata-listing-property]]
+==== Listing the External DRBD Metadata LINSTOR Property
+
+To verify that the property is set on a specified LINSTOR object, you can use the
+`list-properties` subcommand.
+
+----
+# linstor node list-properties node-0
+----
+
+Output from the command will show a table of set properties and their values for the specified
+LINSTOR object.
+
+----
+╭─────────────────────────────────────╮
+┊ Key                  ┊ Value        ┊
+╞═════════════════════════════════════╡
+[...]
+┊ StorPoolNameDrbdMeta ┊ my_thin_pool ┊
+╰─────────────────────────────────────╯
+----
+
+[[s-linstor-drbd-external-metadata-unsetting-property]]
+==== Unsetting the External DRBD Metadata LINSTOR Property
+
+To unset the property, enter the same command but do not specify a storage pool name, as in the
+following example:
+
+----
+# linstor node set-property <node-name> StorPoolNameDrbdMeta
+----
+
 [[s-linstor-qos]]
 === QoS Settings
 
