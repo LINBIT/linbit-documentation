@@ -416,6 +416,28 @@ show an error message when you try to create the node:
 Unable to resolve ip address for 'bravo': [Errno -3] Temporary failure in name resolution
 ----
 
+[[s-linstor-listing-nodes-in-your-cluster]]
+=== Listing Nodes in Your Cluster
+
+You can list the nodes that you have added to your LINSTOR cluster by entering the following
+command:
+
+----
+# linstor node list
+----
+
+Output from the command will show a table listing the nodes in your LINSTOR cluster, along with
+information such as the node type assigned to the node, the node's IP address and port used for
+LINSTOR communication, and the node's state.
+
+----
+╭────────────────────────────────────────────────────────────╮
+┊ Node   ┊ NodeType  ┊ Addresses                   ┊ State   ┊
+╞════════════════════════════════════════════════════════════╡
+┊ bravo  ┊ SATELLITE ┊ 10.43.70.3:3366 (PLAIN)     ┊ Offline ┊
+╰────────────────────────────────────────────────────────────╯
+----
+
 [[s-linstor-naming-nodes]]
 ==== Naming LINSTOR Nodes
 
@@ -442,16 +464,16 @@ reboot as well:
 # systemctl enable --now  linstor-satellite
 ----
 
-About 10 seconds later you will see the status in `linstor node list` becoming online. Of course
+About 10 seconds later you will see the status in `linstor node list` as online. Of course
 the satellite process might be started before the controller knows about the existence of the
 satellite node.
 
 NOTE: In case the node which hosts your controller should also contribute storage to the LINSTOR
 cluster, you have to add it as a node and also start the `linstor-satellite` service.
 
-If you want to have other services wait until the linstor-satellite had a chance to create the
-necessary devices (that is, after a boot), you can update the corresponding `.service` file and
-change `Type=simple` to `Type=notify`.
+If you want to have other services wait until the LINSTOR satellite service had a chance to
+create the necessary devices (that is, after a boot), you can update the corresponding
+`.service` file and change `Type=simple` to `Type=notify`.
 
 This will cause the satellite to delay sending the `READY=1` message to systemd until the
 controller connects, sends all required data to the satellite and the satellite at least tried
@@ -474,6 +496,49 @@ node, LINSTOR will use a default type of satellite.
 
 If you want to change a LINSTOR node's assigned type after creating the node, you can enter a
 `linstor node modify --node-type` command.
+
+[[s-linstor-node-info]]
+==== Listing Supported Storage Providers and Storage Layers
+
+Before you use LINSTOR to create storage objects in your cluster, or in case you are in a
+troubleshooting situation, you can list the storage providers and storage layers that are
+supported on the satellite nodes in your cluster. To do this, you can use the `node info`
+command.
+
+----
+# linstor node info
+----
+
+Output from the command will show two tables. The first table will show the available
+<<s-storage-providers,LINSTOR storage provider>> back ends. The second table will show the
+available <<s-linstor-without-drbd,LINSTOR storage layers>>. Both tables will indicate whether a
+given node supports the storage provider or storage layer. A plus sign, `+`, indicate "is
+supported". A minus sign, `-`, indicates "is not supported".
+
+Example output for a cluster might be similar to the following:
+
+.Example output from the `linstor node info` command
+image::images/linstor-node-info-command-output.png[output from the `linstor node info` command,,400]
+////
+[%unbreakable,source,bash]
+----
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+┊ Node          ┊ Diskless ┊ LVM ┊ LVMThin ┊ ZFS/Thin ┊ File/Thin ┊ SPDK ┊ EXOS ┊ Remote SPDK ┊ Storage Spaces ┊ Storage Spaces/Thin ┊
+╞════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+┊ linstor-sat-0 ┊ +        ┊ +   ┊ +       ┊ -        ┊ +         ┊ -    ┊ -    ┊ +           ┊ -              ┊ -                   ┊
+┊ linstor-sat-1 ┊ +        ┊ +   ┊ +       ┊ -        ┊ +         ┊ -    ┊ -    ┊ +           ┊ -              ┊ -                   ┊
+┊ linstor-sat-2 ┊ +        ┊ +   ┊ +       ┊ -        ┊ +         ┊ -    ┊ -    ┊ +           ┊ -              ┊ -                   ┊
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭────────────────────────────────────────────────────────────────────────────╮
+┊ Node          ┊ DRBD ┊ LUKS ┊ NVMe ┊ Cache ┊ BCache ┊ WriteCache ┊ Storage ┊
+╞════════════════════════════════════════════════════════════════════════════╡
+┊ linstor-sat-0 ┊ +    ┊ +    ┊ -    ┊ +     ┊ -      ┊ +          ┊ +       ┊
+┊ linstor-sat-1 ┊ +    ┊ +    ┊ -    ┊ +     ┊ -      ┊ +          ┊ +       ┊
+┊ linstor-sat-2 ┊ +    ┊ +    ┊ -    ┊ +     ┊ -      ┊ +          ┊ +       ┊
+╰────────────────────────────────────────────────────────────────────────────╯
+----
+////
 
 [[s-storage_pools]]
 === Storage Pools
