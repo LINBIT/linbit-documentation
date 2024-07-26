@@ -268,7 +268,7 @@ relevance to most users:
 The DRBD project keeps statistics about the usage of various DRBD
 versions. This is done by contacting an HTTP server every time a new
 DRBD version is installed on a system. This can be disabled by setting
-`usage-count no;`.  The default is `usage-count ask;` which will
+`usage-count no;`. The default is `usage-count ask;` which will
 prompt you every time you upgrade DRBD.
 
 DRBD's usage statistics are, of course, publicly available: see
@@ -297,7 +297,7 @@ see <<s-replication-protocols>>.
 ===== The `resource` sections
 
 A per-resource configuration file is usually named
-`/etc/drbd.d/__resource__.res`.  Any DRBD resource you define must be
+`/etc/drbd.d/__resource__.res`. Any DRBD resource you define must be
 named by specifying a resource name in the configuration. The convention
 is to use only letters, digits, and the underscore; while it is technically
 possible to use other characters as well, you won't like the result if you ever
@@ -326,7 +326,6 @@ resource "r0" {
 }
 ----
 
-
 [[s-drbdconf-conns]]
 ==== Defining network connections
 
@@ -337,15 +336,14 @@ every resource every node must have a direct connection to every other node
 For the simple case of two hosts `drbdadm` will insert the (single) network
 connection by itself, for ease of use and backwards compatibility.
 
-The net effect of this is a quadratic number of network connections over
-hosts. For the "traditional" two nodes one connection is needed; for three hosts there are three node pairs; for four, six pairs;
-5 hosts: 10 connections, and so on. For (the current)
-maximum of 16 nodes there'll be 120 host pairs to connect.
+The net effect of this is a quadratic number of network connections over hosts. For the
+"traditional" two nodes one connection is needed; for three hosts there are three node pairs;
+for four, six pairs; 5 hosts: 10 connections, and so on. For (the current) maximum of 16 nodes
+there will be 120 host pairs to connect.
 
 [[eq-connection-mesh]]
 .Number of connections for _N_ hosts
 image::images/connection-mesh.svg[]
-
 
 An example configuration file for three hosts would be this:
 
@@ -372,7 +370,6 @@ resource r0 {
 }
 ----
 
-
 If have enough network cards in your servers, you can create direct
 cross-over links between server pairs.
 A single four-port ethernet card allows you to have a single management interface,
@@ -398,10 +395,10 @@ resource r0 {
 }
 ----
 
-For easier maintenance and debugging, it’s recommended that you have different ports for each endpoint. This will allow you to more easily associate packets to an endpoint when doing a `tcpdump`.
-The examples below will still be using two servers only; please see
+For easier maintenance and debugging, it’s recommended that you have different ports for each
+endpoint. This will allow you to more easily associate packets to an endpoint when doing a
+`tcpdump`. The examples below will still be using two servers only; please see
 <<s-4node-example>> for a four-node example.
-
 
 [[s-configuring-multiple-paths]]
 ==== Configuring multiple paths
@@ -593,9 +590,9 @@ resource <resource> {
 }
 ----
 
-DRBD will temporarily pass the sockets to a user space utility (`tlshd`, part of the `ktls-utils` package)
-when establishing connections. `tlshd` will use the keys configured in `/etc/tlshd.conf` to set up authentication and
-encryption.
+DRBD will temporarily pass the sockets to a user space utility (`tlshd`, part of the
+`ktls-utils` package) when establishing connections. `tlshd` will use the keys configured in
+`/etc/tlshd.conf` to set up authentication and encryption.
 
 ./etc/tlshd.conf
 ----
@@ -662,7 +659,8 @@ the previous sections, you can bring up your resource.
 
 Each of the following steps must be completed on both nodes.
 
-Please note that with our example config snippets (`resource r0 { ... }`), `<resource>` would be `r0`.
+Please note that with our example config snippets (`resource r0 { ... }`), `<resource>` would be
+`r0`.
 
 .Create device metadata
 This step must be completed only on initial device
@@ -677,12 +675,11 @@ NOT initializing bitmap
 New drbd meta data block successfully created.
 ----
 
-Please note that the number of bitmap slots that are allocated in the meta-data
+NOTE: The number of bitmap slots that are allocated in the meta-data
 depends on the number of hosts for this resource; per default the hosts in the
 resource configuration are counted.
 If all hosts are specified _before_ creating the meta-data, this will "just work";
 adding bitmap slots for further nodes is possible later, but incurs some manual work.
-
 
 .Enable the resource
 This step associates the resource with its backing device (or devices,
@@ -722,10 +719,9 @@ operational:
 If you are dealing with newly-initialized, empty disks, this choice is
 entirely arbitrary. If one of your nodes already has valuable data
 that you need to preserve, however, _it is of crucial importance_ that
-you select that node as your synchronization source.  If you do
+you select that node as your synchronization source. If you do
 initial device synchronization in the wrong direction, you will lose
 that data. Exercise caution.
-
 
 .Start the initial full synchronization
 This step must be performed on only one node, only on initial resource
@@ -769,7 +765,7 @@ On all nodes:
 The command `drbdadm status` should now show all disks as _Inconsistent_.
 
 Then, on one node execute the following command:
---
+
 ----
 # drbdadm new-current-uuid --clear-bitmap <resource>/<volume>
 ----
@@ -777,7 +773,6 @@ or
 ----
 # drbdsetup new-current-uuid --clear-bitmap <minor>
 ----
---
 
 Running `drbdadm status` now shows the disks as _UpToDate_ (even tough the
 backing devices might be out of sync). You can now create a file
@@ -794,62 +789,57 @@ synchronized, and to skip the initial full device synchronization, follow
 these steps.
 
 This assumes that your local node has a configured, but disconnected
-DRBD resource in the _Primary_ role.  That is to say, device
+DRBD resource in the _Primary_ role. That is to say, device
 configuration is completed, identical `drbd.conf` copies exist on both
 nodes, and you have issued the commands for
 <<s-initial-full-sync,initial resource promotion>> on your local node
--- but the remote node is not connected yet.
-
+but the remote node is not connected yet.
 
 * On the local node, issue the following command:
 +
---
 ----
 # drbdadm new-current-uuid --clear-bitmap <resource>/<volume>
 ----
++
 or
++
 ----
 # drbdsetup new-current-uuid --clear-bitmap <minor>
 ----
---
 
 * Create a consistent, verbatim copy of the resource's data _and its
   metadata_. You may do so, for example, by removing a hot-swappable
-  drive from a RAID-1 mirror.  You would, of course, replace it with a
+  drive from a RAID-1 mirror. You would, of course, replace it with a
   fresh drive, and rebuild the RAID set, to ensure continued
   redundancy. But the removed drive is a verbatim copy that can now be
-  shipped off site.  If your local block device supports snapshot
+  shipped off site. If your local block device supports snapshot
   copies (such as when using DRBD on top of LVM), you may also create
   a bitwise copy of that snapshot using `dd`.
 
-
 * On the local node, issue:
 +
---
 ----
 # drbdadm new-current-uuid <resource>
 ----
++
 or the matching `drbdsetup` command.
-
++
 Note the absence of the `--clear-bitmap` option in this second
 invocation.
---
 
 * Physically transport the copies to the remote peer location.
 
 * Add the copies to the remote node. This may again be a matter of
   plugging in a physical disk, or grafting a bitwise copy of your shipped
-  data onto existing storage on the remote node.  Be sure to restore
+  data onto existing storage on the remote node. Be sure to restore
   or copy not only your replicated data, but also the associated DRBD
   metadata. If you fail to do so, the disk shipping process is moot.
 
-* On the new node we need to fix the node ID in the metadata, and exchange
-  the peer-node info for the two nodes. Please see the following lines as
-  example for changing node id from 2 to 1 on a resource `r0` volume `0`.
+* On the new node you need to fix the node ID in the metadata, and exchange
+  the peer-node info for the two nodes. Refer to the following command lines as
+  an example for changing the node id from 2 to 1 on a resource `r0` volume `0`.
 +
---
-
-This must be done while the volume is not in use.
+IMPORTANT: This must be done while the volume is not in use.
 
 You need to edit the first four lines to match your needs. V is the
 resource name with the volume number. NODE_FROM is the node ID of
@@ -873,11 +863,8 @@ sed -e "s/node-id $NODE_FROM/node-id $NODE_TO/" \
 drbdmeta --force $(drbdadm sh-minor $V) v09 $(drbdadm sh-md-dev $V) $META_DATA_LOCATION restore-md /tmp/md.txt
 ----
 
-.NOTE
-`drbdmeta` before 8.9.7 cannot cope with out-of-order `peer` sections; you'll
-need to exchange the blocks via an editor.
-
---
+NOTE: `drbdmeta` before 8.9.7 cannot cope with out-of-order `peer` sections. You will need to
+exchange the blocks manually by using an editor.
 
 * Bring up the resource on the remote node:
 +
@@ -899,7 +886,6 @@ Secondary. This may be mitigated by the use of
 You may use this same procedure regardless of whether the resource is
 a regular DRBD resource, or a stacked resource. For stacked resources,
 simply add the `-S` or `--stacked` option to `drbdadm`.
-
 
 [[s-4node-example]]
 ==== Example configuration for four nodes
@@ -936,8 +922,8 @@ resource r0 {
 }
 ----
 
-In case you want to see the `connection-mesh` configuration expanded, try `drbdadm dump _<resource>_ -v`.
-
+In case you want to see the `connection-mesh` configuration expanded, try `drbdadm dump
+_<resource>_ -v`.
 
 [[s-connection-mesh-distinct-interfaces]]
 As another example, if the four nodes have enough interfaces to provide
@@ -984,3 +970,4 @@ resource r0 {
 Please note the numbering scheme used for the IP addresses and ports. Another
 resource could use the same IP addresses, but ports `71__xy__`, the next one
 `72__xy__`, and so on.
+
