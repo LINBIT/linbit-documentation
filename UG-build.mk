@@ -14,9 +14,12 @@ IN_UNDERSTANDING_GW=linstorgw-users-guide.adoc
 OUTDIR=output
 OUTDIRPDF=$(OUTDIR)-pdf
 OUTDIRHTML=$(OUTDIR)-html
+OUTDIREPUB=$(OUTDIR)-epub
 OUTDIRHTMLIMAGES=$(OUTDIRHTML)/images
+OUTDIREPUBIMAGES=$(OUTDIREPUB)/images
 OUTDIRPDFFINAL=$(OUTDIRPDF)-finalize
 OUTDIRHTMLFINAL=$(OUTDIRHTML)-finalize
+OUTDIREPUBFINAL=$(OUTDIREPUB)-finalize
 IMGDIR=../../images
 # Set the FONTDIR variable, only if not already set, e.g. within a $lang/Makefile
 FONTDIR ?= ../../linbit-fonts
@@ -40,6 +43,11 @@ OUTPDF_UG=$(addsuffix .pdf,$(basename $(IN_UG)))
 OUTPDF_LS=$(addsuffix .pdf,$(basename $(IN_LS)))
 OUTPDF_VSAN=$(addsuffix .pdf,$(basename $(IN_VSAN)))
 OUTPDF_UNDERSTANDING_GW=$(addsuffix .pdf,$(basename $(IN_UNDERSTANDING_GW)))
+OUTEPUB_UG=$(addsuffix .epub,$(basename $(IN_UG)))
+OUTEPUB_LS=$(addsuffix .epub,$(basename $(IN_LS)))
+OUTEPUB_VSAN=$(addsuffix .epub,$(basename $(IN_VSAN)))
+OUTEPUB_UNDERSTANDING_GW=$(addsuffix .epub,$(basename $(IN_UNDERSTANDING_GW)))
+EPUBFRONTMATTERDIR=../../epub-frontmatter
 
 # for HTML
 SVGS=$(addprefix ../../, $(SVGSUSED))
@@ -162,6 +170,47 @@ pdf-finalize: pdf
 		D=$$(basename $$PWD)-$$(date +%F) && \
 		for f in $(OUTDIRPDFFINAL)/*.pdf; do \
 			mv $$f $(OUTDIRPDFFINAL)/$$(basename $$f .pdf)-$$D.pdf; \
+		done
+
+# EPUB
+$(OUTDIREPUB)/$(OUTEPUB_UG): $(SRC) $(SVGSUSED)
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
+		INTERN=""; else \
+		INTERN=""; fi && \
+	asciidoctor-epub3 $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_UG)
+
+$(OUTDIREPUB)/$(OUTEPUB_LS): $(SRC) $(SVGSUSED)
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
+		INTERN=""; else \
+		INTERN=""; fi && \
+		if test -f $(IN_LS); then asciidoctor-epub3 $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_LS); fi
+
+$(OUTDIREPUB)/$(OUTEPUB_VSAN): $(SRC) $(SVGSUSED)
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
+		INTERN=""; else \
+		INTERN=""; fi && \
+		if test -f $(IN_VSAN); then asciidoctor-epub3 $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_VSAN); fi
+
+$(OUTDIREPUB)/$(OUTEPUB_UNDERSTANDING_GW): $(SRC) $(SVGSUSED)
+	if [ -d $(FONTDIR) ] && [ "$(lang)" != "cn" ] && \
+		! echo "$(OPTS)" | grep -qFw 'de-brand'; then \
+		INTERN=""; else \
+		INTERN=""; fi && \
+		if test -f $(IN_UNDERSTANDING_GW); then asciidoctor-epub3 $(ASCIIDOCTOR_ADD_OPTIONS) -d book $$INTERN $(OPTS) -o $@ $(IN_UNDERSTANDING_GW); fi
+
+epub: ./images $(OUTDIREPUB)/$(OUTEPUB_UG) $(OUTDIREPUB)/$(OUTEPUB_LS) $(OUTDIREPUB)/$(OUTEPUB_VSAN)
+	@echo "Generated $$(pwd)/$(OUTDIREPUB)/{$(OUTEPUB_UG),$(OUTEPUB_LS),$(OUTEPUB_VSAN)}"
+	@echo "WARNING: asciidoctor-epub3 is alpha software and its use generating LINBIT documentation is experimental."
+
+epub-finalize: epub
+	rm -rf $(OUTDIREPUBFINAL) && mkdir -p $(OUTDIREPUBFINAL)
+	cp $(OUTDIREPUB)/*.epub $(OUTDIREPUBFINAL) && \
+		D=$$(basename $$PWD)-$$(date +%F) && \
+		for f in $(OUTDIREPUBFINAL)/*.epub; do \
+			mv $$f $(OUTDIREPUBFINAL)/$$(basename $$f .epub)-$$D.epub; \
 		done
 
 CLEAN_FILES += \

@@ -1,7 +1,7 @@
 # this file referenced via an `include` statement in the `Makefile`s within the various UGx directories
 
 languages = en ja cn
-formats = html pdf
+formats = html pdf epub
 
 # you can override on command line
 lang = en
@@ -10,6 +10,8 @@ html: $(lang)/html
 html-finalize: $(lang)/html-finalize
 pdf: $(lang)/pdf
 pdf-finalize: $(lang)/pdf-finalize
+epub: $(lang)/epub
+epub-finalize: $(lang)/epub-finalize
 clean: $(lang)/clean
 pot: en/pot
 
@@ -26,4 +28,4 @@ $(known-targets):
 
 clean-all: $(clean-targets)
 
-.PHONY: $(known-targets) html html-finalize pdf pdf-finalize clean clean-all
+.PHONY: $(known-targets) html html-finalize pdf pdf-finalize clean clean-all epub epub-finalize

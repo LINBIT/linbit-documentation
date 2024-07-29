@@ -87,7 +87,7 @@ dockerimage: Dockerfile
 	fi
 
 # Create UG 9 (PDF version)
-.PHONY: UG9-pdf-finalize UG9-pdf-finalize-docker UG9-html-finalize UG9-html-finalize-docker
+.PHONY: UG9-pdf-finalize UG9-pdf-finalize-docker UG9-html-finalize UG9-html-finalize-docker UG9-epub-finalize UG9-epub-finalize-docker
 UG9-pdf-finalize: UG9-translate
 	make -C UG9 pdf-finalize lang=$(lang)
 
@@ -99,6 +99,13 @@ UG9-html-finalize: UG9-translate
 	make -C UG9 html-finalize lang=$(lang)
 
 UG9-html-finalize-docker: UG9-translate-docker
+	$(run-in-docker)
+
+# Create UG 9 (EPUB version)
+UG9-epub-finalize:
+	make -C UG9 epub-finalize lang=$(lang)
+
+UG9-epub-finalize-docker: dockerimage
 	$(run-in-docker)
 
 # Create UG 9 translation `pot` and update (or create them if they don't exist) `po` files
@@ -164,6 +171,14 @@ tech-guides-pdf-finalize:
 
 tech-guides-pdf-finalize-docker: dockerimage
 	$(run-in-docker)
+
+# create EPUB tech guides
+tech-guides-epub-finalize:
+	make -C tech-guides epub-finalize
+
+tech-guides-epub-finalize-docker: dockerimage
+	$(run-in-docker)
+
 
 .PHONY: clean clean-all
 clean:
