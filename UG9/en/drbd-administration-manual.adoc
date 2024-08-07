@@ -1948,93 +1948,171 @@ to achieve 3-way redundancy again.
 [[s-configuring-quorum]]
 === Configuring Quorum
 
-To avoid split brain or diverging data of replicas one has to configure
-fencing. All the options for fencing rely on redundant communication in the end.
-That might be in the form of a management network that connects the nodes to the IPMI
-network interfaces of the peer machines. In case of the crm-fence-peer script it
-is necessary that Pacemaker's communication stays available when DRBD's network
-link breaks.
+This section describes how you can configure the <<drbd-features.adoc#s-feature-quorum,DRBD
+quorum feature>> to avoid split-brain situations and data divergence in your high-availability
+clusters.
 
-The quorum mechanism, however, takes a completely different approach. The basic
-idea is that a cluster partition may only modify the replicated data set if the
-number of nodes that can communicate is greater than half of the overall number
-of nodes. A node of such a partition _has quorum_.
-However, a node that does not have quorum needs to guarantee that the replicated
-data set is not touched, so that the node does not create a diverging data set.
+You enable quorum for a DRBD resource by setting the `quorum` option within the `options`
+section of a DRBD resource configuration file to either `majority`, `all`, or a numerical value.
+By default, DRBD quorum is not enabled and the option is set to `off`.
 
-The quorum implementation in DRBD gets enabled by setting the `quorum` resource
-option to `majority`, `all` or a numeric value. Where `majority` selects the
-behavior that was described in the previous paragraph.
+An example DRBD resource configuration that enables DRBD quorum is as follows:
+
+----
+resource quorum-demo {
+  options {
+    quorum <majority|all|numerical value>;
+    [...]
+  }
+  [...]
+}
+----
+
+You can also enable quorum globally, by setting the `quorum` option within the `options`
+subsection of the `common` section within the global DRBD configuration file,
+`/etc/drbd.d/global_common.conf`. Enabling quorum and any other related options within the
+global configuration file will affect all DRBD resources, unless the same option is set within a
+specific DRBD resource configuration file. In that case, the option value set within a DRBD
+resource configuration file will take precedence.
+
+An example global configuration that enables DRBD quorum is as follows:
+
+----
+[...]
+common {
+    options {
+        quorum <majority|all|numerical value>;
+        [...]
+    }
+    [...]
+}
+[...]
+----
+
+[[s-configuring-drbd-quorum-majority]]
+==== Setting DRBD Quorum to Majority
+
+By setting the `quorum` option to `majority`, a node can only write to the replicated data set
+if the node is a member of a majority partition of the DRBD-running nodes in the cluster. The
+number of nodes in a majority partition must be greater than half the number of total nodes in
+the cluster for a given DRBD resource. In a 3-node cluster, such a node would need to be able to
+communicate over the network with at least one other node.
+
+An exception to this is if other secondary nodes have exited the cluster gracefully, and have
+marked their data as outdated. Outdated nodes do not take part in quorum voting. This behavior
+can lead to the <<s-quorum_last_man_standing>> situation. This allows services to keep running
+in your cluster, even if only one up-to-date node remains.
+
+[[s-configuring-drbd-quorum-all]]
+==== Setting DRBD Quorum to All
+
+By setting the `quorum` option to `all`, a node can only write to the replicated data set if the
+node can communicate over the network with all other DRBD-running nodes for that data set in the
+cluster. This is the strictest possible quorum implementation and the most cautious (or most
+paranoid) way to avoid data divergence in your cluster. 
+
+The exception to the rule mentioned in the `majority` section for gracefully exiting nodes also
+applies to the `all` quorum implementation. That is, gracefully exiting nodes will mark their
+data as outdated and outdated nodes will not take part in quorum voting.
+
+[[s-configuring-drbd-quorum-numerical-value]]
+==== Setting DRBD Quorum to a Numerical Value
+
+For flexibility, you can also set the `quorom` option to a numerical value. This quorum
+implementation is the most solid, because you, as an administrator will have knowledge about the
+total number of nodes in your cluster that might be outside the scope of the `majority` and
+`all` quorum heuristics for some corner cases. However, setting `quorum` to a numerical value
+requires manual intervention and a property change if you increase or decrease the number of
+nodes in your cluster. For almost all cases, setting the `quorum` option to `majority` is
+sufficient and preferred.
+
+WARNING: If you choose to set the `quorom` property to a numerical value, choose a numerical
+value that is greater than half of the number of total nodes in the cluster. You undermine the
+purpose of quorum and risk data divergence if you choose a numerical value less than this.
 
 [[s-guaranteed_minimal_redundancy]]
 ==== Guaranteed Minimal Redundancy
 
-By default every node with a disk gets a vote in the quorum election. That is,
-only diskless nodes do not count. So a partition with two _Inconsistent_ disks gets
-quorum, while a partition with one _UpToDate_ node will have quorum in a 3 node
-cluster. By configuring `quorum-minimum-redundancy` this behavior can be changed so that
-only nodes that are `UpToDate` have a vote in the quorum election. The option takes the
-same arguments as the `quorum` option.
+By using the `quorum-minimum-redundancy` option in a DRBD resource or global configuration, you
+define that a quorum partition must consist of at least the number of nodes in an up-to-date
+state that you specify with the option. The `quorum-minimum-redundancy` option takes the same
+arguments as the `quorum` option: `majority`, `all`, or a numerical value.
 
-With this option you express that you rather want to wait until eventually necessary
-resync operations finish before any services start. So in a way you prefer
-that the minimal redundancy of your data is guaranteed over the availability of your
-service. Financial data and services is an example that comes to mind.
+Because only diskful nodes can be in an up-to-date state, using this option is a way to express
+that you prefer to wait until data resynchronization operations finish before a service that
+relies on the replicated data can start. That is, you prefer the security of guaranteeing a
+minimum redundancy of your data over the availability of your service. Financial data
+redundancy, or data redundancy required for regulatory reasons are examples where setting this
+option could be useful.
 
-Consider the following example for a five node cluster. It requires a partitions to have at
-least three nodes, and two of them must be `UpToDate`:
+WARNING: There might be some corner cases where specifying the `quorum-minimum-redundancy`
+option for a DRBD resource could lead to a situation that would require manual intervention to
+meet the minimum rendundancy requirement. Also, a potential side-effect of specifying a minimum
+data replica redundancy for quorum is that it will prevent <<s-quorum_last_man_standing>>
+behavior in your cluster for replica redundancy values greater than `1`. For these reasons,
+using this option should not be needed in most cases, unless requirements for your data compel
+you to use it.
+
+Consider the following example configuration for a 5-node cluster:
 
 ----
 resource quorum-demo {
   options {
     quorum majority;
     quorum-minimum-redundancy 2;
-    ...
+    [...]
   }
+[...]
 }
 ----
+
+In this example, for a 5-node cluster, a majority partition consists of three nodes. Because of
+the `quorum-minimum-redundancy` option, two of the three nodes must be diskful and in an
+up-to-date state before the primary node for the resource is allowed to write to the data set.
 
 [[s-actions_on_loss_of_quorum]]
 ==== Actions on Loss of Quorum
 
-When a node that is running the service loses quorum it needs to cease write-operations
-on the data set immediately. That means that I/O immediately starts to complete all I/O
-requests with errors. Usually that means that a graceful shutdown is not possible, since
-that would require more modifications to the data set. The I/O errors propagate from
-the block level to the file system and from the file system to the user space application(s).
+When a node that is in a primary role for a DRBD resource loses quorum, the node needs to stop
+write operations on the data set immediately. That means that I/O immediately starts to return
+errors for all I/O requests to the DRBD device. Usually that means that a graceful shutdown is
+not possible. A graceful shutdown would require more modifications to the data set, such as
+marking the data set out-of-date on the node.
 
-Ideally the application simply terminates in case of I/O errors. This then allows Pacemaker
-to unmount the filesystem and to demote the DRBD resource to secondary role.
-If that is true you should set the `on-no-quorum` resource option to `io-error`.
-Here is an example:
+Next, the I/O errors propagate from the block level to the file system and from the file system
+to the user space application(s). Ideally the application simply terminates in case of I/O
+errors. This then allows a cluster resource manager, such as Pacemaker or DRBD Reactor, to
+unmount the file system and to demote the node to secondary role for the DRBD resource. If that
+is true of the behavior of your application, you should set the `on-no-quorum` resource option
+to `io-error`. Here is an example configuration:
 
 ----
 resource quorum-demo {
   options {
     quorum majority;
     on-no-quorum io-error;
-    ...
+    [...]
   }
 }
 ----
 
-If your application does not terminate on the first I/O error, you can choose to freeze I/O
-instead and to reboot the node. Here is a configuration example:
+If your application does not terminate on the first I/O error, you can configure DRBD to freeze
+I/O for a resource on a DRBD primary node that loses quorum. Here is a configuration example:
 
 ----
 resource quorum-demo {
   options {
     quorum majority;
     on-no-quorum suspend-io;
-    ...
+    [...]
   }
-
-  handlers {
-    quorum-lost "echo b > /proc/sysrq-trigger";
-  }
-  ...
+  [...]
 }
 ----
+
+With this configuration, if a primary node does lose quorum and suspends I/O to its data set,
+you can follow the steps described in the <<drbd-troubleshooting.adoc#s-force-secondary>>
+section.
 
 [[s-configuring-quorum-tiebreaker]]
 ==== Using a Diskless Node as a Tiebreaker
@@ -2051,15 +2129,16 @@ and the application on top of the cluster cannot write data anymore.
 
 image::images/quorum-tiebreaker-without-disconnect.svg[]
 
-Now if we add a third node, C, to the cluster and configure it as diskless, we
-can take advantage of the tiebreaker mechanism.
+If you add a third node, C, to the cluster and configure it as diskless, you can take advantage
+of the <<drbd-features.adoc#s-feature-quorum-tiebreaker>> feature, available in DRBD versions
+since 9.0.18.
 
 image::images/quorum-tiebreaker.svg[]
 
-In this case, when the primary and secondary nodes lose connection, they can
-still "see" the diskless tiebreaker. Because of this, the primary can continue
-working, while the secondary demotes its disk to Outdated and the service can
-therefore not be migrated there.
+In this case, when the primary and secondary nodes lose connection to each other, each can still
+communicate with the diskless tiebreaker. Because of this, the primary node can continue
+working, while the secondary node demotes its DRBD resource to an out-of-date state. While the
+resource is in an out-of-date state, the node cannot be promoted to a primary role.
 
 image::images/quorum-tiebreaker-disconnect.svg[]
 
@@ -2069,58 +2148,70 @@ scenario:
 image::images/quorum-tiebreaker-disconnect-case2.svg[]
 
 In this case, the tiebreaker node forms a partition with the primary node. The primary
-therefore keeps quorum, while the secondary becomes outdated. Note that the secondary's
-disk state will be "UpToDate", but regardless it cannot be promoted to primary because
-it lacks quorum.
+therefore keeps quorum, while the secondary node becomes outdated.
 
-Let's consider the possibility of the primary losing connection to the tiebreaker:
+NOTE: Here, the secondary node's DRBD resource state will be "UpToDate", but regardless it
+cannot be promoted to a primary role because it lacks quorum.
+
+Next, consider the possibility of the primary node losing connection to the tiebreaker node:
 
 image::images/quorum-tiebreaker-disconnect-case3.svg[]
 
-In this case, the primary becomes unusable and goes into a "quorum suspended" state. This
-effectively results in the application on top of DRBD receiving I/O errors. A cluster manager
-could then promote node B to primary and keep the service running there instead.
+In this case, the primary node becomes unusable and goes into a "quorum suspended" state. This
+effectively results in the application on top of DRBD receiving I/O errors. A cluster resource
+manager such as Pacemaker or DRBD Reactor could then promote node B to a primary role and keep
+the service running on that node.
 
-In case the diskless tiebreaker "switches sides", we need to avoid data divergence. Consider
-this scenario:
+You also need to avoid data divergence if the diskless tiebreaker node "switches sides".
+Consider this scenario:
 
 image::images/quorum-tiebreaker-disconnect-case1a.svg[]
 
-The connection between the primary and secondary has failed, and the application is continuing
-to run on the primary, when the primary suddenly loses its connection to the diskless node.
+The connection between the primary and secondary nodes has failed but the application continues
+to run on the primary node because it is part of a majority partition with the diskless
+tiebreaker node. Then the primary node suddenly loses its connection to the diskless node.
 
-In this case, no node can be promoted to primary and the cluster cannot continue to operate.
+In this case, no node can be promoted to a primary role and the cluster cannot continue to
+operate.
 
-[NOTE]
-====================
-Protecting from data divergence always takes priority over ensuring service availability.
-====================
+NOTE: Protecting against data divergence always takes priority over ensuring service availability.
 
-Examining another scenario:
+Next, consider another scenario:
 
 image::images/quorum-tiebreaker-disconnect-case2a.svg[]
 
-Here, the application is running on the primary, while the secondary is unavailable. Then,
-the tiebreaker first loses connection to the primary, and then reconnects to the secondary.
-It is important to note here that *a node that has lost quorum cannot regain quorum by connecting
-to a diskless node*. Therefore, in this case, no node has quorum and the cluster halts.
+Here, the application is running on the primary node, while the secondary node is unavailable.
+Then the tiebreaker node first loses connection to the primary node, and then reconnects to the
+secondary node. In this case, the secondary node cannot become the primary node.
+
+IMPORTANT: *A node that has lost quorum cannot regain quorum by connecting to a diskless node*.
+In this case, there is no reliable way for the reconnecting node to check the "up-to-date"-ness
+of its data set against a diskless node, because the diskless node does not have a local data
+set to be able to make an accurate check. Therefore, in this case, no node has quorum and the
+cluster halts.
 
 [[s-quorum_last_man_standing]]
 ==== Last Man Standing
 
-It needs to be mentioned that nodes that leave a cluster gracefully are counted
-differently from failed nodes. In this context _leaving gracefully_ means that the leaving
-node marked its data as Outdated, and that it was able to tell the remaining nodes
-that its data is Outdated.
+Nodes that leave a cluster gracefully are counted differently from failed nodes for determining
+DRBD quorum. In this context, _leaving gracefully_ means that a leaving node marked its data as
+out-of-date, and that the node was able to tell the remaining nodes that its data is
+out-of-date. Leaving gracefully would be equivalent to running a `drbdadm down` (or `drbdadm disconnect`) command.
 
-In a group of nodes where all disks are Outdated no one in that group can promote to Primary
-footnote:[The exception is a manual promotion with the `--force` flag. It's assumed that
-before you use the `--force` flag, you know what you are doing.].
+In a group of nodes where all disks are out-of-date, no node in that group can be promoted to a
+primary role.footnote:[The exception is if you manually promote a resource with the `--force`
+flag. It's assumed that before you use the `--force` flag, you know what you are doing.]
 
 An implication is that, if one node remains in a cluster where all the other nodes left
 gracefully, the remaining node can keep quorum. However, if any of the other nodes left
 ungracefully, the remaining node must assume that the departed nodes could form a partition and
 have access to up-to-date data.
+
+The last man standing behavior is useful when you need to perform system maintenance such as
+upgrading software or replacing or adding hardware on nodes. In this case, a node or nodes that
+you might need to maintain can leave the cluster gracefully and allow a primary node to continue
+to run, host services, and write to the replicated data set. This gives you an environment where
+you can service other nodes without having application or service downtime for your users.
 
 [[s-removing-DRBD]]
 === Removing DRBD
@@ -2131,10 +2222,10 @@ For the unlikely case that you want to remove DRBD, here are the necessary steps
   using a cluster manager, verify that it ceases to control the services first.
 . Stop the DRBD resource(s) by using `drbdadm down <res>` or `drbdadm down all`
 .. In case the DRBD resource was using internal meta-data you might choose to
-   resize the filesystem to cover all of the backing device's space. This step
+   resize the file system to cover all of the backing device's space. This step
    effectively removes DRBD's meta-data. This is an action that can not be reversed
    easily. You can do that with `resize2fs <backing_dev>` for ext[234] family of file systems.
-   It supports resizing of unmounted filesystem and under certain conditions also online
+   It supports resizing of unmounted file systems and under certain conditions also online
    grow. XFS can be grown online only with the `xfs_growfs` command.
 . Mount the backing device(s) directly, start the services on top of them
 . Unload the DRBD kernel driver modules with `rmmod drbd_transport_tcp` and `rmmod drbd`.

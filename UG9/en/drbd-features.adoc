@@ -742,41 +742,54 @@ available server nodes.
 See <<s-permanently-diskless-nodes>> for more information.
 
 [[s-feature-quorum]]
-=== Quorum
+=== DRBD Quorum
 
-To avoid split brain or diverging data of replicas you have to configure
-fencing. It turns out that in real world deployments, node fencing is not popular
-because often mistakes happen in planning or deploying it.
+DRBD quorum is a feature that can help you avoid split-brain situations and data divergence in
+high-availability clusters. By using DRBD quorum, you do not have to resort to using fencing or
+STONITH solutions, although you can also use these if you want to. DRBD quorum requires at least
+three nodes but a third node which acts as an arbitrator can be diskless. An arbitrator node
+does not need to have the same hardware specifications as diskful storage nodes in your cluster.
+For example, a low-powered single-board computer such as a Raspberry Pi might even be
+sufficient.
 
-In the moment a data-set has three replicas you can rely on the quorum implementation
-within DRBD rather than cluster manager level fencing.
+The functional concept behind DRBD quorum is that a cluster node can only modify the DRBD
+replicated data set if the number of DRBD-running nodes for the data set that the node can
+communicate with, including the node itself, meets the requirement that you specify when you
+enable the quorum option. For most configurations, this will be a majority number of nodes. A
+majority number is more than half of the total number of DRBD-running nodes for the data set in
+the cluster. By only allowing data writes on a node that has network access to more than half
+the nodes in a given partition, including the node itself, the DRBD quorum feature helps you
+avoid a situation that would create a diverging data set.
+
+It is not however the case that you always need two or more running nodes in a 3-node cluster
+for a DRBD primary node to be able to write to the data set. There is an exception, for example,
+if you disconnect all secondary nodes gracefully, then DRBD will mark their data as outdated as
+they leave the cluster. In this way, a single remaining DRBD primary node would "know" that it
+is safe to continue to write data. This situation could arise, for example, while performing
+system maintenance on nodes in your cluster. This way, you can maintain nodes in your cluster
+without causing downtime for your applications and services.
+
 ifndef::drbd-only[]
-Pacemaker gets informed about quorum or loss-of-quorum through the master score of
-the resource.
+Using DRBD quorum is compatible with running a Pacemaker cluster. Pacemaker gets informed about
+quorum or loss-of-quorum through the master score of the DRBD resource.
 endif::drbd-only[]
 
-DRBD's quorum can be used with any kind of Linux based service. In case the
-service terminates in the moment it is exposed to an I/O error the on quorum
-loss behavior is very elegant.
-If the service does not terminate upon I/O error, the system needs to
-be configured to reboot a primary node that loses quorum.
-
-See <<s-configuring-quorum>> for more information.
+There are different options and behaviors that you can configure related to the DRBD quorum
+feature, such as how you define quorum in your cluster and what actions DRBD might take when a
+node loses quorum. Refer to the <<drbd-administration-manual.adoc#s-configuring-quorum>> section
+for information about this.
 
 [[s-feature-quorum-tiebreaker]]
-==== Tiebreaker
+==== Quorum Tiebreaker
 
-[NOTE]
-====================
-The quorum tiebreaker feature is available in DRBD versions 9.0.18 and above.
-====================
+NOTE: The quorum tiebreaker feature is available in DRBD versions 9.0.18 and above.
 
-The fundamental problem with two node clusters is that in the moment they lose
-connectivity we have two partitions and none of them has quorum, which results
-in the cluster halting the service. This problem can be mitigated by adding a
-third, diskless node to the cluster which will then act as a quorum tiebreaker.
+The fundamental problem with 2-node clusters is that in the moment they lose connectivity
+there are two partitions and neither partition has quorum. This results in the cluster halting
+the service. You can mitigate this problem by adding a third, diskless node to the cluster which
+will then act as a quorum tiebreaker.
 
-See <<s-configuring-quorum-tiebreaker>> for more information.
+Refer to <<s-configuring-quorum-tiebreaker>> for more information.
 
 [[s-feature-resync-after]]
 === Resync-after
