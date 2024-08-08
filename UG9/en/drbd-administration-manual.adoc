@@ -1,4 +1,4 @@
-ifdef::env-github[]
+fdef::env-github[]
 :tip-caption: :bulb:
 :note-caption: :information_source:
 :important-caption: :heavy_exclamation_mark:
@@ -1044,18 +1044,24 @@ resource <resource> {
 You may, of course, set this in the `common` section too, if you want
 to define a global I/O error handling policy for all resources.
 
-_<strategy>_ may be one of the following options:
+The `on-io-error` option is independent from the `on-no-data-accessible` option. Some
+`on-io-error` strategies involve retrying I/O requests on peer disks. The
+`on-no-data-accessible` option setting dictates DRBD behavior when I/O requests are unsuccessful
+on all disks.
+
+You can set the `on-io-error` _<strategy>_ to one of the following:
 
 .`detach`
 This is the default and recommended option. On the occurrence of a
 lower-level I/O error, the node drops its backing device, and
 continues in diskless mode.
 
-.`pass_on`
-This causes DRBD to report the I/O error to the upper layers. On the
-primary node, it is reported to the mounted file system. On the
-secondary node, it is ignored (because the secondary has no upper
-layer to report to).
+.`pass_on
+This causes DRBD to change the disk status to _Inconsistent_, mark the failed block as
+inconsistent in the DRBD quick-sync bitmap, and retry the I/O operation on a peer (secondary node)
+disk. If the I/O operation succeeds on at least one peer, then a write operation is
+considered successful. DRBD will retry a read operation until there are no more peer disks
+to try to read from.
 
 .`call-local-io-error`
 Invokes the command defined as the local I/O error handler. This
