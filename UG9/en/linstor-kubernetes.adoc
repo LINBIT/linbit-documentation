@@ -1453,23 +1453,16 @@ Normally the pod network is not reachable from outside the Kubernetes cluster. I
 
 To use host networking, deploy a `LinstorSatelliteConfiguration` resource by applying the following YAML configuration to your deployment:
 
+[source,yaml]
 ----
 apiVersion: piraeus.io/v1
 kind: LinstorSatelliteConfiguration
 metadata:
   name: host-network
 spec:
-  patches:
-    - target:
-        kind: Pod
-        name: satellite
-      patch: |
-        apiVersion: v1
-        kind: Pod
-        metadata:
-          name: satellite
-        spec:
-          hostNetwork: true
+  podTemplate:
+    spec:
+      hostNetwork: true
 ----
 
 [[s-kubernetes-external-linstor-controller-deployment-verifying-v2]]
@@ -2691,25 +2684,18 @@ part of the host configuration.
 
 To disable the DRBD module loader completely, apply the following YAML configuration to your deployment:
 
+[source,yaml]
 ----
 apiVersion: piraeus.io/v1
 kind: LinstorSatelliteConfiguration
 metadata:
   name: no-loader
 spec:
-  patches:
-    - target:
-        kind: Pod
-        name: satellite
-      patch: |
-        apiVersion: v1
-        kind: Pod
-        metadata:
-          name: satellite
-        spec:
-          initContainers:
-          - name: drbd-module-loader
-            $patch: delete
+  podTemplate:
+    spec:
+      initContainers:
+      - name: drbd-module-loader
+        $patch: delete
 ----
 
 [[s-kubernetes-drbd-module-loader-selecting-version-v2]]
@@ -2719,25 +2705,18 @@ By default, the Operator will try to find a DRBD module loader that matches the 
 
 The following YAML configuration overrides the chosen DRBD module loader image with a user-defined image `example.com/drbd-loader:v9`:
 
+[source,yaml]
 ----
 apiVersion: piraeus.io/v1
 kind: LinstorSatelliteConfiguration
 metadata:
   name: custom-drbd-module-loader-image
 spec:
-  patches:
-    - target:
-        kind: Pod
-        name: satellite
-      patch: |
-        apiVersion: v1
-        kind: Pod
-        metadata:
-          name: satellite
-        spec:
-          initContainers:
-          - name: drbd-module-loader
-            image: example.com/drbd-loader:v9
+  podTemplate:
+    spec:
+      initContainers:
+      - name: drbd-module-loader
+        image: example.com/drbd-loader:v9
 ----
 
 `drbd.io`, available to LINBIT customers only, maintains the following module loader container images:
@@ -2775,27 +2754,20 @@ To change the behavior of the DRBD module loader, set the `LB_HOW` environment v
 
 After setting the `LB_HOW` environment variable, apply the following YAML configuration to your deployment. Based on the name within the metadata section, the example below would be used with an `LB_HOW` environment variable that was set to `deps_only`.
 
+[source,yaml]
 ----
 apiVersion: piraeus.io/v1
 kind: LinstorSatelliteConfiguration
 metadata:
   name: no-drbd-module-loader
 spec:
-  patches:
-    - target:
-        kind: Pod
-        name: satellite
-      patch: |
-        apiVersion: v1
-        kind: Pod
-        metadata:
-          name: satellite
-        spec:
-          initContainers:
-          - name: drbd-module-loader
-            env:
-            - name: LB_HOW
-              value: deps_only
+  podTemplate:
+    spec:
+      initContainers:
+      - name: drbd-module-loader
+        env:
+        - name: LB_HOW
+          value: deps_only
 ----
 
 [[s-kubernetes-drbd-replication-via-host-network-v2]]
@@ -2819,23 +2791,16 @@ Switching from the default container network to the host network for DRBD replic
 
 To configure the host network for the LINSTOR satellite, apply the following YAML configuration to your deployment:
 
+[source,yaml]
 ----
 apiVersion: piraeus.io/v1
 kind: LinstorSatelliteConfiguration
 metadata:
   name: host-network
 spec:
-  patches:
-    - target:
-        kind: Pod
-        name: satellite
-      patch: |
-        apiVersion: v1
-        kind: Pod
-        metadata:
-          name: satellite
-        spec:
-          hostNetwork: true
+  podTemplate:
+    spec:
+      hostNetwork: true
 ----
 
 After the satellite pods are recreated, they will use the host network. Any existing DRBD resources are reconfigured to use a new IP address on the host network rather than an IP address on the container network.
