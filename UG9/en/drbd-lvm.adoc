@@ -68,27 +68,36 @@ image::images/lvm.svg[]
 [[s-lvm-lv-as-drbd-backing-dev]]
 === Using a Logical Volume as a DRBD Backing Device
 
-indexterm:[LVM]indexterm:[Logical Volume (LVM)]Since an existing
-Logical Volume is simply a block device in Linux terms, you may of
-course use it as a DRBD backing device. To use LV's in this manner,
-you simply create them, and then initialize them for DRBD as you
-normally would.
+indexterm:[LVM]indexterm:[Logical Volume (LVM)]Because an existing LVM logical volume is simply
+a block device in Linux terms, you can use one as a DRBD backing device. To use an LVM logical
+volume in this way, you simply create one, and then reference it in a DRBD resource
+configuration just as you would a physical backing disk.
 
-This example assumes that a Volume Group named `foo` already exists on
-both nodes of on your LVM-enabled system, and that you want to create
-a DRBD resource named `r0` using a Logical Volume in that Volume
-Group.
+[IMPORTANT]
+====
+When using DRBD together with LVM, set the `global_filter` value in the LVM global configuration file (`/etc/lvm/lvm.conf` on RHEL) to:
 
-First, you create the Logical Volume:
+----
+global_filter = [ "r|^/dev/drbd|" ]
+----
+
+This setting tells LVM to reject DRBD devices from operations such as scanning or opening attempts. In some cases, not setting this filter might lead to increased CPU load or stuck LVM operations.
+====
+
+The following example assumes that an LVM volume group named `foo` already exists on
+two nodes of in your LVM-enabled cluster, and that you want to create
+a DRBD resource named `r0` using a logical volume in that volume
+group.
+
+First, you create the logical volume on both nodes in your cluster:
 indexterm:[LVM]indexterm:[lvcreate (LVM command)]
 ----
 # lvcreate --name bar --size 10G foo
 Logical volume "bar" created
 ----
 
-Of course, you must complete this command on both nodes of your DRBD
-cluster. After this, you should have a block device named
-`/dev/foo/bar` on either node.
+After this, you will have a block device named
+`/dev/foo/bar` on both nodes.
 
 Then, you can simply enter the newly created volumes in your resource
 configuration:
