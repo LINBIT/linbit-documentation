@@ -6,29 +6,41 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2024-05-24 13:18+0900\n"
-"PO-Revision-Date: 2024-05-26 20:50+0900\n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2024-09-20 18:07+0900\n"
+"PO-Revision-Date: 2024-09-02 16:51+0900\n"
 "Last-Translator: 黒木　博 <h-kuroki@sios.com>\n"
 "Language-Team: \n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 3.4.4\n"
+"X-Generator: Poedit 3.5\n"
 
 #. type: Title ==
 #, no-wrap
 msgid "LINSTOR Volumes in Proxmox VE"
 msgstr "Proxmox VE での LINSTOR ボリューム"
 
+#. type: Index entry
+msgid "Proxmox"
+msgstr "Proxmox"
+
 #. type: Plain text
 msgid ""
-"indexterm:[Proxmox]This chapter describes DRBD(R) in Proxmox Virtual "
-"Environment (VE) using the https://github.com/linbit/linstor-"
-"proxmox[LINSTOR(R) Proxmox Plugin]."
+"This chapter describes integrating LINSTOR(R) and DRBD(R) in Proxmox Virtual "
+"Environment (VE) by using the https://github.com/linbit/linstor-"
+"proxmox[LINSTOR Proxmox Plugin].  The sections in this chapter describe how "
+"to <<s-proxmox-ls-install,install>>, <<s-proxmox-ls-ls-configuration,"
+"configure>>, and <<s-proxmox-ls-upgrades,upgrade>> the LINSTOR Proxmox "
+"plugin."
 msgstr ""
-"この章では、https://github.com/linbit/linstor-proxmox[LINSTOR(R) Proxmox "
-"Plugin]を使用してProxmox Virtual Environment（VE）でDRBD(R)を説明します。"
+"この章では、 https://github.com/linbit/linstor-proxmox[LINSTOR Proxmox "
+"Plugin] を使用して、Proxmox Virtual Environment（VE）にLINSTOR(R)とDRBD(R)を"
+"統合する方法について説明します。この章のセクションでは、LINSTOR Proxmoxプラグ"
+"インの <<s-proxmox-ls-install, インストール>>, <<s-proxmox-ls-configuration,"
+"設定>>, および <<s-proxmox-ls-upgrades, アップグレード>> の方法について説明し"
+"ます。"
 
 #. type: Title ===
 #, no-wrap
@@ -38,38 +50,686 @@ msgstr "Proxmox VE の紹介"
 #. type: Plain text
 msgid ""
 "http://www.proxmox.com/en/[Proxmox VE] is an easy to use, complete server "
-"virtualization environment with KVM, Linux Containers and HA."
+"virtualization environment with KVM, Linux Containers, and high availability "
+"(HA)."
 msgstr ""
-"http://www.proxmox.com/en/[Proxmox VE] はKVM、Linuxコンテナ、HAとともに使われ"
-"る簡単で、完全なサーバ仮想化環境を提供します。"
+"http://www.proxmox.com/en/[Proxmox VE] は、KVM、Linuxコンテナ、および高可用性"
+"（HA）を備えた、使いやすい、完全なサーバー仮想化環境です。"
 
-#. (LVM volumes on DRBD)
 #. type: Plain text
 msgid ""
-"`linstor-proxmox` is a Perl plugin for Proxmox that, in combination with "
-"LINSTOR, allows you to replicate VM disks on several Proxmox VE nodes. This "
-"allows to live-migrate active VMs within a few seconds and with no downtime "
-"without needing a central SAN, as the data is already replicated to multiple "
-"nodes."
+"`linstor-proxmox` is a storage plugin for Proxmox that interfaces with "
+"LINSTOR, allowing you to replicate virtual disk images and container volumes "
+"across several Proxmox VE nodes in your cluster, all backed by DRBD. By "
+"integrating LINSTOR with Proxmox, you can live migrate active VMs within "
+"seconds, with no downtime and without needing a centralized SAN. LINSTOR "
+"also unlocks other shared storage functionality in Proxmox, allowing you to "
+"use features such as https://pve.proxmox.com/wiki/High_Availability[high "
+"availability]."
 msgstr ""
-"`linstor-proxmox` は Proxmox 向けの Perl プラグインであり、LINSTOR と組み合わ"
-"せて利用することで、複数の Proxmox VE ノード上で VM ディスクを複製することが"
-"できます。これにより、中央の SAN を必要とせずに、データが複数のノードに既に複"
-"製されているため、アクティブな VM を数秒でかつダウンタイムなしでライブマイグ"
-"レーションすることが可能になります。"
+"`linstor-proxmox` は、LINSTORと連携してProxmoxで使用するストレージプラグイン"
+"であり、クラスタ内の複数のProxmox VEノード間で仮想ディスクイメージやコンテナ"
+"ボリュームをDRBDでバックアップしながら複製することができます。LINSTORを"
+"Proxmoxに統合することで、集中型SANを必要とせずに、ダウンタイムなしでアクティ"
+"ブなVMを数秒でライブマイグレーションすることが可能です。また、LINSTORは"
+"Proxmoxで https://pve.proxmox.com/wiki/High_Availability[高可用性] などの共有"
+"ストレージ機能も提供します。"
 
 #. type: Title ===
 #, no-wrap
-msgid "Upgrading Proxmox"
-msgstr "Proxmox のアップグレード"
+msgid "Installing the LINSTOR Proxmox Plugin"
+msgstr "LINSTOR Proxmox プラグインのインストール"
 
 #. type: Plain text
 msgid ""
-"If this is a fresh installation, skip this section and continue with <<s-"
-"proxmox-ls-install>>."
+"This section describes how to install the LINSTOR Proxmox plugin. If you "
+"have already installed the plugin and you need to upgrade it to a newer "
+"version, refer to the <<s-proxmox-ls-upgrades>> section."
 msgstr ""
-"新規インストールの場合はこのセクションをスキップして <<s-proxmox-ls-"
-"install>> に進んでください。"
+"このセクションでは、LINSTOR Proxmoxプラグインのインストール方法について説明し"
+"ます。プラグインを既にインストールしており、新しいバージョンにアップグレード"
+"する必要がある場合は、 <<s-proxmox-ls-upgrades>> セクションを参照してくださ"
+"い。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Installing the Proxmox VE Kernel Headers"
+msgstr "Proxmox VE カーネル ヘッダーのインストール"
+
+#. type: Plain text
+msgid ""
+"To use LINSTOR in Proxmox, you will need to install the DRBD kernel module. "
+"The DRBD 9 kernel module is installed as a kernel module source package "
+"(`drbd-dkms`). Therefore, you will have to install the Proxmox VE kernel "
+"headers package, `proxmox-default-headers`, before you install the DRBD "
+"kernel module from the LINBIT(R) repositories. Following that order ensures "
+"that the kernel module will build properly for your kernel."
+msgstr ""
+"ProxmoxでLINSTORを使用するには、DRBDカーネルモジュールをインストールする必要"
+"があります。DRBD 9カーネルモジュールはカーネルモジュールソースパッケージ"
+"（ `drbd-dkms` ）としてインストールされます。したがって、LINBIT(R)リポジトリ"
+"からDRBDカーネルモジュールをインストールする前に、Proxmox VEカーネルヘッダー"
+"パッケージである `proxmox-default-headers` をインストールする必要があります。"
+"この手順に従うことで、カーネルモジュールがお使いのカーネル向けに正しくビルド"
+"されます。"
+
+#. type: Plain text
+msgid ""
+"If you do not plan to install the latest Proxmox kernel, you have to install "
+"kernel headers that match your current running kernel (for example, `proxmox-"
+"headers-$(uname -r)`). If you missed this step and you installed different "
+"kernel headers already, you can still rebuild the `drbd-dkms` package "
+"against your current kernel by entering the `apt install --reinstall drbd-"
+"dkms` command."
+msgstr ""
+"最新のProxmoxカーネルをインストールする予定がない場合は、現在実行中のカーネル"
+"に一致するカーネルヘッダーをインストールする必要があります（たとえば、"
+"`proxmox-headers-$(uname -r)`）。この手順を行わなかった場合や既に異なるカーネ"
+"ルヘッダーをインストールしてしまった場合は、`apt install --reinstall drbd-"
+"dkms` コマンドを入力して、`drbd-dkms` パッケージを現在のカーネルに対して再構"
+"築することができます。"
+
+#. type: Plain text
+msgid ""
+"You will need to configure the Proxmox `pve-enterprise` or `pve-no-"
+"subscription` repository in your APT sources list, `/etc/apt/sources.list`, "
+"and then enter `apt update`, before you can install the `proxmox-headers-"
+"$(uname -r)` package. Refer to https://pve.proxmox.com/wiki/"
+"Package_Repositories#_repositories_in_proxmox_ve[the Proxmox wiki] for "
+"instructions."
+msgstr ""
+"Proxmoxの `pve-enterprise` または `pve-no-subscription` リポジトリをAPTソース"
+"リスト `/etc/apt/sources.list` に設定し、`apt update` を入力してから "
+"`proxmox-headers-$(uname -r)` パッケージをインストールする必要があります。手"
+"順については、 https://pve.proxmox.com/wiki/"
+"Package_Repositories#_repositories_in_proxmox_ve[Proxmox wiki] を参照してくだ"
+"さい。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Configuring LINBIT Customer Repositories for Proxmox"
+msgstr "Proxmox用にLINBIT顧客リポジトリを構成する"
+
+#. type: Plain text
+msgid ""
+"If you are a LINBIT customer, or you have an evaluation account, you can "
+"enable the LINBIT `drbd-9` repository on your nodes and then update your "
+"repositories by using an `apt update` command."
+msgstr ""
+"もしLINBITの顧客であるか、評価アカウントをお持ちの場合、LINBITの `drbd-9` リ"
+"ポジトリをノードに有効化し、`apt update` コマンドを使用してリポジトリを更新す"
+"ることができます。"
+
+#. type: Plain text
+msgid ""
+"Refer to the <<linstor-administration.adoc#s-linbit-manage-nodes-script,"
+"Using a Script to Manage LINBIT Cluster Nodes>> for instructions on "
+"registering a node with LINBIT and enabling LINBIT repositories."
+msgstr ""
+"ノードを LINBIT に登録し、LINBIT リポジトリを有効にする手順については "
+"<<linstor-administration.adoc#s-linbit-manage-nodes-script,LINBIT クラスター"
+"ノードを管理するスクリプトの使用>> を参照してください。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Configuring LINBIT Public Repositories for Proxmox"
+msgstr "ProxmoxのためのLINBIT公式リポジトリの設定"
+
+#. type: Plain text
+msgid ""
+"If you are familiar with the https://pve.proxmox.com/wiki/"
+"Package_Repositories#sysadmin_no_subscription_repo[Proxmox VE No-"
+"Subscription Repository], LINBIT also provides a publicly available "
+"repository for use with Proxmox VE. This repository not only contains the "
+"Proxmox plugin, but the entire LINBIT SDS stack, including DRBD, LINSTOR, "
+"and all user-space utilities."
+msgstr ""
+"もし https://pve.proxmox.com/wiki/"
+"Package_Repositories#sysadmin_no_subscription_repo[Proxmox VE No-"
+"Subscription Repository]をご存知であれば、LINBITもProxmox VEと一緒に使用する"
+"ための公開リポジトリを提供しています。このリポジトリにはProxmoxプラグインだけ"
+"でなく、DRBD、LINSTOR、およびすべてのユーザースペースユーティリティーを含む"
+"LINBIT SDSスタック全体が含まれています。"
+
+#. type: Plain text
+msgid ""
+"Although this can be a great option for homelabs, testing, and non-"
+"production use, LINBIT does not maintain these packages to the same rigorous "
+"standards as the customer repositories. For production deployments, using "
+"the official LINBIT customer repositories is recommended."
+msgstr ""
+"これはホームラボ、テスト、および非プロダクション利用には素晴らしいオプション"
+"となりますが、LINBITはこれらのパッケージを顧客リポジトリと同じ厳格な基準でメ"
+"ンテナンスしていません。本番環境のデプロイメントには、公式LINBIT顧客リポジト"
+"リの使用が推奨されています。"
+
+#. type: Plain text
+msgid ""
+"You can add the LINBIT public repository by entering the commands below, "
+"setting `$PVERS` to your Proxmox VE *major version* (for example, \"8\", not "
+"\"8.1\"):"
+msgstr ""
+"以下のコマンドを入力して、LINBITの公式リポジトリを追加できます。$PVERSを"
+"Proxmox VEの *メジャーバージョン* （たとえば、「8」ではなく「8.1」）に設定し"
+"てください。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# wget -O /tmp/package-signing-pubkey.asc \\\n"
+"https://packages.linbit.com/package-signing-pubkey.asc\n"
+"# gpg --yes -o /etc/apt/trusted.gpg.d/linbit-keyring.gpg --dearmor \\\n"
+"/tmp/package-signing-pubkey.asc\n"
+"# PVERS=8 && echo \"deb [signed-by=/etc/apt/trusted.gpg.d/linbit-keyring.gpg] \\\n"
+"http://packages.linbit.com/public/ proxmox-$PVERS drbd-9\" > /etc/apt/sources.list.d/linbit.list\n"
+"# apt update\n"
+msgstr ""
+"# wget -O /tmp/package-signing-pubkey.asc \\\n"
+"https://packages.linbit.com/package-signing-pubkey.asc\n"
+"# gpg --yes -o /etc/apt/trusted.gpg.d/linbit-keyring.gpg --dearmor \\\n"
+"/tmp/package-signing-pubkey.asc\n"
+"# PVERS=8 && echo \"deb [signed-by=/etc/apt/trusted.gpg.d/linbit-keyring.gpg] \\\n"
+"http://packages.linbit.com/public/ proxmox-$PVERS drbd-9\" > /etc/apt/sources.list.d/linbit.list\n"
+"# apt update\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Installing the Proxmox Plugin"
+msgstr "Proxmoxプラグインのインストール"
+
+#. type: Plain text
+msgid ""
+"After configuring an appropriate LINBIT package repository, you can install "
+"the Proxmox plugin and other necessary components (DRBD kernel module and "
+"utilities), by entering the following command:"
+msgstr ""
+"適切なLINBITパッケージリポジトリを構成した後、次のコマンドを入力することで、"
+"Proxmoxプラグインや他の必要なコンポーネント（DRBDカーネルモジュールやユーティ"
+"リティ）をインストールすることができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid "# apt -y install drbd-dkms drbd-utils linstor-proxmox\n"
+msgstr "# apt -y install drbd-dkms drbd-utils linstor-proxmox\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuring LINSTOR"
+msgstr "LINSTOR の構成"
+
+#. type: Plain text
+msgid ""
+"The rest of this guide assumes that you have a LINSTOR cluster configured as "
+"described in <<s-linstor-init-cluster>>. Start the `linstor-controller` "
+"service on one node, and the `linstor-satellite` service on all nodes. The "
+"`linstor-satellite` service needs some extra configuration which you can do "
+"by entering `systemctl edit linstor-satellite.service`:"
+msgstr ""
+"このガイドの残りの部分は、 <<s-linstor-init-cluster>> で説明されているように"
+"構成されたLINSTORクラスターがあることを前提としています。1つのノードで "
+"`linstor-controller` サービスを開始し、すべてのノードで `linstor-satellite` "
+"サービスを開始してください。`linstor-satellite` サービスには追加の設定が必要"
+"です。これは、 `systemctl edit linstor-satellite.service` を入力して行うこと"
+"ができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"[Service]\n"
+"Type=notify\n"
+"TimeoutStartSec=infinity\n"
+msgstr ""
+"[Service]\n"
+"Type=notify\n"
+"TimeoutStartSec=infinity\n"
+
+#. type: Plain text
+msgid ""
+"The preferred way to use the plugin, starting from version 4.1.0, is through "
+"LINSTOR resource groups and a single volume group within every resource "
+"group. LINSTOR resource groups are described in <<s-linstor-resource-"
+"groups>>. All the required LINSTOR configuration, for example, data replica "
+"count, has to be set on the resource group."
+msgstr ""
+"バージョン4.1.0からのプラグインの推奨使用方法は、LINSTORリソースグループと、"
+"それぞれのリソースグループ内に1つのボリュームグループを介して行うことです。"
+"LINSTORリソースグループについては、 <<s-linstor-resource-groups>> で説明され"
+"ています。たとえば、データ複製数など、すべての必須のLINSTOR設定はリソースグ"
+"ループに設定する必要があります。"
+
+#. type: delimited block =
+msgid ""
+"When using LINSTOR together with LVM and DRBD, set the `global_filter` value "
+"in the LVM global configuration file (`lvm.conf`) to:"
+msgstr ""
+"LINSTORをLVMとDRBDと一緒に使用する場合、LVMのグローバル設定ファイル（`lvm."
+"conf`）内の `global_filter` 値を以下のように設定してください:"
+
+#. type: delimited block -
+#, no-wrap
+msgid "global_filter = [ \"r|^/dev/drbd|\" ]\n"
+msgstr "global_filter = [ \"r|^/dev/drbd|\" ]\n"
+
+#. type: Plain text
+msgid ""
+"This setting tells LVM to reject DRBD devices from operations such as "
+"scanning or opening attempts. In some cases, not setting this filter might "
+"lead to increased CPU load or stuck LVM operations."
+msgstr ""
+"この設定は、LVMにDRBDデバイスをスキャンやオープンの試行から拒否するよう指示し"
+"ます。このフィルタを設定しない場合、CPU負荷の増加やLVM操作の停滞が発生する可"
+"能性があります。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuring the Proxmox Plugin"
+msgstr "Proxmoxプラグインの設定"
+
+#. type: delimited block =
+msgid ""
+"The final step is to provide a configuration for Proxmox itself. You can do "
+"this by adding an entry in the `/etc/pve/storage.cfg` file, with content "
+"similar to the following:"
+msgstr ""
+"最後のステップは、Proxmox自体の構成を提供することです。これは、`/etc/pve/"
+"storage.cfg` ファイルに以下のような内容を持つエントリを追加することで行うこと"
+"ができます。"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup defaultpool\n"
+msgstr ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup defaultpool\n"
+
+#. type: Plain text
+msgid ""
+"The `drbd` entry is fixed. You are not allowed to modify it because it tells "
+"Proxmox to use DRBD as the storage back end. You can change the value for "
+"the `drbd` entry, here `drbdstorage`, as you want. It is used as a friendly "
+"name that will be shown in the PVE web GUI to locate the DRBD storage."
+msgstr ""
+"`drbd` エントリは固定されています。これはProxmoxにDRBDをストレージバックエン"
+"ドとして使用するように指示するため、変更は許可されません。ただし、`drbd` エン"
+"トリの値である `drbdstorage` は自由に変更できます。これはPVE web GUIでDRBDス"
+"トレージを特定するために表示されるフレンドリーな名前として使用されます。"
+
+#. type: Plain text
+msgid ""
+"The `content` entry is also fixed, so do not change it. You can configure "
+"data redundancy by specifying a <<linstor-administration.adoc#s-linstor-"
+"placement-count-rg-feature,placement count>> for the backing LINSTOR "
+"resource group. This way, you can specify how many replicas of the data will "
+"be stored in the cluster. The recommendation is to set the place count "
+"option to two or three depending on your setup. By virtue of the DRBD "
+"diskless attachment feature, the data is accessible from all nodes, even if "
+"some of them do not have local copies of the data.  For example, in a 5-node "
+"cluster, all nodes will be able to access three copies of the data, no "
+"matter where they are stored in the cluster."
+msgstr ""
+"`content` エントリも修正済みなので、変更しないでください。 バッキングLINSTOR"
+"リソースグループに対する <<linstor-administration.adoc#s-linstor-placement-"
+"count-rg-feature,配置数>> を指定することで、データの冗長性を構成できます。 こ"
+"れにより、データのレプリカがクラスタ内にいくつ保存されるかを指定できます。 "
+"セットアップに応じて、配置数オプションを2つまたは3つに設定することをお勧めし"
+"ます。 DRBDディスクレスアタッチメント機能により、データはすべてのノードからア"
+"クセスできます。たとえ一部のノードがデータのローカルコピーを持っていなくても"
+"です。 例えば、5ノードクラスタでは、どこに保存されているかに関係なく、全ノー"
+"ドがデータの3つのコピーにアクセスできます。"
+
+#. type: Plain text
+msgid ""
+"The `controller` parameter must be set to the IP of the node that runs the "
+"LINSTOR controller service. Only one node in a cluster can run the LINSTOR "
+"controller service at any given time. If that node fails, you will need to "
+"start the LINSTOR controller service on another node and change the "
+"`controller` parameter value to the new node's IP address. It is also "
+"possible to <<s-proxmox-ls-HA,make the LINSTOR controller itself highly "
+"available>>. By making the LINSTOR controller highly available in your "
+"cluster, you have the option to specify either multiple IP addresses for the "
+"`controller` parameter, or else specify a virtual IP address for the LINSTOR "
+"controller."
+msgstr ""
+"`controller` パラメータは、LINSTORコントローラーサービスを実行しているノード"
+"のIPに設定する必要があります。クラスタ内のノードはいつも1つだけLINSTORコント"
+"ローラーサービスを実行できます。そのノードが故障した場合、別のノードでLINSTOR"
+"コントローラーサービスを開始し、`controller` パラメータの値を新しいノードのIP"
+"アドレスに変更する必要があります。また、 <<s-proxmox-ls-HA,LINSTORコントロー"
+"ラー自体を高可用性>> にすることも可能です。クラスタ内でLINSTORコントローラー"
+"を高可用性にすることで、`controller` パラメータに複数のIPアドレスを指定する"
+"か、LINSTORコントローラーの仮想IPアドレスを指定するオプションがあります。"
+
+#. type: Plain text
+msgid ""
+"The `resourcegroup` parameter specifies the name of the LINSTOR resource "
+"group that you want to associate with the DRBD-backed storage in Proxmox."
+msgstr ""
+"`resourcegroup` パラメーターは、Proxmox内のDRBDバックエンドストレージに関連付"
+"けたいLINSTORリソースグループの名前を指定します。"
+
+#. type: Title ====
+#, no-wrap
+msgid "Configuring More Than One LINSTOR Resource Group for Use in Proxmox"
+msgstr "Proxmoxで使用する複数のLINSTORリソースグループを構成する"
+
+#. type: Plain text
+msgid ""
+"A configuration using different resource groups associated with different "
+"storage pools could look similar to this:"
+msgstr ""
+"異なるストレージプールに関連付けられた異なるリソースグループを使用する構成"
+"は、次のように見えるかもしれません:"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"drbd: fastdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup ssd\n"
+msgstr ""
+"drbd: fastdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup ssd\n"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"drbd: slowdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup backup\n"
+msgstr ""
+"drbd: slowdrbd\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13\n"
+"   resourcegroup backup\n"
+
+#. type: Plain text
+msgid ""
+"After making this configuration, you will be able to create VMs by using the "
+"Proxmox web GUI, by selecting \"__drbdstorage__\", or any other of the "
+"defined pools, \"__fastdrbd__\" or \"__slowdrbd__\", as storage locations "
+"for your VM disk images."
+msgstr ""
+"この構成を行った後、Proxmox web GUIを使用して、\"__drbdstorage__\"を選択する"
+"ことで、または他の定義済みのプールである\"__fastdrbd__\"や\"__slowdrbd__\"を"
+"ストレージ場所として選択することで、VMを作成することができます。"
+
+#. type: Plain text
+msgid ""
+"Starting from version 5 of the plugin, you can set the option `preferlocal "
+"yes`. If you set this option, the plugin tries to create a diskful "
+"assignment on the node that issued the storage create command. With this "
+"option you can ensure that the VM gets local storage if possible.  Without "
+"the option LINSTOR might place the storage on nodes 'B' and 'C', while the "
+"VM is initially started on node 'A'. This would still work as node 'A' then "
+"would get a diskless assignment, but having local storage might be preferred."
+msgstr ""
+"プラグインのバージョン5から、オプション `preferlocal yes` を設定することがで"
+"きます。このオプションを設定すると、そのストレージ作成コマンドを発行したノー"
+"ドにディスクフルのアサインメントを作成しようとします。このオプションを使用す"
+"ると、可能な限りVMにローカルストレージを確保することができます。オプションを"
+"指定しない場合、LINSTORはストレージをノード 'B' と 'C' に配置する可能性があ"
+"り、VMは最初にノード 'A' で起動されるかもしれません。その場合、ノード 'A' は"
+"ディスクレスのアサインメントを受けることになりますが、ローカルストレージを持"
+"つことが望ましいかもしれません。"
+
+#. type: Block title
+#, no-wrap
+msgid "NOTE: DRBD supports only the **raw** disk format at the moment."
+msgstr "注意: DRBDは現時点で **raw** ディスクフォーマットのみをサポートします。"
+
+#. type: Plain text
+msgid ""
+"At this point you can try to live migrate the VM. Because all data is "
+"accessible on all nodes, even on diskless nodes, it will take just a few "
+"seconds. The overall process might take a bit longer if the VM is under load "
+"and if there is a significant amount of RAM being dirtied all the time. But "
+"in any case, the downtime should be minimal and you will experience no "
+"operational interruption at all."
+msgstr ""
+"この時点で、VMをライブマイグレーションしようとすることができます。すべての"
+"データがすべてのノードでアクセス可能であり、ディスクのないノードでも、わずか"
+"数秒で完了します。VMが負荷の下にある場合や、常に大量のRAMが汚れている場合、全"
+"体のプロセスには少し時間がかかるかもしれません。しかし、いずれの場合も、ダウ"
+"ンタイムは最小限に抑えられ、操作上の中断は一切ないはずです。"
+
+#. type: Block title
+#, no-wrap
+msgid "Table Configuration Options"
+msgstr "テーブル構成オプション"
+
+#. type: Table
+#, no-wrap
+msgid ""
+"| Option | Meaning\n"
+"\n"
+"| `controller`    | The IP of the LINSTOR controller (',' separated list allowed)\n"
+"| `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above\n"
+"| `preferlocal`   | Prefer to create local storage (yes/no). As described above\n"
+"| `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storage entries in `/etc/pve/storage.cfg` to take effect.\n"
+"| `exactsize`     | Set this temporarily to `yes` to allow storage migration from external storage such as LVM\n"
+"to DRBD/LINSTOR.\n"
+"| `apicrt`        | Path to the client certificate\n"
+"| `apikey`        | Path to the client private key\n"
+"| `apica`         | Path to the CA certificate\n"
+msgstr ""
+"| Option | Meaning\n"
+"\n"
+"| `controller`    | The IP of the LINSTOR controller (',' separated list allowed)\n"
+"| `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above\n"
+"| `preferlocal`   | Prefer to create local storage (yes/no). As described above\n"
+"| `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storage entries in `/etc/pve/storage.cfg` to take effect.\n"
+"| `exactsize`     | Set this temporarily to `yes` to allow storage migration from external storage such as LVM\n"
+"to DRBD/LINSTOR.\n"
+"| `apicrt`        | Path to the client certificate\n"
+"| `apikey`        | Path to the client private key\n"
+"| `apica`         | Path to the CA certificate\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Configuring a Highly Available LINSTOR Controller in Proxmox"
+msgstr "Proxmoxで高可用性のあるLINSTORコントローラーを構成する"
+
+#. type: Plain text
+msgid ""
+"Making LINSTOR highly available is a matter of making the LINSTOR controller "
+"highly available.  Doing this is described in <<s-linstor_ha>>. This is an "
+"optional configuration that can make your LINSTOR integration with Proxmox "
+"more fault-tolerant."
+msgstr ""
+"LINSTORの高可用性を実現するには、LINSTORコントローラーを高可用性にすることが"
+"重要です。 これについては、 <<s-linstor_ha>> で説明されています。 これは、"
+"ProxmoxとのLINSTOR統合をより障害耐性のあるものにすることができるオプションの"
+"構成です。"
+
+#. type: Plain text
+msgid ""
+"After completing the steps in the linked section, the last and crucial step "
+"is to configure the Proxmox plugin to be able to connect to different "
+"LINSTOR controllers. The plugin will use the first controller it receives an "
+"answer from. You configure different LINSTOR controllers in Proxmox by "
+"adding a comma-separated list of controller node IP addresses in the "
+"`controller` section of the plugin, for example:"
+msgstr ""
+"リンクされたセクションの手順を完了した後、最後であり重要なステップは、Proxmox"
+"プラグインを構成して異なるLINSTORコントローラに接続できるようにすることです。"
+"プラグインは最初に回答を受け取ったコントローラを使用します。Proxmoxで異なる"
+"LINSTORコントローラを構成するには、プラグインの `controller` セクションにコン"
+"トローラノードのIPアドレスのカンマ区切りリストを追加することで設定します。例"
+"えば、:"
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13,10.11.12.14,10.11.12.15\n"
+"   resourcegroup defaultpool\n"
+msgstr ""
+"drbd: drbdstorage\n"
+"   content images,rootdir\n"
+"   controller 10.11.12.13,10.11.12.14,10.11.12.15\n"
+"   resourcegroup defaultpool\n"
+
+#. type: Plain text
+msgid ""
+"An alternative is to configure a virtual IP (VIP) address for the LINSTOR "
+"controller by using an OCF resource agent, `ocf:heartbeat:IPaddr2`, added to "
+"the DRBD Reactor promoter plugin's services start list. If you do this, you "
+"could then specify the VIP address for the `controller` parameter value."
+msgstr ""
+"別の方法として、OCFリソースエージェントである `ocf:heartbeat:IPaddr2` を使用"
+"して、DRBD Reactorのプロモータープラグインのサービス開始リストに追加すること"
+"で、LINSTORコントローラー用の仮想IP（VIP）アドレスを構成することがあります。"
+"これを行うと、`controller` パラメーターの値としてそのVIPアドレスを指定できま"
+"す。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Storage for Cloud-init Images"
+msgstr "Cloud-init イメージの保存場所"
+
+#. type: Plain text
+msgid ""
+"Cloud-init VM images are only a few MB in size and Proxmox can generate them "
+"on-demand. This is possible because the settings saved in cloud-init images "
+"are stored cluster wide in Proxmox itself. This allows Proxmox to use local "
+"storage (for example, LVM) for such images. If a VM is started on a node "
+"where the cloud-init image does not exist, it is generated from the stored "
+"settings."
+msgstr ""
+"Cloud-init VM イメージはわずか数MBのサイズで、Proxmox は必要に応じてそれらを"
+"生成できます。これは、cloud-init イメージに保存された設定が Proxmox そのもの"
+"にクラスタ全体で保存されているため可能となります。これにより、Proxmox はロー"
+"カルストレージ（例えば、LVM）をそのようなイメージに使用できます。クラウドイ"
+"メージが存在しないノードで VM が起動されると、保存された設定からそのクラウド"
+"イメージが生成されます。"
+
+#. type: Plain text
+msgid ""
+"While you can store cloud-init images on DRBD storage, there is no gain in "
+"doing that. Storing cloud-init images on local storage is enough."
+msgstr ""
+"DRBDストレージにcloud-initイメージを保存することもできますが、それは利益には"
+"つながりません。cloud-initイメージをローカルストレージに保存することで十分で"
+"す。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Virtual Machine Image Naming In Proxmox with LINSTOR"
+msgstr "Proxmoxにおける仮想マシンイメージの命名とLINSTOR"
+
+#. type: Plain text
+msgid ""
+"Starting with version 8 of the LINSTOR Proxmox plugin, VM disk images have "
+"names such as `pm-12cf742a_101` within PVE, and `pm-12cf742a` within LINSTOR "
+"and DRBD. This is a static prefix (`pm-`), 8 characters of a UUID, and on "
+"PVE level the VMID separated by an underscore (`_101`).  In older versions "
+"of the plugin, VM disk images had names such as `vm-101-disk-1`. If you "
+"upgrade the plugin to version 8 or later, if you clone a VM that uses the "
+"older naming scheme, the cloned disk image will have the version 8 naming "
+"scheme."
+msgstr ""
+"LINSTOR Proxmoxプラグインのバージョン8から、VMディスクイメージの名前はPVE内で"
+"は `pm-12cf742a_101` のようになり、LINSTORとDRBD内では `pm-12cf742a` のように"
+"なります。これは静的なプレフィックス (`pm-`)、UUIDの8文字、そしてPVEレベルで"
+"はアンダースコア (`_101`) で区切られたVMIDが含まれます。以前のプラグインの"
+"バージョンでは、VMディスクイメージの名前は `vm-101-disk-1` のようでした。プラ"
+"グインをバージョン8以降にアップグレードすると、以前の命名スキームを使用してい"
+"るVMをクローンした場合、クローンされたディスクイメージはバージョン8の命名ス"
+"キームになります。"
+
+#. type: Title ===
+#, no-wrap
+msgid "Migrating Storage to DRBD in Proxmox with LINSTOR"
+msgstr "ProxmoxのストレージをLINSTORを使ってDRBDに移行する方法"
+
+#. type: Plain text
+msgid ""
+"Sometimes, you might want to migrate existing Proxmox data to DRBD-backed "
+"storage. This section details the steps that you need to take to do this, "
+"for example, when migrating existing LVM or ZFS-backed Proxmox data. If your "
+"Proxmox data is already on DRBD-backed storage, these steps are unnecessary, "
+"for example, to do a live migration of a VM from one DRBD-backed storage to "
+"another DRBD-backed storage."
+msgstr ""
+"時には、既存のProxmoxデータをDRBDバックアップストレージに移行したい場合があり"
+"ます。このセクションでは、これを行うために必要な手順について詳しく説明しま"
+"す。たとえば、既存のLVMやZFSバックアップProxmoxデータを移行する場合などです。"
+"既にProxmoxデータがDRBDバックアップストレージにある場合は、これらの手順は不要"
+"です。例えば、VMを1つのDRBDバックアップストレージから別のDRBDバックアップスト"
+"レージにライブ移行する場合などです。"
+
+#. type: Plain text
+msgid ""
+"These instructions require version 8 or later of the LINSTOR Proxmox plugin."
+msgstr ""
+"これらの指示では、LINSTOR Proxmoxプラグインのバージョン8以上が必要です。"
+
+#. type: Plain text
+msgid ""
+"If you want to migrate data, such as VM disk images, while your Proxmox VMs "
+"are online, you can *temporarily* set `exactsize yes` in your `/etc/pve/"
+"storage.cfg` storage configuration file for a particular DRBD storage, and "
+"then migrate disks from the non-DRBD-backed storage to the DRBD-backed "
+"storage. After you are done, remove the `exactsize` option from the `storage."
+"cfg` configuration file. The LINSTOR property that the `exactsize` option "
+"enabled to temporarily allow online migration will be deleted when the disk "
+"is activated again (but not if the disk is currently active). If you want to "
+"delete the property for all active disks after migration, or you want to be "
+"extra sure, you can run a command such as the following:"
+msgstr ""
+"Proxmox VMがオンラインの状態で、VMディスクイメージなどのデータを移行したい場"
+"合は、特定のDRBDストレージ向けに `/etc/pve/storage.cfg` ストレージ設定ファイ"
+"ルで `exactsize yes` を *一時的* に設定し、非DRBDバックアップストレージから"
+"DRBDバックアップストレージにディスクを移行できます。作業が完了したら、"
+"`storage.cfg` 設定ファイルから `exactsize` オプションを削除してください。"
+"`exactsize` オプションが有効にしたLINSTORプロパティは、ディスクが再度アクティ"
+"ブ化された際に削除されます（ただし、ディスクが現在アクティブな場合は削除され"
+"ません）。移行後にすべてのアクティブなディスクからプロパティを削除したい場"
+"合、または余分な安全策を取りたい場合は、以下のようなコマンドを実行できます："
+
+#. type: delimited block -
+#, no-wrap
+msgid ""
+"# linstor -m --output-version v1 rd l | \\\n"
+"jq '.[][].name' | \\\n"
+"xargs -I {} linstor rd sp {} DrbdOptions/ExactSize False\n"
+msgstr ""
+"# linstor -m --output-version v1 rd l | \\\n"
+"jq '.[][].name' | \\\n"
+"xargs -I {} linstor rd sp {} DrbdOptions/ExactSize False\n"
+
+#. type: Title ===
+#, no-wrap
+msgid "Upgrading the LINSTOR Proxmox Plugin"
+msgstr "LINSTOR Proxmox プラグインのアップグレード"
+
+#. type: Plain text
+msgid ""
+"This section describes changes to be aware of or actions that you might need "
+"to do when upgrading an existing installation of the `linstor-proxmox` "
+"plugin."
+msgstr ""
+"このセクションでは、既存の `linstor-proxmox` プラグインのインストールをアップ"
+"グレードする際に注意すべき変更や必要なアクションについて説明します。"
+
+#. type: Plain text
+msgid ""
+"If you need to do a fresh installation, skip this section and continue with "
+"<<s-proxmox-ls-install>>."
+msgstr ""
+"新規インストールを行う必要がある場合は、このセクションをスキップし、 <<s-"
+"proxmox-ls-install>> を続行してください。"
 
 #. type: Title ====
 #, no-wrap
@@ -77,56 +737,44 @@ msgid "Upgrading Plugin to 8.x"
 msgstr "プラグインを8.xにアップグレードします。"
 
 #. type: Plain text
-msgid "This requires LINSTOR 1.27.0 or greater."
-msgstr "これには、LINSTOR 1.27.0以上が必要です。"
+msgid "Upgrading to this plugin version requires LINSTOR 1.27.0 or greater."
+msgstr "このプラグインのバージョンアップには、LINSTOR 1.27.0以上が必要です。"
 
 #. type: Plain text
 msgid ""
-"In order to allow reassigning disks between VMs we had to change the naming "
-"scheme. New disks (also clones of old ones) will have names like "
-"`pm-12cf742a_101` on PVE level, and `pm-12cf742a` on LINSTOR/DRBD level. "
-"This is a static prefix (`pm-`), 8 characters of a UUID, and on PVE level "
-"the VMID separated by an underscore (`_101`). The new naming obsoletes the "
-"old `vm-101-disk-1` like names. Old VMs with legacy names still work with "
-"version 8 of the plugin. For the user this change should be completely "
-"transparent and should not require any changes besides getting accustomed to "
-"the new names."
+"This version of the LINSTOR Proxmox plugin introduced a new naming scheme "
+"for VM images created on LINSTOR and DRBD backed storage. Existing VMs from "
+"earlier plugin versions will still work with version 8 of the plugin. The "
+"naming scheme change requires no user intervention, besides the user getting "
+"accustomed to the new naming scheme."
 msgstr ""
-"ディスクの再割り当てを可能にするために、命名スキームを変更しました。 新しい"
-"ディスク（古いもののクローンも含む）は、PVEレベルでは `pm-12cf742a_101` のよ"
-"うな名前が付けられ、LINSTOR/DRBDレベルでは `pm-12cf742a` となります。 これ"
-"は、固定の接頭辞（`pm-`）、UUIDの8文字、PVEレベルではアンダースコア（`_101`）"
-"でVMIDが区切られる形です。 新しい命名方式は、古い `vm-101-disk-1` のような名"
-"前を廃止します。 旧式の名前を持つ古いVMは、プラグインのバージョン8では引き続"
-"き動作します。 ユーザにとって、この変更は完全に透過的であり、新しい名前に慣れ"
-"ること以外に変更を必要としません。"
+"このLINSTOR Proxmoxプラグインのこのバージョンでは、LINSTORとDRBDバックエンド"
+"ストレージで作成されたVMイメージの新しい命名スキームが導入されました。旧バー"
+"ジョンのプラグインからの既存のVMは、プラグインのバージョン8でも引き続き動作し"
+"ます。命名スキームの変更には、ユーザーが新しい命名スキームに慣れること以外"
+"に、ユーザーの介入は必要ありません。"
 
 #. type: Plain text
 msgid ""
-"So far it was only possible to migrate data from external storage like LVM "
-"to LINSTOR/DRBD if the data was migrated offline. If you want to migrate "
-"data online you can now *temporarily* set `exactsize yes` in your `storage."
-"cfg` for a particular DRBD storage and then migrate disks to it. After you "
-"are done, remove the `exactsize` option from the `storage.cfg` again. The "
-"LINSTOR property that allowed temporary online migration is then deleted "
-"when the disk is activated again (but not if it is currently active). If you "
-"want to delete the property for all active disks after migration, or you "
-"want to be extra sure, you can run a command like this:"
+"You can find more details about the naming scheme in <<s-linstor-proxmox-vm-"
+"image-naming>>."
 msgstr ""
-"これまでは、外部ストレージ（例：LVM）からLINSTOR/DRBDへのデータ移行はオフライ"
-"ンでしか行えませんでした。しかし、オンラインでデータを移行したい場合は、特定"
-"のDRBDストレージに一時的に `exactsize yes` を` storage.cfg` に設定してディス"
-"クを移行することができます。作業が終わったら、再び `storage.cfg` から "
-"`exactsize` オプションを削除してください。ディスクが再度アクティブ化される"
-"と、一時的なオンライン移行を可能にしたLINSTORプロパティは削除されます（ただ"
-"し、現在アクティブな場合は削除されません）。移行後、すべてのアクティブディス"
-"クのプロパティを削除したい場合や、手順を確認したい場合は、次のようなコマンド"
-"を実行することができます："
+"名前付け方に関する詳細は、 <<s-linstor-proxmox-vm-image-naming>> で確認できま"
+"す。"
 
-#. type: delimited block -
-#, no-wrap
-msgid "# linstor -m --output-version v1 rd l | jq '.[][].name' | xargs -I {} linstor rd sp {} DrbdOptions/ExactSize False\n"
-msgstr "# linstor -m --output-version v1 rd l | jq '.[][].name' | xargs -I {} linstor rd sp {} DrbdOptions/ExactSize False\n"
+#. type: Plain text
+msgid ""
+"Until version 8 of the plugin, it was only possible to migrate data such as "
+"VM disk images from external storage such LVM to LINSTOR and DRBD backed "
+"storage if the data was migrated offline.  Starting with version 8 of the "
+"plugin, you can migrate data online. For more details, refer to <<s-linstor-"
+"proxmox-migrating-storage>>."
+msgstr ""
+"プラグインのバージョン8までは、外部ストレージ（例:LVM）からLINSTORおよびDRBD"
+"バックエンドストレージへのデータ（例:VMディスクイメージ）の移行はオフラインで"
+"のみ可能でした。プラグインのバージョン8からは、データをオンラインで移行できま"
+"す。詳細については、 <<s-linstor-proxmox-migrating-storage>> を参照してくださ"
+"い。"
 
 #. type: Title ====
 #, no-wrap
@@ -136,12 +784,12 @@ msgstr "プラグインを7.xにアップグレード"
 #. type: Plain text
 msgid ""
 "Version 7 of the plugin uses a LINSTOR controller API that is available from "
-"LINSTOR version 1.21.1 onwards.  Make sure that your LINSTOR setup "
-"(controller and satellites) use at least that version."
+"LINSTOR version 1.21.1 onward. Make sure that your LINSTOR setup (controller "
+"and satellites) use at least that version."
 msgstr ""
-"プラグインのバージョン7では、LINSTORコントローラーAPIがLINSTORバージョン"
-"1.21.1以降で利用可能です。お使いのLINSTOR設定（コントローラーおよびサテライ"
-"ト）が少なくともそのバージョンを使用していることを確認してください。"
+"プラグインのバージョン7では、LINSTORコントローラAPIを使用しており、LINSTOR"
+"バージョン1.21.1以降から利用可能です。LINSTORのセットアップ（コントローラーと"
+"サテライト）が少なくともそのバージョンを使用していることを確認してください。"
 
 #. type: Title ====
 #, no-wrap
@@ -151,27 +799,24 @@ msgstr "プラグインのバージョンを4.xから5.xにアップグレード
 #. type: Plain text
 msgid ""
 "Version 5 of the plugin drops compatibility with the legacy configuration "
-"options \"storagepool\" and \"redundancy\". Version 5 *requires* a "
-"\"resourcegroup\" option, and obviously a LINSTOR resource group. The old "
+"options `storagepool` and `redundancy`. Version 5 *requires* a "
+"`resourcegroup` option, and obviously a LINSTOR resource group. The old "
 "options should be removed from the configuration."
 msgstr ""
-"プラグインのバージョン5では、古い構成オプションである \"storagepool\" および "
-"\"redundancy\" の互換性が削除されます。バージョン5では必ず \"resourcegroup\" "
-"オプションが必要であり、明らかにLINSTORリソースグループが必要です。古いオプ"
-"ションは構成から削除されるべきです。"
+"プラグインのバージョン5では、従来の構成オプションである `storagepool` と "
+"`redundancy` との互換性がなくなります。バージョン5では *必ず* "
+"`resourcegroup` オプションが必要であり、明らかにLINSTORリソースグループも必要"
+"です。古いオプションは構成から削除されるべきです。"
 
 #. type: Plain text
 msgid ""
 "Configuring LINSTOR is described in Section <<s-proxmox-ls-ls-"
-"configuration>>, a typical example follows:"
+"configuration>>, a typical example follows. The following example assumes "
+"that the `storagepool` was set to `mypool`, and `redundancy` to 3."
 msgstr ""
-"LINSTOR の構成に関しては <<s-proxmox-ls-ls-configuration>> を参照してくださ"
-"い。以下に典型的は例を示します。プールが \"mypool\" 、冗長性が 3 に設定される"
-"例です。"
-
-#. type: Plain text
-msgid "Let's assume the pool was set to \"mypool\", and redundancy to 3."
-msgstr "プールが \"mypool\" に、冗長性が 3 に設定されていると仮定します。"
+"LINSTORの設定方法は、セクション <<s-proxmox-ls-ls-configuration>> に記載され"
+"ており、典型的な例が続きます。次の例では、`storagepool` が `mypool` に設定さ"
+"れ、 `redundancy` が3に設定されていると仮定されています。"
 
 #. type: delimited block -
 #, no-wrap
@@ -203,9 +848,9 @@ msgid ""
 "setting. This is handled by LINSTOR resource groups (`resourcegroup` "
 "setting) for a very long time. No change should be required."
 msgstr ""
-"プラグインのバージョン6.0.0では、`redundancy`設定に関連するすべてのコードを削"
-"除しました。この設定は非常に長い間LINSTORのリソースグループ(`resourcegroup`設"
-"定)によって処理されています。変更は必要ありません。"
+"プラグインのバージョン6.0.0では、`redundancy` 設定に関連するすべてのコードを"
+"削除しました。この設定は非常に長い間LINSTORのリソースグループ"
+"(`resourcegroup` 設定)によって処理されています。変更は必要ありません。"
 
 #. type: Plain text
 msgid ""
@@ -229,455 +874,13 @@ msgstr "PVE のバージョン 5.x から 6.x へアップグレード"
 
 #. type: Plain text
 msgid ""
-"With version 6 PVE added additional parameters to some functions and "
-"rightfully reset their \"APIAGE\". This means that old plugins, while "
-"actually usable as they don't use any of these changed functions do not work "
-"anymore. Please upgrade to plugin version 5.2.1 at least."
+"With version 6, PVE added additional parameters to some functions and "
+"rightfully reset their \"APIAGE\". This means that old plugins, while they "
+"might actually be usable because they do not use any of these changed "
+"functions, do not work anymore. Upgrade to plugin version 5.2.1 at least."
 msgstr ""
-"バージョン6で PVE は一部の機能に追加のパラメータを追加し、正当にその"
-"「APIAGE」をリセットしました。これは、実際には変更された機能を使用していない"
-"古いプラグインが動作しなくなるということです。少なくともプラグインバージョン"
-"5.2.1にアップグレードしてください。"
-
-#. type: Title ===
-#, no-wrap
-msgid "Installing the LINSTOR Proxmox Plugin"
-msgstr "LINSTOR Proxmox プラグインのインストール"
-
-#. type: Plain text
-msgid ""
-"To use LINSTOR in Proxmox, you will need to install the LINSTOR Proxmox "
-"plugin."
-msgstr ""
-"Proxmox上でLINSTORを使用するには、LINSTOR Proxmoxプラグインをインストールする"
-"必要があります。"
-
-#. type: Title ====
-#, no-wrap
-msgid "Installing the Proxmox VE Kernel Headers"
-msgstr "Proxmox VE カーネル ヘッダーのインストール"
-
-#. type: Plain text
-msgid ""
-"To use LINSTOR in Proxmox, you will need to install the DRBD kernel module. "
-"The DRBD 9 kernel module is installed as a kernel module source package "
-"(`drbd-dkms`). Therefore, you will have to install the Proxmox VE kernel "
-"headers package, `pve-headers`, before you install the DRBD kernel module "
-"from the LINBIT(R) repositories. Following that order ensures that the "
-"kernel module will build properly for your kernel."
-msgstr ""
-"ProxmoxでLINSTORを使用するには、DRBDカーネルモジュールをインストールする必要"
-"があります。DRBD 9のカーネルモジュールは、カーネルモジュールソースパッケージ"
-"（`drbd-dkms`）としてインストールされます。ですから、LINBITのリポジトリから"
-"DRBDカーネルモジュールをインストールする前に、Proxmox VEカーネルヘッダーパッ"
-"ケージである`pve-headers`をインストールする必要があります。この順番に従うこと"
-"で、カーネルモジュールが正しくビルドされ、あなたのカーネルに適切に準備されま"
-"す。"
-
-#. type: Plain text
-msgid ""
-"If you do not plan to install the latest Proxmox kernel, you have to install "
-"kernel headers matching your current running kernel (for example, `pve-"
-"headers-$(uname -r)`). If you missed this step, then you can still rebuild "
-"the `drbd-dkms` package against your current kernel (so long as you have "
-"installed kernel headers in advance) by entering the `apt install --"
-"reinstall drbd-dkms` command."
-msgstr ""
-"最新の Proxmox カーネルをインストールする予定がない場合は、現在実行中のカーネ"
-"ルに一致するカーネル ヘッダーをインストールする必要があります (たとえば `pve-"
-"headers-$(uname -r)` )。この手順に従わなかった場合でも `apt install --"
-"reinstall drbd-dkms` コマンドで、現在のカーネルに対して `drbd-dkms` パッケー"
-"ジを再構築できます (事前にカーネル ヘッダーをインストールしている場合)。"
-
-#. type: Plain text
-msgid ""
-"You will need to add the Proxmox PVE repository to your APT sources list, `/"
-"etc/apt/sources.list`, and then enter `apt update`, before you can install "
-"the `pve-headers` package. Refer to https://pve.proxmox.com/wiki/"
-"Package_Repositories#_repositories_in_proxmox_vei[the Proxmox wiki] for "
-"instructions."
-msgstr ""
-"`pve-headers` パッケージをインストールする前に、Proxmox PVE リポジトリを APT "
-"ソースリスト `/etc/apt/sources.list` に追加し `apt update` と入力します。 "
-"https://pve.proxmox.com/wiki/"
-"Package_Repositories#_repositories_in_proxmox_vei[the Proxmox wiki] を参照く"
-"ださい。"
-
-#. type: Title ====
-#, no-wrap
-msgid "Installing the Proxmox Plugin By Using LINBIT Customer Repositories"
-msgstr "LINBITのカスタマー向けリポジトリを使用してProxmoxプラグインをインストールする"
-
-#. type: Plain text
-msgid ""
-"If you are a LINBIT customer, or you have an evaluation account, you can "
-"enable LINBIT's `drbd-9` repository on your node and then update your "
-"repositories by using an `apt update` command."
-msgstr ""
-"LINBIT のお客様または評価アカウントをお持ちの場合は、ノードで LINBIT の "
-"`drbd-9` リポジトリを有効にしてから、`apt update` コマンドを使用してリポジト"
-"リを更新できます。"
-
-#. type: Plain text
-msgid ""
-"You can then install the DRBD kernel module, DRBD utilities, and the LINSTOR "
-"Proxmox plugin by entering:"
-msgstr ""
-"その後、次のコマンドを入力して、DRBDカーネルモジュール、DRBDユーティリティ、"
-"およびLINSTOR Proxmoxプラグインをインストールすることができます。"
-
-#. type: delimited block -
-#, no-wrap
-msgid "# apt install drbd-utils linstor-proxmox drbd-dkms\n"
-msgstr "# apt install drbd-utils linstor-proxmox drbd-dkms\n"
-
-#. type: Plain text
-msgid ""
-"Refer to the <<linstor-administration.adoc#s-linbit-manage-nodes-script,"
-"Using a Script to Manage LINBIT Cluster Nodes>> for instructions on "
-"registering a node with LINBIT and enabling LINBIT repositories."
-msgstr ""
-"ノードを LINBIT に登録し、LINBIT リポジトリを有効にする手順については "
-"<<linstor-administration.adoc#s-linbit-manage-nodes-script,LINBIT クラスター"
-"ノードを管理するスクリプトの使用>> を参照してください。"
-
-#. type: Title ====
-#, no-wrap
-msgid "Installing the Proxmox Plugin By Using LINBIT Public Repositories"
-msgstr "LINBITのパブリックリポジトリを利用してProxmoxプラグインをインストールする"
-
-#. type: Plain text
-msgid ""
-"LINBIT provides a dedicated public repository for Proxmox VE users. This "
-"repository not only contains the Proxmox plugin, but the whole LINBIT SDS "
-"stack including a DRBD kernel module and user-space utilities."
-msgstr ""
-"LINBITは、Proxmox VEユーザー向けの専用のパブリックリポジトリを提供していま"
-"す。このリポジトリには、Proxmoxプラグインだけでなく、DRBDカーネルモジュールや"
-"ユーザースペースユーティリティを含むLINBIT SDSスタック全体が含まれています。"
-
-#. type: Plain text
-msgid ""
-"You can add LINBIT's public repository by entering the commands below, "
-"setting `$PVERS` to your Proxmox VE *major version* (for example, \"8\", not "
-"\"8.1\"):"
-msgstr ""
-"次のコマンドを入力して、LINBITの公開リポジトリを追加できます。`$PVERS` を "
-"Proxmox VE の*メジャーバージョン*に設定してください（例： \"8\" ではなく "
-"\"8.1\"）:"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"# wget -O /tmp/package-signing-pubkey.asc \\\n"
-"https://packages.linbit.com/package-signing-pubkey.asc\n"
-"# gpg --yes -o /etc/apt/trusted.gpg.d/linbit-keyring.gpg --dearmor \\\n"
-"/tmp/package-signing-pubkey.asc\n"
-"# PVERS=8 && echo \"deb [signed-by=/etc/apt/trusted.gpg.d/linbit-keyring.gpg] \\\n"
-"http://packages.linbit.com/public/ proxmox-$PVERS drbd-9\" > /etc/apt/sources.list.d/linbit.list\n"
-msgstr ""
-"# wget -O /tmp/package-signing-pubkey.asc \\\n"
-"https://packages.linbit.com/package-signing-pubkey.asc\n"
-"# gpg --yes -o /etc/apt/trusted.gpg.d/linbit-keyring.gpg --dearmor \\\n"
-"/tmp/package-signing-pubkey.asc\n"
-"# PVERS=8 && echo \"deb [signed-by=/etc/apt/trusted.gpg.d/linbit-keyring.gpg] \\\n"
-"http://packages.linbit.com/public/ proxmox-$PVERS drbd-9\" > /etc/apt/sources.list.d/linbit.list\n"
-
-#. type: Plain text
-msgid ""
-"After adding the LINBIT package repository, you can install the Proxmox "
-"plugin and other necessary components (DRBD kernel module and utilities), by "
-"entering the following command:"
-msgstr ""
-"LINBITのパッケージリポジトリを追加した後は、以下のコマンドを入力することで、"
-"Proxmoxプラグインや他の必要なコンポーネント（DRBDカーネルモジュールやユーティ"
-"リティ）をインストールすることができます。"
-
-#. type: delimited block -
-#, no-wrap
-msgid "# apt update && apt -y install drbd-dkms drbd-utils linstor-proxmox\n"
-msgstr "# apt update && apt -y install drbd-dkms drbd-utils linstor-proxmox\n"
-
-#. type: Title ===
-#, no-wrap
-msgid "Configuring LINSTOR"
-msgstr "LINSTOR の構成"
-
-#. type: Plain text
-msgid ""
-"For the rest of this guide we assume that you have a LINSTOR cluster "
-"configured as described in <<s-linstor-init-cluster>>. Start the \"linstor-"
-"controller\" on one node, and the \"linstor-satellite\" on all nodes. The "
-"\"linstor-satellite\" service needs some extra configuration which should be "
-"done via `systemctl edit linstor-satellite.service`:"
-msgstr ""
-"このガイドの残りの部分では <<s-linstor-init-cluster>> に基づいて LINSTOR クラ"
-"スタが構成されていると仮定します。1 つのノードで \"linstor-controller\" を起"
-"動し、すべてのノードで \"linstor-satellite\" を起動します。\"linstor-"
-"satellite\" サービスには `systemctl edit linstor-satellite.service`  で追加構"
-"成が必要です。"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"[Service]\n"
-"Type=notify\n"
-"TimeoutStartSec=infinity\n"
-msgstr ""
-"[Service]\n"
-"Type=notify\n"
-"TimeoutStartSec=infinity\n"
-
-#. type: Plain text
-msgid ""
-"The preferred way to use the plugin, starting from version 4.1.0, is through "
-"LINSTOR resource groups and a single volume group within every resource "
-"group. LINSTOR resource groups are described in <<s-linstor-resource-"
-"groups>>. All the required LINSTOR configuration (e.g., redundancy count) "
-"has to be set on the resource group."
-msgstr ""
-"バージョン4.1.0からは、プラグインを使用する際の推奨方法は、LINSTORリソースグ"
-"ループおよびリソースグループ内の各ボリュームグループを介して行うこととなりま"
-"す。 LINSTORリソースグループについては、<<s-linstor-resource-groups>>で説明さ"
-"れています。 リソースグループには、必要なLINSTOR構成（例：冗長性カウント）を"
-"すべて設定する必要があります。"
-
-#. type: Title ===
-#, no-wrap
-msgid "Configuring the Proxmox Plugin"
-msgstr "Proxmoxプラグインの設定"
-
-#. type: Plain text
-msgid ""
-"The final step is to provide a configuration for Proxmox itself. This can be "
-"done by adding an entry in the `/etc/pve/storage.cfg` file, with a content "
-"similar to the following."
-msgstr ""
-"最後の手順ではProxmox自身を設定します。これは `/etc/pve/storage.cfg` に以下の"
-"ような設定を加えることで行います。"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"drbd: drbdstorage\n"
-"   content images,rootdir\n"
-"   controller 10.11.12.13\n"
-"   resourcegroup defaultpool\n"
-msgstr ""
-"drbd: drbdstorage\n"
-"   content images,rootdir\n"
-"   controller 10.11.12.13\n"
-"   resourcegroup defaultpool\n"
-
-#. type: Plain text
-msgid ""
-"The `drbd` entry is fixed and you are not allowed to modify it, as it tells "
-"to Proxmox to use DRBD as storage back end. The \"drbdstorage\" entry can be "
-"modified and is used as a friendly name that will be shown in the PVE web "
-"GUI to locate the DRBD storage. The \"content\" entry is also fixed, so do "
-"not change it. The redundancy (specified in the resource group) specifies "
-"how many replicas of the data will be stored in the cluster. The "
-"recommendation is to set it to 2 or 3 depending on your setup. The data is "
-"accessible from all nodes, even if some of them do not have local copies of "
-"the data. For example, in a 5 node cluster, all nodes will be able to access "
-"3 copies of the data, no matter where they are stored in. The \"controller\" "
-"parameter must be set to the IP of the node that runs the LINSTOR controller "
-"service. Only one node can be set to run as LINSTOR controller at the same "
-"time. If that node fails, start the LINSTOR controller on another node and "
-"change that value to its IP address."
-msgstr ""
-"`drbd`エントリは固定されており、ProxmoxにDRBDをストレージバックエンドとして使"
-"用するよう指示されているため、変更することはできません。 \"drbdstorage\"エン"
-"トリは変更可能であり、PVE Web GUIで表示されるDRBDストレージを特定するための親"
-"しみやすい名前として使用されます。 \"content\"エントリも固定されていますの"
-"で、変更しないでください。 リソースグループで指定される冗長性は、データのレプ"
-"リカがクラスタ内にいくつ保存されるかを指定します。セットアップに応じて、2また"
-"は3に設定することが推奨されています。データは全ノードからアクセス可能ですが、"
-"データのローカルコピーを持っていないノードでもアクセスできます。例えば、5つの"
-"ノードからなるクラスターでは、どこにデータが保存されていても、すべてのノード"
-"がデータの3つのコピーにアクセスできます。\"controller\"パラメータは、LINSTOR"
-"コントローラーサービスを実行しているノードのIPに設定する必要があります。同時"
-"に複数のノードをLINSTORコントローラーとして設定することはできません。もしもそ"
-"のノードが故障した場合は、別のノードでLINSTORコントローラーを起動し、その値を"
-"そのノードのIPアドレスに変更してください。"
-
-#. type: Plain text
-msgid ""
-"A configuration using different storage pools in different resource groups "
-"would look like this:"
-msgstr ""
-"異なるリソースグループで異なるストレージプールを使用する構成は、次のようにな"
-"ります。"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"drbd: fastdrbd\n"
-"   content images,rootdir\n"
-"   controller 10.11.12.13\n"
-"   resourcegroup ssd\n"
-msgstr ""
-"drbd: fastdrbd\n"
-"   content images,rootdir\n"
-"   controller 10.11.12.13\n"
-"   resourcegroup ssd\n"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"drbd: slowdrbd\n"
-"   content images,rootdir\n"
-"   controller 10.11.12.13\n"
-"   resourcegroup backup\n"
-msgstr ""
-"drbd: slowdrbd\n"
-"   content images,rootdir\n"
-"   controller 10.11.12.13\n"
-"   resourcegroup backup\n"
-
-#. type: Plain text
-msgid ""
-"By now, you should be able to create VMs using Proxmox's web GUI by "
-"selecting \"__drbdstorage__\", or any other of the defined pools as storage "
-"location."
-msgstr ""
-"これらの設定後、Web GUIでVMを作成し、ストレージとして \"drbdstorage\" もしく"
-"は他の定義されているプールを選択することでDRBDボリュームを使用できます。"
-
-#. type: Plain text
-msgid ""
-"Starting from version 5 of the plugin, you can set the option \"preferlocal "
-"yes\". If it is set, the plugin tries to create a diskful assignment on the "
-"node that issued the storage create command. With this option you can ensure "
-"that the VM gets local storage if possible. Without that option LINSTOR "
-"might place the storage on nodes 'B' and 'C', while the VM is initially "
-"started on node 'A'. This would still work as node 'A' then would get a "
-"diskless assignment, but having local storage might be preferred."
-msgstr ""
-"プラグインのバージョン5から、\"preferlocal yes\" オプションを設定することがで"
-"きます。設定すると、プラグインはストレージ作成コマンドを発行したノードにディ"
-"スクフルなアサインメントを作成しようとします。このオプションを使用すると、可"
-"能な限りVMにローカルストレージを確保することができます。このオプションを設定"
-"しないと、LINSTORはストレージをノード'B'や'C'に配置する場合があり、VMが最初に"
-"ノード'A'で起動されている場合があります。その場合でもノード'A'はディスクレス"
-"なアサイメントを取得しますが、ローカルストレージがある方が望ましいかもしれま"
-"せん。"
-
-#. type: Block title
-#, no-wrap
-msgid "NOTE: DRBD supports only the **raw** disk format at the moment."
-msgstr "注意: DRBDは現時点で **raw** ディスクフォーマットのみをサポートします。"
-
-#. type: Plain text
-msgid ""
-"At this point you can try to live migrate the VM - as all data is accessible "
-"on all nodes (even on Diskless nodes) - it will take just a few seconds. The "
-"overall process might take a bit longer if the VM is under load and if there "
-"is a significant amount of RAM being dirtied all the time. But in any case, "
-"the downtime should be minimal and you will see no interruption at all."
-msgstr ""
-"この時点で、VMのライブマイグレーションができます。すべてのノード(ディスクレス"
-"ノードでも)ですべてのデータにアクセスできるため、わずか数秒で完了します。 VM"
-"に負荷がかかっていて、ダーティメモリが常に多い場合は、全体的な処理に少し時間"
-"がかかることがあります。しかし、いずれの場合でも、ダウンタイムは最小限で、中"
-"断は全く見られません。"
-
-#. type: Block title
-#, no-wrap
-msgid "Table Configuration Options"
-msgstr "テーブル構成オプション"
-
-#. type: Table
-#, no-wrap
-msgid ""
-"| Option | Meaning\n"
-"\n"
-"| `controller`    | The IP of the LINSTOR controller (',' separated list allowed)\n"
-"| `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above\n"
-"| `preferlocal`   | Prefer to create local storage (yes/no). As decribed above\n"
-"| `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storages in `/etc/pve/storage.cfg` to take effect.\n"
-"| `exactsize`     | Set this temporarily to `yes` to allow storage migration from external storage such as LVM\n"
-"to DRBD/LINSTOR.\n"
-"| `apicrt`        | Path to the client certificate\n"
-"| `apikey`        | Path to the client private key\n"
-"| `apica`         | Path to the CA certificate\n"
-msgstr ""
-"| Option | Meaning\n"
-"\n"
-"| `controller`    | The IP of the LINSTOR controller (',' separated list allowed)\n"
-"| `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above\n"
-"| `preferlocal`   | Prefer to create local storage (yes/no). As decribed above\n"
-"| `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storages in `/etc/pve/storage.cfg` to take effect.\n"
-"| `exactsize`     | Set this temporarily to `yes` to allow storage migration from external storage such as LVM\n"
-"to DRBD/LINSTOR.\n"
-"| `apicrt`        | Path to the client certificate\n"
-"| `apikey`        | Path to the client private key\n"
-"| `apica`         | Path to the CA certificate\n"
-
-#. type: Title ===
-#, no-wrap
-msgid "Making the Controller Highly Available (Optional Configuration)"
-msgstr "コントローラの高可用性 (オプション構成)"
-
-#. type: Plain text
-msgid ""
-"Making LINSTOR highly available is a matter of making the LINSTOR controller "
-"highly-available. This step is described in Section <<s-linstor_ha>>."
-msgstr ""
-"LINSTOR を高可用性にするということは、LINSTOR コントローラーを高可用性にする"
-"ことです。このステップはセクション <<s-linstor_ha>> で説明されています。"
-
-#. type: Plain text
-msgid ""
-"The last -- but crucial -- step is to configure the Proxmox plugin to be "
-"able to connect to multiple LINSTOR controllers. It will use the first one "
-"it receives an answer from. This is done by adding a comma-separated list of "
-"controllers in the `controller` section of the plugin like this:"
-msgstr ""
-"最後に、とても重要なステップは、Proxmoxプラグインを複数のLINSTORコントロー"
-"ラーに接続できるように設定することです。このプラグインは、最初に返答があった"
-"コントローラーを使用します。これは、プラグインの`controller`セクションに、コ"
-"ントローラーのリストをカンマ区切りで追加することで行います。"
-
-#. type: delimited block -
-#, no-wrap
-msgid ""
-"drbd: drbdstorage\n"
-"   content images,rootdir\n"
-"   controller 10.11.12.13,10.11.12.14,10.11.12.15\n"
-"   resourcegroup defaultpool\n"
-msgstr ""
-"drbd: drbdstorage\n"
-"   content images,rootdir\n"
-"   controller 10.11.12.13,10.11.12.14,10.11.12.15\n"
-"   resourcegroup defaultpool\n"
-
-#. type: Title ===
-#, no-wrap
-msgid "Storage for Cloud-init Images"
-msgstr "Cloud-init イメージの保存場所"
-
-#. type: Plain text
-msgid ""
-"Cloud-init VM images are only a few MB in size and Proxmox can generate them "
-"on demand. This is possible because the settings saved in cloud-init images "
-"are stored cluster wide in Proxmox itself. This allows Proxmox to use local "
-"storage (for example, LVM) for such images. If a VM is started on a node "
-"where the cloud-init image does not exist, it is generated from the stored "
-"settings."
-msgstr ""
-"Cloud-initのVMイメージはわずか数MBのサイズしかありませんし、Proxmoxは必要に応"
-"じてそれらを生成することができます。これが可能なのは、cloud-initイメージに保"
-"存されている設定がProxmox自体にクラスタ全体として保存されているからです。これ"
-"により、Proxmoxはローカルストレージ（例：LVM）をこのようなイメージに使用する"
-"ことが可能です。もしcloud-initイメージが存在しないノードでVMが起動された場"
-"合、保存されている設定からそのイメージが生成されます。"
-
-#. type: Plain text
-msgid ""
-"While you can store cloud-init images on DRBD storage, there is no gain in "
-"doing that. Storing cloud-init images on local storage is enough."
-msgstr ""
-"DRBDストレージにcloud-initイメージを保存することもできますが、それは利益には"
-"つながりません。cloud-initイメージをローカルストレージに保存することで十分で"
-"す。"
+"バージョン6では、PVEは一部の関数に追加パラメータを追加し、適切にそれらの"
+"「APIAGE」をリセットしました。これは、古いプラグインが実際には使用されていな"
+"いかもしれないが、これらの変更された関数のいずれも使用していないために使えな"
+"くなったことを意味します。少なくともプラグインのバージョン5.2.1にアップグレー"
+"ドしてください。"
