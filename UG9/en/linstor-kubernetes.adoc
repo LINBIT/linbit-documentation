@@ -2609,40 +2609,16 @@ $ helm install linstor-affinity-controller linstor/linstor-affinity-controller
 
 Additional options for the chart are available at the https://github.com/piraeusdatastore/linstor-affinity-controller[upstream project].
 
-[[s-kubernetes-scheduler]]
-=== Volume Locality Optimization Using LINSTOR Scheduler
+[[s-kubernetes-volume-locality-optimization]]
+=== Volume Locality Optimization
 
-LINBIT maintains an open source plugin for the Kubernetes scheduler. The scheduler will take the current placement of volumes
-into account and optimize for data locality. If possible, the pod will be assigned to a node that also hosts replicas of
-attached volumes, reducing latency for read operations.
+To ensure that pods are scheduled on nodes with local replicas of data, to reduce
+latency for read operations, you can take the following steps:
 
-The scheduler is available as a separate chart https://artifacthub.io/packages/helm/piraeus-charts/linstor-scheduler[from artifacthub.io].
-The chart will deploy a new scheduler, which you can later use when creating pod resources:
+1. Use a StorageClass with `volumeBindingMode: WaitForFirstConsumer`.
+2. Set `allowRemoteVolumeAccess: "false"` in the StorageClass parameters.
 
-[source,yaml]
-----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: busybox
-spec:
-  schedulerName: linstor-scheduler <1>
-  containers:
-  - name: busybox
-    image: busybox
-    command: ["tail", "-f", "/dev/null"]
-    volumeMounts:
-    - name: my-first-linstor-volume
-      mountPath: /data
-    ports:
-    - containerPort: 80
-  volumes:
-  - name: my-first-linstor-volume
-    persistentVolumeClaim:
-      claimName: "test-volume"
-----
-
-<1> Add the name of the scheduler to your pod.
+Optionally, you can also deploy the [LINSTOR Affinity Controller](https://artifacthub.io/packages/helm/piraeus-charts/linstor-affinity-controller).
 
 [[s-kubernetes-drbd-module-loader-configuring-v2]]
 === Configuring the DRBD Module Loader in Operator v2 Deployments
