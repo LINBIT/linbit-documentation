@@ -624,11 +624,15 @@ The advantage of this model is to confine failure domains to a single storage de
 ==== Sharing Storage Pools with Multiple Nodes
 
 Both the Exos and LVM2 storage providers offer the option of multiple server nodes directly
-connected to the storage array and drives. With LVM2 the external locking service (`lvmlockd`)
-manages volume groups created with the --shared options with `vgcreate`. The `--shared-space`
-can be used when configuring a LINSTOR pool to use the same LVM2 volume group accessible by two
-or more nodes. The example below shows using the LVM2 volume group UUID as the shared space
-identifier for a pool accessible by nodes alpha and bravo:
+connected to the storage array and drives. You can use the
+LINSTOR `storage-pool create` command option `--shared-space` when configuring a LINSTOR pool to
+use the same LVM2 volume group accessible by two or more nodes.
+
+WARNING: Just as you should not modify or create any logical volume in a volume group that is used as the back end for a LINSTOR storage pool, it is even more important not to do these actions with shared volume groups. Calling any LVM command, for example, from an interactive shell, on a shared volume group, where the coordination of LVM commands is done by LINSTOR, can output inconsistent information or even destroy LVM metadata. Automatic activation of LVM logical volumes, for example, at boot time, also falls under this warning. Do not do these things. Use LINSTOR to manage LVM logical volumes through abstracted LINSTOR objects in these cases.
+
+The following example shows
+using the LVM2 volume group UUID as the shared space identifier for a storage pool accessible by
+nodes `alpha` and `bravo`:
 
 ----
 # linstor storage-pool create lvm --external-locking \
@@ -639,7 +643,22 @@ identifier for a pool accessible by nodes alpha and bravo:
   bravo pool_ssd shared_vg_ssd
 ----
 
-Exos pools will use the Exos pool serial number by default for the shared-space identifier.
+This example also uses the `--external-locking` option. By using this option, you tell LINSTOR
+not to use its internal locking mechanism for shared storage pools but rather use LVM's
+mechanism in this example.
+
+IMPORTANT: With LVM2, the external locking service (`lvmlockd`) manages volume groups created
+with the `vgcreate` command's `--shared` option. To use the LINSTOR `--external-locking`  option, you
+need to have specified the LVM `--shared` option when entering a `vgcreate` command to create the
+LVM volume group that backs the LINSTOR storage pool. 
+
+You can omit both the `--shared` option for `vgcreate` and the `--external-locking` option for
+`linstor storage-pool create`. If you do this, LINSTOR will use its own mechanism to take care
+that only one node in the same `--shared-space` grouping will use LVM. Using LINSTOR's internal
+mechanism to lock LVM use will not however limit the access to single volumes. Neither LINSTOR's
+nor LVM's locking mechanism, for example, will limit DRBD I/O.
+
+Exos pools will use the Exos pool serial number by default for the `--shared-space` identifier.
 
 IMPORTANT: As of the release of `linstor-server` v1.26.0, the Exos integration for LINSTOR is
 deprecated.
