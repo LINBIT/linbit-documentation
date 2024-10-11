@@ -1119,27 +1119,31 @@ diagnose data corruption problems, and want to see whether the transport path
 [[s-resizing]]
 === Resizing Resources
 
-
 When growing (extending) DRBD volumes, you need to grow from bottom to top.
-You need to extend the backing block devices on all nodes first.
+First, you need to extend the backing block devices on all nodes.
 Then you can tell DRBD to use the new space.
 
-Once the DRBD volume is extended, you need to still propagate that
-into whatever is using DRBD: extend the file system, or make a VM
+Once the DRBD volume is extended, you still need to propagate that change into whatever upper
+layers might be using the DRBD volume, for example, by extending the file system, or making a VM
 running with this volume attached aware of the new "disk size".
 
-That all typically boils down to
+Doing this typically means taking the following steps:
 
+
+. On all nodes, resize the backing logical volume, for example, when using LVM:
++
 ----
-# # on all nodes, resize the backing LV:
 # lvextend -L +${additional_gb}g VG/LV
-# # on one node:
-# drbdadm resize ${resource_name}/${volume_number}
-# # on the Primary only:
-# # resize the file system using the file system specific tool, see below
 ----
 
-See also the next sections <<s-growing-online>> and following.
+. On one node, resize the DRBD volume:
++
+----
+# drbdadm resize ${resource_name}/${volume_number}
+----
+
+. On the DRBD primary node only, resize the file system by using the tool specific to the file system.
+  Refer to the details below and details in the <<s-growing-online>> section.
 
 Note that different file systems have different capabilities and different sets
 of management tools. For example XFS can only grow.
@@ -1181,7 +1185,6 @@ Once you are sure that DRBD won't use the space anymore either,
 you can cut it off from the backing device, for example using `lvreduce`.
 
 See also <<s-shrinking-online>>, <<s-shrinking-offline>>.
-
 
 [[s-growing-online]]
 ==== Growing Online
