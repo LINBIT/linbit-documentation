@@ -1644,7 +1644,6 @@ The following considerations apply to this type of setup:
 * To be able to synchronize the backup node, the stacked device on the
   active node must be up and in the primary role.
 
-
 [[s-three-node-config]]
 ==== Configuring a Stacked Resource
 
@@ -1657,7 +1656,7 @@ In the following example, nodes are named 'alice', 'bob', and
 resource r0 {
   protocol C;
   device    /dev/drbd0;
-  disk      /dev/sda6;
+  disk      /dev/vg0/lv0;
   meta-disk internal;
 
   on alice {
@@ -1679,12 +1678,19 @@ resource r0-U {
 
   on charlie {
     device     /dev/drbd10;
-    disk       /dev/hda6;
+    disk       /dev/vgdrbd/lv10;
     address    192.168.42.2:7789; # Public IP of the backup node
     meta-disk  internal;
   }
 }
 ----
+
+IMPORTANT: The `disk` values in this configuration use LVM logical volumes. If you are using
+physical disks rather than LVM or ZFS logical volumes underneath your DRBD resources, reference
+the disks by using persistent block device names (`/dev/disk/by-id/<disk-by-id>`) rather than by
+bus-based names (for example, `/dev/nvme4n1`). This will prevent a bus-based name change from
+possibly affecting your DRBD resources. You can enter a `lsblk -o Name,UUID,WWN` command to
+determine a particular disk's ID.
 
 As with any `drbd.conf` configuration file, this must be distributed
 across all nodes in the cluster -- in this case, three nodes. Notice

@@ -14,7 +14,7 @@ system for this purpose. Typical examples include:
 
 * a software RAID device,
 
-* an LVM Logical Volume or any other block device configured by the
+* an LVM or ZFS logical volume, or any other block device configured by the
   Linux device-mapper infrastructure,
 
 * any other block device type found on your system.
@@ -36,10 +36,9 @@ single-server system using DRBD (some caveats apply -- please refer to
 For the purposes of this guide, we assume a very simple setup:
 
 * Both hosts have a free (currently unused) partition named
-  `/dev/sda7`.
+  `/dev/disk/by-id/ata-[some ID]`.
 
 * We are using <<s-internal-meta-data,internal metadata>>.
-
 
 [[s-prepare-network]]
 ==== Preparing your network configuration
@@ -149,7 +148,7 @@ common {
 ----
 resource "r0" {
   device minor 1;
-  disk "/dev/sda7";
+  disk "/dev/vg0/lv0";
   meta-disk internal;
 
   on "alice" {
@@ -165,6 +164,13 @@ resource "r0" {
 }
 ----
 
+IMPORTANT: The `disk` value in this configuration uses an LVM logical volume. If you are using
+physical disks rather than LVM or ZFS logical volumes underneath your DRBD resources, reference
+the disks by using persistent block device names (`/dev/disk/by-id/<disk-by-id>`) rather than by
+bus-based names (for example, `/dev/sda2`). This will prevent a bus-based name change from
+possibly affecting your DRBD resources. You can enter a `lsblk -o Name,UUID,WWN` command to
+determine a particular disk's ID.
+
 This example configures DRBD in the following fashion:
 
 * You "opt in" to be included in DRBD's usage statistics (see
@@ -174,31 +180,34 @@ This example configures DRBD in the following fashion:
   (<<s-replication-protocols,Protocol C>>) unless explicitly specified
   otherwise.
 
-* Our cluster consists of two nodes, 'alice' and 'bob'.
+* Your cluster consists of two nodes, 'alice' and 'bob'.
 
-* We have a resource arbitrarily named `r0` which uses `/dev/sda7` as
+* You have a resource arbitrarily named `r0` which uses an LVM logical volume, `/dev/vg0/lv0`, as
   the lower-level device, and is configured with
   <<s-internal-meta-data,internal metadata>>.
 
 * The resource uses TCP port 7789 for its network connections, and
   binds to the IP addresses 10.1.1.31 and 10.1.1.32, respectively.
 
-The configuration above implicitly creates one volume in the
-resource, numbered zero (`0`). For multiple volumes in one resource,
-modify the syntax as follows (assuming that the same lower-level storage block
-devices are used on both nodes):
+* The configuration above implicitly creates one volume in the resource, numbered zero (`0`).
+
+The next example explicitly configures multiple volumes in one resource. Assume that the same
+LVM volume group, `vg0`, exists on each node and contains the specified logical volumes for each
+node. By specifying a different logical volume for the `disk` value within the `volume 1`
+configuration for node `bob`, you override the `volume 1` value specified in the
+<<s-drbdconf-common,common configuration section>>: `/dev/vg0/lv2` rather than `/dev/vg0/lv1`.
 
 .Multi-volume DRBD resource configuration (`/etc/drbd.d/r0.res`)
 ----
 resource "r0" {
   volume 0 {
     device minor 1;
-    disk "/dev/sda7";
+    disk "/dev/vg0/lv0";
     meta-disk internal;
   }
   volume 1 {
     device minor 2;
-    disk "/dev/sda8";
+    disk "/dev/vg0/lv1";
     meta-disk internal;
   }
   on "alice" {
@@ -207,7 +216,7 @@ resource "r0" {
   on "bob" {
     node-id 1;
     volume 1 {
-      disk "/dev/sda9";
+      disk "/dev/vg0/lv2";
     }
   }
   connection {
@@ -232,13 +241,13 @@ like configuration files.
 resource r0 {
   on alice {
     device    /dev/drbd1;
-    disk      /dev/sda7;
+    disk      /dev/vg0/lv0;
     meta-disk internal;
     address 10.1.1.31:7789;
   }
   on bob {
     device    /dev/drbd1;
-    disk      /dev/sda7;
+    disk      /dev/vg0/lv0;
     meta-disk internal;
     address   10.1.1.32:7789;
   }
@@ -315,7 +324,7 @@ further condense our example configuration as follows:
 ----
 resource "r0" {
   device minor 1;
-  disk "/dev/sda7";
+  disk "/dev/vg0/lv0";
   meta-disk internal;
   on "alice" {
     address   10.1.1.31:7789;
@@ -350,7 +359,7 @@ An example configuration file for three hosts would be this:
 ----
 resource r0 {
   device    minor 1;
-  disk      "/dev/sda7";
+  disk      "/dev/vg0/lv0";
   meta-disk internal;
   on alice {
     address   10.1.1.31:7000;
