@@ -1117,7 +1117,7 @@ diagnose data corruption problems, and want to see whether the transport path
 (network hardware, drivers, switches) might be at fault!
 
 [[s-resizing]]
-=== Resizing Resources
+=== Resizina Resources
 
 When growing (extending) DRBD volumes, you need to grow from bottom to top.
 First, you need to extend the backing block devices on all nodes.
@@ -1185,6 +1185,25 @@ Once you are sure that DRBD won't use the space anymore either,
 you can cut it off from the backing device, for example using `lvreduce`.
 
 See also <<s-shrinking-online>>, <<s-shrinking-offline>>.
+
+[[s-changing-resource-backing-disk-names]]
+==== Changing Resource Backing Disk Names
+
+As mentioned elsewhere in this guide, using persistent block devices naming
+(`/dev/disk/by-id/nvme-eui.cea2bf2ea901ceb4`), rather than bus-based naming (`/dev/nvme4n1`), is
+recommended when configuring DRBD resources. This prevents a bus-based name change from possibly
+affecting your DRBD resources. If you have an existing DRBD resource that uses bus-based naming,
+you can reconfigure it to use persistent block device naming. To do this, take the following
+steps that use the general outline of steps found in <<s-reconfigure>>:
+
+. Change the bus-based names used in a DRBD resource configuration file to their persistent
+  block device names. You can enter a `lsblk -o Name,UUID,WWN` command to determine a particular
+  disk’s ID on a given node.
+. Copy the changed resource configuration file to all DRBD nodes in your cluster.
+. Either wait for the next reboot on each node or else enter a `drbdadm adjust` command on each
+  node during an appropriate maintenance window. This will cause the DRBD disks to briefly
+  detach and reattach. After this, DRBD will use the persistent block devices names that you
+  reconfigured your resource with.
 
 [[s-growing-online]]
 ==== Growing Online
