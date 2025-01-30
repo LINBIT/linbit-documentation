@@ -3365,31 +3365,37 @@ decrease. For this reason, it might not always be the case that LINSTOR will use
 capacity calculation to limit over provisioning the storage pool, even though its ratio is less
 that the free capacity ratio.
 
-[[s-linstor-toggle-disk]]
-=== Adding and Removing Disks
+[[s-linstor-toggling-resources-between-diskful-and-diskless]]
+=== Toggling a Resource Between Diskful and Diskless 
 
-LINSTOR can convert resources between diskless and having a disk. This is achieved with the
-`resource toggle-disk` command, which has syntax similar to `resource create`.
+LINSTOR can change whether a resource is backed by physical storage (is diskful) or else has no
+associated backing physical storage and instead performs I/O operations over the network to
+other peer nodes (is diskless). You can toggle a resource between diskful and diskless by using
+the `resource toggle-disk` command, which has syntax similar to `resource create`.
 
-For instance, add a disk to the diskless resource `backups` on 'alpha':
+TIP: Conceptually, this is similar to the "target" (diskful) and "initiator" (diskless) relationship in iSCSI or NVMe-oF attached storage.
+
+For example, to create a physical replica on backing storage, implied by the storage pool option, to a diskless
+resource `backups` on node `alpha`, enter the following command:
 
 ----
 # linstor resource toggle-disk alpha backups --storage-pool pool_ssd
 ----
 
-Remove this disk again:
+To toggle the resource back to being diskless, enter the following command:
 
 ----
 # linstor resource toggle-disk alpha backups --diskless
 ----
 
-[[s-linstor-migrate-disk]]
-==== Migrating Disks Between Nodes
+[[s-linstor-migrating-a-resource-to-another-node]]
+==== Migrating a Resource to Another Node
 
-To move a resource between nodes without reducing redundancy at any point, LINSTOR's disk
-migrate feature can be used. First create a diskless resource on the target node, and then add
-a disk using the `--migrate-from` option. This will wait until the data has been synced to the
-new disk and then remove the source disk.
+To move a resource between nodes without reducing redundancy at any point, you can use the
+LINSTOR disk migration feature. First, create a diskless resource on the target node, and then
+toggle the resource to diskful by using the `--migrate-from` option. This LINSTOR client
+operation will wait until the data has been synced to the new disk and then it will remove the
+source disk.
 
 For example, to migrate a resource `backups` from 'alpha' to 'bravo':
 
@@ -4111,7 +4117,7 @@ By setting the `DrbdOptions/auto-diskful` option on a LINSTOR resource definitio
 configuring the LINSTOR controller to make a _Diskless_ DRBD resource _Diskful_ if the resource
 has been in a DRBD _Primary_ state for more than the specified number of minutes. After the
 specified number of minutes, LINSTOR will automatically use the
-<<s-linstor-toggle-disk,`resource toggle-disk` command>> to toggle the resource state on the
+<<s-linstor-toggling-resources-between-diskful-and-diskless,`resource toggle-disk` command>> to toggle the resource state on the
 _Diskless_ node, for the given resource.
 
 To set this property, for example, on a LINSTOR resource definition named `myres` with a
