@@ -55,7 +55,7 @@ Make sure to replace `MY_LINBIT_USER` and `MY_LINBIT_PASSWORD` with your own cre
 releases on link:https://charts.linstor.io/[charts.linstor.io].
 
 .kustomization.yaml
-[source,yaml]
+[source%unbreakable,yaml]
 ----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -544,6 +544,7 @@ https://linstor-controller.linbit-sds.svc:3371/v1/controller/version
 
 If the command is successful, the API is using HTTPS, clients are able to connect to the controller with their certificates, and the command output should show something similar to this:
 
+[%autofit]
 ----
 {"version":"1.20.2","git_hash":"58a983a5c2f49eb8d22c89b277272e6c4299457a","build_time":"2022-12-14T14:21:28+00:00","rest_api_version":"1.16.0"}%
 ----
@@ -1113,7 +1114,8 @@ kubectl create secret docker-registry drbdiocred --docker-server=drbd.io \
   --docker-username=<YOUR_LOGIN> --docker-password=<YOUR_PASSWORD>
 helm repo add linstor https://charts.linstor.io
 helm install linstor-etcd linstor/pv-hostpath --set "nodes={<NODE0>,<NODE1>,<NODE2>}"
-helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.replicas=3 \
+helm install -f sp-values.yaml linstor-op linstor/linstor \
+  --set etcd.replicas=3 \
   --set operator.satelliteSet.kernelModuleInjectionMode=Compile
 ----
 
@@ -1127,11 +1129,13 @@ service endpoint named `postgres`. PostgreSQL itself is configured with
 `POSTGRES_DB=postgresdb`, `POSTGRES_USER=postgresadmin`, and
 `POSTGRES_PASSWORD=admin123`
 
+[source%autofit,bash]
 ----
 kubectl create secret docker-registry drbdiocred --docker-server=drbd.io \
   --docker-username=<YOUR_LOGIN> --docker-email=<YOUR_EMAIL> --docker-password=<YOUR_PASSWORD>
 helm repo add linstor https://charts.linstor.io
-helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.enabled=false \
+helm install -f sp-values.yaml linstor-op linstor/linstor \
+  --set etcd.enabled=false \
   --set "operator.controller.dbConnectionURL=jdbc:postgresql://postgres/postgresdb?user=postgresadmin&password=admin123"
 ----
 
@@ -1140,14 +1144,21 @@ helm install -f sp-values.yaml linstor-op linstor/linstor --set etcd.enabled=fal
 
 To protect the storage infrastructure of the cluster from accidentally deleting vital components, it is necessary to perform some manual steps before deleting a Helm deployment.
 
-1. Delete all volume claims managed by LINSTOR components. You can use the following command to get a list of volume claims managed by LINSTOR. After checking that none of the listed volumes still hold needed data, you can delete them using the generated `kubectl delete` command.
+1. Delete all volume claims managed by LINSTOR components. You can use the following command to get a list of volume claims managed by LINSTOR. 
 +
 ----
-$ kubectl get pvc --all-namespaces -o=jsonpath='{range .items[?(@.metadata.annotations.volume\.beta\.kubernetes\.io/storage-provisioner=="linstor.csi.linbit.com")]}kubectl delete pvc --namespace {.metadata.namespace} {.metadata.name}{"\n"}{end}'
+kubectl get pvc --all-namespaces -o=jsonpath='{range .items[?(@.metadata.annotations.volume\.beta\.kubernetes\.io/storage-provisioner=="linstor.csi.linbit.com")]}kubectl delete pvc --namespace {.metadata.namespace} {.metadata.name}{"\n"}{end}'
+----
++
+Output from the command might show something such as:
++
+----
 kubectl delete pvc --namespace default data-mysql-0
 kubectl delete pvc --namespace default data-mysql-1
 kubectl delete pvc --namespace default data-mysql-2
 ----
++
+After checking that none of the listed volumes still hold needed data, you can delete them using the generated `kubectl delete` commands shown in the output.
 +
 WARNING: These volumes, once deleted, cannot be recovered.
 
@@ -1180,7 +1191,7 @@ The Helm charts provide a set of further customization options for advanced use 
 
 IMPORTANT: LINBIT's container image repository (http://drbd.io), used in the Helm chart below, is only available to LINBIT customers or through LINBIT customer trial accounts. link:https://linbit.com/contact-us/[Contact LINBIT for information on pricing or to begin a trial]. Alternatively, you can use the LINSTOR SDS upstream project named link:https://github.com/piraeusdatastore/piraeus-operator[Piraeus], without being a LINBIT customer.
 
-[source,yaml]
+[source%autofit,yaml]
 ----
 global:
   imagePullPolicy: IfNotPresent # empty pull policy means k8s default is used ("always" if tag == ":latest", "ifnotpresent" else) <1>
@@ -1387,7 +1398,7 @@ $ helm install linstor-ha-controller linstor/linstor-ha-controller
 If you are using the HA Controller in your cluster you can set additional parameters in all StorageClasses. These
 parameters ensure that the volume is not accidentally remounted as read-only, leading to degraded Pods.
 
-[source,yaml]
+[source%autofit,yaml]
 ----
 parameters:
   property.linstor.csi.linbit.com/DrbdOptions/auto-quorum: suspend-io
@@ -1485,7 +1496,8 @@ Controller 1.20.3 (API: 1.16.0, Git: 8d19a891df018f6e3d40538d809904f024bfe361) r
 +
 [%autofit]
 ----
-$ kubectl get -n linbit-sds deployment linstor-csi-controller -ojsonpath='{.spec.template.spec.containers[?(@.name=="linstor-csi")].env[?(@.name=="LS_CONTROLLERS")].value}{"\n"}'
+$ kubectl get -n linbit-sds deployment linstor-csi-controller \
+    -ojsonpath='{.spec.template.spec.containers[?(@.name=="linstor-csi")].env[?(@.name=="LS_CONTROLLERS")].value}{"\n"}'
 http://linstor-controller.example.com:3370
 ----
 
@@ -1493,13 +1505,13 @@ http://linstor-controller.example.com:3370
 +
 [%autofit]
 ----
-$ kubectl get -n linbit-sds daemonset linstor-csi-node -ojsonpath='{.spec.template.spec.containers[?(@.name=="linstor-csi")].env[?(@.name=="LS_CONTROLLERS")].value}{"\n"}'
+$ kubectl get -n linbit-sds daemonset linstor-csi-node \
+  -ojsonpath='{.spec.template.spec.containers[?(@.name=="linstor-csi")].env[?(@.name=="LS_CONTROLLERS")].value}{"\n"}'
 http://linstor-controller.example.com:3370
 ----
 
 - The Kubernetes nodes are registered as satellite nodes on the LINSTOR controller:
 +
-[%autofit]
 ----
 $ kubectl get nodes -owide
 NAME               STATUS   ROLES           AGE   VERSION   INTERNAL-IP      [...]
@@ -1673,7 +1685,7 @@ Now that your storage class is created, you can now create a persistent volume c
 which can be used to provision volumes known both to Kubernetes and LINSTOR:
 
 .my-first-linstor-volume-pvc.yaml
-[source,yaml]
+[source%unbreakable,yaml]
 ----
 kind: PersistentVolumeClaim
 apiVersion: v1
