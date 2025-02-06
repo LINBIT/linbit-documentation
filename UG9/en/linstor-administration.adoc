@@ -172,25 +172,90 @@ https://linbit.com/linbit-software-download-page-for-linstor-and-drbd-linux-driv
 [[s-upgrading]]
 === Upgrading LINSTOR
 
-LINSTOR doesn't support rolling upgrades. Controller and satellites must have the same version,
-otherwise the controller will discard the satellite with a `VERSION_MISMATCH`. But this isn't a
-problem, as the satellite won't do any actions as long it isn't connected to a controller and
-DRBD will not be disrupted by any means.
+LINSTOR does not support rolling upgrades.
+LINSTOR controller and satellite services running in your cluster must have the same version, otherwise the controller will discard the satellite with a `VERSION_MISMATCH`.
+While this is a situation you should fix, it is not a risk for your data.
+Satellite nodes will not do any actions so long as they are not connected to a controller node, and
+because of LINSTOR data and control plane separation, this state does not disrupt DRBD data replication.
 
-If you are using the embedded default H2 database and the linstor-controller package is upgraded
-an automatic backup file of the database will be created in the default `/var/lib/linstor`
-directory. This file is a good restore point if for any reason a linstor-controller database
-migration should fail, then it is recommended to report the error to LINBIT and restore the old
+[[s-linstor-upgrading-controller-database-backing-up]]
+==== Backing up the controller database before upgrading
+
+Before upgrading LINSTOR, you should back up the LINSTOR controller database.
+If you are using the embedded default H2 database and you upgrade the `linstor-controller` package, an automatic backup file of the database will be created in the default `/var/lib/linstor`
+directory. This file is a good restore point if a `linstor-controller` database
+migration should fail. It is recommended to report the error to LINBIT and restore the old
 database file and roll back to your previous controller version.
 
-If you use any external database or etcd, it is recommended to do a manual backup of your
-current database to have a restore point.
+If you use any external database or etcd, <<s-export-db,make a manual backup of your
+current database>>, before upgrading LINSTOR.
+You can use this backup as a restore point if needed.
 
-First, upgrade the `linstor-controller` and `linstor-client` packages on your controller host
-and then restart the `linstor-controller`. The controller should start and all of its clients
-should show `OFFLINE(VERSION_MISMATCH)`. After that you can continue upgrading the
-`linstor-satellite` package on all satellite nodes and restart them, after a short reconnection
-time they should all show `ONLINE` again and your upgrade is finished.
+[[s-linstor-upgrading-rpm-based-linux]]
+==== Upgrading LINSTOR on RPM-based Linux
+
+On RPM-based Linux distributions, LINSTOR services are not automatically restarted when you upgrade LINSTOR packages.
+For this reason, the upgrading process does not entail as much downtime for your LINSTOR services (LINSTOR control plane) as it might on other systems.
+
+On all nodes, update applicable LINSTOR packages.
+Modify the command below to only update packages applicable to each node's role in your LINSTOR cluster:
+
+----
+dnf update -y linstor-client linstor-controller linstor-satellite
+----
+
+After updating LINSTOR packages on all nodes, as simultaneously as you can, restart the LINSTOR satellite service on all your satellite nodes, except for the actively running controller node if that node is in a _combined_ role.
+
+----
+systemctl restart linstor-satellite
+----
+
+Next, restart the LINSTOR controller service on the node where the service is actively running.
+If that node is in a _combined_ role, also update the LINSTOR satellite service, for example:
+
+----
+systemctl restart linstor-satellite linstor-controller
+----
+
+IMPORTANT: If you have made the LINSTOR controller service highly available in your cluster, you will need to update the `linstor-controller` package on all potential LINSTOR controller nodes.
+However, you only need to restart the LINSTOR controller service on the node currently running the service. 
+
+[[s-linstor-upgrading-deb-based-linux]]
+==== Upgrading LINSTOR on DEB-based Linux
+
+On DEB-based Linux systems, because LINSTOR services will restart automatically after installing an updated version, you will need to plan for more downtime of the LINSTOR control plane than on an RPM-based system.
+
+First, upgrade the LINSTOR controller software on the active LINSTOR controller node.
+
+----
+apt install -y --only-upgrade linstor-controller
+----
+
+IMPORTANT: If you have made the LINSTOR controller service highly available in your cluster, you will need to update the `linstor-controller` package on all potential LINSTOR controller nodes.
+
+Upgrading the software will automatically restart the controller service.
+At this point, if you enter a `linstor node list` command, output will show that your satellite nodes are in an `OFFLINE(VERSION MISMATCH)` state.
+
+Next, update the LINSTOR client and satellite packages on nodes where those packages are installed.
+Modify the command below to only update packages applicable to each node's role in your LINSTOR cluster:
+
+----
+apt install -y --only-upgrade linstor-client linstor-satellite
+----
+
+Uprading the LINSTOR satellite software package on your satellite (and combined) nodes will automatically restart the LINSTOR satellite service on those nodes.
+
+[[s-linstor-upgrading-verifying]]
+==== Verifying a LINSTOR upgrade
+
+After upgrading all LINSTOR packages applicable to each node in your cluster, verify:
+
+. The output of a `linstor --version` command shows the expected LINSTOR client software version number on all nodes that you run the LINSTOR client on.
+. The output of a `linstor controller version` command shows the expected LINSTOR controller software version number.
+If you have made the LINSTOR controller service highly available, you will need to use a package manager query (`dnf info linstor-controller` or `apt show linstor-controller`) to verify the installed software version on the potential controller nodes.
+. The output of a `linstor node list` command shows all LINSTOR satellite nodes are in an `Online` state.
+The LINSTOR controller service will log a `version mismatch` error message (`journalctl -xeu linstor-controller`) for any nodes where the installed LINSTOR satellite software version does not match the controller software version.
+The output of a `linstor node list` command will show such nodes as being in an `OFFLINE(VERSION MISMATCH)` state.
 
 [[s-containers]]
 === Containers
