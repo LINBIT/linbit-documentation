@@ -1022,7 +1022,7 @@ storage pool with these scores will just be considered later.
 
 Finally, LINSTOR tries to find the best matching group of storage pools meeting all
 requirements. This step also considers other auto-placement restrictions such as
-`--replicas-on-same`, `--replicas-on-different`, `--do-not-place-with`,
+`--replicas-on-same`, `--replicas-on-different`, `--x-replicas-on-different`, `--do-not-place-with`,
 `--do-not-place-with-regex`, `--layer-list`, and `--providers`.
 
 ===== Avoiding Colocating Resources When Automatically Placing a Resource
@@ -1041,15 +1041,22 @@ can specify multiple resources to try to avoid placing your resource with.
 You can constrain automatic resource placement to place (or avoid placing) a resource with nodes
 having a specified auxiliary node property.
 
-NOTE: This ability can be particularly useful if you are trying to constrain resource placement
+This ability can be useful in a few different scenarios.
+One scenario is if you are trying to constrain resource placement
 within Kubernetes environments that use LINSTOR managed storage. For example, you might set an
-auxiliary node property that corresponds to a Kubernetes label. See the
+auxiliary node property that corresponds to a Kubernetes label. Refer to the
 <<linstor-kubernetes.adoc#s-kubernetes-replicasonsame,"replicasOnSame" section>> within the
 "LINSTOR Volumes in Kubernetes" _LINSTOR User's Guide_ chapter for more details about this use
 case.
 
+You can also use the `--x-replicas-on-different` argument to constrain automatic resource placement in a way that can be useful when using LINSTOR to manage storage resources across data centers, for example, in a stretched cluster architecture.
+Because this argument takes a different form than the `--replicas-on-same` and `--replicas-on-different` arguments, it is disussed later in its own section, <<s-linstor-x-replicas-on-different>>.
+
 The arguments, `--replicas-on-same` and `--replicas-on-different` expect the
 name of a property within the `Aux/` namespace.
+
+IMPORTANT: The `--x-replicas-on-different` command option also considers a LINSTOR object "different", where the auxiliary property is not set.
+For example, in a 5-satellite node cluster where nodes 1-2 have an auxiliary property `site` value of `dc1`, nodes 3-4 have a `site` value of `dc2`, and node 5 has no auxiliary property set, there would be three "different" node groups.
 
 The following example shows setting an auxiliary node property, `testProperty`, on three LINSTOR
 satellite nodes. Next, you create a resource group, `testRscGrp`, with a placement count of two
@@ -1119,6 +1126,110 @@ For example, to unset the `--replicas-on-same` autoplacement property on the `te
 ----
 # linstor resource-group modify testRscGrp --replicas-on-same
 ----
+
+[[s-linstor-x-replicas-on-different]]
+===== Ensuring automatic resource placement on different nodes for disaster recovery
+
+By using the `--x-replicas-on-different` argument when creating or modifying various LINSTOR objects, you can ensure LINSTOR automatically places resources on different LINSTOR node groups, where different values for an auxiliary property represent different groups.
+The argument takes the following form:
+
+----
+--x-replicas-on-different <auxiliary-property-name> <integer>
+----
+
+The integer value is the maximum number of resource replicas that LINSTOR can place on nodes that have the same value for the specified auxiliary property.
+
+The most common use case for this feature is ensuring that there is always at least two local resource replicas, for high availability, and one off-site resource replica, for disaster recovery.
+For example, to label each node by its physical location, assume that you set an auxiliary property, `site`, as follows for a LINSTOR cluster in a stretched cluster architecture:
+
+----
++------------------------------------------------------------------+
+| Node           | NodeType   | Addresses  | AuxProps     | State  |
+|==================================================================|
+| linstor-ctrl-0 | CONTROLLER | [...]      |              | Online |
+| linstor-sat-0  | SATELLITE  | [...]      | Aux/site=dc1 | Online |
+| linstor-sat-1  | SATELLITE  | [...]      | Aux/site=dc1 | Online |
+| linstor-sat-2  | SATELLITE  | [...]      | Aux/site=dc2 | Online |
+| linstor-sat-3  | SATELLITE  | [...]      | Aux/site=dc2 | Online |
+| linstor-sat-4  | SATELLITE  | [...]      | Aux/site=dc2 | Online |
++------------------------------------------------------------------+
+----
+
+Further assume that you created a resource group `myrg` associated with the same LINSTOR storage pool on all five satellite nodes.
+You can enter the following command to create a new resource, `myres`, and ensure that LINSTOR places two replicas on one site and a third replica at a different `site`:
+
+----
+linstor resource-group spawn \
+  --x-replicas-on-different site 2 \
+  --place-count 3 \
+  myrg myres 200G
+----
+
+After LINSTOR creates the resource, a `linstor resource list --resource myres` command might show output similar to this:
+
+----
++-------------------------------------------------------------------------------------+
+| ResourceName | Node          | Layers       | Usage  | Conns |    State | CreatedOn |
+|=====================================================================================|
+| myres        | linstor-sat-0 | DRBD,STORAGE | Unused | Ok    | UpToDate | [...]     |
+| myres        | linstor-sat-1 | DRBD,STORAGE | Unused | Ok    | UpToDate | [...]     |
+| myres        | linstor-sat-2 | DRBD,STORAGE | Unused | Ok    | UpToDate | [...]     |
++-------------------------------------------------------------------------------------+
+----
+
+When creating the `myres` resource, by specifying `2` for the maximum number of resource replicas LINSTOR can place on either `dc1` or `dc2` nodes, and also specifying a place count of `3`, you ensure that LINSTOR will place three resource replicas: two resources together on a `site`, for local high availability, and a third replica off-site, for disaster recovery purposes.
+
+Other combinations of `--x-replicas-on-different` and `--place-count` integer values are possible.
+However, you should make sensible choices.
+If you specified, for example, `--x-replicas-on-different site 1` and `--place-count 3`, when creating the `myres` resource given the example LINSTOR cluster shown earlier, LINSTOR would refuse to create the resource and would show a "Not enough available nodes" error message.
+
+NOTE: Specifying `--x-replicas-on-different $X 1` has exactly the same placement outcome as `--replicas-on-different $X`.
+
+Here, the node labeling (by using an auxiliary property), together with the constraint that LINSTOR should place at most one resource replica on nodes with different values for the auxiliary property, while also asking LINSTOR to place three resource replicas, means that you are asking for LINSTOR to do something impossible.
+
+You also need to know that, as implemented, the `--x-replicas-on-different` command considers a LINSTOR object "different", where the auxiliary property is not set.
+This is also true for the behavior of the `--replicas-on-different` option.
+For example, consider the following LINSTOR cluster:
+
+----
++------------------------------------------------------------------+
+| Node           | NodeType   | Addresses  | AuxProps     | State  |
+|==================================================================|
+| linstor-ctrl-0 | CONTROLLER | [...]      |              | Online |
+| linstor-sat-0  | SATELLITE  | [...]      | Aux/site=dc1 | Online |
+| linstor-sat-1  | SATELLITE  | [...]      | Aux/site=dc1 | Online |
+| linstor-sat-2  | SATELLITE  | [...]      | Aux/site=dc2 | Online |
+| linstor-sat-3  | SATELLITE  | [...]      | Aux/site=dc2 | Online |
+| linstor-sat-4  | SATELLITE  | [...]      | Aux/site=dc2 | Online |
+| linstor-sat-5  | SATELLITE  | [...]      |              | Online |
+| linstor-sat-6  | SATELLITE  | [...]      |              | Online |
++------------------------------------------------------------------+
+----
+
+If you were to create a resource, `myres`, by using the "impossible" command mentioned earlier, the command would this time succeed.
+
+----
+linstor resource-group spawn \
+  --x-replicas-on-different site 1 \
+  --place-count 3 \
+  myrg myres 200G
+----
+
+A successful resource placement that fulfills the specified constraints might be as follows:
+
+----
++-------------------------------------------------------------------------------------+
+| ResourceName | Node          | Layers       | Usage  | Conns |    State | CreatedOn |
+|=====================================================================================|
+| myres        | linstor-sat-0 | DRBD,STORAGE | Unused | Ok    | UpToDate | [...]     |
+| myres        | linstor-sat-2 | DRBD,STORAGE | Unused | Ok    | UpToDate | [...]     |
+| myres        | linstor-sat-5 | DRBD,STORAGE | Unused | Ok    | UpToDate | [...]     |
++-------------------------------------------------------------------------------------+
+----
+
+Because the `site` auxiliary property was not set on the `linstor-sat-5` node, the node counted as belonging to a different group, for purposes of the `--x-replicas-on-different` constraint.
+In this example cluster, there are three different node groups for the `site` auxiliary property: `dc1`, `dc2`, and a group where the auxiliary property is not set on some nodes.
+For this reason, LINSTOR was able to place three resources, fulfilling the `--place-count` constraint, while also fulfilling the `--x-replicas-on-different` constraint.
 
 ===== Constraining Automatic Resource Placement by LINSTOR Layers or Storage Pool Providers
 
