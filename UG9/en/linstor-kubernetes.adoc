@@ -1766,7 +1766,8 @@ kubectl delete pvc my-first-linstor-volume # remove the PersistentVolumeClaim, t
 
 The following storage class contains currently available parameters to configure the provisioned storage. The values for parameter keys shown in this storage class configuration are examples only. There might be other values that you can use for these keys, besides what this configuration shows. For example, you might set the `linstor.csi.linbit.com/mountOpts` key to `"noatime,nodiratime"` for better performance and less "wear and tear" on physical devices, at the expense of losing some monitoring and tracking abilities.
 
-NOTE: `linstor.csi.linbit.com/` is an optional, but recommended prefix for LINSTOR CSI specific parameters. Parameter keys are case insensitive but shown in lower camel case for convention.
+NOTE: `linstor.csi.linbit.com/` is an optional, but recommended prefix for LINSTOR CSI specific parameters.
+Parameter keys are case insensitive but shown in lower camel case for convention.
 
 NOTE: The `mountOpts` parameter key can hold either general `mount` options or else file system (ext4 or XFS) specific options.
 
@@ -1799,12 +1800,17 @@ parameters:
   linstor.csi.linbit.com/fsOpts: "-K" # or other `mkfs` options, refer to `man mkfs`
   linstor.csi.linbit.com/mountOpts: "noatime" # or other `mount` or file system specific options
   linstor.csi.linbit.com/postMountXfsOpts: "extsize 2m"
-  linstor.csi.linbit.com/xReplicasOnDifferent: "2"
+  linstor.csi.linbit.com/xReplicasOnDifferent: |
+    topology.kubernetes.io/region: 2
+    topology.kubernetes.io/zone: 1
   # Linstor properties
   property.linstor.csi.linbit.com/*: <x>
   # DRBD parameters
   DrbdOptions/*: <x>
 ----
+
+IMPORTANT: The YAML map for the `xReplicasOnDifferent` parameter key is shown for illustrative purposes but clashes with the `replicasOnSame` and `replicasOnDifferent` keys and values.
+As such, this is not a working configuration.
 
 [[s-kubernetes-drbd-options-setting]]
 ==== Setting DRBD Options for Storage Resources in Kubernetes
