@@ -2103,15 +2103,24 @@ it a different name, when you create the satellite node.
 For existing nodes, additional net interfaces are created like this:
 
 ----
-# linstor node interface create node-0 10G_nic 192.168.43.231
+# linstor node interface create node-0 nic_10G 192.168.43.231
 ----
 
 Net interfaces are identified by the IP address only, the name is arbitrary and is *not* related
-to the NIC name used by Linux. You can then assign the net interface to a node so that the
-node's DRBD traffic will be routed through the corresponding NIC.
+to the NIC name used by Linux. While the LINSTOR net interface name is arbitrary, there are some
+naming constraints:
+
+- Minimum length of three characters
+- Maximum length of 32 characters
+- Must start with a letter (case-insensitive) or an underscore (`_`)
+- Valid characters are alphanumeric characters, an underscore (`_`), or a hypen (`-`)
+// regex: /(?i)^[_a-z][a-z0-9_-]{2,31}
+
+After creating a net interface, you can then assign it to a node so that the node's DRBD traffic
+will be routed through the corresponding NIC.
 
 ----
-# linstor node set-property node-0 PrefNic 10G_nic
+# linstor node set-property node-0 PrefNic nic_10G
 ----
 
 NOTE: It is also possible to set the `PrefNic` property on a storage pool. DRBD traffic from
@@ -2126,15 +2135,15 @@ including Diskless storage pools, will use your preferred NIC.
 If you need to add an interface for only controller-satellite traffic, you can add an
 interface using the above `node interface create` command. Then you modify the connection to
 make it the active controller-satellite connection. For example, if you added an interface named
-`1G-satconn` on all nodes, after adding the interface, you can then tell LINSTOR to use this
+`satconn_1G` on all nodes, after adding the interface, you can then tell LINSTOR to use this
 interface for controller-satellite traffic by entering the following command:
 
 ----
-# linstor node interface modify node-0 1G-satconn --active
+# linstor node interface modify node-0 satconn_1G --active
 ----
 
 You can verify this change by using the `linstor node interface list node-0` command. Output
-from the command should show that the `StltCon` label applies to the `1G-satconn` interface.
+from the command should show that the `StltCon` label applies to the `satconn_1G` interface.
 
 While this method routes DRBD traffic through a specified NIC, it is not possible through
 `linstor` commands only, to route LINSTOR controller-client traffic through a specific NIC, for
