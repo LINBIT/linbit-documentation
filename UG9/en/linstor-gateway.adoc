@@ -143,20 +143,20 @@ RPM and DEB based distributions).
 
 So that LINSTOR Gateway can configure its various targets and exports, you will need to install
 and configure various packages and utilities. The subsections that follow describe how to do
-this. 
+this.
 
 ===== Installing NVMe-oF Utilities
 
-If you want to use LINSTOR Gateway to create and manage NVMe-oF targets, you will need to install
-the NVMe-of command line interface on all nodes.
+If you want to use LINSTOR Gateway to create and manage NVMe-oF targets, you will need to
+install the NVMe-of command line interface on all nodes.
 
 On RPM based systems, install the `nvmetcli` package. On DEB based systems, install the
 `nvme-cli` package.
 
 ===== Selecting and Installing the iSCSI Stack and Dependencies
 
-LINSTOR Gateway can use either the Linux-IO (LIO) or the Generic SCSI Target Subsystem for Linux
-(SCST) for an iSCSI implementation.
+LINSTOR Gateway deployments typically use either the Linux-IO (LIO) or the Generic SCSI
+Target Subsystem for Linux (SCST) for an iSCSI implementation.
 
 LIO is the iSCSI implementation that the Linux kernel community chose as the SCSI target
 subsystem that is included in the mainline Linux kernel.
@@ -164,16 +164,38 @@ subsystem that is included in the mainline Linux kernel.
 SCST is a mature iSCSI implementation that is used in many iSCSI appliances, including the
 LINBIT(R)-developed VSAN solution since version 0.17.0.
 
-====== Option A: LIO
+While using one of either LIO or SCST is recommended with LINSTOR Gateway, you can also use the
+iSCSI Enterprise Target (IET) or SCSI Target Framework (STGT) iSCSI target implementations.
 
-TargetCLI is an interactive shell used to manage the LIO target. LIO is the SCSI target that has
-been included with the Linux kernel since 2.6.38, which makes the installation of its utilities
-and dependencies relatively simple.
+[[s-linstor-gateway-installing-lio-components]]
+====== Installing LIO components
 
+LIO is the SCSI target that has been included with the Linux kernel since 2.6.38, which makes
+the installation of its utilities and dependencies relatively simple.
+
+TargetCLI is an interactive shell used to manage the LIO target.
+LINSTOR Gateway requires TargetCLI for some operations when using the LIO iSCSI implementation.
 You can install TargetCLI by using a package manager to install the `targetcli` package on
 RPM-based systems, or the `targetcli-fb` package on DEB-based systems.
 
-====== Option B: SCST
+To verify that you have satisfied the LIO back end requirements for using LINSTOR Gateway to
+create a highly available iSCSI target, after <<#s-linstor-gateway-installing,installing LINSTOR
+Gateway>>, enter this command:
+
+----
+linstor-gateway check-health --iscsi-backends lio-t
+----
+
+Output from the command should indicate back-end requirements are met.
+
+----
+[...]
+[✓] iSCSI
+[...]
+----
+
+[[s-linstor-gateway-installing-scst-components]]
+====== Installing SCST components
 
 The SCST project consists of a kernel space core, device handlers, target drivers, and the
 `scstadmin` user space utility for managing its core components. All of which can be built from
@@ -185,7 +207,7 @@ for using SCST with LINSTOR Gateway.
 
 IMPORTANT: Enter and run all the commands in this section on all nodes. The instructions below
 are for installations on Red Hat Enterprise Linux (RHEL). Adjustments will be needed to install
-and configure SCST on DEB based systems.
+and configure SCST on DEB-based systems.
 
 ELRepo, the RPM repository for Enterprise Linux packages that are not included in the standard
 RHEL distribution's repositories, is needed for installing DKMS. You also need to install
@@ -243,6 +265,14 @@ and start the `iscsi-scst` service that you created.
 # systemctl daemon-reload
 # systemctl enable --now iscsi-scst
 ----
+
+To verify that you have satisfied the SCST back end requirements for using LINSTOR Gateway to create a highly available iSCSI target, after <<#s-linstor-gateway-installing,installing LINSTOR Gateway>>, you can enter this command:
+
+----
+linstor-gateway check-health --iscsi-backends scst
+----
+
+Output from the command should indicate SCST iSCSI back-end requirements are met.
 
 ===== Installing NFS Support in LINSTOR Gateway
 
@@ -461,20 +491,38 @@ actions.
 
 TIP: Use `linstor-gateway iscsi help` for detailed information about the `iscsi` subcommand.
 
-Entering the following command will create a new DRBD resource in the LINSTOR cluster. LINSTOR
-Gateway will deploy the resource from the specified LINSTOR resource group, `iscsi_group`. This
-command also creates the DRBD Reactor configuration files to enable high availability of the
-iSCSI target. The LINSTOR resource name will be what you specify after the colon in the iSCSI
-qualified name (IQN). The resource name will be `example` in the case of the following command:
+Assuming that you <<s-linstor-gateway-installing-lio-components,installed the necessary LIO
+back-end components>>, entering the following command will create a new iSCSI target backed by a
+highly available DRBD resource in the LINSTOR cluster:
 
 ----
 # linstor-gateway iscsi create iqn.2019-08.com.linbit:example 172.16.16.97/24 1G \
---username=foo --password=bar --resource-group=iscsi_group
+    --implementation lio-t \
+    --username=foo \
+    --password=bar \
+    --resource-group=iscsi_group
 ----
 
-After entering the command above, you will have a 1GiB iSCSI target with CHAP authentication
-enabled using the username and password that you specified. The iSCSI target will be
-discoverable on the IP address that you specified. The target will be backed by a DRBD device
+IMPORTANT: Replace `lio-t` with the iSCSI target implementation that you want to use and have
+installed the back-end components for. The implementation type can be one of: `iet`, `lio`,
+`lio-t`, `scst`, or `tgt`. For example, use the `--implementation scst` option if you want to
+use the SCST iSCSI implementation and have
+<<s-linstor-gateway-installing-scst-components,installed the necessary components>>. If you do
+not specify an iSCSI target implementation type, one will be chosen for you based on installed
+components and the logic in the
+link:https://github.com/ClusterLabs/resource-agents/blob/main/heartbeat/iSCSITarget.in#L36[OCF
+`iSCSITarget` resource agent]. The implementation chosen by the resource agent might not be the
+one you want.
+
+After entering this `isci create` command, LINSTOR Gateway will deploy the resource from the
+specified LINSTOR resource group, `iscsi_group`. This command also creates the DRBD Reactor
+configuration files to enable high availability of the iSCSI target. The LINSTOR resource name
+will be what you specify after the colon in the iSCSI qualified name (IQN), `example`, in this
+case.
+
+When the behind-the-scenes commands complete, you will have a 1GiB iSCSI target with CHAP
+authentication enabled using the username and password that you specified. The iSCSI target will
+be discoverable on the IP address that you specified. The target will be backed by a DRBD device
 managed by LINSTOR. You can find the DRBD Reactor configuration files that the command creates
 in the `/etc/drbd-reactor.d/` directory on your nodes.
 
