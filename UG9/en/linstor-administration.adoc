@@ -2474,17 +2474,23 @@ restore --help`).
 ==== Rolling Back to a Snapshot
 
 LINSTOR can roll a resource back to a snapshot state. The resource must not be in use. That
-is, the resource must not be mounted on any nodes. If the resource is in use, consider whether
+is, the resource must not be mounted on any nodes or be primary on DRBD. If the resource is in use, consider whether
 you can achieve your goal by <<s-linstor-snapshots-restoring,restoring the snapshot>> instead.
 
 Rollback is performed as follows:
 
 ----
-# linstor snapshot rollback resource1 snap1
+# linstor snapshot rollback <resource-name> <snapshot-name>
 ----
 
-A resource can only be rolled back to the most recent snapshot. To roll back to an older
-snapshot, first delete the intermediate snapshots.
+The snapshot rollback feature in LINSTOR versions since 1.31.2, has different behavior than previous versions.
+In previous LINSTOR versions, you could only roll back resources from a snapshot if the snapshot existed on all diskful nodes hosting the resource.
+For example, in previous LINSTOR versions, if you created a snapshot of a resource that was deployed diskfully on two nodes, then deployed the resource on another node or nodes, you would no longer be able to roll back the resource from the snapshot you created earlier.
+If you tried to roll back the resource, you would get an error message saying that you cannot roll back the resource because the snapshot does not exist on the new node.
+
+This limitation does not exist in LINSTOR versions since 1.31.2 because the new node can simply create an empty resource and synchronize the data from another diskful node, after the snapshot rollback.
+However, this new behavior does have a counterintuitive side effect: If you delete a resource with a snapshot from a node or nodes, then roll back the resource from a snapshot, the resource will be restored on diskful nodes for the resource, including the node or nodes that you deleted the resource from.
+While this side effect can result in the resource being placed on more nodes than you might expect, after a snapshot rollback the LINSTOR periodic "balance resource task" will eventually restore the number of diskful resources in your cluster to the resource's placement count.
 
 [[s-linstor-snapshots-removing-a-snapshot]]
 ==== Removing a Snapshot
