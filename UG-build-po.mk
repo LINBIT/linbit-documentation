@@ -16,4 +16,4 @@ CLEAN_FILES = *.adoc
 #
 
 patch-drbd-ug:
-	patch -p0 < drbd-users-guide.adoc-$(lang).patch
+	patch -p0 < drbd-user-guide.adoc-$(lang).patch

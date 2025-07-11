@@ -6,11 +6,11 @@
 #
 
 # If adding new UGs in the future, maintain the naming convention:
-# xxxxxx-users-guide.adoc for the UG's IN- variable below.
-IN_UG=drbd-users-guide.adoc
-IN_LS=linstor-users-guide.adoc
-IN_VSAN=vsan-users-guide.adoc
-IN_UNDERSTANDING_GW=linstorgw-users-guide.adoc
+# xxxxxx-user-guide.adoc for the UG's IN- variable below.
+IN_UG=drbd-user-guide.adoc
+IN_LS=linstor-user-guide.adoc
+IN_VSAN=vsan-user-guide.adoc
+IN_UNDERSTANDING_GW=linstorgw-user-guide.adoc
 OUTDIR=output
 OUTDIRPDF=$(OUTDIR)-pdf
 OUTDIRHTML=$(OUTDIR)-html
@@ -27,8 +27,8 @@ OUTHTML_LS=$(addsuffix .html,$(basename $(IN_LS)))
 OUTHTML_VSAN=$(addsuffix .html,$(basename $(IN_VSAN)))
 OUTHTML_UNDERSTANDING_GW=$(addsuffix .html,$(basename $(IN_UNDERSTANDING_GW)))
 # The -WEBDEVS variables below should result in file names in the form:
-# xxxxxxx-users-guide-without-css.html, e.g.,
-# vsan-users-guide-without-css.html. This is the HTML file that will be
+# xxxxxxx-user-guide-without-css.html, e.g.,
+# vsan-user-guide-without-css.html. This is the HTML file that will be
 # included in each UG's ZIP file after running the UGx-html-finalize `make`
 # target. The PHP script that is part of the GitLab "preview" phase of the UG
 # building process relies on this naming convention.
