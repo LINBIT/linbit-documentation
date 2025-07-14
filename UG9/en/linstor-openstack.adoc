@@ -107,9 +107,9 @@ the LINSTOR driver backported to the supported stable versions. Currently, these
 [frame="topbot",options="header"]
 |====
 | OpenStack Release    | Included Version | LINBIT Version | LINBIT Branch
+| `stable/2025.1`      | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2F2024.2[`linstor/stable/2025.1`]
 | `stable/2024.2`      | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2F2024.2[`linstor/stable/2024.2`]
 | `stable/2024.1`      | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2F2024.1[`linstor/stable/2024.1`]
-| `stable/2023.2`      | 1.0.1            | 2.0.0          | https://github.com/LINBIT/openstack-cinder/tree/linstor%2Fstable%2F2023.2[`linstor/stable/2023.2`]
 |====
 
 The exact steps to enable the LINSTOR Driver depend on your OpenStack distribution. In general, the `python-linstor`
@@ -131,8 +131,15 @@ ADDITIONAL_VENV_PACKAGES=python-linstor
 
 # This is required to select the LINBIT version of the driver
 CINDER_REPO=https://github.com/LINBIT/openstack-cinder.git
-# Replace linstor/stable/2024.2 with the reference matching your OpenStack release.
-CINDER_BRANCH=linstor/stable/2024.2
+# Replace linstor/stable/2025.1 with the reference matching your OpenStack release.
+CINDER_BRANCH=linstor/stable/2025.1
+
+# Resizing of volumes using the DRBD transport requires updates to Nova and os-brick:
+NOVA_REPO=https://github.com/LINBIT/openstack-nova.git
+OS_BRICK_REPO=https://github.com/LINBIT/openstack-os-brick.git
+NOVA_BRANCH=linstor/stable/2025.1
+OS_BRICK_BRANCH=linstor/stable/2025.1
+LIBS_FROM_GIT=os-brick
 ----
 
 ===== Installing on Kolla
@@ -150,6 +157,13 @@ To ensure that the required `python-linstor` package is installed, use the follo
 
 # Cinder
 {% set cinder_base_pip_packages_append = ['python-linstor'] %}
+
+# Nova
+# Replace linstor/stable/2025.1 with the reference matching your OpenStack release.
+{% set openstack_base_pip_packages_append = ['git+https://github.com/LINBIT/openstack-os-brick.git@linstor/stable/2025.1'] %}
+{% block openstack_base_override_upper_constraints %}
+RUN {{ macros.upper_constraints_remove("os-brick") }}
+{% endblock %}
 ----
 
 To install the LINBIT version of the driver, update your `kolla-build.conf`
@@ -159,8 +173,14 @@ To install the LINBIT version of the driver, update your `kolla-build.conf`
 [cinder-base]
 type = git
 location = https://github.com/LINBIT/openstack-cinder.git
-# Replace linstor/stable/2024.2 with the reference matching your OpenStack release.
-reference = linstor/stable/2024.2
+# Replace linstor/stable/2025.1 with the reference matching your OpenStack release.
+reference = linstor/stable/2025.1
+
+[nova-base]
+type = git
+location = https://github.com/LINBIT/openstack-nova.git
+# Replace linstor/stable/2025.1 with the reference matching your OpenStack release.
+reference = linstor/stable/2025.1
 ----
 
 To rebuild the Cinder containers, run:
@@ -171,7 +191,7 @@ REGISTRY=deployment-registry.example.com
 # The image namespace in the registry
 NAMESPACE=kolla
 # The tag to apply to all images. Use the release name for compatibility with kolla-ansible
-TAG=2024.2
+TAG=2025.1
 kolla-build -t source --template-override template-override.j2 cinder --registry $REGISTRY --namespace $NAMESPACE --tag $TAG
 ----
 
@@ -219,10 +239,15 @@ driver directly.
 ./etc/openstack_ansile/user_variables.yml
 ----
 cinder_git_repo: https://github.com/LINBIT/openstack-cinder.git
-cinder_git_install_branch: linstor/stable/2024.2
+cinder_git_install_branch: linstor/stable/2025.1
 
 cinder_user_pip_packages:
   - python-linstor
+
+nova_git_repo: https://github.com/LINBIT/openstack-nova.git
+nova_git_install_branch: linstor/stable/2025.1
+nova_user_pip_packages:
+  - git+https://github.com/LINBIT/openstack-os-brick.git@linstor/stable/2025.1
 
 cinder_backends: <1>
   linstor-drbd:
@@ -254,7 +279,7 @@ $CINDER_PATH/volume/drivers/linstordrv.py
 To update the driver, replace the file with one from the LINBIT repository
 
 ----
-RELEASE=linstor/stable/2024.2
+RELEASE=linstor/stable/2025.1
 curl -fL "https://raw.githubusercontent.com/LINBIT/openstack-cinder/$RELEASE/cinder/volume/drivers/linstordrv.py" > $CINDER_PATH/volume/drivers/linstordrv.py
 ----
 
@@ -363,7 +388,13 @@ Known limitations:
 
 * Not all hosts and hypervisors support using DRBD volumes. This restricts deployment to Linux hosts and `kvm` hypervisors.
 
-* Resizing of attached and in-use volumes does not fully work. While the resize itself is successful, the compute service will not propagate it to the VM until after a restart.
+* Resizing of attached and in-use volumes does work with default nova packages. While the resize itself is successful,
+the compute service will not propagate it to the VM until after a restart.
++
+NOTE: LINBIT provides updated sources for the
+link:https://github.com/LINBIT/openstack-nova[Nova compute service] and
+link:https://github.com/LINBIT/openstack-os-brick[os-brick] dependency. Using the updated source enables resizing
+of attached volumes with the DRBD transport.
 
 * Multi-attach (attaching the same volume on multiple VMs) is not supported.
 
