@@ -2225,13 +2225,14 @@ Before you can add snapshot support within a LINBIT SDS deployment, you need to 
 - You have a `StorageClass`, `PersistentVolumeClaim`, and `Deployment` that uses a storage pool
   that supports snapshots.
 
-- Your cluster has a CSI snapshotter (link:https://github.com/kubernetes-csi/external-snapshotter/[`snapshot-controller`]) deployed. To verify if it is already deployed, you can enter the following command:
+- Your cluster has the necessary CRDs for snapshotting in Kubernetes.
+To verify your cluster has these deployed, you can enter the following command:
 +
 ----
 $ kubectl api-resources --api-group=snapshot.storage.k8s.io -oname
 ----
 +
-Output should be similar to the following if a snapshot controller is already deployed:
+Output should be similar to the following:
 +
 ----
 volumesnapshotclasses.snapshot.storage.k8s.io
@@ -2239,11 +2240,34 @@ volumesnapshotcontents.snapshot.storage.k8s.io
 volumesnapshots.snapshot.storage.k8s.io
 ----
 +
-If output from the command is empty, you can deploy a snapshot controller by entering the following commands:
+If output from the command is empty, you can deploy the necessary CRDs by entering the following command:
 +
 [%autofit]
 ----
 $ kubectl apply -k https://github.com/kubernetes-csi/external-snapshotter//client/config/crd
+----
+
+- Your cluster has a CSI snapshotter (link:https://github.com/kubernetes-csi/external-snapshotter/[`snapshot-controller`]) deployed.
+To verify that a CSI snapshotter is already deployed, enter the following command:
++
+----
+$ kubectl get pods -A | grep snapshot-controller
+----
++
+NOTE: If you are using a Kubernetes flavor other than vanilla, you might need to change the regular expression that you use with the `grep` command, in case the snapshot controller is named differently in your Kubernetes flavor.
++
+Output should be similar to the following:
++
+----
+kube-system    snapshot-controller-[...]                  1/1     Running   7 (22m ago)    7d20h
+kube-system    snapshot-controller-[...]                  1/1     Running   7 (22m ago)    7d20h
+----
++
+Because the `snapshot-controller` is deployed as a replica set, output will show multiple `snapshot-controller` pods.
+If output from the command is empty, you can deploy a snapshot controller by entering the following command:
++
+[%autofit]
+----
 $ kubectl apply -k https://github.com/kubernetes-csi/external-snapshotter//deploy/kubernetes/snapshot-controller
 ----
 
