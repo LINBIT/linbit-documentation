@@ -2,10 +2,11 @@
 lang = en
 
 # `make` reminders:
-#  `make -C <dir>` == change directory to <dir> before `make`-ing
-#  $@ == the file name of the target of the rule
-#  $< == the name of the first prerequisite
-#  $^ == the name of all the prerequisites, with a space between each one
+# `make -j` == run jobs in parallel 
+# `make -C <dir>` == change directory to <dir> before `make`-ing
+# $@ == the file name of the target of the rule
+# $< == the name of the first prerequisite
+# $^ == the name of all the prerequisites, with a space between each one
 
 # /linbit-documentation is the WORKDIR in the Dockerfile
 # so, `./` in the `define` block below == `linbit-documentation`
@@ -35,7 +36,7 @@ README.html-docker: dockerimage
 
 # needed for `make dockerimage` target
 define dockerfile=
-FROM asciidoctor/docker-asciidoctor:1.77
+FROM asciidoctor/docker-asciidoctor:latest
 LABEL maintainers="Roland Kammerer <roland.kammerer@linbit.com>, Michael Troutman <michael.troutman@linbit.com>"
 # po4a and related packages needed for documentation translation commands
 # zip needed for extracting LINBIT fonts package below
@@ -160,7 +161,7 @@ UG8.4-pot-docker: dockerimage
 # create PDF tech guides
 .PHONY: tech-guides-pdf-finalize tech-guides-pdf-finalize-docker
 tech-guides-pdf-finalize:
-	make -C tech-guides pdf-finalize
+	make -j -C tech-guides pdf-finalize
 
 tech-guides-pdf-finalize-docker: dockerimage
 	$(run-in-docker)
