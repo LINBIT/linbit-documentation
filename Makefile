@@ -36,7 +36,7 @@ README.html-docker: dockerimage
 
 # needed for `make dockerimage` target
 define dockerfile=
-FROM asciidoctor/docker-asciidoctor:latest
+FROM asciidoctor/docker-asciidoctor:1.92
 LABEL maintainers="Roland Kammerer <roland.kammerer@linbit.com>, Michael Troutman <michael.troutman@linbit.com>"
 # po4a and related packages needed for documentation translation commands
 # zip needed for extracting LINBIT fonts package below
