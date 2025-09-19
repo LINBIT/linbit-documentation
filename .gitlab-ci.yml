@@ -22,14 +22,24 @@ lint:
     name: $LINBIT_DOCKER_REGISTRY/lb-vale:latest
     entrypoint: [""]
   rules:
-    - if: $CI_MERGE_REQUEST_ID
-    - if: $CI_COMMIT_BRANCH == 'master'
+    - if: $CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'master'
   script:
-    - /bin/vale --config=/vale_app/.vale.ini --no-exit --output=JSON **/en/*.adoc | tee vale.json
-    - /bin/vale2climate vale.json > vale-climate.json
+    - apk add --no-cache git
+    - git fetch
+    # use `tr` to sanitize variable in case there are multiple `.adoc` files to lint
+    - ADOCFILES="$(git diff-tree --no-commit-id --name-only -r remotes/origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME} ${CI_COMMIT_SHA} '*.adoc' | tr '\n' ' ')"
+    - |
+      if [ -z "$ADOCFILES" ]; then
+        echo "No .adoc files in this MR"
+        echo -e '[\n  {\n    "description": "Merge request has no .adoc files",\n    "check_name": "ADOCFILES-variable-is-empty",\n    "fingerprint": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",\n    "severity": "info",\n    "location": {\n      "path": "na",\n      "lines": {\n        "begin": 0\n      }\n    }\n  }\n]' > vale.json
+        cp vale.json vale-climate.json
+      else
+        /bin/vale $ADOCFILES --config=/vale_app/.vale.ini --no-exit --output=JSON | tee vale.json
+        /bin/vale2climate vale.json >> vale-climate.json
+      fi
   artifacts:
     paths:
-    - vale.json
+      - vale.json
     when: always
     reports:
       codequality:
