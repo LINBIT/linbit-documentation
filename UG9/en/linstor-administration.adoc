@@ -1315,6 +1315,68 @@ WARNING: The `+1` value is not valid for the `resource-group create --place-coun
 is because the command does not deploy resources, it only creates templates from which to deploy
 them later.
 
+[[s-linstor-creating-a-filesystem-on-a-storage-volume]]
+=== Creating a file system on a storage volume
+
+For convenience, rather than deploying storage resources and volumes and then using `mkfs` commands on a LINSTOR satellite node to create file systems, you can have LINSTOR create file systems automatically.
+You do this by using the `linstor resource-group set-property` subcommand, setting the `Filesystem/Type` key to either `ext4` or `xfs`, and then creating resources from the resource group.
+By setting additional `Filesystem` properties, you can also specify the file system owner or group, or pass additional parameters specific to the file system to the `mkfs` command that LINSTOR uses behind-the-scenes.
+
+For example, given a LINSTOR resource group named `nfs-rg`, the following command sequence creates an XFS file system on a LINSTOR storage volume for a resource named `nfs-res`:
+
+----
+linstor resource-group set-property nfs-rg FileSystem/Type xfs          <1>
+linstor resource-group set-property nfs-rg FileSystem/User nobody       <2>
+linstor resource-group set-property nfs-rg FileSystem/Group nobody      <2>
+linstor resource-group spawn-resources nfs-rg nfs-res 100G
+----
+<1> Can be either `ext4` or `xfs`.
+<2> Defaults to `root` if property is not set.
+
+Verify the resource group properties by entering a `resource-group list-property` command, for example:
+
+----
+linstor resource-group list-properties nfs-rg
+----
+
+Output will show the set properties:
+
+----
+╭─────────────────────────────────────╮
+┊ Key                   ┊ Value       ┊
+╞═════════════════════════════════════╡
+┊ FileSystem/Group      ┊ nobody      ┊
+┊ FileSystem/Type       ┊ xfs         ┊
+┊ FileSystem/User       ┊ nobody      ┊
+╰─────────────────────────────────────╯
+----
+
+You can use a `blkid` command on a satellite node to verify that LINSTOR created a file system on the storage volume:
+
+----
+[...]
+/dev/drbd1004: UUID="[...]" TYPE="xfs"
+[...]
+----
+
+After mounting the DRBD device to a directory on a satellite node, you can use an `ls -l` command to show ownership information, for example:
+
+----
+drwxrwxrwx. 2 nobody nobody 6 Sep 26 18:56 data
+----
+
+[[s-linstor-creating-a-filesystem-on-a-storage-volume-additional-parameters]]
+==== Specifying additional parameters when creating a file system
+
+Besides the `FileSystem/Type`, `FileSystem/User`, and `FileSystem/Group` keys, you can use the `FileSystem/MkfsParams` to specify additional parameters to pass to the `mkfs` command when LINSTOR creates a file system on a storage volume.
+For example, you can add a label to a file system that LINSTOR will create.
+
+----
+linstor resource-group set-property nfs-rg FileSystem/MkfsParams '-L nfs-data'
+----
+
+Refer to the `mkfs.ext4` and `mkfs.xfs` manual pages for other parameters you might specify.
+
 [[s-linstor-deleting-resource-tasks]]
 === Deleting Resources, Resource Definitions, and Resource Groups
 
