@@ -131,11 +131,15 @@ The final step is to provide a configuration for Proxmox itself. You can do this
 entry in the `/etc/pve/storage.cfg` file, with content similar to the following:
 
 ----
+
 drbd: drbdstorage
    content images,rootdir
    controller 10.11.12.13
    resourcegroup defaultpool
+
 ----
+
+IMPORTANT: Storage entries within the Proxmox storage configuration file *must* be separated by an empty new line.
 
 The `drbd` entry is fixed. You are not allowed to modify it because it tells Proxmox to use DRBD
 as the storage back end. You can change the value for the `drbd` entry, here `drbdstorage`, as
@@ -237,10 +241,12 @@ Proxmox by adding a comma-separated list of controller node IP addresses in the 
 section of the plugin, for example:
 
 ----
+
 drbd: drbdstorage
    content images,rootdir
    controller 10.11.12.13,10.11.12.14,10.11.12.15
    resourcegroup defaultpool
+
 ----
 
 An alternative is to configure a virtual IP (VIP) address for the LINSTOR controller by using an
@@ -343,12 +349,21 @@ follows. The following example assumes that the `storagepool` was set to `mypool
 ----
 # linstor resource-group create --storage-pool=mypool --place-count=3 drbdMypoolThree
 # linstor volume-group create drbdMypoolThree
-# vi /etc/pve/storage.cfg
+----
+
+Next, edit the Proxmox storage configuration file, `/etc/pve/storage.cfg`.
+Add an entry for LINSTOR managed (and DRBD replicated) storage, changing configuration values to match your environment.
+
+----
+
 drbd: drbdstorage
    content images,rootdir
    controller 10.11.12.13
    resourcegroup drbdMypoolThree
+
 ----
+
+IMPORTANT: Storage entries within the Proxmox storage configuration file *must* be separated by empty new lines.
 
 [[s-proxmox-ls-upgrades-plug-5-6]]
 ==== Upgrading Plugin from 5.x to 6.x
