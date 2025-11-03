@@ -2,17 +2,25 @@
 == DRBD Reactor
 
 indexterm2:[DRBD Reactor] is a daemon that monitors DRBD events and reacts to them.
+DRBD Reactor uses systemd behind the scenes to react to DRBD events.
+DRBD Reactor can generate and use systemd units to start or stop services on nodes in a cluster, for example, to mount a file system, to start a database service, to run Open Cluster Framework (OCF) resource agents, and others.
+
 DRBD Reactor has various potential uses, from monitoring DRBD resources and metrics, to creating failover clusters, to providing highly available services that you would usually need to configure by using a complex cluster resource manager (CRM).
 
 [[s-drdb-reactor-installing]]
 === Installing DRBD Reactor
 
-You can install DRBD Reactor from source files found within https://github.com/LINBIT/drbd-reactor[the DRBD Reactor GitHub repository].
+You can install DRBD Reactor from source files found within https://github.com/LINBIT/drbd-reactor[the DRBD Reactor source code repository].
 See the instructions there for details and any prerequisites.
 
 ifndef::drbd-only[]
-Alternatively, LINBIT customers can install DRBD Reactor from prebuilt packages, available from the LINBIT `drbd-9` packages repository.
+Alternatively, LINBIT customers can install DRBD Reactor from officially supported prebuilt packages, available from the LINBIT `drbd-9` packages repository.
 endif::drbd-only[]
+
+DRBD Reactor packages are also available in link:https://launchpad.net/~linbit/+archive/ubuntu/linbit-drbd9-stack[the LINBIT PPA] for the latest two LTS Ubuntu releases.
+
+WARNING: Although the LINBIT PPA can be a great option for a homelab, testing, or other non-production use, LINBIT does not offer any guarantees, support, or SLAs for the packages in this public repository.
+For production or enterprise deployments, using the official LINBIT customer repositories is recommended.
 
 After installing DRBD Reactor, you can verify the version number by using the `drbd-reactor --version` command.
 
@@ -70,7 +78,12 @@ This could be a series of services, such as:
 
 If a resource loses quorum, DRBD Reactor stops these services so that another node that still has quorum (or the node that lost quorum when it has quorum again) can start the services.
 
-The promoter plugin also supports Open Cluster Framework (OCF) resource agents and failure actions such as rebooting a node if a resource fails to demote, so that the resource can promote on another node.
+Besides systemd services such as these examples, the promoter plugin supports link:https://github.com/ClusterLabs/resource-agents[OCF resource agents].
+For example, you can configure the promoter plugin to start an IPaddr2 resource agent which can create a virtual IP address on a node.
+This ensures that you can reach services through a consistent IP address, no matter which node in your cluster is running them.
+The promoter plugin also supports failure actions such as rebooting a node if a resource fails to demote, so that the resource can promote on another node.
+
+The `drbd-reactor.promoter` manual page describes in detail the mechanisms and logic that the promoter plugin uses behind the scenes to start or block services from running on nodes.
 
 [[s-drdb-reactor-umh-plugin]]
 ==== The user mode helper (UMH) plugin
@@ -100,7 +113,7 @@ An example of such a script would be a `before-resync-target` activated script.
 
 This plugin provides a https://prometheus.io/[Prometheus] compatible endpoint that exposes various DRBD metrics, including out-of-sync bytes, resource roles (for example, _Primary_), and connection states (for example, _Connected_).
 This information can then be used in every monitoring solution that supports Prometheus endpoints.
-The full set of metrics and an example Grafana dashboard are available at the https://github.com/LINBIT/drbd-reactor/blob/master/doc/prometheus.md[DRBD Reactor GitHub repository].
+The full set of metrics and an example Grafana dashboard are available at the https://github.com/LINBIT/drbd-reactor/blob/master/doc/prometheus.md[DRBD Reactor source code repository].
 
 [[s-drdb-reactor-agentx-plugin]]
 ==== The AgentX plugin for SNMP monitoring
@@ -114,12 +127,11 @@ The DRBD metrics that this plugin exposes to the SNMP daemon are shown in https:
 === Configuring DRBD Reactor
 
 Before you can run DRBD Reactor, you must configure it.
-Global configurations are made within a main TOML configuration file, which should be created here: `/etc/drbd-reactor.toml`.
+Global configurations are made within a main TOML configuration file, `/etc/drbd-reactor.toml`.
 The file has to be a valid TOML (https://toml.io) file.
-Plugin configurations should be made within snippet files that can be placed into the default DRBD Reactor snippets directory, `/etc/drbd-reactor.d`, or into another directory if specified in the main configuration file.
-An https://github.com/LINBIT/drbd-reactor/blob/master/example/drbd-reactor.toml[example configuration file] can be found in the `example` directory of the DRBD Reactor GitHub repository.
+Plugin configurations should be made within TOML snippet files that can be placed into the default DRBD Reactor snippets directory, `/etc/drbd-reactor.d`, or into another directory if specified in the main configuration file.
 
-For documentation purposes only, the example configuration file mentioned earlier contains example plugin configurations.
+For documentation purposes only, the example configuration file also shows example plugin configurations.
 However, for deployment, you should always use snippet files to create plugin configurations.
 
 [[s-drbd-reactor-core-configuring]]
@@ -137,11 +149,7 @@ See the `drbd-reactor.toml` manual page for the syntax of these settings.
 ==== Configuring DRBD Reactor plugins
 
 You configure DRBD Reactor plugins by editing TOML formatted snippet files.
-Every plugin can specify an ID (`id`) in its configuration section.
 On a DRBD Reactor daemon reload, started plugins that are still present in the new configuration keep running.
-Plugins without an ID get stopped and restarted if still present in the new configuration.
-
-IMPORTANT: For plugins without an ID, every DRBD Reactor service reload is a restart.
 
 [[s-drbd-reactor-promoter-plugin-configuring]]
 ==== Configuring the Promoter plugin
@@ -159,6 +167,7 @@ start = ["path-to-my-file-system-mount.mount", "foo.service"] <4>
 on-drbd-demote-failure = "reboot" <5>
 secondary-force = true <6>
 preferred-nodes = ["nodeA", "nodeB"] <7>
+preferred-nodes-policy = always <8>
 ----
 
 <1> "my_drbd_resource" specifies the name of the DRBD resource that DRBD Reactor and the promoter plugin should watch and manage.
@@ -172,7 +181,7 @@ In this example, the promoter plugin would start a file system mount unit and a 
 
 <5> Specifies the action to take if a DRBD resource fails to demote, for example, after a loss of quorum event.
 In such a case, an action should be taken on the node that fails to demote that will trigger some "self-fencing" of the node and cause another node to promote.
-Actions can be one of: `reboot`, `reboot-force`, `reboot-immediate`, `poweroff`, `poweroff-force`, `poweroff-immediate`, `exit`, `exit-force`.
+Actions can be one of: `none`, `reboot`, `reboot-force`, `reboot-immediate`, `poweroff`, `poweroff-force`, `poweroff-immediate`, `exit`, `exit-force`.
 
 <6> If a node loses quorum, DRBD Reactor will try to demote the node to a secondary role.
 If the resource was configured to suspend I/O operations upon loss of quorum, this setting specifies whether or not to demote the node to a secondary role using the `drbdadm` force secondary feature.
@@ -181,6 +190,12 @@ See the <<s-force-secondary>> section of the _DRBD User Guide_ for more details.
 It is specified here for illustrative purposes.
 
 <7> If set, resources are started on the preferred nodes, in the specified order, if possible.
+
+<8> Since DRBD Reactor v1.9.0, you can set a preferred nodes policy of `always` (the default if unspecified) or `start-only`.
+By setting a `start-only` preferred nodes policy, promoter plugin configured services will not fail back to a more preferred node if they are already running on a lower priority node.
+Avoiding "automatic switchback" behavior might be useful if you prefer minimizing service disruption to always trying to run services on particular nodes.
+
+See the `drbd-reactor.promoter` manual page for more background and information about the promoter plugin configuration settings.
 
 [[s-drbd-reactor-promoter-multi-line-start-list-service-string]]
 ===== Specifying a promoter start list service string spanning multiple lines
@@ -334,7 +349,7 @@ NOTE: The example configuration earlier uses the specified operator "NotEquals" 
 If you do not specify an operator, then the default operator is "Equals", as in the `new.role = "Primary"` filter in the example configuration.
 
 There are more rules, fields, filter types, and variables that you can specify in your UMH plugin configurations.
-See the https://github.com/LINBIT/drbd-reactor/blob/master/doc/umh.md[UMH documentation page] in the DRBD Reactor GitHub repository for more details, explanations, examples, and caveats.
+See the https://github.com/LINBIT/drbd-reactor/blob/master/doc/umh.md[UMH documentation page] in the DRBD Reactor source code repository for more details, explanations, examples, and caveats.
 
 [[s-drbd-reactor-prometheus-plugin-configuring]]
 ==== Configuring the Prometheus plugin
@@ -512,10 +527,73 @@ With the `drbd-reactorctl` utility, you can:
 - Restart specified plugins (or the DRBD Reactor daemon, if no plugins specified) by using the   `drbd-reactorctl restart <plugin_file>` command.
 Remove an existing plugin and restart the daemon, by using the `drbd-reactorctl rm <plugin_file>` command.
 
+- Remove a specified DRBD Reactor plugin and reload the DRBD Reactor daemon, by using the `drbd-reactorctl rm` command.
+
 - List the activated plugins, or optionally list disabled plugins, by using the `drbd-reactorctl ls [--disabled]` command.
+
+- Start a subset of services in a promoter plugin start list, by using the `drbd-reactorctl start-until` command.
 
 For greater control over some of these actions, there are additional options available.
 The `drbd-reactorctl` manual page has more details and syntax information.
+
+[[s-drbd-reactorctl-status]]
+==== Showing DRBD Reactor status
+
+By using the `drbd-reactorctl status` command, you can show the status of DRBD Reactor plugins that are enabled on the node.
+You can specify the name of a plugin snippet file (with or without the `.toml` file extension) to show only its status.
+You can also specify more than one plugin snippet file to show the status of each.
+If you do not specify a plugin snippet file name, the command shows the status of all enabled plugins on a node.
+
+The following example output from a `drbd-reactorctl status` command shows the status of two enabled plugins, a promoter and a Prometheus plugin, on a node:
+
+----
+/etc/drbd-reactor.d/nfs.toml:
+Promoter: Currently active on this node
+● drbd-services@nfs.target
+● ├─ drbd-promote@nfs.service
+● ├─ ocf.rs@portblock_nfs.service
+● ├─ ocf.rs@fs_cluster_private_nfs.service
+● ├─ ocf.rs@fs_1_nfs.service
+● ├─ ocf.rs@fs_2_nfs.service
+● ├─ ocf.rs@nfsserver_nfs.service
+● ├─ ocf.rs@export_drbd_nfs_vol1_nfs.service
+● ├─ ocf.rs@export_drbd_nfs_vol2_nfs.service
+● ├─ ocf.rs@virtual_ip_nfs.service
+● └─ ocf.rs@portunblock_nfs.service
+/etc/drbd-reactor.d/prom.toml:
+Prometheus: listening on :9942
+----
+
+In this output, a green filled circle shows that a promoter plugin configured service unit is running on the node.
+An empty circle shows that a service is configured but not running on the node, as shown in the following example output from running the same `drbd-reactorctl status` command on another node.
+
+----
+/etc/drbd-reactor.d/nfs.toml:
+Promoter: Currently active on node 'node-0'
+○ drbd-services@nfs.target
+○ ├─ drbd-promote@nfs.service
+○ ├─ ocf.rs@portblock_nfs.service
+○ ├─ ocf.rs@fs_cluster_private_nfs.service
+○ ├─ ocf.rs@fs_1_nfs.service
+○ ├─ ocf.rs@fs_2_nfs.service
+○ ├─ ocf.rs@nfsserver_nfs.service
+○ ├─ ocf.rs@export_drbd_nfs_vol1_nfs.service
+○ ├─ ocf.rs@export_drbd_nfs_vol2_nfs.service
+○ ├─ ocf.rs@virtual_ip_nfs.service
+○ └─ ocf.rs@portunblock_nfs.service
+/etc/drbd-reactor.d/prom.toml:
+Prometheus: listening on :9942
+----
+
+The `drbd-reactorctl status` indicators for a promoter plugin service unit state are:
+
+- Active: a bold green filled circle (●)
+- Reloading: a bold green refresh arrow (↻)
+- Inactive: a plain circle (○)
+- Failed: a bold red cross (×)
+- Activating: a bold filled circle (●)
+- Deactivating: a bold filled circle (●)
+- Maintenance: a plain circle (○)
 
 [[s-alternative-to-pacemaker-drbd-reactorctl-commands]]
 ==== DRBD Reactor client command alternatives to Pacemaker CRM shell commands
@@ -561,7 +639,7 @@ Prerequisites:
 - A DRBD configured resource named _ha-mount_ that is backed by a DRBD device on all nodes.
 The configuration examples that follow use `/dev/drbd1000`.
 
-- The Cluster Labs OCF Filesystem resource agent, available through https://github.com/ClusterLabs/resource-agents/blob/main/heartbeat/Filesystem[the Cluster Lab `resource-agents` GitHub repository], should be present in the `/usr/lib/ocf/resource.d/heartbeat` directory
+- The Cluster Labs OCF Filesystem resource agent, available through https://github.com/ClusterLabs/resource-agents/blob/main/heartbeat/Filesystem[the Cluster Lab `resource-agents` source code repository], should be present in the `/usr/lib/ocf/resource.d/heartbeat` directory
 +
 ifndef::de-brand[]
 NOTE: If you have a LINBIT customer or evaluation account, you can install the `resource-agents` package available in the LINBIT `drbd-9` package repository to install a suite of open source resource agent scripts, including the OCF Filesystem resource agent.
@@ -671,7 +749,7 @@ Instructions there describe how to use DRBD Reactor to manage the LINSTOR contro
 === Configuring the DRBD Reactor Prometheus plugin
 
 The DRBD Reactor Prometheus monitoring plugin acts as a Prometheus compatible endpoint for DRBD resources and exposes various DRBD metrics.
-You can find a list of the available metrics in https://github.com/LINBIT/drbd-reactor/blob/master/doc/prometheus.md[the documentation folder] in the project's GitHub repository.
+You can find a list of the available metrics in https://github.com/LINBIT/drbd-reactor/blob/master/doc/prometheus.md[the documentation folder] in the project's source code repository.
 
 Prerequisites:
 
