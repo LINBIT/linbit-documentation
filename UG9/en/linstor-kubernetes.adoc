@@ -2629,6 +2629,68 @@ additional replicas.
 
 <3> Our worker nodes need to be allowed to connect to the external storage host.
 
+[[s-kubernetes-readwritemany-volume-access]]
+=== ReadWriteMany volume access
+
+Since LINSTOR Operator version 2.10.0, you can create ReadWriteMany (RWX) PVCs directly by using the LINSTOR CSI driver. This feature enables multiple pods to mount and write to the same LINSTOR-backed persistent volume simultaneously.
+
+Under the hood, the RWX volume access mode uses NFS and DRBD Reactor.
+Because NFS is used, I/O performance will be less than it would be otherwise.
+
+IMPORTANT: Because the LINSTOR RWX volume access mode uses DRBD Reactor, using a LINSTOR cluster with three or more nodes to qualify for DRBD quorum is recommended.
+DRBD Reactor uses the DRBD quorum feature for managing highly available services.
+
+[[s-kubernetes-readwritemany-volume-access-creating-pvc]]
+==== Creating a PVC with RWX access
+
+To create an RWX PVC from a LINSTOR-backed Kubernetes storage class, specify the storage class name and the `ReadWriteMany` access mode in the PVC object `spec`, for example:
+
+----
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: demo-rwx-pvc-0
+spec:
+  storageClassName: linstor-csi-lvm-thin-r3
+  accessModes:
+  - ReadWriteMany
+[...]
+----
+
+NOTE: The `storageClassName` specified in this YAML configuration should be one that specifies an `autoPlace` parameter value greater than or equal to 2, in a LINSTOR cluster with three or more nodes.
+
+[[s-kubernetes-readwritemany-volume-access-considerations]]
+==== Considerations for RWX volumes in Kubernetes
+
+Besides the already mentioned recommendations to use a LINSTOR cluster that qualifies for DRBD quorum and a storage class with a minimum auto placement value of 2, there are other considerations for using RWX volumes in Kubernetes.
+These considerations relate to <<s-kubernetes-sc-parameters,LINSTOR storage class parameters>>.
+
+You can specify `fsOpts` (`mkfs`) options with a LINSTOR storage class that you intend to use with RWX volumes.
+`fsOpts` options that you might specify are applied to the file system that the LINSTOR Operator will export as an NFS share.
+You specify the file system type by using the the `fstype` parameter within the storage class configuration.
+
+IMPORTANT: Do not use `mountOpts` with the LINSTOR storage class you provision an RWX PVC from.
+This is because the LINSTOR Operator will mount the NFS export on each Kubelet that needs access using ideal (opinionated) mount options that should not change.
+
+[[s-kubernetes-readwritemany-volume-access-without-drbd-quorum]]
+===== Using RWX volume access in clusters of fewer than three nodes
+
+While using a LINSTOR cluster that qualifies for using the DRBD quorum feature is strongly recommended, it is possible to deploy RWX volume access in clusters of fewer than three nodes.
+In this case, you need to manually set the DRBD quorum option value to `majority` in the backing storage class configuration.
+
+----
+[...]
+parameters:
+  DrbdOptions/Resource/quorum: majority
+[...]
+----
+
+Setting the parameter value to `majority` in a 2-node cluster means that both nodes will need to be connected over the network for the HA RWX volume to be up and running in the cluster.
+If you do not set this, the value defaults to `off` in clusters with fewer than three nodes.
+If the setting was its default value of `off` in a 2-node cluster, for example, either node could be promoted at any time which would lead to split-brain scenarios, manual interventions, and downtime.
+
+CAUTION: Although you can configure RWX volumes in clusters of fewer than three nodes, using LINSTOR in a cluster that qualifies for DRBD quorum (3-node minimum) is always preferred and recommended.
+
 [[s-kubernetes-affinity-controller]]
 === LINSTOR affinity controller
 
