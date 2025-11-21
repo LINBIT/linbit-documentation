@@ -1,4 +1,3 @@
-[[s-vsan-user-guide]]
 :toc:
 :icons: font
 :icon-set: fa
@@ -12,12 +11,12 @@
 == Introduction
 
 LINBIT(R) VSAN is a software-defined storage solution for hyperconverged infrastructure, based on the LINBIT-developed link:https://github.com/LINBIT/drbd[DRBD(R)] and link:https://github.com/LINBIT/linstor-server[LINSTOR(R)] open source software.
-It uses AlmaLinux 8 as a foundation and uses software by LINBIT to offer highly available storage to hypervisors through a convenient iSCSI target.
+It uses AlmaLinux as a foundation and uses software by LINBIT to offer highly available storage to hypervisors through a convenient iSCSI target.
 
 It is built primarily with VMware ESXi as a target platform in mind, but it is fully independent of the hypervisor software, so it should also work on any other virtualization platform.
 
-NOTE: Not all best practices recommended in LINBIT how-to guides are implemented yet.
-For example, it is not yet possible to configure multiple links to separate application and replication traffic.
+NOTE: Not all best practices recommended in LINBIT how-to guides are implemented in LINBIT VSAN.
+For example, it is not yet possible to configure multiple network links for separating application and replication traffic.
 
 [[s-architecture]]
 == Architecture
@@ -27,22 +26,21 @@ Logically, LINBIT VSAN fits in between the hypervisor and the virtual machines i
 image::images/vsan-architecture.svg[1]
 
 In practice, VSAN runs one of its instances as a virtual machine on each hypervisor in the cluster.
-The hypervisor passes its local storage through to VSAN, which then replicates the storage's data across the cluster.
+The hypervisor passes its local storage through to VSAN, which then replicates the data on the storage across the cluster.
 One of the VSAN virtual machines exports an iSCSI target through a static IP.
-This iSCSI target can be fed back to the hypervisor to offer a highly available datastore.
-The resulting datastore can be used to store virtual machines and disk images on solid, redundant storage.
+You can feed this iSCSI target back to the hypervisor to offer a highly available datastore.
+Then, you can use this datastore to store virtual machines and disk images on solid, redundant storage.
 
 [[s-prerequisites]]
 == Prerequisites
 
 Before you can start using LINBIT VSAN, you need a few things first:
 
-- LINBIT customer credentials, which are also used to log in to the link:https://my.linbit.com/[LINBIT Customer Portal].
+- LINBIT customer credentials, which are also used to log in to the link:https://my.linbit.com/[LINBIT Customer Portal]
 You can get these by link:https://www.linbit.com/request-linstor-vsan-download/[requesting an evaluation].
-- A VSAN installation medium.
-You will receive a download link upon requesting an evaluation.
-- A virtualization platform, such as VMware ESXi.
-- Unrestricted internet access for all VSAN virtual machines.footnote:[Internet access is only required during the initial setup, not for continued operation.]
+- LINBIT VSAN installation medium that you will receive through a download link after requesting an evaluation
+- A virtualization platform, such as VMware ESXi
+- Unrestricted Internet access for all VSAN virtual machinesfootnote:[Internet access is only required during the initial setup, not for continued operation.]
 
 [[s-node-count]]
 === Number of nodes
@@ -50,48 +48,20 @@ You will receive a download link upon requesting an evaluation.
 Because VSAN makes use of the DRBD quorum mechanism, a VSAN cluster needs to consist of at least three member nodes.
 
 The usual limitations and caveats of systems using quorum apply, for example, an odd number of nodes is greatly preferred over an even one.
-Refer to the https://www.linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-feature-quorum["Quorum" section of the _DRBD 9 User Guide_] for more information.
-
-[[s-installation]]
-== Operating system installation
-
-LINBIT currently distributes VSAN in the following formats:
-
-* As an *OVA image*, for environments based on a *VMware hypervisor*.
-* As an *ISO image*, for solutions powered by *any other hypervisor*.
-
-[[s-installation-ova]]
-=== Installing by using OVA file
-
-This is the easiest method, geared towards users of a *VMware hypervisor*.
-
-Take the following steps to set up your LINBIT VSAN cluster:
-
-1. Import the OVA image into your VMware cluster. Make sure you create exactly one VSAN virtual machine on each hypervisor.
-2. Pass through the local storage devices that should be used by VSAN for data replication.
-+
-TIP: Make sure the storage devices you pass through remain completely empty. For example, do not create any partitions or LVM volumes.
-3. Start all VSAN virtual machines. Because the image already contains a ready-made operating system, you are done. Next, start <<p-initialization,the VSAN initialization process>> by navigating to the IP of one of your virtual machines using your browser.
-
-TIP: By default, the OVA image configures its network via DHCP.
-If you need more control (for example, a static IP or multiple addresses), you need to log in to the VSAN virtual machine with the default credentials, and configure it directly using the stock operating system tools.
-
-IMPORTANT: When installing the operating system via the OVA image, a default password is set so that the machine can be administered over SSH.
-*The default password for the `root` user is `linbit`*. Upon first login to a VSAN virtual machine, the user is prompted to change the default password.
-It is *highly recommended* to log in to the machine over SSH and change the password immediately after installation.
+Refer to the https://www.linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-feature-quorum["Quorum" section in the _DRBD 9 User Guide_] for more information.
 
 [[s-installation-iso]]
-=== Installing by using ISO file
+=== Installing LINBIT VSAN by using an ISO file
 
-This method is appropriate as a fall-back option for all *non-VMware hypervisors* that do not support importing OVA files.
-Of course, it can also be used on VMware hypervisors if you need more flexibility in the operating system setup process.
+LINBIT distributes LINBIT VSAN as an ISO image.
+The following instructions will take you through the steps of installing LINBIT VSAN from an ISO image file on your hypervisors.
 
-TIP: It is also possible to install LINBIT VSAN *directly to physical machines*, eliminating the need for any hypervisor software to be present at all.
-Because LINBIT VSAN is based on the AlmaLinux operating system, their guidelines for creating a physical installation medium apply.
+TIP: Alternatively, you can install LINBIT VSAN *directly to physical machines*, eliminating the need for any hypervisor software.
+Because LINBIT VSAN is based on the AlmaLinux operating system, AlmaLinux guidelines for creating a physical installation medium apply.
 For a guide on how to write the LINBIT VSAN image to a physical medium, refer to the link:https://wiki.almalinux.org/LiveMedia.html#how-to-download-and-write-images[AlmaLinux Wiki page on the subject].
-Simply use the LINBIT VSAN appliance image in place of the AlmaLinux image.
+When following the AlmaLinux Wiki instructions, simply use the LINBIT VSAN appliance image in place of the AlmaLinux image.
 
-Take the following steps to set up your LINBIT VSAN cluster:
+Take the following steps to install your LINBIT VSAN cluster:
 
 1. Create one virtual machine for LINBIT VSAN on each hypervisor node.
 2. Attach one virtual or local disk for the operating system itself.
@@ -99,14 +69,14 @@ Take the following steps to set up your LINBIT VSAN cluster:
 +
 TIP: Make sure the storage devices you pass through remain completely empty. For example, do not create any partitions or LVM volumes.
 4. Assign at least one network adapter to each of the virtual machines. VSAN acquires an IP address via DHCP.
-5. Start the virtual machines and complete the operating system setup on each machine. This is similar to a regular AlmaLinux 8 installation process.
+5. Start the virtual machines and complete the operating system setup on each machine. This is similar to a regular AlmaLinux installation process.
 +
 WARNING: Do not use a Kickstart file to automate the installation process.
-The VSAN ISO already contains a Kickstart file to customize certain aspects of the AlmaLinux 8 installer; providing an additional Kickstart file will cause conflicts.
+The VSAN ISO already has a Kickstart file to customize certain aspects of the AlmaLinux installer. Using an additional Kickstart file will cause conflicts.
 +
-TIP: Make sure you take note of the special requirements regarding <<s-iso-networking,Networking>> and <<s-iso-time,Time>> during the setup process.
-6. You are done.
-Next, start <<p-initialization,the VSAN initialization process>> by navigating to the IP of one of your virtual machines using your browser.
+TIP: Take note of the special requirements regarding <<s-iso-networking,Networking>> and <<s-iso-time,Time>> during the setup process.
+
+After finishing these installation steps, you can start <<p-initialization,the VSAN initialization process>> by going to the IP address of one of your virtual machines in a web browser.
 
 [[s-iso-networking]]
 ==== Networking
@@ -124,25 +94,25 @@ image::images/vsan-connect-automatically.png[screen grab showing editing a netwo
 
 In a cluster of multiple servers, it is important to ensure that the clocks of the individual nodes are in sync with each other.
 You can do this by using a NTP (Network Time Protocol) synchronizing service.
-Verify that NTP is enabled in the AlmaLinux setup and that you synchronize the time between all nodes, after the installation is done.
+Verify that an NTP service is enabled in the AlmaLinux setup and that you synchronize the time between all nodes, after the installation finishes.
 
 [[p-initialization]]
 == Initialization
 
-After the operating system is installed and all VSAN virtual machines are booted, you can proceed to set up your VSAN cluster.
+After you have installed the operating system and all VSAN virtual machines have booted, you can set up your VSAN cluster.
 
-[TIP]
+[IMPORTANT]
 ====
-To ensure the setup experience is as smooth as possible, make sure you meet the following requirements before starting the initialization process:
+To ensure the setup goes smoothly, make sure you meet the following requirements before starting the initialization process:
 
 * You have your LINBIT customer credentials at hand.
 * All VSAN virtual machines can access the internet *without restrictions*.
-* Check the https://my.linbit.com/[LINBIT Customer Portal] and verify that you are authorized to register the correct number of nodes.
+* Go to the https://my.linbit.com/[LINBIT Customer Portal] and verify that you are authorized to register the correct number of nodes.
 ====
 
-To get started, go to the IP address of one VSAN virtual machine with your web browser.
+To get started, go to the IP address of a VSAN virtual machine in a web browser.
 
-If you are not sure what the IP address of your virtual machine is, refer to the helpful message VSAN prints to the console and when logging in over SSH:
+If you are not sure what the IP address of your virtual machine is, refer to the message VSAN displays in the console when logging in over SSH:
 
 ----
 Welcome to LINBIT VSAN version 0.9.12
@@ -151,14 +121,14 @@ Please visit the following URL in your
 browser to start the setup process:
 
 https://192.168.122.190:443
-
-Last login: Mon May 10 14:26:07 2021 from 192.168.122.1
-[root@uninitialized-2704efc50652198ea06592f8 ~]#
+[...]
 ----
+
+If you need to recall the message after logging in, you can enter a `cat /etc/motd` command.
 
 VSAN gives you a one-stop Web UI wizard to configure the storage cluster. Follow the instructions in the wizard to complete the installation.
 
-Step-by-step screenshots can be found on the link:https://linbit.com/linbit-vsan/[the LINBIT website], and there is a link:https://www.youtube.com/watch?v=m8G7l3CHugg[walk-through video].
+You can find step-by-step screenshots on the link:https://linbit.com/linbit-vsan/[the LINBIT website], and there is a link:https://www.youtube.com/watch?v=m8G7l3CHugg[walk-through video].
 
 TIP: For general help with the terms and concepts used during the setup, refer to the https://www.linbit.com/drbd-user-guide/linstor-guide-1_0-en/[LINSTOR User Guide].
 
@@ -167,6 +137,6 @@ TIP: For general help with the terms and concepts used during the setup, refer t
 
 The VSAN Web UI intentionally offers relatively minimal administration and monitoring capabilities.
 
-One of design philosophies behind VSAN is that, after the setup is completed, it should be as close to a regular Linux system as possible.
+One of design philosophies behind VSAN is that, after the setup finishes, it should be as close to a regular Linux system as possible.
 
 So, if you are familiar with the technologies under the hood, you are free to directly use the underlying operating system and treat it as a standard AlmaLinux-based LINSTOR cluster.
