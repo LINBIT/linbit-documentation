@@ -139,125 +139,117 @@ image::images/metadata-size-approx.svg[]
 [[s-gi]]
 === Generation identifiers
 
-indexterm:[generation identifiers]DRBD uses _generation identifiers_
-(GIs) to identify "generations" of replicated data.
+indexterm:[generation identifiers]DRBD generation identifiers (GIs) are information within DRBD resource metadata that identify "generations" of replicated data, so called "data generations".
+GIs might be used, for example, to determine that resource data on one node is older than on another node.
 
-This is DRBD's internal mechanism used for
+Beyond this basic use, DRBD also uses GIs internally for
 
-* determining whether the two nodes are in fact members of the same
-  cluster (as opposed to two nodes that were connected accidentally),
-
-* determining the direction of background re-synchronization (if
-  necessary),
-
-* determining whether full re-synchronization is necessary or whether
-  partial re-synchronization is sufficient,
-
-* indexterm:[split brain]identifying split brain.
+* Determining whether nodes are members of the same
+  cluster (as opposed to nodes that were connected accidentally)
+* Determining whether full re-synchronization is necessary or whether
+  partial re-synchronization is sufficient
+* Determining the direction of background re-synchronization (if
+  necessary)
+* indexterm:[split brain]Identifying a split brain situation
 
 [[s-data-generations]]
 ==== Data generations
 
-DRBD marks the start of a new _data generation_ at each of the
-following occurrences:
+Whenever a resource is in the _Connected_
+connection state, and the disk state of nodes in a cluster is _UpToDate_, the
+current data generation on the nodes is the same.
 
-// FIXME PRe
+DRBD marks the start of a new data generation, by using an 8-byte universally unique identifier (UUID), for each of the
+following events:
 
-* The initial device full sync,
+* An initial device full synchronization
+* A primary node that disconnects from a peer
+* A disconnected resource switching to the primary role
 
-* a disconnected resource switching to the primary role,
+Apart from when `primary --force` is used, DRBD will mark the start of a new generation upon the next data write to the resource, which might be some time after the event occurs.
 
-* a resource in the primary role disconnecting.
-
-Therefore, we can summarize that whenever a resource is in the _Connected_
-connection state, and both nodes' disk state is _UpToDate_, the
-current data generation on both nodes is the same. The inverse is also
-true. Note that the current implementation uses the lowest bit to encode the
-role of the node (Primary/Secondary). Therefore, the lowest bit might be
-different on distinct nodes even if they are considered to have the same data
+The UUID implementation uses the lowest bit to encode the
+role of the node (primary or secondary). Therefore, the lowest bit can be
+different on nodes in a cluster but the nodes can still be considered to have the same data
 generation.
 
-Every new data generation is identified by an 8-byte, universally
-unique identifier (UUID).
-
-[[s-gi-tuple]]
-==== The generation identifier tuple
+[[s-generation-identifier-uuids]]
+==== Generation identifier UUIDs
 
 DRBD keeps some pieces of information about current and historical
-data generations in the local resource metadata:
+data generations in the local resource metadata.
+The different generation identifier UUIDs serve different purposes, detailed as follows.
 
 .Current UUID
 This is the generation identifier for the current data generation, as
-seen from the local node's perspective. When a resource is
+seen from the perspective of the local node. When a resource is
 _Connected_ and fully synchronized, the current UUID is identical
-between nodes.
+between nodes, except for the earlier mentioned lowest bit which might be different based on the resource role (primary or secondary).
 
 .Bitmap UUIDs
-This is the UUID of the generation against which this on-disk
-bitmap is tracking changes (per remote host). Like the on-disk sync bitmap itself, this
-identifier is only relevant while the remote host is disconnected.
-
-// If the resource is _Connected_, this UUID is always empty (zero). FIXME
+This is the UUID of the generation against which the <<s-quick-sync-bitmap,DRBD quick-sync bitmap>> is tracking changes (per peer). Like the quick-sync bitmap itself, this
+identifier is only relevant when a peer resource is disconnected.
+This UUID is empty (zero) when a resource is in a _Connected_ state.
 
 .Historical UUIDs
 These are the identifiers of data generations preceding the
-current one, sized to have one slot per (possible) remote host.
+current one, sized to have one slot per (possible) peer.
 
-Collectively, these items are referred to as the _generation
-identifier tuple_, or "__GI tuple__" for short.
+[[s-when-generation-identifiers-change]]
+==== When generation identifiers change
 
-[[s-gi-changes]]
-==== How generation identifiers change
+When DRBD updates GIs is different in DRBD 9 than it was in DRBD 8.
+A node generates a new GI and updates generation identifiers *on the first data write (or I/O completion)* if
 
-[[s-gi-changes-newgen]]
-===== Start of a new data generation
+- The node is in a _Primary_ role and it loses an earlier established replication link, that is, it cannot connect to a secondary peer node.
+- The node is in a _Secondary_ role and is promoted to _Primary_ but cannot communicate to one or more peers.
 
-When a node in _Primary_ role loses connection to its peer (either by network failure or
-manual intervention), DRBD modifies its local generation identifiers
-in the following manner:
+Also, in a <<s-enable-dual-primary,dual-primary mode>> cluster, a primary node will not generate a new GI if it loses connection to the other primary node.
+
+The way DRBD 9 updates GIs is an improvement from DRBD 8 because it prevents data divergence (split brains) if a node becomes _Primary_ but then does not write anything.
+
+The following diagram shows example before and after changes to generation identifiers for a resource on a primary node.
 
 [[f-gi-changes-newgen]]
-.GI tuple changes at start of a new data generation
+.Before and after changes to generation identifiers
 image::images/gi-changes-newgen.svg[]
 
-. The primary creates a new UUID for the new data generation. This becomes the
+. An event in the cluster causes a new data generation.
+
+. The primary node creates a new UUID. This becomes the
   _new_ current UUID for the primary node.
 
-. The _previous_ current UUID now refers to the generation the bitmap is
-  tracking changes against, so it becomes the new bitmap UUID for the
-  primary node.
-
-. On the secondary node(s), the GI tuple remains unchanged.
-
+. The _previous_ current UUID becomes the new bitmap UUID, but only for peers that are disconnected. As mentioned earlier, the bitmap UUID refers to the data generation that the quick-sync bitmap is
+tracking changes against.
 
 [[s-gi-changes-synccomplete]]
 ===== Completion of resynchronization
 
-When resynchronization concludes, the synchronization target adopts the entire
-GI tuple from the synchronization source.
+When resynchronization completes, the synchronization target adopts the entire
+set of generation identifiers from the synchronization source.
 
-The synchronization source keeps the same set, and doesn't generate new UUIDs.
+The synchronization source keeps the same generation identifiers, and does not create new UUIDs.
 
 [[s-gi-use]]
 ==== How DRBD uses generation identifiers
 
-When a connection between nodes is established, the two nodes exchange
-their currently available generation identifiers, and proceed
-accordingly. Several possible outcomes exist:
+When a connection between two nodes is established, the two nodes exchange
+their currently available generation identifiers. After comparing the GIs, DRBD might take different actions.
+There are several possible outcomes.
 
 .Current UUIDs empty on both nodes
 The local node detects that both its current UUID and the peer's
 current UUID are empty. This is the normal occurrence for a freshly
-configured resource that has not had the initial full sync
+configured resource that has not had the initial full synchronization
 initiated. No synchronization takes place; it has to be started
 manually.
 
 .Current UUIDs empty on one node
 The local node detects that the peer's current UUID is empty, and its
 own is not. This is the normal case for a freshly configured resource
-on which the initial full sync has just been initiated, the local node
+on which the initial full synchronization has just been initiated, the local node
 having been selected as the initial synchronization source. DRBD now
-sets all bits in the on-disk sync bitmap (meaning it considers the
+sets all bits in the quick-sync bitmap (meaning it considers the
 entire device out-of-sync), and starts synchronizing as a
 synchronization source. In the opposite case (local current UUID
 empty, peer's non-empty), DRBD performs the same steps, except that
@@ -276,7 +268,7 @@ UUID, and that the peer's bitmap UUID is empty. This is the normal and
 expected occurrence after a secondary node failure, with the local
 node being in the primary role. It means that the peer never became
 primary in the meantime and worked on the basis of the same data
-generation all along. DRBD now initiates a normal, background
+generation all along. DRBD now initiates a normal background
 re-synchronization, with the local node becoming the synchronization
 source. If, conversely, the local node detects that _its_ bitmap UUID
 is empty, and that the _peer's_ bitmap matches the local node's current
@@ -298,12 +290,10 @@ historical UUID matches the peer's current UUID), DRBD performs the
 same steps, except that the local node becomes the synchronization
 source.
 
-// ERROR: FIXME
-
 .Bitmap UUIDs match, current UUIDs do not
 indexterm:[split brain]The local node detects that its current UUID
 differs from the peer's current UUID, and that the bitmap UUIDs
-match. This is split brain, but one where the data generations have
+match. This is a split brain, but one where the data generations have
 the same parent. This means that DRBD invokes split brain
 auto-recovery strategies, if configured. Otherwise, DRBD disconnects
 and waits for manual split brain resolution.
@@ -316,12 +306,11 @@ strategies, even if configured, are moot. DRBD disconnects and waits
 for manual split brain resolution.
 
 .No UUIDs match
-Finally, in case DRBD fails to detect even a single matching element
-in the two nodes' GI tuples, it logs a warning about unrelated data
+Finally, in case DRBD does not detect even a single matching element
+in the two nodes' generation identifiers, it logs a warning about unrelated data
 and disconnects. This is DRBD's safeguard against accidental
 connection of two cluster nodes that have never heard of each other
 before.
-
 
 [[s-activity-log]]
 === The activity log
