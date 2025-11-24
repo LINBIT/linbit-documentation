@@ -2,7 +2,7 @@
 == LINSTOR Gateway for highly available NFS, iSCSI, or NVMe-oF storage
 
 *LINSTOR Gateway* is open source software that you can use to create and manage highly available NVMe-oF targets, iSCSI targets, or NFS exports.
-LINSTOR Gateway does this by using both LINSTOR(R) and DRBD Reactor behind the scenes.
+LINSTOR Gateway does this by using both LINSTOR(R) and DRBD(R) Reactor behind the scenes.
 
 This chapter focuses on how to install and use the software.
 For an explanatory overview of the software, its parts, its architecture, and how it works, reading the link:https://linbit.com/drbd-user-guide/linstorgateway-guide-1_0-en/[_Understanding LINSTOR Gateway_] guide is essential.
@@ -12,7 +12,7 @@ For an explanatory overview of the software, its parts, its architecture, and ho
 
 Before you can use LINSTOR Gateway, you will need to have an initialized LINSTOR cluster, with DRBD Reactor, and NVMe-oF, NFS, iSCSI utilities installed and configured.
 DRBD Reactor requires a 3-node cluster at minimum, although only two of the three nodes need to be diskful.
-A third node can be diskless, to save on costs, and only needs to serve as a DRBD(R) quorum witness.
+A third node can be diskless, to save on costs, and only needs to serve as a DRBD quorum witness.
 For this role, even hardware as basic as a low-power, single-board computer such as a Raspberry Pi might be enough.
 The following sections detail how to meet LINSTOR Gateway installation requirements.
 Refer to the link:https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-feature-quorum[_DRBD User Guide_] for more information about the DRBD quorum feature.
@@ -286,20 +286,17 @@ If you are a LINBIT customer, you can install LINSTOR Gateway by using your pack
 LINBIT maintains LINSTOR Gateway at the project's link:https://github.com/LINBIT/linstor-gateway/releases[open source code repository].
 If you need to, you can build the software from its open source code.
 
-IMPORTANT: LINSTOR Gateway communicates with the LINSTOR controller node by using the LINSTOR client.
-For this reason, you should install LINSTOR Gateway where a LINSTOR client is configured to communicate with a LINSTOR controller node for the LINSTOR cluster.
-For more information on link:https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/#s-linstor_ha[configuring a LINSTOR client see the _LINSTOR User Guide_].
-
 [[s-linstor-gateway-installing-server-component]]
 ==== Installing the LINSTOR Gateway server
 
-LINSTOR Gateway has a server part which needs to be running in the background on a node that the LINSTOR client is installed on in your cluster.
-Usually this will be your LINSTOR controller node, although it could be installed on many nodes in your cluster, if for example, you have configured a <<linstor-administration#s-linstor_ha,highly available LINSTOR controller>>.
-However, you do not need to run the LINSTOR client on the same node that the LINSTOR controller service is running on, if the LINSTOR client on your LINSTOR Gateway server "knows" how to reach the LINSTOR controller service.
-You can do this, for example, by using a `controllers=` line in your LINSTOR client configuration file (`/etc/linstor/linstor-client.conf`).
+LINSTOR Gateway has a server part which needs to be running in the background on a node that "knows" how to reach the LINSTOR controller service running in your cluster.
+Usually, this will be your LINSTOR controller node itself.
+If you have configured a <<linstor-administration#s-linstor_ha,highly available LINSTOR controller>>, you will need to install the LINSTOR Gateway server part on every node in your cluster that can potentially run the LINSTOR controller service.
+
+NOTE: For more information about LINSTOR Gateway server deployment choices, see the link:https://linbit.com/drbd-user-guide/linstorgateway-guide-1_0-en/#p-linstorgw-architecture.adoc[Architecture of a cluster] section of the _Understanding LINSTOR Gateway_ user guide.
 
 To install the LINSTOR Gateway server on a node, you can use a systemd service.
-Create the file `/etc/systemd/system/linstor-gateway.service` **on the same node as your LINSTOR client** and copy the following content into it to create the service:
+Create the file `/etc/systemd/system/linstor-gateway.service` **on the same node as your LINSTOR controller service** and copy the following content into it to create the service:
 
 ----
 [Unit]
@@ -318,6 +315,24 @@ Next, reload systemd unit files to include the newly created service, and then s
 ----
 systemctl daemon-reload
 systemctl enable --now linstor-gateway
+----
+
+[[s-linstor-gateway-configuring-linstor-gateway-service]]
+===== Configuring the LINSTOR Gateway service
+
+You can configure the LINSTOR Gateway server daemon by using a TOML file.
+By default, the application will look for the configuration file in `/etc/linstor-gateway/linstor-gateway.toml`.
+You can override this when using the LINSTOR Gateway CLI client by add a `--config /path/to/config` command line flag.
+
+In the configuration file, you can specify where LINSTOR Gateway should look for the LINSTOR controller service.
+By default, `localhost:3370` is used.
+This is the reason for the earlier recommendation to install the LINSTOR Gateway server on the same node (or nodes) as the LINSTOR controller service is installed on.
+
+The following is an example configuration file specifying a list of potential LINSTOR controller nodes, by their IP addresses:
+
+----
+[linstor]
+controllers = ["10.10.1.1", "10.10.1.2", "10.10.1.3"]
 ----
 
 [[s-linstor-gateway-verification]]
