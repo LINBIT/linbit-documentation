@@ -2,7 +2,7 @@
 lang = en
 
 # `make` reminders:
-# `make -j` == run jobs in parallel 
+# `make -j` == run jobs in parallel
 # `make -C <dir>` == change directory to <dir> before `make`-ing
 # $@ == the file name of the target of the rule
 # $< == the name of the first prerequisite
@@ -158,10 +158,26 @@ UG8.4-pot-docker: dockerimage
 	$(run-in-docker)
 
 ## targets you can only use if you cloned the *private* `tech-guides` project
+# Create the LINBIT how-to guides translation `pot` files
+
+.PHONY: tech-guides-pot-files tech-guides-pot-files-docker
+tech-guides-pot-files:
+	make -j -C tech-guides tgs-pot lang=en
+
+tech-guides-pot-files-docker: dockerimage
+	$(run-in-docker)
+
+.PHONY: tech-guides-translate tech-guides-translate-docker
+tech-guides-translate:
+	make -j -C tech-guides tgs-translate lang=$(lang)
+
+tech-guides-translate-docker: dockerimage
+	$(run-in-docker)
+
 # create PDF tech guides
 .PHONY: tech-guides-pdf-finalize tech-guides-pdf-finalize-docker
 tech-guides-pdf-finalize:
-	make -j -C tech-guides pdf-finalize
+	make -j -C tech-guides pdf-finalize lang=$(lang)
 
 tech-guides-pdf-finalize-docker: dockerimage
 	$(run-in-docker)
