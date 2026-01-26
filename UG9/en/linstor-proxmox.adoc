@@ -73,17 +73,19 @@ WARNING: Although this can be a great option for homelabs, testing, and non-prod
 not maintain these packages to the same rigorous standards as the customer repositories. For
 production deployments, using the official LINBIT customer repositories is recommended.
 
-You can add the LINBIT public repository by entering the commands below, setting `$PVERS` to your
-Proxmox VE *major version* (for example, "8", not "8.1"):
+You can add the LINBIT public repository by entering the commands below:
 
 ----
 # wget -O /tmp/linbit-keyring.deb \
 https://packages.linbit.com/public/linbit-keyring.deb
 # dpkg -i /tmp/linbit-keyring.deb
-# PVERS=8 && echo "deb [signed-by=/etc/apt/trusted.gpg.d/linbit-keyring.gpg] \
+# source /etc/os-release && PVERS=$(( VERSION_ID - 4 ))
+# echo "deb [signed-by=/etc/apt/trusted.gpg.d/linbit-keyring.gpg] \
 http://packages.linbit.com/public/ proxmox-$PVERS drbd-9" > /etc/apt/sources.list.d/linbit.list
 # apt update
 ----
+
+TIP: The Proxmox version is the Debian (Proxmox base OS) version minus 4.
 
 === Installing the Proxmox plugin
 
@@ -133,9 +135,9 @@ entry in the `/etc/pve/storage.cfg` file, with content similar to the following:
 ----
 
 drbd: drbdstorage
+   resourcegroup defaultpool
    content images,rootdir
    controller 10.11.12.13
-   resourcegroup defaultpool
 
 ----
 
@@ -175,19 +177,19 @@ look similar to this:
 
 ----
 drbd: drbdstorage
+   resourcegroup defaultpool
    content images,rootdir
    controller 10.11.12.13
-   resourcegroup defaultpool
 
 drbd: fastdrbd
+   resourcegroup ssd
    content images,rootdir
    controller 10.11.12.13
-   resourcegroup ssd
 
 drbd: slowdrbd
+   resourcegroup backup
    content images,rootdir
    controller 10.11.12.13
-   resourcegroup backup
 ----
 
 After making this configuration, you will be able to create VMs by using the Proxmox web GUI, by
@@ -243,9 +245,9 @@ section of the plugin, for example:
 ----
 
 drbd: drbdstorage
+   resourcegroup defaultpool
    content images,rootdir
    controller 10.11.12.13,10.11.12.14,10.11.12.15
-   resourcegroup defaultpool
 
 ----
 
@@ -357,9 +359,9 @@ Add an entry for LINSTOR managed (and DRBD replicated) storage, changing configu
 ----
 
 drbd: drbdstorage
+   resourcegroup drbdMypoolThree
    content images,rootdir
    controller 10.11.12.13
-   resourcegroup drbdMypoolThree
 
 ----
 
