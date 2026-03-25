@@ -4137,6 +4137,178 @@ echo '[netcom]
 
 Now just start controller and satellites and add the nodes with `--communication-type SSL`.
 
+[[s-linstor-token-authentication]]
+=== Configuring LINSTOR API token authentication
+
+Since LINSTOR version 1.34, you can secure the LINSTOR REST API by using token-based authentication.
+When enabled, all API requests must include a valid bearer token in the `Authorization` HTTP header.
+Tokens are randomly generated 32-character strings.
+Only the SHA-256 hash of each token is stored on the controller.
+
+IMPORTANT: The raw token is shown only once at creation time, so store it securely.
+
+Token authentication can be used as an alternative or complement to <<s-linstor-ldap-authentication,LDAP authentication>> or <<s-rest-api-https-restricted-client,HTTPS client certificate>> authentication.
+
+WARNING: It is recommended that you configure <<s-linstor-rest-api-https,LINSTOR REST API HTTPS>> to protect token-bearing traffic from interception.
+The initialization command automatically enables HTTPS unless you opt out.
+
+[[s-linstor-token-auth-init]]
+==== Initializing token authentication
+
+To enable token authentication on your LINSTOR cluster, enter the following command:
+
+----
+linstor controller auth init <description>
+----
+
+This command performs several actions:
+
+- Creates an initial API token with the given description
+- Enables token authentication on the LINSTOR controller node
+- Automatically enables HTTPS on the REST API (unless `--no-https` is specified)
+- Creates and distributes authentication tokens to all connected LINSTOR satellite nodes
+
+The initial token is saved to your client configuration file (`~/.config/linstor/linstor-client.conf` by default), so later `linstor` commands will authenticate automatically.
+
+IMPORTANT: The raw token string is displayed only after you create it.
+If you lose it, you will need to create a new token.
+
+The `init` command accepts the following options:
+
+`--no-https`:: Do not automatically enable HTTPS on the REST API.
+Use this if you have already configured HTTPS manually or are operating in a secured network.
+
+`--only-satellites`:: Only create and distribute satellite tokens.
+Use this if token authentication is already enabled and you need to re-initialize satellite tokens.
+
+`--do-not-save-token`:: Do not save the created token to the client configuration file.
+
+[[s-linstor-token-auth-manage]]
+==== Managing LINSTOR API tokens
+
+After initializing token authentication, you can create additional tokens, list existing tokens, modify token properties, or revoke tokens.
+
+===== Creating a token
+
+To create an additional LINSTOR API token:
+
+----
+linstor controller auth create <description>
+----
+
+Unlike the `init` command, the `create` command does not save the token to the client configuration by default.
+Use `--save-token` to save it.
+
+Optional `controller auth create` command options and parameters:
+
+`--ip-filter <filter>`:: Restrict the token to requests from the specified IP address or range.
+
+`--expires-at <datetime>`:: Set an expiration date for the token in ISO 8601 format (for example, `2026-12-31`).
+After this date, the token will no longer be accepted.
+
+`--save-token`:: Save the created token to the client configuration file.
+
+===== Listing tokens
+
+To list all user-created tokens:
+
+----
+linstor controller auth list
+----
+
+By default, only user-created tokens are shown.
+To also show system tokens (such as satellite tokens), use the `--all` flag:
+
+----
+linstor controller auth list --all
+----
+
+===== Modifying a token
+
+To modify an existing token, specify the token ID (shown in the `list` output) and the properties to change, for example:
+
+----
+linstor controller auth modify <id> --active false
+----
+
+Available `controller auth modify` command options:
+
+`--description <text>`:: Update the token description.
+
+`--active true|false`:: Enable or disable the token without revoking it.
+
+`--ip-filter <filter>`:: Update the IP address filter.
+Use an empty string (`''`) to remove the filter.
+
+===== Revoking a token
+
+To revoke a token, enter the following command:
+
+----
+linstor controller auth delete <id>
+----
+
+Revoked tokens are permanently invalidated.
+If you revoke a token, you cannot re-enable it, you will need to create a new one.
+
+[[s-linstor-token-auth-usage]]
+==== Using a LINSTOR API token
+
+There are several ways to authenticate with a token, described in the following sections.
+
+===== LINSTOR client configuration
+
+The recommended approach is to save the token in your client configuration file (at `~/.config/linstor/linstor-client.conf` by default):
+
+----
+[global]
+auth-token = <your_token>
+----
+
+The `init` command saves the token to the LINSTOR client configuration file by default.
+For tokens created with the `create` command, use the `--save-token` flag or add the token manually.
+
+===== Command line argument
+
+You can pass the token directly for individual commands:
+
+----
+linstor --auth-token <your_token> <command>
+----
+
+===== REST API header
+
+When accessing the REST API directly, include the token as a bearer token in the `Authorization` header:
+
+----
+Authorization: Bearer <your_token>
+----
+
+===== Satellite authentication
+
+LINSTOR satellites nodes authenticate automatically.
+During initialization, the controller node creates and distributes individual tokens to each connected satellite.
+These tokens are stored at `/var/lib/linstor.d/auth.json` on the satellite node and are rotated automatically when a satellite reconnects.
+
+[[s-linstor-token-auth-disable]]
+==== Disabling token authentication
+
+If you need to disable token authentication, for example, because you have lost all tokens and are locked out of the REST API, you can use the `linstor-config` tool.
+
+NOTE: The `linstor-config` tool operates directly on the LINSTOR database.
+You will need to stop the `linstor-controller` service before using this command.
+
+----
+systemctl stop linstor-controller
+linstor-config disable-token-auth /etc/linstor/linstor.toml
+systemctl start linstor-controller
+----
+
+This removes the token authentication setting from the database.
+After restarting the controller service, the REST API will be accessible without authentication.
+
+NOTE: If all tokens are revoked or expired, the authentication filter is bypassed automatically, even if token authentication is still marked as enabled.
+
 [[s-linstor-ldap-authentication]]
 === Configuring LDAP authentication
 
