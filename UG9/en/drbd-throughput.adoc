@@ -44,7 +44,7 @@ routing/switching infrastructure present. These concerns are, however,
 largely irrelevant in DRBD replication links which are normally
 dedicated, back-to-back network connections. Therefore, network throughput
 may be improved either by switching to a higher-throughput hardware
-(such as 10 Gigabit Ethernet, or 56GiB InfiniBand), or by using link aggregation over
+(such as 10 Gigabit Ethernet, or 56 Gbit InfiniBand), or by using link aggregation over
 several network links, as one may do using the Linux
 indexterm:[bonding driver]`bonding` network driver.
 
@@ -114,34 +114,20 @@ resource <resource> {
 ==== Tuning the TCP send buffer size
 
 The TCP send buffer is a memory buffer for outgoing TCP traffic. By
-default, it is set to a size of 128 KiB. For use in high-throughput
-networks (such as dedicated Gigabit Ethernet or load-balanced bonded
-connections), it may make sense to increase this to a size of 2MiB,
-or perhaps even more. Send buffer sizes of more than 16MiB are
-generally not recommended (and are also unlikely to produce any
-throughput improvement).
+default, DRBD uses TCP send buffer auto-tuning (`sndbuf-size` set to 0),
+which dynamically selects an appropriate buffer size.
+
+If you want to set a fixed buffer size instead, you can do so explicitly.
+For high-throughput networks (such as dedicated Gigabit Ethernet or
+load-balanced bonded connections), a size of 2MiB or more might help.
+Send buffer sizes of more than 16MiB are generally not recommended (and
+are also unlikely to produce any throughput improvement).
 
 [source,drbd]
 ----
 resource <resource> {
   net {
     sndbuf-size 2M;
-    ...
-  }
-  ...
-}
-----
-
-DRBD also supports TCP send buffer auto-tuning. After enabling this
-feature, DRBD will dynamically select an appropriate TCP send buffer
-size. TCP send buffer auto tuning is enabled by simply setting the
-buffer size to zero:
-
-[source,drbd]
-----
-resource <resource> {
-  net {
-    sndbuf-size 0;
     ...
   }
   ...

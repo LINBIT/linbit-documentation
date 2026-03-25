@@ -71,7 +71,8 @@ To check out `drbd-utils` issue the following command:
 $ git clone --recursive https://github.com/LINBIT/drbd-utils.git
 ----
 
-`drbd-utils` from version 8.9.x onward supports DRBD kernel modules versions 8.3, 8.4, and 9.0.
+`drbd-utils` supports DRBD 9 kernel modules. Legacy support for DRBD 8.4 can optionally be
+included at build time (`--with-84support`).
 
 [[s-build-from-source]]
 === Building DRBD from source
@@ -113,7 +114,7 @@ NOTE: On RPM-based systems, these packages will be named similar to
 `kernel-__version__.src.rpm`. The former is the correct package to
 install for building DRBD.
 
-"Vanilla" kernel tar files from the http://kernel.org/ archive are simply named
+"Vanilla" kernel tar files from the https://kernel.org/ archive are simply named
 `linux-__version__.tar.bz2` and should be unpacked in
 `/usr/src/linux-__version__`, with the symlink `/usr/src/linux` pointing
 to that directory.
@@ -217,9 +218,9 @@ defaults, do so with caution.
 
 The configure script creates a log file, `config.log`, in the
 directory where it was invoked. When reporting build issues on the
-mailing list, it is usually wise to either attach a copy of that file
-to your email, or point others to a location from where it can be
-viewed or downloaded.
+https://forums.linbit.com[LINBIT Community Forum], it is usually wise to
+either attach a copy of that file or point others to a location from
+where it can be viewed or downloaded.
 
 [[s-build-userland]]
 ==== Building DRBD userspace utilities
@@ -240,104 +241,74 @@ scripts to integrate DRBD with other applications.
 
 [[s-build-compile-kernel-module]]
 ==== Compiling the DRBD kernel module
-The kernel module does not use `GNU` `autotools`, therefore building and
-installing the kernel module is usually a simple two step process.
 
-[[s-build-against-running-kernel]]
-===== Building the DRBD kernel module for the currently running kernel
+The DRBD kernel module source always targets the newest upstream kernel.
+Backward compatibility with older kernels is handled automatically by a
+https://github.com/coccinelle/coccinelle[Coccinelle]-based compat system
+that generates the necessary patches at build time.
 
-After changing into your unpacked DRBD kernel module sources directory, you
-can now build the module:
+[[s-build-from-tarball]]
+===== Building from a release tarball
 
-----
-$ cd drbd-9.0
-$ make clean all
-----
-
-This will build the DRBD kernel module to match your currently-running
-kernel, whose kernel source is expected to be accessible via the
-`/lib/modules/`uname -r`/build` symlink.
-
-[[s-build-against-kernel-headers]]
-===== Building against prepared kernel headers
-
-If the `/lib/modules/`uname -r`/build` symlink does not exist, and you
-are building against a running stock kernel (one that was shipped
-pre-compiled with your distribution), you can also set the `KDIR`
-variable to point to the _matching_ kernel headers (as opposed to
-kernel sources) directory. Note that besides the actual kernel headers
--- commonly found in `/usr/src/linux-__version__/include` -- the
-DRBD build process also looks for the kernel `Makefile` and
-configuration file (`.config`), which pre-built kernel headers
-packages commonly include.
-
-To build against prepared kernel headers, issue, for example:
+Release tar files ship pre-generated compat patches for common distribution
+kernels. In most cases, building is straightforward:
 
 ----
-$ cd drbd-9.0
+$ cd drbd-9.x.y
 $ make clean
-$ make KDIR=/usr/src/linux-headers-3.2.0-4-amd64/
+$ make
 ----
 
-[[s-build-against-source-tree]]
-===== Building against a kernel source tree
-
-If you are building DRBD against a kernel _other_ than your currently
-running one, and you do not have prepared kernel sources for your
-target kernel available, you need to build DRBD against a complete
-target kernel source tree. To do so, set the KDIR variable to point to
-the kernel sources directory:
+By default, this builds the module for the currently running kernel
+(using `/lib/modules/$(uname -r)/build`). To build against a different
+kernel, set `KDIR`:
 
 ----
-$ cd drbd-9.0
 $ make clean
-$ make KDIR=/root/linux-3.6.6/
+$ make KDIR=/path/to/kernel/headers/or/source
 ----
 
-[[s-build-customcc]]
-===== Using a non-default C compiler
+For kernels without pre-generated compat patches, the build automatically
+uses the LINBIT https://github.com/LINBIT/saas/["spatch as a service"] web service to generate them. If you do not
+have internet access, you will need a local Coccinelle installation.
 
-You also have the option of setting the compiler explicitly via the CC
-variable. This is known to be necessary on some Fedora versions, for
-example:
+[[s-build-from-git]]
+===== Building from a Git-cloned repository
+
+Building from a Git-cloned repository requires Coccinelle (`spatch`) for the compat system.
+Refer to the https://github.com/LINBIT/drbd/blob/master/README.md[DRBD README]
+for requirements and options.
 
 ----
-$ cd drbd-9.0
+$ cd drbd
 $ make clean
-$ make CC=gcc32
+$ make
 ----
 
 [[s-build-modinfo]]
 ===== Checking for successful build completion
 
-If the module build completes successfully, you should see a kernel
-module file named `drbd.ko` in the `drbd` directory. You can
-interrogate the newly-built module with `/sbin/modinfo drbd.ko` if you
-are so inclined.
+If the module build completes successfully, you can find the built
+module by entering the following command:
 
-[[s-kabi-warning]]
-===== Kernel application binary interface warning for some distributions
+----
+$ find -name "drbd.ko"
+----
 
-Please note that some distributions (like RHEL 6 and derivatives) claim
-to have a stable kernel application binary interface (kABI), that is, the kernel API should stay consistent during minor
-releases (that is, for kernels published in the RHEL 6.3 series).
+After you find the newly-built kernel module file, you can show information about it by entering:
 
-In practice this is not working all of the time; there are some known cases
-(even within a minor release) where things got changed incompatibly. In these
-cases external modules (like DRBD) can fail to load, cause a kernel panic, or
-break in even more subtle waysfootnote:[One favorite way was when loading the DRBD
-module reported "Out of memory" on a freshly booted machine with 32GiB RAM...],
-and need to be
-rebuilt against the _matching_ kernel headers.
+----
+$ /sbin/modinfo <path/to/kernel/module>
+----
 
 [[s-build-install]]
 === Installing DRBD
 
 Provided your DRBD build completed successfully, you will be able to
-install DRBD by issuing the command:
+install DRBD by issuing the commands:
 
 ----
-$ cd drbd-9.0 && sudo make install && cd ..
+$ cd drbd && sudo make install && cd ..
 $ cd drbd-utils && sudo make install && cd ..
 ----
 

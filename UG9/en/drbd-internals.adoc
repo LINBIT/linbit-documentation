@@ -118,13 +118,12 @@ for DRBD's metadata using the following formula:
 .Calculating DRBD metadata size (exactly)
 image::images/metadata-size-exact.svg[]
 
-*_C~s~_* is the data device size in sectors, and *_N_* is the number of peers.
+*_C~s~_* is the data device size in sectors, and *_N_* is the maximum number of
+peer bitmap slots configured in the metadata (`bm-max-peers`).
 
-////
-If
-you are using the <<al-stripe,al-stripes>> setting, additional space of size
-_al-stripes_ times _al-strip-size_ is required.
-////
+NOTE: These formulas assume the default bitmap granularity of 4 KiB per bit.
+If you use a different `bm-bytes-per-bit` setting, the bitmap portion of the
+metadata scales inversely with the granularity.
 
 NOTE: You may retrieve the device size (in bytes) by issuing `blockdev --getsize64
 <device>`; to convert to MB, divide by 1048576 (= 2^20^ or 1024^2^).
@@ -192,8 +191,9 @@ identifier is only relevant when a peer resource is disconnected.
 This UUID is empty (zero) when a resource is in a _Connected_ state.
 
 .Historical UUIDs
-These are the identifiers of data generations preceding the
-current one, sized to have one slot per (possible) peer.
+These are the identifiers of preceding data generations, maintained
+as a rolling history. New entries are pushed to the front, and older
+entries are shifted out when the buffer is full.
 
 [[s-when-generation-identifiers-change]]
 ==== When generation identifiers change
@@ -410,8 +410,9 @@ DRBD uses, on a per-resource per-peer basis, to keep track of blocks being in
 sync (identical on both nodes) or out-of sync. It is only relevant
 when a resource is in disconnected mode.
 
-In the quick-sync bitmap, one bit represents a 4-KiB chunk of on-disk
-data. If the bit is cleared, it means that the corresponding block is
+In the quick-sync bitmap, one bit represents a chunk of on-disk data.
+By default, each bit covers 4 KiB, but since DRBD 9.3, this is configurable up to 1 MiB
+per bit. If the bit is cleared, it means that the corresponding block is
 still in sync with the peer node. That implies that the block has not
 been written to since the time of disconnection. Conversely, if the
 bit is set, it means that the block has been modified and needs to be
@@ -453,7 +454,7 @@ _Inconsistent_ longer than necessary.
 
 DRBD has an interface defined for fencingfootnote:[For a discussion about
 Fencing and STONITH, please see the corresponding Pacemaker page
-http://clusterlabs.org/doc/crm_fencing.html.] the peer
+https://clusterlabs.org/doc/crm_fencing.html.] the peer
 node in case of the replication link being interrupted. The `fence-peer`
 should mark the disk(s) on the peer node as _Outdated_, or shut down
 the peer node. It has to fulfill these tasks under the assumption that

@@ -47,24 +47,18 @@ image::images/drbdmon-resource-actions.png[The resource actions display page in 
 [[s-proc-drbd]]
 ==== Retrieving status information through the DRBD process file
 
-NOTE: Monitoring DRBD status by using `/proc/drbd` is deprecated. We recommend that you switch
-to other means, like <<s-drbdadm-status>>, or for even more convenient monitoring,
-<<s-drbdsetup-events2>>.
+NOTE: In DRBD 9, `/proc/drbd` only shows version information. Per-resource status
+output has been removed. Use <<s-drbdadm-status>> or <<s-drbdsetup-events2>> instead.
 
-indexterm:[/proc/drbd]`/proc/drbd` is a virtual file displaying
-basic information about the DRBD module.
-It was used extensively up to DRBD 8.4, but couldn't keep up
-with the amount of information provided by DRBD 9.
+indexterm:[/proc/drbd]`/proc/drbd` is a virtual file that was used
+extensively in DRBD 8.4 to display resource status. In DRBD 9, it only
+shows the DRBD module version and build information:
 
 ----
 $ cat /proc/drbd
-version: 9.0.0 (api:1/proto:86-110)
-GIT-hash: XXX build by linbit@buildsystem.linbit, 2011-10-12 09:07:35
+version: 9.x.y (api:2/proto:118-124)
+GIT-hash: XXX
 ----
-
-The first line, prefixed with `version:`, shows the DRBD version used
-on your system. The second line contains information about this
-specific build.
 
 
 [[s-drbdadm-status]]
@@ -105,12 +99,12 @@ home node-id:1 role:Secondary suspended:no
   nina local:ipv4:10.9.9.111:7001 peer:ipv4:10.9.9.103:7010 node-id:0
                                                connection:Connected role:Secondary
       congested:no
-    volume:0 replication:Connected disk:UpToDate resync-suspended:no
+    volume:0 replication:Established disk:UpToDate resync-suspended:no
         received:1048412 sent:0 out-of-sync:0 pending:0 unacked:0
   nino local:ipv4:10.9.9.111:7021 peer:ipv4:10.9.9.129:7012 node-id:2
                                                connection:Connected role:Secondary
       congested:no
-    volume:0 replication:Connected disk:UpToDate resync-suspended:no
+    volume:0 replication:Established disk:UpToDate resync-suspended:no
         received:0 sent:0 out-of-sync:0 pending:0 unacked:0
   nono local:ipv4:10.9.9.111:7013 peer:ipv4:10.9.9.138:7031 node-id:3
                                                            connection:Connecting
@@ -126,9 +120,9 @@ Furthermore the `role` (see <<s-roles>>) is shown.
 
 The next important line begins with the `volume` specification; normally
 these are numbered starting by zero, but the configuration may specify
-other IDs as well. This line shows the indexterm:[connection state]
-connection state in the
-`replication` item (see <<s-connection-states>> for details) and the
+other IDs as well. This line shows the indexterm:[replication state]
+replication state in the
+`replication` item (see <<s-replication-states>> for details) and the
 remote indexterm:[disk state] disk state in `disk` (see <<s-disk-states>>).
 Then there's a line for this volume giving a bit of statistics -
 data `received`, `sent`, `out-of-sync`, and so on. Please see
@@ -377,14 +371,14 @@ You may see one of the following resource roles:
 
 ._Primary_
 indexterm:[role, Primary]The resource is currently in the primary role, and may be read from
-and written to. This role only occurs on one of the two nodes, unless
+and written to. This role only occurs on one node, unless
 <<s-dual-primary-mode,dual-primary mode>> is enabled.
 
 ._Secondary_
 indexterm:[role, Secondary]The resource is currently in the secondary role. It normally receives
 updates from its peer (unless running in disconnected mode), but may
-neither be read from nor written to. This role may occur on one
-or both nodes.
+neither be read from nor written to. This role can occur on more than one
+nodes.
 
 ._Unknown_
 indexterm:[role, Unknown]The resource's role is currently unknown. The local resource role
@@ -790,7 +784,7 @@ This will have `cron` invoke a device verification every Sunday at 42
 minutes past midnight; so, if you come into the office on Monday morning,
 a quick examination of the resource's status would show the result. If your devices
 are very big, and the \~32 hours were not enough, then you'll notice _VerifyS_ or
-_VerifyT_ as connection state, meaning that the `verify` is still in progress.
+_VerifyT_ as replication state, meaning that the `verify` is still in progress.
 
 If you have enabled online verification for all your resources (for
 example, by adding `verify-alg _<algorithm>_` to the `common` section
