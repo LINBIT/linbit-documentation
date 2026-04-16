@@ -978,17 +978,16 @@ _<resource>_` on both nodes.
 
 In an environment where the replication bandwidth is highly variable
 (as would be typical in WAN replication setups), the replication link
-may occasionally become congested. In a default configuration, this
+might occasionally become congested. In a default configuration, this
 would cause I/O on the primary node to block, which is sometimes
 undesirable.
 
-Instead, you may configure DRBD to _suspend_ the ongoing replication
-in this case, causing the Primary's data set to _pull ahead_ of the
-Secondary. In this mode, DRBD keeps the replication channel open -- it
+If and only if you are using DRBD with <<s-using-drbd-proxy,DRBD Proxy>>, you can configure DRBD to _suspend_ the ongoing replication
+in this case, causing the data set on the Primary node to _pull ahead_ of data sets on Secondary nodes. In this suspended mode, DRBD keeps the replication channel open -- it
 never switches to disconnected mode -- but does not actually replicate
 until sufficient bandwidth becomes available again.
 
-The following example is for a DRBD Proxy configuration:
+The following example is for a DRBD with DRBD Proxy configuration:
 
 [source,drbd]
 ----
@@ -1003,18 +1002,13 @@ resource <resource> {
 }
 ----
 
-It is usually wise to set both `congestion-fill` and
-`congestion-extents` together with the `pull-ahead` option.
+When using DRBD Proxy with DRBD to replicate over a WAN, you can set both `congestion-fill` and
+`congestion-extents` together with the `pull-ahead` option, if you might need to try to avoid DRBD disconnections or other symptoms related to DRBD replication over a sometimes congested WAN link.
 
-A good value for `congestion-fill` is 90%
-
-* of the allocated DRBD proxy buffer memory, when replicating over
-  DRBD Proxy, or
-* of the TCP network send buffer, in non-DRBD Proxy setups.
+In this case, a good value for `congestion-fill` is 90% of the allocated DRBD proxy buffer memory.
 
 A good value for `congestion-extents` is 90% of your configured
 `al-extents` for the affected resources.
-
 
 [[s-configure-io-error-behavior]]
 === Configuring I/O error handling strategies
