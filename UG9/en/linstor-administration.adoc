@@ -43,7 +43,7 @@ a LINSTOR controller, by using SSL/TLS, as detailed in the <<s-linstor-secure-co
 Secure Satellite Connections>> section of this user guide.
 
 LINSTOR can also interface with Self-Encrypting Drives (SEDs) and you can use LINSTOR to
-initialize an SED drive. LINSTOR stores the drive's password as a property that applies to the
+initialize an SED drive. LINSTOR stores the password of an SED as a property that applies to the
 storage pool associated with the drive. LINSTOR encrypts the SED drive password by using the
 <<s-encrypt_commands, LINSTOR master passphrase>> that you must create first.
 
@@ -243,7 +243,7 @@ Modify the command below to only update packages applicable to each node's role 
 apt install -y --only-upgrade linstor-client linstor-satellite
 ----
 
-Uprading the LINSTOR satellite software package on your satellite (and combined) nodes will automatically restart the LINSTOR satellite service on those nodes.
+IMPORTANT: Upgrading the LINSTOR satellite service software package on your satellite (and combined) nodes will automatically restart the LINSTOR satellite service on those nodes.
 
 [[s-linstor-upgrading-verifying]]
 ==== Verifying a LINSTOR upgrade
@@ -504,8 +504,8 @@ LINSTOR communication, and the node's state.
 [[s-linstor-naming-nodes]]
 ==== Naming LINSTOR nodes
 
-If you specify an IP address when you create a LINSTOR node, you can give your node an arbitrary
-name. The LINSTOR client will show an INFO message about this when you create the node:
+By specifying an IP address when you create a LINSTOR node, LINSTOR will not need to resolve the hostname of the node and you can give the node an arbitrary name.
+The LINSTOR client will show an INFO message about this when you create the node:
 
 ----
     [...] 'arbitrary-name' and hostname 'node-1' doesn't match.
@@ -650,29 +650,6 @@ or using LINSTOR abbreviated notation:
 # linstor sp l
 ----
 
-////
-In case anything goes wrong with the storage pool's VG/zPool, e.g. the VG having been renamed or
-somehow became invalid you can delete the storage pool in LINSTOR with the following command,
-given that only resources with all their volumes in the so-called 'lost' storage pool are
-attached. This feature is available since LINSTOR v0.9.13.
-
-----
-# linstor storage-pool lost alpha pool_ssd
-----
-
-or using the short version
-
-----
-# linstor sp lo alpha pool_ssd
-----
-
-Should the deletion of the storage pool be prevented due to attached resources or snapshots with
-some of its volumes in another still functional storage pool, hints will be given in the
-'status' column of the corresponding list-command (e.g. `linstor resource list`). After deleting
-the LINSTOR-objects in the lost storage pool manually, the lost-command can be executed again to
-ensure a complete deletion of the storage pool and its remaining objects.
-////
-
 [[s-a_storage_pool_per_backend_device]]
 ==== Using storage pools to confine failure domains to a single back-end device
 
@@ -714,9 +691,9 @@ LVM volume group that backs the LINSTOR storage pool.
 
 You can omit both the `--shared` option for `vgcreate` and the `--external-locking` option for
 `linstor storage-pool create`. If you do this, LINSTOR will use its own mechanism to take care
-that only one node in the same `--shared-space` grouping will use LVM. Using LINSTOR's internal
-mechanism to lock LVM use will not however limit the access to single volumes. Neither LINSTOR's
-nor LVM's locking mechanism, for example, will limit DRBD I/O.
+that only one node in the same `--shared-space` grouping will use LVM. Using the LINSTOR internal
+mechanism to lock LVM use will not however limit the access to single volumes. Neither the LINSTOR
+nor the LVM locking mechanism, for example, will limit DRBD I/O.
 
 [[s-physical-storage-command]]
 ==== Creating storage pools by using the physical storage command
@@ -880,7 +857,7 @@ this parameter because resources can have multiple volumes that are identified b
 volume number. You can find this number by listing the volume definitions (`linstor vd l`). The
 list table will show volume numbers for the listed resources.
 
-So far you have only created definition objects in LINSTOR's database. However, not a single
+So far you have only created definition objects in the LINSTOR database. However, not a single
 logical volume (LV) has been created on the satellite nodes. Now you have the choice of
 delegating the task of deploying resources to LINSTOR or else doing it yourself.
 
@@ -907,7 +884,7 @@ deployed from the resource group.
 
 ===== Automatically maintaining resource group placement count
 
-Starting with LINSTOR version 1.26.0, there is a reoccurring LINSTOR task that tries to maintain
+Starting with LINSTOR version 1.26.0, there is a recurring LINSTOR task that tries to maintain
 the placement count set on a resource group for all deployed LINSTOR resources that belong to
 that resource group. This includes the default LINSTOR resource group and its placement count.
 
@@ -1248,8 +1225,8 @@ mixed environment of `ZFS`, `LVM`, and `LVM_THIN` storage pools in your cluster,
 an `LVM` or `LVM_THIN` storage pool, when using the `--place-count` option.
 
 NOTE: The `--providers` argument's CSV list does not specify an order of priority for the list
-elements. Instead, LINSTOR will use factors like additional placement constraints,
-available free space, and LINSTOR's storage pool selection strategies that were previously
+elements. Rather, LINSTOR will use factors like additional placement constraints,
+available free space, and LINSTOR storage pool selection strategies that were previously
 described, when placing a resource.
 
 [[s-autoplace-linstor-resource-create]]
@@ -1380,9 +1357,9 @@ You can delete a resource definition by using the command:
 ----
 
 This will remove the named resource definition from the entire LINSTOR cluster. The resource is
-removed from all nodes and the resource entry is marked for removal from LINSTOR's database
+removed from all nodes and the resource entry is marked for removal from the LINSTOR database
 tables. After LINSTOR has removed the resource from all the nodes, the resource entry is
-removed from LINSTOR's database tables.
+removed from the LINSTOR database tables.
 
 WARNING: If your resource definition has existing snapshots, you will not be able to delete the
 resource definition until you delete its snapshots. See the
@@ -1399,8 +1376,8 @@ You can delete a resource using the command:
 
 Unlike deleting a resource definition, this command will only delete a LINSTOR resource from the
 node (or nodes) that you specify. The resource is removed from the node and the resource entry
-is marked for removal from LINSTOR's database tables. After LINSTOR has removed the resource
-from the node, the resource entry is removed from LINSTOR's database tables.
+is marked for removal from the LINSTOR database tables. After LINSTOR has removed the resource
+from the node, the resource entry is removed from the LINSTOR database tables.
 
 Deleting a LINSTOR resource might have implications for a cluster, beyond just removing the
 resource. For example, if the resource is backed by a DRBD layer, removing a resource from one
@@ -1724,7 +1701,7 @@ commands instead.
 === DRBD consistency groups (multiple volumes within a resource)
 
 The so called consistency group is a feature from DRBD. It is mentioned in this user guide,
-due to the fact that one of LINSTOR's main functions is to manage storage-clusters with DRBD.
+due to the fact that one of the main functions of LINSTOR is to manage storage clusters with DRBD.
 Multiple volumes in one resource are a consistency group.
 
 This means that changes on different volumes from one resource are getting replicated in the
@@ -2053,7 +2030,7 @@ two providers there are already sub-types for their thin-provisioned variants.
 [[s-linstor-storage-providers-storage-pool-mixing]]
 ==== Mixing storage pools of different storage providers
 
-While LINSTOR resources are most often backed by storage pools that consist of only one <<s-storage-providers,storage provider>> type, it is possible to user storage pools of different types to back a LINSTOR resource.
+While LINSTOR resources are most often backed by storage pools that consist of only one <<s-storage-providers,storage provider>> type, it is possible to use storage pools of different types to back a LINSTOR resource.
 This is called mixing storage pools.
 This might be useful when migrating storage resources but could also have some consequences.
 Read this section carefully before configuring mixed storage pools. 
@@ -2077,8 +2054,8 @@ If one of following criteria is met, LINSTOR will consider the setup as storage 
 1. The storage pools have different extent sizes.
 For example, by default LVM has a 4MiB extent size while ZFS (since version 2.2.0) has a 16KiB extent size.
 
-2. The storage pools have different DRBD initial synchronization strategies, for example, a full initial synchronization, or a day 0 based partial synchronization.
-Using `zfs` and `zfsthin` storage provider-backed storage pools together would not meet this criterion because they each use an initial day 0-based partial DRBD synchronization strategy.
+2. The storage pools have different DRBD initial synchronization strategies, for example, a full initial synchronization, or a prepartory partial synchronization.
+Using `zfs` and `zfsthin` storage provider-backed storage pools together would not meet this criterion because they each use a preparatory partial DRBD synchronization strategy.
 
 [[s-linstor-storage-providers-storage-pool-mixing-consequences]]
 ===== Consequences of mixing storage pools
@@ -2434,7 +2411,7 @@ the data sets in your node's resources.
 ==== Evacuating multiple nodes
 
 Some evacuation cases might need special planning. For example, if you are evacuating more than
-one node, you can exclude the nodes from participating in LINSTOR's resource autoplacer. You can
+one node, you can exclude the nodes from being a candidate in the LINSTOR resource autoplacement strategy. You can
 do this by using the following command on each node that you want to evacuate:
 
 ----
@@ -2538,7 +2515,8 @@ For example, in previous LINSTOR versions, if you created a snapshot of a resour
 If you tried to roll back the resource, you would get an error message saying that you cannot roll back the resource because the snapshot does not exist on the new node.
 
 This limitation does not exist in LINSTOR versions since 1.31.2 because the new node can simply create an empty resource and synchronize the data from another diskful node, after the snapshot rollback.
-However, this new behavior does have a counterintuitive side effect: If you delete a resource with a snapshot from a node or nodes, then roll back the resource from a snapshot, the resource will be restored on diskful nodes for the resource, including the node or nodes that you deleted the resource from.
+However, the snapshot rollback behavior since version 1.31.2 has a counterintuitive side effect.
+If you delete a resource with a snapshot from a node or nodes, then roll back the resource from a snapshot, the resource will be restored on diskful nodes for the resource, including the node or nodes that you deleted the resource from.
 While this side effect can result in the resource being placed on more nodes than you might expect, after a snapshot rollback the LINSTOR periodic "balance resource task" will eventually restore the number of diskful resources in your cluster to the resource's placement count.
 
 [[s-linstor-snapshots-removing-a-snapshot]]
@@ -2578,7 +2556,7 @@ service using S3 compatible object storage. A shipped snapshot on a remote is al
 backup.
 
 IMPORTANT: Since a remote needs to store sensitive data, such as passwords, it is necessary to
-have encryption enabled whenever you want to use a remote in any way. How to set up LINSTOR's
+have encryption enabled whenever you want to use a remote in any way. How to set up LINSTOR
 encryption is described <<s-encrypt_commands,here>>.
 
 [[s-linstor-snapshots-creating-an-s3-remote]]
@@ -2876,7 +2854,7 @@ can decrypt the volumes after download and re-encrypt them with the local passph
 [[s-shipping_snapshots-concurrently]]
 ===== Controlling how many shipments are active at the same time
 
-There might be cases where an automated task (be it LINSTOR's scheduled shipping or an external
+There might be cases where an automated task (such as LINSTOR scheduled backup shipping or an external
 tool) starts too many shipments at once, leading to an overload of the network or some of the
 nodes sending the backups.
 
@@ -3277,7 +3255,7 @@ all resources that are not being shipped.
 To determine if the LINSTOR Controller will ship a deployed LINSTOR resource with a certain
 backup schedule for a given remote destination, the LINSTOR Controller uses the following logic:
 
-image::images/linstor-controller-backup-schedule-decision-flowchart.svg[]
+image::images/linstor-controller-backup-schedule-decision-flowchart.svg[LINSTOR controller backup schedule decision flowchart]
 
 As the diagram shows, enabled or disabled backup shipping schedules have effect in the following
 order:
@@ -3816,8 +3794,8 @@ when the LINSTOR controller is first initialized.
 [[s-linstor-rest-api]]
 ==== LINSTOR REST API
 
-To make LINSTOR's administrative tasks more accessible and also available for web-frontends a
-REST API has been created. The REST API is embedded in the LINSTOR controller and since LINSTOR
+To make LINSTOR administrative tasks more accessible and also available for web-based front ends, there is a
+LINSTOR REST API. The REST API is embedded in the LINSTOR controller and since LINSTOR
 0.9.13 configured through the `linstor.toml` configuration file.
 
 ----
@@ -3889,7 +3867,7 @@ Next, import this certificate to your controller truststore:
 ----
 keytool -importkeystore\
  -srcstorepass linstor -deststorepass linstor -keypass linstor\
- -srckeystore client.jks -destkeystore trustore_client.jks
+ -srckeystore client.jks -destkeystore truststore_client.jks
 ----
 
 And enable the truststore in the `linstor.toml` configuration file:
@@ -3898,7 +3876,7 @@ And enable the truststore in the `linstor.toml` configuration file:
 [https]
   keystore = "/path/to/keystore_linstor.jks"
   keystore_password = "linstor"
-  truststore = "/path/to/trustore_client.jks"
+  truststore = "/path/to/truststore_client.jks"
   truststore_password = "linstor"
 ----
 
@@ -3955,7 +3933,7 @@ the different ways that you can set the logging level, ordered by priority (firs
 priority):
 
 . Since LINSTOR *client* version 1.20.1, you can use the command `controller set-log-level` to
-  change the log level used by LINSTOR's running configuration. Various arguments can be used
+  change the log level used by the LINSTOR running configuration. Various arguments can be used
   with this command. Refer to the command's `--help` text for details. For example, to set the
   log level to `TRACE` on the LINSTOR controller and all satellites, enter the following
   command:
@@ -4054,7 +4032,7 @@ When none of the configuration methods above is used LINSTOR will default to `IN
 Since LINSTOR 1.8.0, a https://prometheus.io/[Prometheus] `/metrics` HTTP path is provided with
 LINSTOR and JVM specific exports.
 
-The `/metrics` path also supports three GET arguments to reduce LINSTOR's reported data:
+The `/metrics` path also supports three `GET` arguments to reduce the data that LINSTOR reports:
 
  * `resource`
  * `storage_pools`
@@ -4250,7 +4228,7 @@ line, with all the warnings of caution that would go along with doing so.
 [[s-linstor-drbd-automatisms]]
 === Automatisms for DRBD resources
 
-This section details some of LINSTOR's automatisms for DRBD resources.
+This section details some LINSTOR automatisms for DRBD resources.
 
 [[s-linstor-auto-quorum]]
 ==== Auto-quorum policies
@@ -4263,7 +4241,7 @@ resources automatically.
 Inversely, LINSTOR will automatically disable quorum policies whenever there are less than the
 minimum required resource assignments to achieve quorum.
 
-This is controlled through the, `DrbdOptions/auto-quorum`, property which can be applied to the
+You can control this behavior through the `DrbdOptions/auto-quorum` property which can be applied to the
 `linstor-controller`, `resource-group`, and `resource-definition` LINSTOR objects. Accepted
 values for the `DrbdOptions/auto-quorum` property are `disabled`, `suspend-io`, and `io-error`.
 
@@ -4322,8 +4300,9 @@ This feature uses the following properties to adapt the behavior.
 
 * `DrbdOptions/AutoEvictMaxDisconnectedNodes` sets the percentage of nodes that can be not
   reachable (for whatever reason) at the same time. If more than the given percent of nodes are
-  offline at the same time, the auto-evict will not be triggered for any node , since in this
-  case LINSTOR assumes connection problems from the controller. This property can only be set
+  offline at the same time, the auto-evict will not be triggered for any node.
+  This is because, in this
+  case, LINSTOR assumes connection problems from the controller. This property can only be set
   for the controller, and only accepts a value between 0 and 100. The default value is 34. If
   you want to turn the auto-evict-feature off, simply set this property to 0. If you want to
   always trigger the auto-evict, regardless of how many satellites are unreachable, set it to
