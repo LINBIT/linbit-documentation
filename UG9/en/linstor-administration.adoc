@@ -4827,6 +4827,84 @@ following example:
 # linstor node set-property <node-name> StorPoolNameDrbdMeta
 ----
 
+[[s-linstor-drbd-bitmap-block-size]]
+=== Configuring DRBD bitmap block size
+
+DRBD uses a change-tracking bitmap to identify which storage blocks changed while a peer was disconnected, so that only those blocks need to synchronize when the peer reconnects.
+The memory that DRBD needs for this bitmap is proportional to the size of replicated storage, with a default bitmap block size of 4 KiB consuming approximately 32 MiB of memory per TiB of replicated storage per peer.
+Since LINSTOR version 1.34, you can use the `BitmapBlockSizeNewResource` property to specify a larger bitmap block size, which reduces DRBD memory consumption in inverse proportion to the block size.
+Valid values are powers of 2 between 4 KiB and 1024 KiB, inclusive.
+
+The tradeoff to using a larger bitmap block size is synchronization granularity.
+When a peer reconnects, DRBD synchronizes entire bitmap-block-sized regions, so even a small write while a peer is disconnected causes a full block region to synchronize rather than just the changed data.
+
+NOTE: Specifying a non-default bitmap block size requires `drbd-utils` version 9.33.0 or later on LINSTOR satellite nodes.
+On nodes with an earlier version, LINSTOR will use the default 4 KiB bitmap block size regardless of the property value.
+
+You can set the `BitmapBlockSizeNewResource` property on the following LINSTOR objects,
+listed in increasing order of priority:
+
+- `resource-group`
+- `resource-definition`
+- `volume-definition`
+
+The property only takes effect when LINSTOR creates new DRBD metadata for a resource volume.
+Modifying or removing the property does not affect existing resources.
+LINSTOR records the bitmap block size used at resource creation time in the read-only per-volume `BitmapBlockSize` property, and uses that value if DRBD metadata ever needs to be recreated for the volume.
+
+[[s-linstor-drbd-bitmap-block-size-setting]]
+==== Setting the bitmap block size property
+
+To set the bitmap block size for new resources created from a resource group, enter:
+
+----
+linstor resource-group set-property <resource-group-name> BitmapBlockSizeNewResource <value-in-KiB>
+----
+
+For example, to set a bitmap block size of 64 KiB on a resource group named `my-rg`:
+
+----
+linstor resource-group set-property my-rg BitmapBlockSizeNewResource 64
+----
+
+You can also set the property at the resource definition or volume definition level, where a higher-priority object overrides a lower-priority one:
+
+----
+linstor resource-definition set-property <resource-definition-name> BitmapBlockSizeNewResource <value-in-KiB>
+linstor volume-definition set-property <resource-definition-name> <volume-number> BitmapBlockSizeNewResource <value-in-KiB>
+----
+
+[[s-linstor-drbd-bitmap-block-size-listing]]
+==== Listing the bitmap block size property
+
+To verify that the property is set on a specified LINSTOR object, use the `list-properties` subcommand, for example:
+
+----
+linstor resource-group list-properties my-rg
+----
+
+The output will show a table of properties set on the object, including the `BitmapBlockSizeNewResource` entry:
+
+----
+╭───────────────────────────────────────────╮
+┊ Key                        ┊ Value        ┊
+╞═══════════════════════════════════════════╡
+[...]
+┊ BitmapBlockSizeNewResource ┊ 64           ┊
+╰───────────────────────────────────────────╯
+----
+
+[[s-linstor-drbd-bitmap-block-size-unsetting]]
+==== Unsetting the bitmap block size property
+
+To unset the property, enter the same command without specifying a value:
+
+----
+linstor resource-group set-property <resource-group-name> BitmapBlockSizeNewResource
+----
+
+After unsetting the property, new resources created from the resource group will use the default 4 KiB bitmap block size, unless the property is set on an object with a higher priority, such as the resource definition or volume definition.
+
 [[s-linstor-qos]]
 === QoS settings
 
