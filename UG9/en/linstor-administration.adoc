@@ -1547,6 +1547,12 @@ match an existing storage pool in your environment.
 linstor-db-grp
 ----
 
+Since LINSTOR server version 1.34, diskless resource assignments created by `--diskless-on-remaining` are automatically <<s-drbd-diskless-resource-assignments,DRBD clients>>.
+They do not hold a quorum vote and do not affect the quorum calculation of the resource.
+
+If you create a resource by using the `resource make-available` command, LINSTOR similarly creates a DRBD client assignment when it creates a diskless assignment.
+See <<s-linstor-make-resource-available>>.
+
 Next, set the necessary DRBD options on the resource group. Resources that you spawn from the
 resource group will inherit these options.
 
@@ -1681,20 +1687,58 @@ in the section titled, <<s-using_the_linstor_client>> and verify that you also c
 integration plugins (for example, the Proxmox plugin) to be ready for multiple LINSTOR
 controllers.
 
-[[s-drbd_clients]]
-=== DRBD clients
+[[s-drbd-diskless-resource-assignments]]
+=== DRBD diskless resource assignments
 
-By using the `--drbd-diskless` option instead of `--storage-pool` you can have a permanently
-diskless DRBD device on a node. This means that the resource will appear as block device and can
-be mounted to the file system without an existing storage-device. The data of the resource is
-accessed over the network on another node with the same resource.
+LINSTOR supports two kinds of diskless DRBD resource assignments.
+Both make the resource available as a block device on the node by accessing data over the network from a diskful peer, but they differ in their effect on DRBD quorum.
+
+`--drbd-diskless`:: This type of resource gives the node a quorum vote.
+Adding a diskless assignment of this kind counts toward the majority required for quorum.
+In a 3-node cluster with two diskful nodes and one DRBD diskless node, a resource can keep quorum if one diskful node fails.
+
+`--drbd-client`:: Since LINSTOR server version 1.34 and LINSTOR client version 1.28, the node does not get a quorum vote with this type of resource.
+A typical use case is a 3-site cluster with diskful replicas in two sites and a tiebreaker in the third.
+If another node in one of those sites needs access to the resource but does not have a replica, in LINSTOR versions before 1.34, a `--drbd-diskless` resource assignment would be created.
+This previously standard diskless assignment would cause the LINSTOR `DrbdOptions/auto-add-quorum-tiebreaker` automatism to delete the existing tiebreaker resource because it would no longer be needed.
+This would leave one site with two quorum votes and the other diskful site with one.
+By using `--drbd-client` you can give the node data access without it participating in quorum calculations for the resource, so as not to disrupt the quorum balance between the sites.
+
+NOTE: Resource group auto-placement with `--diskless-on-remaining` and the `resource make-available` command also create DRBD client assignments automatically (since LINSTOR server version 1.34).
+Nodes that get a DRBD client replica through either mechanism do not get a quorum vote for the resource.
+
+==== Creating diskless resource assignments with a quorum vote (DRBD diskless)
+
+By using the `--drbd-diskless` option instead of `--storage-pool`, you can create a
+diskless DRBD device on a node. This means that the resource will appear as a block device and can
+be mounted to the file system without an existing storage device. The data of the resource is
+accessed over the network on another node that has a diskful copy of the same resource.
+Assuming an existing `backups` resource definition and accompanying volume definition, you could enter the following command to create a DRBD diskless resource:
 
 ----
-# linstor resource create delta backups --drbd-diskless
+linstor resource create delta backups --drbd-diskless
 ----
 
-NOTE: The option `--diskless` is deprecated. Use the `--drbd-diskless` or `--nvme-initiator`
-commands instead.
+NOTE: The option `--diskless` is deprecated.
+Use the `--drbd-diskless` or `--nvme-initiator` options instead.
+
+==== Creating diskless resource assignments without a quorum vote (DRBD client)
+
+As mentioned earlier, you can create a diskless resource that does not participate in DRBD quorum voting by using the `--drbd-client` option (also available as `--drbd-diskless-client` or `-c`).
+The resource behaves identically to a `--drbd-diskless` assignment from an I/O perspective, but DRBD does not count the node when determining quorum.
+
+----
+linstor resource create delta backups --drbd-client
+----
+
+NOTE: By definition, a DRBD client and a tiebreaker assignment for the same resource are mutually exclusive on the same node.
+
+To change an existing diskless assignment between the two types, use `resource modify`:
+
+----
+linstor resource modify delta backups --drbd-client
+linstor resource modify delta backups --drbd-diskless
+----
 
 [[s-linstor-drbd-consistency-group-multiple-volumes]]
 === DRBD consistency groups (multiple volumes within a resource)
@@ -3604,6 +3648,34 @@ decrease. For this reason, it might not always be the case that LINSTOR will use
 capacity calculation to limit over provisioning the storage pool, even though its ratio is less
 that the free capacity ratio.
 
+[[s-linstor-make-resource-available]]
+=== Making a resource available on a node
+
+By using the `resource make-available` command, you can ensure that a resource exists on a specified node.
+If the resource is already present on the node in the specified state, the command does nothing.
+If it does not exist on the node, LINSTOR creates it, so long as there is an existing LINSTOR resource definition for the resource.
+
+Without the `--diskful` option, LINSTOR creates a diskless assignment on the specified node if at least one diskful replica of the resource already exists in the cluster.
+In LINSTOR versions from 1.34 onwards, this will be a `--drbd-client`-type diskless assignment.
+If no diskful replica exists yet, LINSTOR creates a diskful assignment instead.
+If the resource already exists as diskless on the node and you specify `--diskful`, LINSTOR changes the assignment to diskful.
+When making a diskful assignment, LINSTOR selects a storage pool on the node by using the autoplace configuration of the resource group associated with the resource definition (`DfltRscGrp` if there is no explicit association).
+
+Given an existing `backups` resource definition, entering the following command ensures that a resource `backups` is available as a diskless assignment on node `linstor-1`:
+
+----
+linstor resource make-available linstor-1 backups
+----
+
+To ensure the resource is available as a diskful assignment:
+
+----
+linstor resource make-available --diskful linstor-1 backups
+----
+
+You can use other options with the `resource make-available` command. For example, you can specify a layer list, or specify a TCP port to use for DRBD replication, by using the `--layer-list` and `--drbd-tcp-port` options.
+See `linstor resource make-available --help` for command syntax and usage.
+
 [[s-linstor-toggling-resources-between-diskful-and-diskless]]
 === Toggling a resource between diskful and diskless
 
@@ -3624,7 +3696,13 @@ resource `backups` on node `alpha`, enter the following command:
 To toggle the resource back to being diskless, enter the following command:
 
 ----
-# linstor resource toggle-disk alpha backups --diskless
+# linstor resource toggle-disk alpha backups --drbd-diskless
+----
+
+Since LINSTOR server version 1.34 and LINSTOR client version 1.28, you can alternatively toggle to a diskless assignment without a quorum vote by using `--drbd-client` in place of `--drbd-diskless` (or the deprecated `--diskless`):
+
+----
+linstor resource toggle-disk alpha backups --drbd-client
 ----
 
 ==== Recovering stuck resources from failed toggle disk operations
@@ -3635,8 +3713,8 @@ Since LINSTOR version 1.34.0, is it possible to retry or cancel a failed toggle 
 
 After resolving the root cause of the failed toggle disk operation, you can retry the operation by re-entering the original `resource toggle-disk` command.
 Alternatively, you can cancel a failed toggle disk operation by entering the "opposite" command.
-For example, to cancel the `linstor resource toggle-disk --diskless` command shown earlier, if it became stuck, enter a `linstor resource toggle-disk --storage-pool pool_ssd` command.
-If a diskless resource becomes stuck when trying to toggle it to a diskful state, you would enter a `linstor resource toggle-disk --diskless` command to cancel the operation.
+For example, to cancel the `linstor resource toggle-disk --drbd-diskless` command shown earlier, if it became stuck, enter a `linstor resource toggle-disk --storage-pool pool_ssd` command.
+If a diskless resource becomes stuck when trying to toggle it to a diskful state, you would enter a `linstor resource toggle-disk --drbd-diskless` command to cancel the operation.
 
 [[s-linstor-migrating-a-resource-to-another-node]]
 ==== Migrating a resource to another node
@@ -4422,6 +4500,51 @@ granularly, control the quorum policies of your resources should you want to.
 TIP: The default policies for `DrbdOptions/auto-quorum` are `quorum majority`, and `on-no-quorum
 io-error`. For more information about DRBD's quorum features and their behavior, refer to the
 {url-drbd-ug}#s-feature-quorum[quorum section of the _DRBD User Guide_].
+
+Since LINSTOR client version 1.28, the `resource list` output includes a *Vote* column that shows whether a node has a DRBD quorum vote for the resource assignment.
+For example:
+
+----
+linstor resource list --resource backups
+----
+
+Output similar to the following shows the *Vote* column for a resource with two diskful replicas and one DRBD client:
+
+----
+╭────────────────────────────────────────────────────────────────────────────╮
+┊ ResourceName ┊ Node      ┊ Layers       ┊ Usage  ┊ Conns ┊    State ┊ Vote ┊
+╞════════════════════════════════════════════════════════════════════════════╡
+┊ backups      ┊ alpha     ┊ DRBD,STORAGE ┊ Unused ┊ Ok    ┊ UpToDate ┊ Yes  ┊
+┊ backups      ┊ charlie   ┊ DRBD,STORAGE ┊ Unused ┊ Ok    ┊ UpToDate ┊ Yes  ┊
+┊ backups      ┊ delta     ┊ DRBD,STORAGE ┊ Unused ┊ Ok    ┊ Diskless ┊ No   ┊
+╰────────────────────────────────────────────────────────────────────────────╯
+----
+
+You can also display a *Flags* column (hidden by default) that distinguishes Diskless, Tiebreaker, and Client assignments.
+For example:
+
+----
+linstor resource list --resource backups -o +Flags
+----
+
+You can make this behavior permanent, without needing to use an `-o +Flags` option, by adding to your `linstor-client.conf` file:
+
+----
+[resource.list]
+    output = "+flags"
+----
+
+The following output shows both the *Vote* and *Flags* columns:
+
+----
+╭─────────────────────────────────────────────────────────────────────────────────────╮
+┊ ResourceName ┊ Node      ┊ Layers       ┊ Usage  ┊ Conns ┊    State ┊ Vote ┊ Flags  ┊
+╞═════════════════════════════════════════════════════════════════════════════════════╡
+┊ backups      ┊ alpha     ┊ DRBD,STORAGE ┊ Unused ┊ Ok    ┊ UpToDate ┊ Yes  ┊        ┊
+┊ backups      ┊ charlie   ┊ DRBD,STORAGE ┊ Unused ┊ Ok    ┊ UpToDate ┊ Yes  ┊        ┊
+┊ backups      ┊ delta     ┊ DRBD,STORAGE ┊ Unused ┊ Ok    ┊ Diskless ┊ No   ┊ Client ┊
+╰─────────────────────────────────────────────────────────────────────────────────────╯
+----
 
 IMPORTANT: The `DrbdOptions/auto-quorum` policies will override any manually configured
 properties if `DrbdOptions/auto-quorum` is not disabled.
