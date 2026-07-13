@@ -225,24 +225,36 @@ However, you only need to restart the LINSTOR controller service on the node cur
 On DEB-based Linux systems, because LINSTOR services will restart automatically after installing an updated version, you will need to plan for more downtime of the LINSTOR control plane than on an RPM-based system.
 
 First, upgrade the LINSTOR controller software on the active LINSTOR controller node.
+The command you need to enter depends on whether the node is in a combined role (running both the controller and satellite services).
+
+IMPORTANT: If you have made the LINSTOR controller service highly available in your cluster, you will need to update the `linstor-controller` package on all potential LINSTOR controller nodes, by using a command appropriate to the role of the node (controller-only or combined).
+
+On a controller-only node:
 
 ----
 apt install -y --only-upgrade linstor-controller
 ----
 
-IMPORTANT: If you have made the LINSTOR controller service highly available in your cluster, you will need to update the `linstor-controller` package on all potential LINSTOR controller nodes.
+On a combined role node, `linstor-controller` and `linstor-satellite` share a versioned `linstor-common` dependency.
+You therefore need to upgrade them together in a single command.
+Attempting to upgrade only `linstor-controller` on a combined role node will fail, because the required `linstor-common` upgrade would conflict with the installed `linstor-satellite` package.
 
-Upgrading the software will automatically restart the controller service.
-At this point, if you enter a `linstor node list` command, output will show that your satellite nodes are in an `OFFLINE(VERSION MISMATCH)` state.
+----
+apt install -y --only-upgrade linstor-controller linstor-satellite
+----
 
-Next, update the LINSTOR client and satellite packages on nodes where those packages are installed.
-Modify the command below to only update packages applicable to each node's role in your LINSTOR cluster:
+Upgrading the controller package will automatically restart the controller service.
+On a combined role node, the satellite service will also restart automatically.
+At this point, after the `linstor-controller` service restarts, if you enter a `linstor node list` command, output will show that any satellite-only nodes are in an `OFFLINE(VERSION MISMATCH)` state.
+
+Next, update the LINSTOR client and satellite packages on satellite-only nodes:
 
 ----
 apt install -y --only-upgrade linstor-client linstor-satellite
 ----
 
-IMPORTANT: Upgrading the LINSTOR satellite service software package on your satellite (and combined) nodes will automatically restart the LINSTOR satellite service on those nodes.
+IMPORTANT: Upgrading the LINSTOR satellite service software package on your satellite
+nodes will automatically restart the LINSTOR satellite service on those nodes.
 
 [[s-linstor-upgrading-verifying]]
 ==== Verifying a LINSTOR upgrade
