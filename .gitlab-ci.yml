@@ -3,6 +3,9 @@ stages:
   - preview
   - deploy
 
+variables:
+  BUILD_HELPERS_VERSION: 0fa86e05314b906db34862d95e81b598dc029fa1
+
 build:
   stage: build
   image:
@@ -45,28 +48,48 @@ lint:
       codequality:
         - vale-climate.json
 
-preview:
+render-preview:
   stage: preview
   image: $LINBIT_DOCKER_REGISTRY/ug-preview:latest
   rules:
     - if: $CI_MERGE_REQUEST_ID
+  needs:
+    - build
+  script:
+    - mkdir preview
+    - |
+      for zip in "$CI_PROJECT_DIR"/UG9/en/output-html-finalize/*.zip; do
+        prefix=$(basename "$zip" .zip)
+        (cd /build && php linbit-drbd.php "$zip" "$CI_PROJECT_DIR/preview/$prefix")
+        echo "<a href='./$prefix/index.html'><h2>$prefix</h2></a>" >> preview/index.html
+      done
+  artifacts:
+    paths:
+      - preview/
+
+preview:
+  stage: preview
+  image: $LINBIT_DOCKER_REGISTRY/build-helpers:$BUILD_HELPERS_VERSION
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  needs:
+    - render-preview
   environment:
     name: preview/$CI_COMMIT_REF_SLUG
-    url: $LINBIT_REGISTRY_URL/repository/pages/$CI_COMMIT_REF_SLUG/
+    url: $LINBIT_PULP_BASE_URL/pulp/content/file/pages/linbit-documentation/$CI_COMMIT_REF_SLUG/index.html
   script:
-    - zips=$(realpath ./UG9/en/output-html-finalize/*.zip)
-    - mkdir /index
-    - cd /build
+    - . gitlab-utils.sh
+    - ci_prepare_tools
+    # Fetch and cache the Pulp API schema once before uploading in parallel.
+    - pulp status > /dev/null
     - |
-      for zip in $zips; do
-        prefix=$(basename $zip .zip)
-        php linbit-drbd.php $zip /out
-        ./upload.sh $CI_COMMIT_REF_SLUG /out $prefix
-        echo "<a href='./$prefix/'><h2>$prefix</h2></a>" >> /index/index.html
-      done
-      ./upload.sh $CI_COMMIT_REF_SLUG /index .
-  dependencies:
-    - build
+      set -o pipefail
+      cd preview
+      find . -type f -printf '%P\n' \
+        | parallel --halt now,fail=1 --jobs 8 \
+            pulp file content upload --file {} --relative-path "linbit-documentation/$CI_COMMIT_REF_SLUG/{}" \
+        | jq --slurp 'map({sha256, relative_path})' > "$CI_PROJECT_DIR/preview-content.json"
+      pulp file repository content modify --repository pages --add-content "@$CI_PROJECT_DIR/preview-content.json"
 
 deploy:
   stage: deploy
