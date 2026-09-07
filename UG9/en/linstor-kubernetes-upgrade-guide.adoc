@@ -33,7 +33,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: linbit-sds
 resources:
-  - https://charts.linstor.io/static/v2.10.0.yaml # <1>
+  - https://charts.linstor.io/static/v2.12.0.yaml # <1>
 generatorOptions:
   disableNameSuffixHash: true
 secretGenerator:
@@ -66,7 +66,7 @@ If you used <<s-kubernetes-creating-operator-helm,Helm>>, to deploy LINBIT SDS, 
 $ helm repo update
 [...]
 Update Complete. ⎈Happy Helming!⎈
-$ helm install linstor-operator linstor/linstor-operator --wait
+$ helm upgrade -n linbit-sds linstor-operator linstor/linstor-operator --wait
 Release "linstor-operator" has been upgraded. Happy Helming!
 [...]
 ----
@@ -237,6 +237,92 @@ $ helm upgrade linstor-op charts/piraeus --set operator.controller.controllerIma
 ==== Upgrading instructions for specific versions
 
 Some versions require special steps, see below.
+
+===== Upgrading to v2.12
+
+Version v2.12 requires Kubernetes v1.30 or later.
+Verify that your cluster runs a supported Kubernetes version before upgrading.
+
+The CSI controller no longer has cluster-wide permission to read Secrets.
+This permission was only used by the `csi-snapshotter` sidecar to read the Secrets referenced in a `VolumeSnapshotClass`, for example, S3 credentials for <<s-kubernetes-snapshots-s3,storing snapshots on S3 storage>>.
+
+List all `VolumeSnapshotClass` resources along with the Secrets they reference:
+
+----
+kubectl get volumesnapshotclasses -o custom-columns='NAME:.metadata.name,SECRET-NAMESPACE:.parameters.csi\.storage\.k8s\.io/snapshotter-secret-namespace,SECRET-NAME:.parameters.csi\.storage\.k8s\.io/snapshotter-secret-name'
+----
+
+Output will look similar to this:
+
+----
+NAME                            SECRET-NAMESPACE   SECRET-NAME
+linstor-csi-snapshot-class-s3   storage            linstor-csi-s3-access
+linbit-sds-snapshots            <none>             <none>
+----
+
+If any Secret is referenced, grant the `linstor-csi-controller` ServiceAccount access to it *before* upgrading, otherwise creating new snapshots and deleting existing ones will fail.
+Create the following resources, replacing `NAMESPACE` with the namespace containing the Secret and `SECRET-NAME` with the name of the Secret.
+
+[source,yaml]
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: read-snapshot-secret
+  namespace: NAMESPACE
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "secrets" ]
+    resourceNames: [ SECRET-NAME ]
+    verbs: [ "get" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-snapshot-secret
+  namespace: NAMESPACE
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: read-snapshot-secret
+subjects:
+  - kind: ServiceAccount
+    name: linstor-csi-controller
+    # Must be the namespace of the LINBIT SDS deployment.
+    namespace: linbit-sds
+----
+
+Alternatively, restore the previous cluster-wide access by patching the ClusterRole through the `LinstorCluster` resource:
+
+[source,yaml]
+----
+apiVersion: piraeus.io/v1
+kind: LinstorCluster
+metadata:
+  name: linstorcluster
+spec:
+  patches:
+    - target:
+        kind: ClusterRole
+        name: linstor-csi-controller
+      patch: |-
+        - op: add
+          path: /rules/-
+          value:
+            apiGroups: [ "" ]
+            resources: [ "secrets" ]
+            verbs: [ "get" ]
+----
+
+The Operator itself also no longer has cluster-wide permission to read and modify Secrets.
+It now manages Secrets only in its own namespace.
+
+The deprecated `csi-health-monitor` sidecar container was removed from the `linstor-csi-controller` Deployment.
+Remove any patches that target this container.
+
+===== Upgrading to v2.11
+
+No additional steps are necessary.
 
 ===== Upgrading to v2.10
 

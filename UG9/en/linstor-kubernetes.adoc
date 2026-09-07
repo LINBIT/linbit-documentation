@@ -61,7 +61,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: linbit-sds
 resources:
-  - https://charts.linstor.io/static/v2.10.0.yaml # <1>
+  - https://charts.linstor.io/static/v2.12.0.yaml # <1>
 generatorOptions:
   disableNameSuffixHash: true
 secretGenerator:
@@ -180,6 +180,78 @@ EOF
 
 Other types of storage pools can be configured as well. Refer to
 link:https://piraeus.io/docs/stable/reference/linstorsatelliteconfiguration/#specstoragepools[the examples upstream].
+
+[[s-kubernetes-configuring-shared-storage-v2]]
+===== Configuring shared LVM storage pools
+
+Since LINSTOR Operator v2.12, you can configure storage pools backed by an LVM volume group that is shared between multiple nodes, for example, a volume group on a SAN that is attached to several nodes.
+This is the Kubernetes equivalent of the `--shared-space` and `--external-locking` options of the `linstor storage-pool create` command, described in <<s-storage_pools_shared_by_multiple_nodes>>.
+
+Shared storage pools have the following restrictions:
+
+- Only thick-provisioned LVM pools (`lvmPool`) support shared storage.
+LVM thin pools do not.
+- The Operator cannot create a shared volume group.
+Create the volume group on the hosts before configuring the storage pool, and do not set a `source` on the storage pool.
+- The `sharedSpace` and `externalLocking` settings of an existing storage pool cannot be changed.
+To change them, delete the storage pool and create it again with the setting you want.
+
+To configure a shared storage pool, set `sharedSpace` on the `lvmPool`.
+The value identifies the shared storage in LINSTOR: all storage pools backed by the same physical storage must use the same value.
+Because a `LinstorSatelliteConfiguration` applies the same value to every selected node, using the name of the volume group is recommended.
+Use a `nodeSelector` to apply the configuration only to the nodes that have access to the shared volume group.
+
+The following example configures the shared volume group `shared_vg_ssd` as storage pool `pool_ssd` on all nodes labeled `example.com/shared-storage: "ssd"`:
+
+----
+kubectl apply -f - <<EOF
+apiVersion: piraeus.io/v1
+kind: LinstorSatelliteConfiguration
+metadata:
+  name: shared-storage-pool
+spec:
+  nodeSelector:
+    example.com/shared-storage: "ssd"
+  storagePools:
+    - name: pool_ssd
+      lvmPool:
+        volumeGroup: shared_vg_ssd
+        sharedSpace: shared_vg_ssd
+EOF
+----
+
+Without further configuration, LINSTOR uses its own locking mechanism to make sure that only one node in the shared space runs LVM commands at a time.
+Alternatively, you can rely on the LVM lock manager, `lvmlockd`, running on the hosts, by setting `externalLocking: true`.
+Using external locking requires the following:
+
+- The volume group was created with the `vgcreate --shared` option.
+- `lvmlockd` and a supported lock manager, such as `sanlock` or `dlm`, are running on every selected node, and `use_lvmlockd = 1` is set in the LVM configuration of the hosts.
+The satellite containers reuse the LVM configuration of the hosts.
+
+The Operator mounts the `lvmlockd` PID file and sockets from the host into the satellite container.
+The satellite pod only starts after `lvmlockd` is running on the host.
+
+----
+$ kubectl apply -f - <<EOF
+apiVersion: piraeus.io/v1
+kind: LinstorSatelliteConfiguration
+metadata:
+  name: shared-storage-pool
+spec:
+  nodeSelector:
+    example.com/shared-storage: "ssd"
+  storagePools:
+    - name: pool_ssd
+      lvmPool:
+        volumeGroup: shared_vg_ssd
+        sharedSpace: shared_vg_ssd
+        externalLocking: true
+EOF
+----
+
+WARNING: Do not run LVM commands on a shared volume group that LINSTOR manages.
+To further prevent LVM commands from running, outside of LINSTOR initiating them, disable automatic activation of its logical volumes on the hosts.
+Refer to <<s-storage_pools_shared_by_multiple_nodes>> for details.
 
 [[s-kubenetes-securing-deployment-v2]]
 ==== Securing Operator v2 deployment
@@ -2386,6 +2458,7 @@ $ kubectl scale deploy/volume-logger --replicas=1
 deployment.apps/volume-logger scaled
 ----
 
+[[s-kubernetes-snapshots-s3]]
 ==== Storing snapshots on S3 storage
 
 LINSTOR can store snapshots on S3 compatible storage for disaster recovery. This is integrated in Kubernetes using
@@ -2429,8 +2502,49 @@ Refer to the instructions in the <<s-linstor-snapshots-shipping>> section for th
 `snap.linstor.csi.linbit.com/` parameters. The credentials used to log in are stored in a separate secret, as show in
 the example above.
 
-Referencing the above storage class when creating snapshots causes the snapshots to be automatically uploaded to the
-configured S3 storage.
+Since LINSTOR Operator v2.12, the CSI controller has no permission to read Secrets by default.
+You need to explicitly grant the `linstor-csi-controller` ServiceAccount read access to the Secret holding the S3 credentials.
+Create a Role in the namespace containing the Secret, allowing read access to only this Secret, and bind it to the `linstor-csi-controller` ServiceAccount:
+
+[source,yaml]
+----
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: read-linstor-csi-s3-access
+  # Must be the namespace containing the Secret.
+  namespace: storage
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "secrets" ]
+    resourceNames: [ "linstor-csi-s3-access" ]
+    verbs: [ "get" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-linstor-csi-s3-access
+  # Must be the namespace containing the Secret.
+  namespace: storage
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: read-linstor-csi-s3-access
+subjects:
+  - kind: ServiceAccount
+    name: linstor-csi-controller
+    # Must be the namespace of the LINBIT SDS deployment.
+    namespace: linbit-sds
+----
+
+The credentials are used when creating a backup, and again when deleting it.
+Keep the Secret and this grant in place for as long as any backup created with these credentials exists.
+
+TIP: If the grant is missing, the `VolumeSnapshot` never becomes ready.
+Describing the `VolumeSnapshot` resource shows an error event stating that the `linstor-csi-controller` ServiceAccount cannot get the referenced Secret.
+
+Referencing the above storage class when creating snapshots causes the snapshots to be automatically uploaded to the configured S3 storage.
 
 ===== Restoring from remote snapshots
 
