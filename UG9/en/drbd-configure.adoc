@@ -690,6 +690,18 @@ resource configuration are counted.
 If all hosts are specified _before_ creating the meta-data, this will "just work";
 adding bitmap slots for further nodes is possible later, but incurs some manual work.
 
+TIP: Since DRBD 9.3, `create-md` also sets the granularity of the quick-sync bitmap, which is then fixed for the lifetime of the metadata.
+The default is 4 KiB per bit.
+On a large volume, or where the layer above DRBD writes in units larger than 4 KiB, a coarser granularity shrinks the bitmap in proportion.
+You can set the granularity when you create the metadata.
+
+----
+# drbdadm create-md --bitmap-block-size=64k <resource>
+----
+
+To change it afterward, you re-create or convert the metadata.
+Refer to <<s-bitmap-granularity>> for choosing a value.
+
 .Enable the resource
 This step associates the resource with its backing device (or devices,
 in case of a multi-volume resource), sets replication parameters, and

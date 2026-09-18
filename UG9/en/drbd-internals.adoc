@@ -108,6 +108,13 @@ your device metadata, see <<s-meta-data-size>>.
 
 NOTE: External metadata requires a minimum of a 1MB device size.
 
+.Addressing metadata by index
+A single metadata device can hold the metadata for several replicated devices.
+Each replicated device then addresses its own metadata by a numeric index, as in `meta-disk /dev/sdb1 [0];`.
+An index occupies a fixed slot of 128 MiB, which covers a replicated device of at most 4 TiB with two cluster nodes.
+If you specify the metadata device without an index, as in `meta-disk /dev/sdb1;`, that device holds the metadata for a single replicated device.
+DRBD then derives the metadata size from the size of the lower-level device.
+
 [[s-meta-data-size]]
 ==== Estimating metadata size
 
@@ -122,18 +129,130 @@ image::images/metadata-size-exact.svg[]
 peer bitmap slots configured in the metadata (`bm-max-peers`).
 
 NOTE: These formulas assume the default bitmap granularity of 4 KiB per bit.
-If you use a different `bm-bytes-per-bit` setting, the bitmap portion of the
-metadata scales inversely with the granularity.
+The size of the bitmap portion of the metadata is inversely proportional to the 
+  <<s-bitmap-granularity,bitmap granularity>>.
 
-NOTE: You may retrieve the device size (in bytes) by issuing `blockdev --getsize64
+NOTE: You can retrieve the device size (in bytes) by issuing `blockdev --getsize64
 <device>`; to convert to MB, divide by 1048576 (= 2^20^ or 1024^2^).
 
-In practice, you may use a reasonably good approximation, given
-below. Note that in this formula, the unit is megabytes, not sectors:
+In practice, you can use a reasonably good approximation, as shown in the following
+example. Note that in this formula, the unit is megabytes, not sectors:
 
 [[eq-metadata-size-approx]]
 .Estimating DRBD metadata size (approximately)
 image::images/metadata-size-approx.svg[]
+
+[[s-bitmap-granularity]]
+==== Bitmap granularity
+
+indexterm:[bitmap granularity]indexterm:[metadata]Each bit in the <<s-quick-sync-bitmap,quick-sync bitmap>> covers a fixed chunk of the lower-level device.
+That chunk is a bitmap block, and its size is the bitmap granularity.
+Up to and including DRBD 9.2, the bitmap block was always 4 KiB.
+Since DRBD 9.3 and `drbd-utils` 9.33, you can choose the bitmap granularity when you create the metadata, by passing the `--bitmap-block-size` option to `drbdadm create-md`:
+
+----
+# drbdadm create-md --bitmap-block-size=64k <resource>
+----
+
+Permitted values are the powers of two from 4 KiB up to 1 MiB: `4k`, `8k`, `16k`, `32k`, `64k`, `128k`, `256k`, `512k`, and `1M`.
+The default is `4k`.
+
+Bitmap granularity is a property of the metadata itself.
+DRBD reads it from the metadata when it attaches to the lower-level device.
+You do not configure it in the DRBD configuration file (`drbd.conf`).
+
+The type of metadata you configure determines which granularities you can create.
+To use a granularity other than 4 KiB, put the metadata in an area whose size derives from the device size, that is, `meta-disk internal;` or an external `meta-disk` specified without an index.
+<<s-external-meta-data,Metadata addressed by a numeric index>> occupies a slot of fixed size and fixed offsets that DRBD accepts only at 4096 bytes per bitmap bit.
+
+IMPORTANT: The `drbdadm create-md` command will fail with an error if you specify `--bitmap-block-size` for metadata at an index.
+
+[[s-bitmap-granularity-effects]]
+===== Effects of granularity on bitmap size and resynchronization data
+
+A coarser bitmap describes the same lower-level device with fewer bits.
+The bitmap that DRBD holds in memory shrinks along with the on-disk bitmap.
+At the default 4 KiB per bit, the bitmap occupies about 32 MiB per TiB of storage and per peer bitmap slot.
+At 1 MiB per bit, the same storage and slot occupy about 128 KiB.
+
+The tradeoff for reducing the on-disk and in-memory bitmap size this way is the amount of resynchronization data.
+The bitmap block is the smallest unit that DRBD tracks and resynchronizes.
+A write to a single sector within a bitmap block marks the entire block out of sync, and a later resynchronization transfers the whole block across the network connection.
+A granularity much coarser than the writes that arrive at the DRBD device marks more data out of sync than the writes actually changed.
+A resynchronization then transfers more data than needed and takes longer.
+
+[[s-bitmap-granularity-choosing]]
+===== Choosing a granularity
+
+Align the bitmap granularity with the size of the writes that arrive at the DRBD device.
+Many databases, for example, PostgreSQL and Microsoft SQL Server, write in units of 8 KiB.
+Under such a workload, a 4 KiB granularity adds no precision.
+Each 8 KiB write that is aligned to an 8 KiB boundary spans two bits in the quick-sync bitmap, and never sets one without the other.
+Using an 8 KiB granularity, rather than the 4 KiB default, reduces the bitmap size by half and adds no resynchronization data.
+The same reasoning applies to file system block sizes, and to the allocation sizes of any storage layer stacked on top of DRBD.
+
+[[s-bitmap-granularity-peers]]
+===== Using different granularities on peer nodes
+
+The bitmap granularity is a property of the metadata on each node, not of the resource or of the connection.
+Nodes within one cluster can use different granularities.
+DRBD exchanges bitmaps between peers in an encoding that does not depend on the granularity.
+The receiving node converts the bitmap to its own granularity, setting a bit if any of the incoming bits that it covers was set.
+No out-of-sync information is lost in the conversion.
+
+You can therefore change the granularity of a cluster one node at a time.
+Re-create or convert the metadata on each node in turn, as described in <<s-bitmap-granularity-changing>>.
+This procedure takes the resource down only on the node you are working on.
+
+IMPORTANT: Use a granularity other than 4 KiB only when every node runs DRBD 9.3 or later.
+A peer running an earlier version assumes 4 KiB per bit, and DRBD logs `My bitmap granularity is <value>. Upgrade this peer to make it aware.`
+A resynchronization to such a peer can repeat without completing.
+
+[[s-bitmap-granularity-reading]]
+===== Reading the current granularity
+
+The `drbdadm dump-md` command reports the bitmap granularity in bytes, as `bm-byte-per-bit`:
+
+----
+# drbdadm dump-md --force <resource> | grep bm-byte-per-bit
+----
+
+Output will look similar to this:
+
+----
+bm-byte-per-bit 4096;
+----
+
+Use the `--force` option for convenience.
+Using it allows the dump to run while the resource is attached, without needing user confirmation.
+The granularity is fixed for the lifetime of the metadata, so the value reported for `bm-byte-per-bit` is accurate whether or not the resource is running.
+
+[[s-bitmap-granularity-changing]]
+===== Changing the granularity of existing metadata
+
+The granularity determines the layout of the metadata, so you cannot change the granularity of existing metadata without rewriting that metadata.
+You can re-create the metadata with `drbdadm create-md --bitmap-block-size=<value>`.
+This discards the out-of-sync information and causes a full resynchronization afterward.
+Until that resynchronization completes, the node has an _Inconsistent_ <<s-disk-states,disk state>> and cannot take over the service from its peer.
+Refer to <<s-fixed_rate_synchronization>> to estimate how long that resynchronization takes.
+
+To preserve the out-of-sync information, convert a metadata dump instead.
+Both procedures require the resource to be down on the node you are changing, so the difference is what happens after you bring it back up.
+After you restore a converted dump, the node resynchronizes only the blocks that were already out of sync, not the whole device.
+Run the following commands with the resource down on the node you are converting.
+
+----
+# drbdmeta_cmd=$(drbdadm -d dump-md <resource>)
+# ${drbdmeta_cmd} > /tmp/md.dump
+# ${drbdmeta_cmd/dump-md/convert-dump} /tmp/md.dump --bitmap-block-size=64k > /tmp/md-64k.dump
+# ${drbdmeta_cmd/dump-md/restore-md} /tmp/md-64k.dump
+----
+
+Refer to the `drbdmeta` man page from `drbd-utils` 9.35 or later for the conversion rules.
+
+NOTE: The `--bitmap-block-size` option with the `create-md` command is available since `drbd-utils` version 9.33.
+The `convert-dump` command is available since `drbd-utils` 9.35.
+With earlier versions, re-creating the metadata is the only way to change the granularity.
 
 [[s-gi]]
 === Generation identifiers
@@ -411,9 +530,10 @@ sync (identical on both nodes) or out-of sync. It is only relevant
 when a resource is in disconnected mode.
 
 In the quick-sync bitmap, one bit represents a chunk of on-disk data.
-By default, each bit covers 4 KiB, but since DRBD 9.3, this is configurable up to 1 MiB
-per bit. If the bit is cleared, it means that the corresponding block is
-still in sync with the peer node. That implies that the block has not
+By default, each bit covers 4 KiB.
+Since DRBD 9.3, you can configure this up to 1 MiB per bit, as described in <<s-bitmap-granularity>>.
+If the bit is cleared, it means that the
+corresponding block is still in sync with the peer node. That implies that the block has not
 been written to since the time of disconnection. Conversely, if the
 bit is set, it means that the block has been modified and needs to be
 re-synchronized whenever the connection becomes available again.
