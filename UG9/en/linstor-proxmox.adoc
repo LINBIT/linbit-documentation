@@ -162,6 +162,46 @@ controller.
 The `resourcegroup` parameter specifies the name of the LINSTOR resource group that you want to
 associate with the DRBD-backed storage in Proxmox.
 
+[[s-linstor-proxmox-fqdn-node-names]]
+==== Using fully qualified domain names as LINSTOR node names
+
+Proxmox VE refers to a node by its short hostname, such as `pve1`, even when the fully qualified domain name (FQDN) of the node is `pve1.dc1.example.com`.
+The plugin passes that short name to LINSTOR.
+If you registered the LINSTOR nodes under their FQDNs, no LINSTOR node named `pve1` exists.
+Creating, activating, or deactivating a VM disk then fails.
+
+To work around this, either append the domain suffix to the name that the plugin sends, or register the LINSTOR nodes under their short hostnames.
+
+[[s-linstor-proxmox-searchdomain]]
+===== Appending a domain suffix to the Proxmox VE node name
+
+Set the `searchdomain` option in the `drbd` storage entry of the `/etc/pve/storage.cfg` file.
+When you set `searchdomain`, the plugin appends that domain suffix to the node name before it sends the name to LINSTOR.
+The resulting name then matches the LINSTOR-registered FQDN node name, such as `pve1.dc1.example.com`.
+This option is available in plugin version 8.3.0 and later.
+
+----
+drbd: drbdstorage
+   resourcegroup defaultpool
+   content images,rootdir
+   controller 10.11.12.13
+   searchdomain dc1.example.com
+----
+
+IMPORTANT: You can set only one domain in the `searchdomain` option.
+A single storage entry therefore cannot serve both `pve1.dc1.example.com` and `pve2.dc2.example.com`.
+
+[[s-linstor-proxmox-short-node-names]]
+===== Registering LINSTOR nodes under their short hostnames
+
+In a new LINSTOR cluster, create each node under its short hostname, such as `pve1`.
+
+LINSTOR has no node rename command.
+In an existing cluster, delete each node and then create it again under its short hostname.
+
+CAUTION: Deleting a LINSTOR node also deletes the resources that are still deployed on it.
+Before you delete a node, <<linstor-administration.adoc#s-linstor-node-evacuate,evacuate>> it so that LINSTOR moves its resources to other nodes in the cluster.
+
 [[s-linstor-proxmox-more-than-one-resource-group]]
 ==== Configuring more than one LINSTOR resource group for use in Proxmox
 
@@ -214,6 +254,7 @@ interruption at all.
 | `controller`    | The IP of the LINSTOR controller (',' separated list allowed)
 | `resourcegroup` | The name of a LINSTOR resource group which defines the deployment of new VMs. As described above
 | `preferlocal`   | Prefer to create local storage (yes/no). As described above
+| `searchdomain`  | The domain that the plugin appends to the Proxmox VE node name when LINSTOR node names are fully qualified domain names (FQDNs). Refer to <<s-linstor-proxmox-fqdn-node-names>>.
 | `statuscache`   | Time in seconds status information is cached, 0 means no extra cache. Relevant on huge clusters with hundreds of resources. This has to be set on *all* `drbd` storage entries in `/etc/pve/storage.cfg` to take effect.
 | `exactsize`     | Set this temporarily to `yes` to allow storage migration from external storage such as LVM
 to DRBD/LINSTOR.
