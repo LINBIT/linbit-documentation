@@ -189,6 +189,40 @@ DRBD ensures block device consistency in case of a primary node
 failure by way of a special mechanism. For a detailed discussion,
 refer to <<s-activity-log>>.
 
+[[s-reconciliation-resync]]
+==== Reconciliation resynchronization after a primary node is lost
+
+indexterm:[reconciliation resynchronization]indexterm:[node failure]When a resource is replicated among three or more nodes, a primary node can fail after it has sent a write to one surviving node but not to the other.
+The surviving nodes settle that difference between themselves before they continue.
+DRBD stamps every write with a resource-wide counter, called a data generation tag, that marks a position in the stream of writes.
+After the primary node is lost, each survivor sends its peers the last tag it received from that node.
+The node that received more writes becomes the synchronization source for the node that received fewer, and DRBD transfers only the difference.
+This transfer is a reconciliation resynchronization.
+
+The reconciliation runs without intervention, but it has three effects that you can observe.
+
+DRBD logs the decision on each surviving node, and shows the difference between the two data generation tags as `o=<offset>`, measured in 512-byte sectors:
+
+----
+Reconciliation resync because 'node-c' disappeared. (o=4096)
+----
+
+In this example, the node that logged the message received 4096 sectors, or 2 MiB, more of the write stream than its peer did.
+
+When both survivors received the same writes, no data is transferred, and DRBD logs the following message instead:
+
+----
+No reconciliation resync even though 'node-c' disappeared. (o=0)
+----
+
+The two surviving nodes briefly enter the _SyncSource_ and _SyncTarget_ replication states on the connection between them, although both reported _UpToDate_ immediately before the failure.
+If your monitoring alerts on a resynchronization in progress, this transfer triggers an alert.
+Refer to <<s-replication-states>> for the replication states.
+
+A promotion requested while the reconciliation is in progress waits for the reconciliation to finish, so that DRBD knows which survivor has the more recent data.
+DRBD bounds that wait with the `auto-promote-timeout` resource option plus the longest ping timeout configured on the connections of the resource.
+A failover triggered at the moment the primary node fails can therefore take slightly longer than the size of the transfer might suggest.
+
 [[s-perm-node-failure]]
 ==== Dealing with permanent node failure
 
@@ -213,6 +247,40 @@ the data, anyway!].
 Manually starting a full device synchronization is not necessary at
 this point. The synchronization will commence automatically upon connection to the
 surviving primary or secondary node(s), or both.
+
+[[s-resync-without-uptodate]]
+=== Dealing with a resynchronization that ends without an UpToDate disk state
+
+indexterm:[resynchronization]A resynchronization can run to completion and leave the target node with a disk state other than _UpToDate_.
+Read the kernel log on the target node to determine which of the following two causes applies.
+Refer to <<s-disk-states>> for the disk states.
+
+If the log reports failed blocks, the lower-level device of the target node returned errors during the transfer, and the disk state of the target node becomes _Inconsistent_:
+
+----
+17 failed blocks
+----
+
+Treat this as a disk failure and follow <<s-hard-drive-failure>>.
+
+If the log reports the following message, the synchronization source was not a stable node for the whole transfer:
+
+----
+Peer was unstable during resync
+----
+
+In DRBD terminology, a node is stable when it is in the primary role, or when none of the peers it is connected to is in the primary role.
+A secondary node that is connected to a primary node is unstable, because the primary node can send it new writes at any time.
+A resynchronization target applies this rule only when it has no stable synchronization source of its own.
+A target that is connected to a primary node always has such a source, so this situation does not happen while every connection in the resource is up.
+It happens when the target node cannot contact the primary node while its synchronization source can.
+The data on the source then changes during the transfer.
+DRBD cannot determine then whether the copy on the target is current when the transfer finishes.
+In this case, DRBD leaves the disk state of the target node unchanged and does not update the generation identifiers of that node.
+
+To recover, restore the connection between the target node and the primary node, or the connection between the target node and another node that is a stable synchronization source.
+Because DRBD did not update the generation identifiers of the target node, it resynchronizes the node again when the node connects to such a source, and the disk state then transitions to _UpToDate_.
+Refer to <<s-gi-use>> for the part that generation identifiers play in that decision.
 
 [[s-resolve-split-brain]]
 === Manual split brain recovery
