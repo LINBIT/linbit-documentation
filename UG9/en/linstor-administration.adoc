@@ -217,7 +217,7 @@ systemctl restart linstor-satellite linstor-controller
 ----
 
 IMPORTANT: If you have made the LINSTOR controller service highly available in your cluster, you will need to update the `linstor-controller` package on all potential LINSTOR controller nodes.
-However, you only need to restart the LINSTOR controller service on the node currently running the service. 
+However, you only need to restart the LINSTOR controller service on the node currently running the service.
 
 [[s-linstor-upgrading-deb-based-linux]]
 ==== Upgrading LINSTOR on DEB-based Linux
@@ -698,7 +698,7 @@ mechanism in this example.
 IMPORTANT: With LVM2, the external locking service (`lvmlockd`) manages volume groups created
 with the `vgcreate` command's `--shared` option. To use the LINSTOR `--external-locking`  option, you
 need to have specified the LVM `--shared` option when entering a `vgcreate` command to create the
-LVM volume group that backs the LINSTOR storage pool. 
+LVM volume group that backs the LINSTOR storage pool.
 
 You can omit both the `--shared` option for `vgcreate` and the `--external-locking` option for
 `linstor storage-pool create`. If you do this, LINSTOR will use its own mechanism to take care
@@ -746,11 +746,11 @@ For more options and exact command usage refer to the LINSTOR client `--help` te
 
 With some setup and configuration, you can use storage pools of different <<s-storage-providers,storage provider>> types to back a LINSTOR resource.
 This is called storage pool mixing.
-For example, you might have a storage pool on one node that uses an LVM thick-provisioned volume while on another node you have a storage pool that uses a thin-provisioned ZFS zpool. 
+For example, you might have a storage pool on one node that uses an LVM thick-provisioned volume while on another node you have a storage pool that uses a thin-provisioned ZFS zpool.
 
 Because most LINSTOR deployments will use homogenous storage pools to back resources, storage pool mixing is only mentioned here so that you know that the feature exists.
 It might be a useful feature when migrating storage resources, for example.
-You can find further details about this, including prerequisites, in <<s-linstor-storage-providers-storage-pool-mixing>>. 
+You can find further details about this, including prerequisites, in <<s-linstor-storage-providers-storage-pool-mixing>>.
 
 [[s-linstor-resource-groups]]
 === Using resource groups to deploy LINSTOR provisioned volumes
@@ -907,7 +907,7 @@ property on a resource definition, it will override the property value on the re
 that the resource definition belongs to.
 
 There are other additional properties related to this feature that you can set on the LINSTOR
-controller: 
+controller:
 
 `BalanceResourcesInterval`:: The interval in seconds, at the LINSTOR controller level, that the
 balance resource placement task is triggered. By default, the interval is 3600 seconds (one
@@ -2057,7 +2057,7 @@ two providers there are already sub-types for their thin-provisioned variants.
 
 * Diskless: This provider type is mostly required to have a storage pool that can be configured
   with LINSTOR properties like `PrefNic` as described in <<s-managing_network_interface_cards,
-  Managing Network Interface Cards>>.
+  managing network interface controllers>>.
 
 * LVM / LVM-Thin: The administrator is expected to specify the LVM volume group or the thin-pool
   (in form of "LV/thinpool") to use the corresponding storage type. These drivers support
@@ -2088,7 +2088,7 @@ two providers there are already sub-types for their thin-provisioned variants.
 While LINSTOR resources are most often backed by storage pools that consist of only one <<s-storage-providers,storage provider>> type, it is possible to use storage pools of different types to back a LINSTOR resource.
 This is called mixing storage pools.
 This might be useful when migrating storage resources but could also have some consequences.
-Read this section carefully before configuring mixed storage pools. 
+Read this section carefully before configuring mixed storage pools.
 
 [[s-linstor-storage-providers-storage-pool-mixing-prereqs]]
 ===== Prerequisites for mixing storage pools
@@ -2099,7 +2099,7 @@ Mixing storage pools has the following prerequisites:
 - LINSTOR satellite nodes need to have DRBD version 9.2.7 (or 9.1.18 if on the 9.1 branch) or later
 - The LINSTOR property `AllowMixingStoragePoolDriver` set to `true` on the LINSTOR controller, resource group, or resource definition LINSTOR object level
 
-NOTE: Because of LINSTOR object hierarchy, if you set the `AllowMixingStoragePoolDriver` property on the LINSTOR controller object (`linstor controller set-property AllowMixingStoragePoolDriver true`), the property will apply to all LINSTOR resources, except for any resource groups or resource definitions where you have set the property to `false`. 
+NOTE: Because of LINSTOR object hierarchy, if you set the `AllowMixingStoragePoolDriver` property on the LINSTOR controller object (`linstor controller set-property AllowMixingStoragePoolDriver true`), the property will apply to all LINSTOR resources, except for any resource groups or resource definitions where you have set the property to `false`.
 
 [[s-linstor-storage-providers-storage-pool-mixing-criteria]]
 ===== When storage pools are considered mixed
@@ -2171,10 +2171,11 @@ Once this `remotespdk` storage pool is created the remaining procedure is quite 
 using NVMe: First the target has to be created by creating a simple "diskful" resource followed
 by a second resource having the `--nvme-initiator` option enabled.
 
+// Do not rename this anchor to match the heading. Published links depend on it.
 [[s-managing_network_interface_cards]]
-=== Managing network interface cards
+=== Managing network interface controllers
 
-LINSTOR can deal with multiple network interface cards (NICs) in a machine. They are called
+LINSTOR can deal with multiple network interface controllers (NICs) in a machine. They are called
 "net interfaces" in LINSTOR speak.
 
 NOTE: When a satellite node is created a first net interface gets created implicitly with the
@@ -2187,14 +2188,17 @@ For existing nodes, additional net interfaces are created like this:
 # linstor node interface create node-0 nic_10G 192.168.43.231
 ----
 
-Net interfaces are identified by the IP address only, the name is arbitrary and is *not* related
-to the NIC name used by Linux. While the LINSTOR net interface name is arbitrary, there are some
-naming constraints:
+LINSTOR identifies a net interface by a freely chosen name.
+This name must be unique within a node, although you can use the same name on more than one node.
+The name is *not* related to the NIC name that Linux uses.
+The IP address determines which link carries DRBD traffic.
+Several net interfaces on a node can have the same IP address, and LINSTOR does not show an error message when you create a duplicate.
+The net interface name has the following constraints:
 
 - Minimum length of three characters
 - Maximum length of 32 characters
 - Must start with a letter (case-insensitive) or an underscore (`_`)
-- Valid characters are alphanumeric characters, an underscore (`_`), or a hypen (`-`)
+- Valid characters are alphanumeric characters, an underscore (`_`), or a hyphen (`-`)
 // regex: /(?i)^[_a-z][a-z0-9_-]{2,31}
 
 After creating a net interface, you can then assign it to a node so that the node's DRBD traffic
@@ -2246,6 +2250,9 @@ https://linbit.com/drbd-user-guide/drbd-guide-9_0-en/#s-configuring-multiple-pat
 network paths] for DRBD setups, the `PrefNic` property is not sufficient. Instead the `linstor
 node interface` and `linstor resource-connection path` commands should be used, as shown below.
 
+These paths apply to a single resource.
+You can also <<s-linstor-node-connection-paths,create DRBD paths that apply to every resource between two nodes>>.
+
 ----
 # linstor node interface create alpha nic1 192.168.43.221
 # linstor node interface create alpha nic2 192.168.44.221
@@ -2256,8 +2263,8 @@ node interface` and `linstor resource-connection path` commands should be used, 
 # linstor resource-connection path create alpha bravo myResource path2 nic2 nic2
 ----
 
-The first four commands in the example define a network interface (`nic1` and `nic2`) for each
-node (`alpha` and `bravo`) by specifying the network interface's IP address. The last two
+The first four commands in the example define a net interface (`nic1` and `nic2`) for each
+node (`alpha` and `bravo`) by specifying the IP address. The last two
 commands create network path entries in the DRBD `.res` file that LINSTOR generates. This is the
 relevant part of the resulting `.res` file:
 
@@ -2322,7 +2329,156 @@ It goes over all paths in a round-robin fashion until a connection gets establis
 "The RDMA transport uses all paths of a connection concurrently and it balances the network
 traffic between the paths evenly."
 
-// if customers request, we should be able to also extend this to `node-connection` level
+[[s-linstor-node-connection-paths]]
+==== Creating DRBD paths for every resource between two nodes
+
+Just as you can <<s-creating-multiple-drbd-paths,create DRBD paths that apply to a single resource>>, you can also create paths that apply to every resource between two nodes.
+The link between two nodes is represented in LINSTOR by the _node connection_ object.
+LINSTOR stores network paths and DRBD options on a node connection as properties.
+
+By setting properties on a LINSTOR node connection, they are applied to every DRBD resource that LINSTOR replicates between that pair of nodes, including resources that you create later.
+A DRBD option that you set on a resource connection takes precedence over the same option set on a node connection.
+LINSTOR notes the override in a comment in the generated DRBD resource configuration file.
+Paths set on a resource connection also take precedence over node connection paths but in a different way.
+If a resource connection has paths set on it, even one path, LINSTOR uses those paths for the resource and ignores any node connection paths.
+
+===== Creating a node connection path
+
+To create a node connection path between two nodes, you first need to create a net interface on each node for each path you want to create.
+You can then specify these interfaces when you create node connection paths.
+Each path is stored on the node connection object, and a node connection can have more than one path.
+
+In the following example, the first four commands create two named net interfaces on each node.
+The last two commands create one path each by using the same interface name on both nodes of the connection.
+
+----
+linstor node interface create node-0 nic1 192.168.222.10
+linstor node interface create node-0 nic2 192.168.223.10
+linstor node interface create node-1 nic1 192.168.222.11
+linstor node interface create node-1 nic2 192.168.223.11
+
+linstor node-connection path create node-0 node-1 path1 nic1 nic1
+linstor node-connection path create node-0 node-1 path2 nic2 nic2
+----
+
+The LINSTOR controller service creates a node connection object when you first create a property on a pair of nodes by using the `node-connection` command.
+In this example, the first `node-connection path` command creates the node connection between `node-0` and `node-1`, while also creating a path between the two nodes.
+Creating, reusing existing, and deleting empty node connections is automatically handled by the LINSTOR controller.
+
+When you create or modify a node connection property, LINSTOR applies the property change to every DRBD resource that already exists between the two nodes.
+For example, if you set a DRBD option on a node connection, the output will show each resource as adjusted.
+
+----
+[...]
+SUCCESS:
+    (node-1) Node changes applied.
+SUCCESS:
+    (node-1) Resource 'res0' [DRBD] adjusted.
+SUCCESS:
+    (node-1) Resource 'res1' [DRBD] adjusted.
+SUCCESS:
+    (node-0) Node changes applied.
+SUCCESS:
+    (node-0) Resource 'res0' [DRBD] adjusted.
+SUCCESS:
+    (node-0) Resource 'res1' [DRBD] adjusted.
+[...]
+----
+
+You can verify the results of an operation applied to a node connection by examining the DRBD configuration for a resource replicated between the connected nodes.
+The following example resource configuration snippet shows the added paths.
+
+----
+resource "res0"
+{
+    [...]
+    connection
+    {
+
+        [...]
+        path
+        {
+            host "node-0" address ipv4 192.168.222.10:7000;
+            host "node-1" address ipv4 192.168.222.11:7000;
+        }
+
+        path
+        {
+            host "node-0" address ipv4 192.168.223.10:7000;
+            host "node-1" address ipv4 192.168.223.11:7000;
+        }
+    }
+}
+----
+
+Just as when <<s-creating-multiple-drbd-paths,you create paths by using resource connections>>, when creating paths by using node connections, LINSTOR will dynamically assign a port to each resource, starting at port 7000, and incrementing up with each new resource created.
+
+LINSTOR replaces the implicit default path when you create node connection paths, as it does when you <<s-linstor-effects-of-new-paths-on-default-path,create a resource connection path>>.
+This applies to every DRBD resource that LINSTOR replicates between the two nodes.
+
+===== Listing node connection paths
+
+Enter a `node-connection path list` command to list the paths of a node connection along with the net interfaces that define them:
+
+----
+linstor node-connection path list node-0 node-1
+----
+
+Output from the command will be a property table showing one row for each node in each path, similar to the following:
+
+----
+╭────────────────────────────╮
+│ Key                │ Value │
+╞════════════════════════════╡
+│ Paths/path1/node-0 │ nic1  │
+│ Paths/path1/node-1 │ nic1  │
+│ Paths/path2/node-0 │ nic2  │
+│ Paths/path2/node-1 │ nic2  │
+╰────────────────────────────╯
+----
+
+===== Deleting a node connection path
+
+To delete a node connection path, enter a `node-connection path delete` command:
+
+----
+linstor node-connection path delete node-0 node-1 path1
+----
+
+===== Listing node connections in a cluster
+
+To show node connections that exist cluster-wide, enter the following command:
+
+----
+linstor node-connection list
+----
+
+Output from the command will show the node connections in the cluster:
+
+----
+╭──────────────────────────────────────────────────╮
+│ Node A │ Node B │ Properties                     │
+╞══════════════════════════════════════════════════╡
+│ node-0 │ node-1 │ ping-timeout=10,node-0=nic1... │
+╰──────────────────────────────────────────────────╯
+----
+
+For each node connection, the table output shows a truncated list of properties.
+Use a `node-connection list-properties` command to show the full list of properties for a specified node connection.
+
+===== Deleting a node connection
+
+You delete a node connection indirectly, by removing all of its properties.
+To remove a property from a node connection, enter a `node-connection set-property` command and omit the property value.
+
+----
+linstor node-connection set-property node-0 node-1 DrbdOptions/Net/ping-timeout
+----
+
+Alternatively, removing one of the nodes that make up a node connection also deletes the node connection.
+
+WARNING: Do not use `node-connection set-property` to unset node connection paths.
+Use `linstor node-connection path delete` instead.
 
 [[s-linstor-encrypted-volumes]]
 === Encrypted volumes
@@ -2770,7 +2926,7 @@ An example command for this might be:
 
 The `<remote-cluster-wan-ip>` would be the WAN IP address of the remote LINSTOR controller node.
 
-When you ship a backup, use the `--target-net-if` argument to specify the network interface that you created having the WAN IP address of your remote LINSTOR cluster.
+When you ship a backup, use the `--target-net-if` argument to specify the net interface that you created having the WAN IP address of your remote LINSTOR cluster.
 An example command structure would be:
 
 ----
@@ -3450,6 +3606,25 @@ two nodes, for example:
 
 The preceding command would set the DRBD `ping-timeout` option to 29.9 seconds at a connection
 level between two nodes, `node-0` and `node-1`.
+LINSTOR stores this option on <<s-linstor-node-connection-paths,the node connection between the two nodes>>.
+An option you set this way applies to every DRBD resource that LINSTOR replicates between the two nodes, including resources that you create later.
+To set an option for a single resource between two nodes, use <<s-linstor-setup-drbd-peer-opts,a resource connection>>.
+
+Enter a `node-connection list-properties` command to verify the setting:
+
+----
+linstor node-connection list-properties node-0 node-1
+----
+
+Output will look similar to this:
+
+----
+╭──────────────────────────────────────╮
+│ Key                          │ Value │
+╞══════════════════════════════════════╡
+│ DrbdOptions/Net/ping-timeout │ 10    │
+╰──────────────────────────────────────╯
+----
 
 [[s-linstor-verifying-opts]]
 ==== Verifying options for LINSTOR objects
@@ -3580,7 +3755,7 @@ done
 
 If you had a storage pool backed by a thin-provisioned logical volume that had a total capacity
 of 10GiB, then each new storage resource that you created from the storage pool could
-have a maximum size of 40GiB, regardless of how much free space remained in the storage pool. 
+have a maximum size of 40GiB, regardless of how much free space remained in the storage pool.
 
 [[s-linstor-over-provisioning-storage-ratios-max-oversubscription-ratio]]
 ==== Configuring a maximum over subscription ratio for over provisioning
@@ -3628,7 +3803,7 @@ Because you set the `MaxTotalCapacityOversubscriptionRatio` property to 3, LINST
 value for the property, rather than the value that you set for the `MaxOversubscriptionRatio`
 property. Because you did not set the `MaxFreeCapacityOversubscriptionRatio` property, LINSTOR
 will use the value that you set for the `MaxOversubscriptionRatio` property, 4, for the
-`MaxFreeCapacityOversubscriptionRatio` property. 
+`MaxFreeCapacityOversubscriptionRatio` property.
 
 When determining resource placement, that is, when LINSTOR decides whether or not a resource can
 be placed in a storage pool, LINSTOR will compare two values: the ratio set by the
@@ -3933,7 +4108,7 @@ to the HTTPS redirect. If your have not
 <<s-linstor-configuration-file-specifying-controllers,specified a LINSTOR controller in the
 LINSTOR configuration TOML file>> (`/etc/linstor/linstor.toml`), then you will need to use a
 different syntax when using the LINSTOR client (`linstor`) as described in
-<<s-using_the_linstor_client>>. 
+<<s-using_the_linstor_client>>.
 
 [[s-rest-api-https-restricted-client]]
 ===== LINSTOR REST API HTTPS restricted client access
@@ -4641,7 +4816,7 @@ The evicted satellite itself will not be able to reestablish connection with the
 Even if the node is up and running, a manual reconnect will fail. It is also not possible to
 delete the satellite, even if it is working as it should be. The satellite can, however, be
 restored. This will remove the EVICTED-flag from the satellite and allow you to use it again.
-Previously configured network interfaces, storage pools, properties and similar entities,
+Previously configured net interfaces, storage pools, properties and similar entities,
 non-DRBD-related resources, and resources that LINSTOR could not autoplace somewhere else will
 still be on the satellite. To restore a satellite, use the following command:
 
@@ -5038,14 +5213,14 @@ that has basic support for command and argument completion.
 ==== Generating SOS reports
 
 If something goes wrong and you need help finding the cause of the issue, you can enter the
-following command: 
+following command:
 
 ----
 # linstor sos-report create
 ----
 
 The command above will create a new sos-report in the `/var/log/linstor/controller` directory on
-the controller node. Alternatively you can enter the following command: 
+the controller node. Alternatively you can enter the following command:
 
 ----
 # linstor sos-report download
