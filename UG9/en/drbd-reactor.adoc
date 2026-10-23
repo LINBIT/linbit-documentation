@@ -85,6 +85,25 @@ The promoter plugin also supports failure actions such as rebooting a node if a 
 
 The `drbd-reactor.promoter` manual page describes in detail the mechanisms and logic that the promoter plugin uses behind the scenes to start or block services from running on nodes.
 
+[[s-drbd-reactor-promoter-split-brain-avoidance]]
+====== Avoiding split-brain scenarios with the promoter plugin
+
+To promote a resource safely, the promoter plugin needs a way to avoid split-brain scenarios.
+Avoiding split brains prevents the same services from running on two nodes at the same time with diverging data.
+DRBD Reactor supports two preventive methods, and the promoter plugin selects between them automatically, based on your DRBD configuration.
+
+* DRBD quorum requires a cluster of at least three nodes (a diskless node can serve as a quorum tiebreaker).
+Use quorum in every cluster that has at least three nodes.
+Set `quorum majority` in the DRBD resource `options` section.
+Set `on-no-quorum` and `on-no-data-accessible` to values that match the `on-quorum-loss` setting of the promoter plugin.
+The default `on-quorum-loss` setting, `shutdown`, requires `io-error`, and the `freeze` setting requires `suspend-io`.
+See <<s-drbd-reactor-promoter-plugin-freeze-configure>> for the DRBD options that the `freeze` setting requires.
+The promoter plugin then promotes a resource only on a node that has quorum.
+
+* Fencing is the method for 2-node clusters, where a majority quorum cannot form after a node is lost.
+The surviving node powers off or reboots its peer, an action known as STONITH, before promoting the resource.
+See <<s-drbd-reactor-promoter-fencing-2-node>> for the procedure to configure a 2-node cluster with fencing.
+
 [[s-drdb-reactor-umh-plugin]]
 ==== The user mode helper (UMH) plugin
 
@@ -626,6 +645,168 @@ NOTE: If you need to prevent failback to a particular node, you can evict it by 
 This prevents failback, until the node reboots and the flag gets removed.
 You can remove the flag sooner than a reboot would, by using the `drbd-reactorctl evict --unmask` command.
 This command is the same as the CRM shell `unmigrate` command.
+
+[[s-drbd-reactor-promoter-fencing-2-node]]
+=== Configuring the promoter plugin with fencing for a 2-node cluster
+
+A 2-node cluster cannot use DRBD quorum to avoid split-brain scenarios, because a majority quorum cannot form after one of the two nodes is lost.
+For a 2-node highly available cluster, configure DRBD-level fencing instead.
+With fencing, a node that loses contact with its peer powers off or reboots the peer before promoting the DRBD resource and starting the services.
+This sequence prevents both nodes from running the services at the same time and writing conflicting changes to their own copies of the data.
+
+To fence the peer, DRBD calls a `fence-peer` handler.
+The `drbd-utils` package ships a handler, `/usr/lib/drbd/drbd-fence-peer.sh`, that connects the fence-peer interface of DRBD to the standard cluster fence agents, such as `fence_ipmilan` and `fence_redfish`.
+This handler does not require Pacemaker.
+Install the fence agents that you intend to use from the `fence-agents` packages of your distribution.
+
+IMPORTANT: This configuration requires drbd-utils version 9.35.0 or later, and DRBD Reactor version 1.10.0 or later.
+
+[[s-drbd-reactor-fencing-drbd-resource]]
+==== Configuring the DRBD resource for fencing
+
+Configure the DRBD resource with a fencing policy and the fence-peer handler, and turn quorum off so that the promoter plugin uses fencing as its split-brain avoidance method:
+
+----
+resource ha-mount {
+  options {
+    auto-promote no;
+    quorum off;                                        <1>
+    on-suspended-primary-outdated force-secondary;     <2>
+  }
+  net {
+    fencing resource-and-stonith;                      <3>
+  }
+  handlers {
+    fence-peer "/usr/lib/drbd/drbd-fence-peer.sh"; <4>
+  }
+  [...]
+}
+----
+
+<1> Turns quorum off.
+The promoter plugin selects fencing as its split-brain avoidance method when `quorum` is `off` and the `fencing` option is not `dont-care`.
+<2> Demotes a _Primary_ node that has suspended I/O and then reconnects to a peer that has newer data.
+The node then rejoins the cluster as a _Secondary_ node.
+With the default value, `disconnect`, the node rejects connection attempts and stays isolated.
+<3> Suspends I/O and runs the `fence-peer` handler when a _Primary_ node loses the connection to its peer.
+DRBD also runs the handler when a _Secondary_ node attempts to promote the resource while the peer is disconnected.
+<4> The handler that fences the peer by calling a fence agent.
+
+After the handler confirms that it fenced the peer, DRBD resumes I/O.
+If the handler cannot confirm that it fenced the peer, I/O stays suspended until the nodes reconnect or until you enter the `drbdadm resume-io` command.
+
+Apply the updated configuration on both nodes:
+
+----
+drbdadm adjust ha-mount
+----
+
+[[s-drbd-reactor-fencing-handler-config]]
+==== Configuring the fence-peer handler
+
+The handler reads its configuration from the `/etc/drbd.d/fence-peer/` directory.
+Put global settings in `fence.conf`:
+
+----
+# Use "reboot" to power-cycle the peer, or "off" to leave the peer off.
+FENCE_ACTION="reboot"
+# Priority fencing delay in seconds. A value of 0 disables the delay.
+FENCE_DELAY="5"
+----
+
+For each node, create a file named after the DRBD node name at `/etc/drbd.d/fence-peer/peers/<nodename>.fence` that describes how to fence that node.
+The `AGENT=` line selects the fence agent.
+The handler passes the remaining `key=value` lines to the agent on standard input, so that credentials do not appear in the process list.
+Because these files contain credentials, restrict their permissions:
+
+----
+chmod 0600 /etc/drbd.d/fence-peer/peers/*.fence
+----
+
+Two common interfaces for fencing the hardware of a node are the Intelligent Platform Management Interface (IPMI) and Redfish.
+Both interfaces access the baseboard management controller (BMC) of a node.
+
+.Fencing through IPMI, by using the `fence_ipmilan` agent
+----
+AGENT=/usr/sbin/fence_ipmilan
+# "ip" is the BMC address of the node, not its operating system address.
+ip=10.0.0.2
+lanplus=1
+login=admin
+password=secret
+method=onoff
+----
+
+.Fencing through Redfish, by using the `fence_redfish` agent
+----
+AGENT=/usr/sbin/fence_redfish
+# "ip" is the Redfish BMC address of the node.
+ip=10.0.0.2
+ipport=443
+username=admin
+password=secret
+systems_uri=/redfish/v1/Systems/1
+----
+
+NOTE: The handler runs whichever agent you name on the `AGENT` line.
+You can therefore use any cluster `fence_*` agent, for example `fence_apc` for a managed power distribution unit, or a fence agent from a cloud provider.
+Set `AGENT` to the path of the agent and list the parameters of that agent on the lines that follow.
+
+Run the handler in test mode to verify that a node can fence its peer without rebooting the peer.
+Test mode queries the power status of the fence device:
+
+----
+/usr/lib/drbd/drbd-fence-peer.sh --test <peer-nodename>
+----
+
+NOTE: A successful `--test` run does not prove that the `.fence` file for a node describes the BMC of that node.
+A status query against the wrong BMC also succeeds.
+To verify the mapping, trigger a real fence action by entering the command `DRBD_PEERS=<peer-nodename> /usr/lib/drbd/drbd-fence-peer.sh`, and then confirm that the expected node reboots.
+
+The handler also determines which node survives a symmetric network partition, so that the two nodes do not power off each other at the same time.
+The handler applies a _priority fencing delay_ of its own, which mirrors the `priority-fencing-delay` feature in Pacemaker.
+The `FENCE_DELAY` setting in `fence.conf` controls this delay.
+Do not add a `delay=` parameter to the `.fence` files, because the handler ignores a manual `delay=` parameter.
+After the connection drops, the role of the peer reads as _Unknown_.
+The local role of a node is therefore the only reliable signal.
+The handler uses this signal as follows:
+
+* The handler fences the peer immediately if the local node is _Primary_ on the majority of the resources that it shares with the peer, because that node is serving data.
+* The handler waits `FENCE_DELAY` seconds if the local node is _Secondary_ on the majority of the shared resources, so that a peer _Primary_ that is still running can fence it first.
+* On an exact tie, the handler breaks the race by node ID, so that the node with the lower node ID fences immediately and the node with the higher node ID waits.
+
+Set `FENCE_DELAY=0` to disable the priority fencing delay and have both nodes fence immediately.
+Otherwise, choose a value larger than the time that one fence action takes to confirm the power state, so that the favored node finishes first.
+
+[[s-drbd-reactor-fencing-promoter-config]]
+==== Configuring the promoter plugin for fencing
+
+The promoter plugin detects the split-brain avoidance method from the DRBD configuration of the resource.
+When `quorum` is `off` and the `fencing` option is not `dont-care`, the plugin uses fencing.
+A minimal promoter snippet for the fenced 2-node resource is:
+
+----
+[[promoter]]
+[promoter.resources.ha-mount]
+start = ["ocf:heartbeat:Filesystem fs_test device=/dev/drbd1000 directory=/mnt/test fstype=ext4 run_fsck=no"]
+on-drbd-demote-failure = "reboot"
+----
+
+In fencing mode, a _Secondary_ node waits `fencing-promote-delay` seconds before it attempts to promote the resource, so that a _Primary_ peer can fence the _Secondary_ node first.
+The default value is 5 seconds.
+Increase the value if a fence action in your cluster takes longer than 5 seconds to confirm the power state.
+
+Enable and start the DRBD Reactor service on both nodes to apply the configuration:
+
+----
+systemctl enable drbd-reactor.service --now
+----
+
+If the DRBD Reactor service already runs on a node, reload it instead:
+
+----
+systemctl reload drbd-reactor.service
+----
 
 [[s-drbd-reactor-creating-a-ha-file-system-mount]]
 === Using the DRBD Reactor promoter plugin to create a highly available file system mount
