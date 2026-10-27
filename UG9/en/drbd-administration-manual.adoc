@@ -795,6 +795,15 @@ in `/etc/drbd.d/global_common.conf`), you may also use:
 42 0 * * 0    root    /sbin/drbdadm verify all
 ----
 
+WARNING: Online verification reads all data on both nodes of a verified connection and compares the two copies.
+Verifying all resources at the same time can overload your backing storage devices and degrade application I/O performance.
+To limit the load, verify fewer resources at the same time.
+You can also temporarily reduce the `c-max-rate` value, which limits the rate of online verification as well as the rate of resynchronization.
+To change the limit on a running resource, enter `drbdadm peer-device-options --c-max-rate=_<rate>_ _<resource>_`.
+This change applies to the running resource only.
+A `drbdadm adjust` command, or taking the resource down and bringing it up again, for example, when you reboot the node, restores the `c-max-rate` value from the resource configuration file, or the DRBD default value if the file does not set it.
+You can remove the limit later by specifying a `c-max-rate` value of 0.
+When application I/O is active on the backing device, DRBD slows online verification down to the `c-min-rate` value.
 
 [[s-configure-sync-rate]]
 === Configuring the rate of synchronization
