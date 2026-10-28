@@ -1350,6 +1350,11 @@ linstor resource-group set-property nfs-rg FileSystem/MkfsParams '-L nfs-data'
 
 Refer to the `mkfs.ext4` and `mkfs.xfs` manual pages for other parameters you might specify.
 
+NOTE: LINSTOR does not apply a fixed timeout to the `mkfs.ext4` and `mkfs.xfs` commands.
+LINSTOR stops a `mkfs` command only after the command has made no I/O progress for 45 seconds.
+A `mkfs` command on a large volume therefore continues to run while it makes progress.
+To change this timeout, see <<s-linstor-ext-cmd-timeouts, Configuring external command timeouts>>.
+
 [[s-linstor-deleting-resource-tasks]]
 === Deleting resources, resource definitions, and resource groups
 
@@ -2035,7 +2040,8 @@ only the backing device will use a cache, not the device holding the external me
 
 The storage layer will provide new devices from well known volume managers like LVM, ZFS or
 others. Every layer combination needs to be based on a storage layer, even if the resource
-should be diskless - for that type there is a dedicated `diskless` provider type.
+should be diskless.
+For that type there is a dedicated `diskless` provider type.
 
 For a list of providers with their properties refer to <<s-storage-providers, Storage Providers>>.
 
@@ -4181,11 +4187,109 @@ The `--certfile` parameter can also added to the client configuration file, see
 [[s-linstor-satellite-config]]
 === Configuring the LINSTOR satellite service
 
-The LINSTOR Satellite software has an optional configuration file that uses the TOML file syntax
-and has to be put into the following path `/etc/linstor/linstor_satellite.toml`.
+The LINSTOR satellite service can use an optional TOML configuration file.
+The satellite service reads this file from `/etc/linstor/linstor_satellite.toml`.
+To use a different directory, start the satellite service with the `--config-directory` option.
 
-A recent configuration example can be found here:
-https://github.com/LINBIT/linstor-server/blob/master/docs/linstor_satellite.toml-example[linstor_satellite.toml-example]
+The `linstor-satellite` package installs an example configuration file at `/etc/linstor/linstor_satellite-example.toml`.
+You can also view this file in the LINSTOR server repository:
+https://github.com/LINBIT/linstor-server/blob/master/scripts/linstor_satellite-example.toml[linstor_satellite-example.toml]
+
+[[s-linstor-ext-cmd-timeouts]]
+=== Configuring external command timeouts
+
+When you create, clone, or delete storage, LINSTOR runs external commands on the affected nodes, such as the `drbdadm create-md` and `mkfs.ext4` commands.
+To configure how long LINSTOR waits for these commands before it stops them, set `ExtCmd/*` properties at the controller level or at the node level.
+A property that you set at the node level takes precedence over the same property that you set at the controller level.
+
+Some of these commands read or write a whole volume.
+On a large volume, such a command can run for a long time.
+For these commands, LINSTOR applies an I/O stall timeout rather than a fixed timeout.
+At each poll interval, LINSTOR checks whether the command has made I/O progress.
+LINSTOR stops the command only after the I/O stall timeout has elapsed with no I/O progress, no matter how long the command has been running.
+
+IMPORTANT: The `ExtCmd/*` properties do not change how long the LINSTOR client waits for a response.
+A command that runs for a long time can still end with a timeout message from the client, as described in <<s-linstor-client-timeout, Waiting for a long-running command>>.
+
+LINSTOR applies an I/O stall timeout to the following commands:
+
+`drbdadm create-md`:: Creates the metadata for a new DRBD volume.
+`mkfs.ext4` and `mkfs.xfs`:: Create a file system on a volume, as described in <<s-linstor-creating-a-filesystem-on-a-storage-volume-additional-parameters, Specifying additional parameters when creating a file system>>.
+`blkdiscard`:: Discards a volume when you delete it.
+`dd`:: Copies the volume data when you clone an LVM volume.
+`shred`:: Erases the LUKS headers when you delete an encrypted volume.
+`tar`:: Creates the archive file for an SOS report.
+
+NOTE: An I/O stall timeout is available only on Linux nodes.
+On other platforms, LINSTOR applies the `ExtCmd/WaitTimeout` value to these commands.
+
+The following properties control external command timeout behavior.
+All values are in milliseconds.
+
+`ExtCmd/WaitTimeout`:: The time LINSTOR waits for an external command to finish before it stops the command.
+LINSTOR stops a command in two steps, sending a `TERM` signal first and a `KILL` signal after `ExtCmd/TermTimeout` has elapsed.
+For the commands that use an I/O stall timeout, LINSTOR applies `ExtCmd/IoStallTimeout` instead.
++
+Default: `45000` (45 seconds).
++
+NOTE: The `ExtCmdWaitTimeout` property was renamed to `ExtCmd/WaitTimeout` in LINSTOR 1.34.
+When you upgrade to LINSTOR 1.34 or later, LINSTOR migrates an existing value to the new property name.
+LINSTOR still accepts the old name and returns a deprecation warning.
+
+`ExtCmd/TermTimeout`:: The time LINSTOR waits for a command to exit after it sends a `TERM` signal.
+If the command does not exit within this time, LINSTOR sends a `KILL` signal.
++
+Default: `15000` (15 seconds).
+
+`ExtCmd/KillTimeout`:: The time LINSTOR waits for a command to exit after it sends a `KILL` signal.
+After this time, LINSTOR stops waiting and reports a timeout, even while the command might still be running on the node.
++
+Default: `5000` (5 seconds).
+
+The following two properties apply to the commands that use an I/O stall timeout.
+
+`ExtCmd/IoStallTimeout`:: The time with no I/O progress after which LINSTOR stops the command.
++
+Default: the value of `ExtCmd/WaitTimeout`.
+If you do not set this property, then changing `ExtCmd/WaitTimeout` also changes the I/O stall timeout.
+
+`ExtCmd/IoPollInterval`:: The interval at which LINSTOR checks the command for I/O progress.
++
+Default: `2000` (2 seconds).
+
+To apply a setting to every node in the cluster, set the property at the controller level.
+For example, to raise the I/O stall timeout to two minutes, enter the following command:
+
+----
+linstor controller set-property ExtCmd/IoStallTimeout 120000
+----
+
+To override a setting on a single node, enter the following command:
+
+----
+linstor node set-property <node-name> ExtCmd/IoStallTimeout 120000
+----
+
+[[s-linstor-client-timeout]]
+==== Waiting for a long-running command
+
+The `ExtCmd/*` properties control how long LINSTOR waits for an external command.
+They do not control how long the LINSTOR client waits for a response from the LINSTOR controller service.
+By default, the client stops waiting after 300 seconds and reports a timeout such as the following one:
+
+----
+Error: Socket timeout, no data received for more than 300s.
+----
+
+The external command continues to run on the node.
+This message therefore does not mean that LINSTOR stopped the command.
+
+To make the client wait longer, add the `--timeout` option to the `linstor` command.
+The following command waits 30 minutes:
+
+----
+linstor --timeout 1800 resource-group adjust <resource-group-name>
+----
 
 [[s-linstor-logging]]
 === Logging
