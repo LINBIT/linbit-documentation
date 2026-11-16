@@ -2914,6 +2914,8 @@ Additionally, you can use `--source-node` to specify which node should send and 
 to specify which node should receive the backup. In case those nodes are not available, the
 LINSTOR controller will choose different nodes automatically.
 
+Backup shipping to a LINSTOR remote uses TCP ports 12000-12999 on the receiving nodes.
+
 IMPORTANT: If `targetRsc` is already a deployed resource on the remote cluster, snapshots in the
 backup shipping for `localRsc` will ship to the remote cluster but they will not be restored to
 the remote cluster. The same is true if you specify the `--download-only` option with the
@@ -3100,64 +3102,9 @@ soon as a different shipment has finished which leads to a backup slot becoming 
 [[s-shipping_snapshots-old]]
 ===== Shipping a snapshot in the same cluster
 
-Before you can ship a snapshot to a different node within the same LINSTOR cluster, you need to
-create a LINSTOR remote object that specifies your LINSTOR cluster's ID. Refer to the
-<<s-linstor-resource-backup-shipping-linstor-to-linstor>> section for instructions on how to get your LINSTOR cluster's ID
-and create such a remote. An example command would be:
-
-----
-# linstor remote create linstor self 127.0.0.1 --cluster-id <LINSTOR_CLUSTER_ID>
-----
-
-NOTE: `self` is a user-specified, arbitrary name for your LINSTOR remote. You can specify a
-different name if you want.
-
-Both, the source and the target node have to have the resource for snapshot shipping deployed.
-Additionally, the target resource has to be deactivated.
-
-----
-# linstor resource deactivate nodeTarget resource1
-----
-
-WARNING: You cannot reactivate a resource with DRBD in its layer-list after deactivating such a
-resource. However, a successfully shipped snapshot of a DRBD resource can still be
-<<s-linstor-snapshots-restoring,restored into a new resource>>. To manually start the snapshot
-shipping, use:
-
-----
-# linstor backup ship self localRsc targetRsc
-----
-
-WARNING: The `snapshot ship` command is considered deprecated and any bugs found with it will
-not be fixed. Instead, to ship a snapshot in the same LINSTOR cluster, use the `backup ship`
-command, as shown in the example above, with a remote pointing to your local controller. For
-more details about configuring a LINSTOR cluster as a remote, see the
-<<s-linstor-snapshots-shipping-to-a-linstor-remote>> section.
-
-By default, the snapshot shipping feature uses TCP ports from the range 12000-12999. To change
-this range, the property `SnapshotShipping/TcpPortRange`, which accepts a to-from range, can be
-set on the controller:
-
-----
-# linstor controller set-property SnapshotShipping/TcpPortRange 10000-12000
-----
-
-A resource can also be periodically shipped. To accomplish this, it is mandatory to set the
-properties `SnapshotShipping/TargetNode` and `SnapshotShipping/RunEvery` on the
-resource-definition. `SnapshotShipping/SourceNode` can also be set, but if omitted LINSTOR will
-choose an active resource of the same resource-definition.
-
-To allow incremental snapshot-shipping, LINSTOR has to keep at least the last shipped snapshot
-on the target node. The property `SnapshotShipping/Keep` can be used to specify how many
-snapshots LINSTOR should keep. If the property is not set (or <= 0) LINSTOR will keep the last
-10 shipped snapshots by default.
-
-----
-# linstor resource-definition set-property resource1 SnapshotShipping/TargetNode nodeTarget
-# linstor resource-definition set-property resource1 SnapshotShipping/SourceNode nodeSource
-# linstor resource-definition set-property resource1 SnapshotShipping/RunEvery 15
-# linstor resource-definition set-property resource1 SnapshotShipping/Keep 5
-----
+LINSTOR 1.32.0 removed the `snapshot ship` command and the `SnapshotShipping` properties.
+To ship a snapshot within the same cluster, use `backup ship` with a remote that points to the local controller, as described in the <<s-linstor-snapshot-shipping-within-a-single-cluster>> section.
+For periodic shipping, use a <<s-linstor-scheduled-backup-shipping,backup shipping schedule>>.
 
 [[s-linstor-scheduled-backup-shipping]]
 === Scheduled backup shipping
