@@ -1,0 +1,1451 @@
+# SOME DESCRIPTIVE TITLE
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: documentation@linbit.com\n"
+"POT-Creation-Date: 2026-11-17 20:28+0000\n"
+"PO-Revision-Date: 2026-11-17 20:28+0000\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#. type: Title ==
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:3
+#, no-wrap
+msgid "Rolling DRBD upgrades in orchestrated clusters"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:8
+msgid ""
+"You can use the `drbd-rolling-upgrade` command to upgrade DRBD(R) on the "
+"nodes of a LINSTOR(R) cluster, one node at a time.  The command supports "
+"clusters in which Apache CloudStack, OpenStack, Proxmox VE, OpenNebula, or "
+"XCP-ng with XOSTOR manages the guests.  For each node, the command performs "
+"the steps of the manual procedure in the {url-drbd-ug}#s-upgrade-"
+"within-9[Upgrading within DRBD 9] section of the _DRBD User Guide_, in a "
+"fixed order, with a check after each step."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:10
+msgid ""
+"The command detects known failure conditions and stops at the first one, "
+"before the next step changes anything."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:12
+#, no-wrap
+msgid "Upgrade phases for a node"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:16
+msgid ""
+"The `run` subcommand processes one node at a time, in nine phases.  After "
+"each phase, the command records the phase as complete in a state file."
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:29
+#, no-wrap
+msgid ""
+"|# |Phase |Action\n"
+"|1 |`preflight` |Collects a read-only report on the node: the guests, the installed and installable packages, the kernel, the DRBD Reactor promoters, and the storage findings.\n"
+"|2 |`storage-analysis` |Adds a temporary replica of each resource that would otherwise have no `UpToDate` copy, or lose quorum, while the node is down.\n"
+"|3 |`drain` |Live-migrates the guests off the node, in batches, to nodes that have replicas of their resources and enough memory.\n"
+"|4 |`verify-empty` |Checks that the orchestrator and the node itself report no guests, and repeats the storage analysis.\n"
+"|5 |`maintenance` |Puts the node into the maintenance mode of the orchestrator.\n"
+"|6 |`evict-promoters` |Moves each active DRBD Reactor promoter to another node with the `drbd-reactorctl evict` command.\n"
+"|7 |`upgrade` |Installs the new packages, swaps the kernel module, and checks that each resource is up again.\n"
+"|8 |`health-check` |Checks disk states, connections, quorum, and the kernel log for known failure signatures.\n"
+"|9 |`return-to-service` |Takes the node out of maintenance mode.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:37
+msgid ""
+"In the `upgrade` phase, the command installs the packages before it takes "
+"DRBD down.  The old kernel module stays loaded during the package "
+"installation, and the resources stay up.  The command then verifies that the "
+"installed package and the module file on disk both have the target version.  "
+"If a DKMS build fails, the command stops at this point, with the old module "
+"loaded.  After these checks, the command runs `drbdsetup down all`, unloads "
+"the old module, loads the new one, and runs `drbdadm adjust all`.  The "
+"resources on the node are down only during this module swap."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:40
+msgid ""
+"Without the `--nodes` option, the command processes every node.  The node "
+"with the most guests is processed last, and the control host after all "
+"others."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:42
+#, no-wrap
+msgid "Requirements"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:45
+#, no-wrap
+msgid "The control host"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:49
+msgid ""
+"The control host is the machine on which you run the `drbd-rolling-upgrade` "
+"command.  The command connects from the control host to each node over SSH, "
+"as the `root` user by default."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:51
+msgid "The control host must meet these requirements:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:53
+msgid "Python 3.6 or later is installed."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:54
+msgid "The `linstor` client can connect to the LINSTOR controller service."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:56
+msgid ""
+"The `root` user on each node accepts an SSH key that the control host can "
+"use.  See <<s-dru-ssh>>."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:57
+msgid "The control host is not the node that you upgrade."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:62
+msgid ""
+"The `run` subcommand stops if the control host is one of the nodes that it "
+"upgrades.  The `--i-know-what-i-am-doing` option overrides this check.  If "
+"the command reboots the control host to load the new module, the reboot also "
+"ends the command.  Upgrade the other nodes from the control host, then "
+"upgrade the control host from one of the upgraded nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:65
+msgid ""
+"On Proxmox VE, OpenNebula with an all-in-one installation, Platform9 Private "
+"Cloud Director, and XCP-ng, the control host is one of the nodes.  Upgrade "
+"the nodes in at least two runs, from two different control hosts."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:71
+msgid ""
+"Run the command in a `tmux` or `screen` session.  The command runs the "
+"package installation, `drbdsetup down all`, and `drbdadm adjust all` as "
+"detached jobs on the node.  These jobs continue if the SSH connection "
+"drops.  The `drbd-rolling-upgrade` process itself stops if its terminal "
+"closes.  If the process stops between `drbdsetup down all` and `drbdadm "
+"adjust all`, the resources on that node stay down until you continue with "
+"the `resume` subcommand."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:73
+#, no-wrap
+msgid "The DRBD packages on the nodes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:77
+msgid ""
+"Each node must be able to install the target DRBD version from a package "
+"repository that is configured on the node.  The `drbd-rolling-upgrade` "
+"command does not add repositories."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:80
+msgid ""
+"The command does not remove a package hold.  If the module package has a "
+"hold, the run stops in the `upgrade` phase, before DRBD goes down, and lists "
+"the command that removes the hold."
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:88
+#, no-wrap
+msgid ""
+"|Platform |Hold |Command that removes the hold\n"
+"|RHEL family |`dnf versionlock` |`dnf versionlock delete kmod-drbd`\n"
+"|XCP-ng dom0 |`yum versionlock` |`yum versionlock delete <spec>`\n"
+"|Debian, Ubuntu, Proxmox VE |`apt-mark hold` |`apt-mark unhold <module package>`\n"
+"|SLES |`zypper locks` |`zypper removelock <package>`\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:92
+msgid ""
+"Remove the hold on a node immediately before you upgrade that node.  Set the "
+"hold again after you upgrade the node."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:94
+#, no-wrap
+msgid "Resource balancing in LINSTOR"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:100
+msgid ""
+"The LINSTOR controller service runs the `BalanceResourcesTask` every hour by "
+"default.  After a grace period of one hour, the task deletes diskful "
+"replicas beyond the place count of a resource group.  The task treats a "
+"temporary replica that the `drbd-rolling-upgrade` command added the same as "
+"an original replica.  If a node stays down for longer than the grace period, "
+"for example during a long stop or a reboot, the task can delete an original "
+"replica on another node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:103
+msgid ""
+"The `preflight` and `run` subcommands print the settings of the "
+"`BalanceResourcesTask`.  If you expect long interruptions, disable the task "
+"before the upgrade:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:107
+#, no-wrap
+msgid "# linstor controller set-property BalanceResourcesEnabled false\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:111
+msgid ""
+"A `BalanceResourcesEnabled` property on a resource group or a resource "
+"definition overrides the controller setting.  If you set the property to "
+"`true` on a resource group or a resource definition, the task still balances "
+"the resources of that object."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:114
+msgid ""
+"After you upgrade the last node, restore the previous setting.  If the "
+"property was not set before, delete it:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:118
+#, no-wrap
+msgid "# linstor controller set-property BalanceResourcesEnabled\n"
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:121
+#, no-wrap
+msgid "Setting up SSH key authentication for the root user"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:125
+msgid ""
+"The `drbd-rolling-upgrade` command opens SSH connections from the control "
+"host to the `root` user on each node.  The connections use `BatchMode=yes` "
+"and cannot prompt for a password or a passphrase."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:127
+#, no-wrap
+msgid "Recommended setup"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:133
+msgid ""
+"Use a personal SSH key pair that is protected by a passphrase.  Keep the "
+"private key on your workstation.  Install the public key for the `root` user "
+"on each node.  Forward your SSH agent to the control host, and run the `drbd-"
+"rolling-upgrade` command there."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:136
+msgid ""
+"With this setup, the private key does not exist on any node.  The SSH daemon "
+"on each node logs the fingerprint of your key for each login."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:138
+msgid "On your workstation, create a key pair with a passphrase:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:142
+#, no-wrap
+msgid "$ ssh-keygen -t ed25519 -C \"<your name> drbd-rolling-upgrade\"\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:145
+msgid "Enter a passphrase when the `ssh-keygen` command prompts for one."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:147
+msgid "Load the key into your SSH agent:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:151
+#, no-wrap
+msgid "$ ssh-add ~/.ssh/id_ed25519\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:155
+msgid ""
+"Enter the passphrase.  The agent keeps the key until the agent stops or "
+"until you remove the key with `ssh-add -d`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:157
+msgid "Install the public key for the `root` user on each node:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:161
+#, no-wrap
+msgid "$ ssh-copy-id -i ~/.ssh/id_ed25519.pub root@<node>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:164
+msgid ""
+"If a node does not permit password logins for `root`, add the content of `~/."
+"ssh/id_ed25519.pub` to `/root/.ssh/authorized_keys` on that node through an "
+"existing administrative login."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:166
+msgid "Verify the login to each node from your workstation:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:170
+#, no-wrap
+msgid "$ ssh root@<node> true\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:173
+msgid "Log in to the control host with agent forwarding:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:177
+#, no-wrap
+msgid "$ ssh -A <user>@<control host>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:181
+msgid ""
+"If you run the `drbd-rolling-upgrade` command directly as the remote command "
+"of `ssh`, add the `-t` option together with the `-A` option.  Without a "
+"terminal, each confirmation counts as declined."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:183
+msgid ""
+"On the control host, verify the login to each node by the name that the "
+"orchestrator uses for the node:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:187
+#, no-wrap
+msgid "$ ssh root@<node name> true\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:192
+msgid ""
+"Every new SSH connection that the `drbd-rolling-upgrade` command opens to a "
+"node uses the forwarded agent.  Keep the SSH session to the control host "
+"open until the run ends.  If you start `tmux` in that session, the `tmux` "
+"session keeps the agent socket of that SSH session."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:195
+msgid ""
+"A user who has `root` access on the control host can use your forwarded "
+"agent while your session is open.  Forward the agent only to a control host "
+"that you trust."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:198
+msgid ""
+"You can run the `drbd-rolling-upgrade` command as your own user or as `root` "
+"on the control host.  The account that runs the command must be able to read "
+"the credential files of the orchestrator."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:200
+#, no-wrap
+msgid "Using a root key on the control host"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:205
+msgid ""
+"Instead of a forwarded agent, the `root` user on the control host can have "
+"its own key pair.  In that case, the public key of `root` on the control "
+"host must be in `/root/.ssh/authorized_keys` on each node.  A run does not "
+"depend on your SSH session in this setup."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:208
+msgid ""
+"On some clusters, `root` on one node can log in to a second node but not to "
+"a third.  Before a run, verify the login from the control host to each node:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:212
+#, no-wrap
+msgid "# for n in <node1> <node2> <node3>; do ssh root@$n hostname; done\n"
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:215
+#, no-wrap
+msgid "Host keys"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:221
+msgid ""
+"The `drbd-rolling-upgrade` command runs the `ssh` command with the "
+"`StrictHostKeyChecking=accept-new` option.  If the account on the control "
+"host has no host key on record for a node, the `ssh` command accepts the key "
+"of the node and adds it to `~/.ssh/known_hosts` of that account.  The "
+"command lists each accepted key as a `note:` line in its output.  If a node "
+"presents a key that differs from the key on record, the `ssh` command "
+"refuses the connection."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:224
+msgid ""
+"For strict host key checking, add the `--ssh-option "
+"StrictHostKeyChecking=yes` option.  With strict checking, the command "
+"accepts an unknown host key only from these sources:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:226
+msgid ""
+"For the node that runs the command, the host keys of the node in `/etc/ssh/"
+"ssh_host_*_key.pub`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:227
+msgid ""
+"For other nodes, the `known_hosts` file of a node that the command already "
+"connected to with a verified key."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:230
+msgid ""
+"The command prints each key from these sources with its fingerprint.  The "
+"command keeps these keys in a temporary file and does not write them to your "
+"`known_hosts` file."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:232
+#, no-wrap
+msgid "SSH options"
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:234
+#, no-wrap
+msgid "`--ssh-user <user>`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:237
+msgid ""
+"Sets the user for the SSH connections to the nodes.  The default is `root`."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:238
+#, no-wrap
+msgid "`--ssh-jump <host>`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:240
+msgid "Adds a jump host, as with the `ssh -J` command."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:241
+#, no-wrap
+msgid "`--ssh-option <option>`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:244
+msgid ""
+"Passes an option to the `ssh` command, as with the `ssh -o` command.  You "
+"can repeat this option."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:247
+msgid ""
+"The command runs remote commands as the SSH user and does not use `sudo` on "
+"the nodes.  The package installation and the module swap require `root` "
+"privileges."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:249
+#, no-wrap
+msgid "Installing the package"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:252
+msgid "Install the `drbd-rolling-upgrade` package on the control host."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:254
+msgid "On a DEB-based system:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:258
+#, no-wrap
+msgid "# apt install ./drbd-rolling-upgrade_<version>_all.deb\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:261
+msgid "On an RPM-based system:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:265
+#, no-wrap
+msgid "# dnf install ./drbd-rolling-upgrade-<version>-<release>.<dist>.noarch.rpm\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:268
+msgid "From a source tree:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:272
+#, no-wrap
+msgid "# pip install .\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:277
+msgid ""
+"The command uses only the Python standard library.  If the `python-linstor` "
+"module is installed, the command uses the module to query LINSTOR.  "
+"Otherwise, the command runs the `linstor` client."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:279
+#, no-wrap
+msgid "Upgrading DRBD in a cluster"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:283
+msgid ""
+"The `analyze`, `preflight`, and `pkg-check` subcommands are read-only.  The "
+"`run`, `resume`, and `post-upgrade` subcommands perform a dry run unless you "
+"add the `--execute` option."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:285
+msgid "Identify the data for which each node has the only copy:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:289
+#, no-wrap
+msgid "# drbd-rolling-upgrade analyze\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:292
+msgid "Check the nodes and the target version:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:296
+#, no-wrap
+msgid "# drbd-rolling-upgrade preflight --target-version 9.3.4\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:299
+msgid ""
+"Optional: Check the installed and installable packages on individual nodes, "
+"without an orchestrator or LINSTOR:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:303
+#, no-wrap
+msgid "# drbd-rolling-upgrade pkg-check --target-version 9.3.4 <node1> <node2>\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:306
+msgid "Print the plan for a node:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:311
+#, no-wrap
+msgid ""
+"# drbd-rolling-upgrade run --target-version 9.3.4 \\\n"
+"    --nodes <node> --state-file /root/dru-<node>.json\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:314
+msgid ""
+"The plan lists each command of the run, and each replica that the run would "
+"add."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:316
+msgid "Upgrade the node:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:323
+#, no-wrap
+msgid ""
+"# drbd-rolling-upgrade run --execute --target-version 9.3.4 \\\n"
+"    --nodes <node> --state-file /root/dru-<node>.json \\\n"
+"    --yes replica-add --yes migrate --yes maintenance --yes evict \\\n"
+"    --yes package --yes module-reload\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:326
+msgid "Repeat the previous two steps for each node."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:328
+msgid ""
+"After you upgrade the last node, remove the replicas that the runs added, "
+"once for each state file:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:332
+#, no-wrap
+msgid "# drbd-rolling-upgrade post-upgrade --execute --state-file /root/dru-<node>.json\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:335
+msgid ""
+"If the `linstor` client on the control host uses the configuration of the "
+"`root` user, and you run the command as another user, add the `--linstor-"
+"sudo` option."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:337
+#, no-wrap
+msgid "Confirmations"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:341
+msgid ""
+"Each step that changes the cluster belongs to a confirmation class.  If you "
+"do not add a `--yes <class>` option for the class of a step, the command "
+"prompts on the terminal before the step."
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:353
+#, no-wrap
+msgid ""
+"|Class |Step\n"
+"|`replica-add` |Add a temporary DRBD replica.\n"
+"|`migrate` |Live-migrate guests off the node.\n"
+"|`maintenance` |Enter or leave the maintenance mode of the orchestrator.\n"
+"|`evict` |Move a DRBD Reactor promoter to another node.\n"
+"|`package` |Install the DRBD module package and the `drbd-utils` package, with DRBD still up.\n"
+"|`module-reload` |Run `drbdsetup down all`, unload the module, load the new module, and run `drbdadm adjust all`.\n"
+"|`reboot` |Reboot the node if the old module cannot be unloaded.\n"
+"|`replica-delete` |Delete a replica that the upgrade added.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:356
+msgid ""
+"The `--yes all` option confirms every class except `reboot` and `replica-"
+"delete`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:361
+msgid ""
+"The `reboot` and `replica-delete` steps always prompt on the terminal.  No "
+"option confirms them in advance.  If the command runs without a terminal, "
+"these prompts count as declined, and the run stops with the state file "
+"intact.  Run the command in an attached terminal when a run might include "
+"either step."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:364
+msgid ""
+"If you decline a confirmation, the run stops with exit code 4.  Continue "
+"later with the `resume` subcommand."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:366
+#, no-wrap
+msgid "Resuming a run from the state file"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:371
+msgid ""
+"The `--state-file` option names the state file on the control host.  The "
+"command writes the file after each completed phase.  The file records the "
+"target version, the node order, the cluster fingerprint, the completed "
+"phases for each node, the migrations, and the replicas that the run added."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:373
+msgid ""
+"To continue a stopped run, use the same state file on the same control host:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:379
+#, no-wrap
+msgid ""
+"# drbd-rolling-upgrade resume --execute --state-file /root/dru-<node>.json \\\n"
+"    --yes replica-add --yes migrate --yes maintenance --yes evict \\\n"
+"    --yes package --yes module-reload\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:382
+msgid ""
+"The `run` subcommand with the `--execute` option does not start if the state "
+"file exists."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:388
+msgid ""
+"When you resume, the command compares the cluster with the fingerprint in "
+"the state file.  If a node or a resource no longer exists, the command does "
+"not resume and lists the difference.  If a resource was deleted on purpose, "
+"for example because its guest was deleted, remove the resource name from "
+"`fingerprint.resources` in the state file, and resume again.  A new resource "
+"does not prevent a resume.  The command prints the new resource as a `note:` "
+"line."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:391
+msgid ""
+"The `post-upgrade` subcommand reads the state file to identify the replicas "
+"that the run added.  Keep the state file until you run the `post-upgrade` "
+"subcommand."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:393
+#, no-wrap
+msgid "Target versions and rollback"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:397
+msgid ""
+"Specify the DRBD version with the `--target-version` option, for example "
+"`9.3.4`.  The package release and the kernel part of a package version do "
+"not affect the comparison."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:402
+msgid ""
+"A release candidate is a separate version.  `--target-version 9.3.5-rc.1` "
+"and `--target-version 9.3.5~rc.1` both select the package `9.3.5~rc.1-1`.  "
+"`--target-version 9.3.5` selects only the release and does not select the "
+"release candidate.  A release candidate sorts before its release."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:406
+msgid ""
+"A target version that is older than the installed version stops the run.  To "
+"roll back, add the `--allow-downgrade` option.  The run then uses the "
+"rollback command of the package manager, for example `dnf downgrade`, and "
+"otherwise follows the same nine phases."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:408
+#, no-wrap
+msgid "DRBD kernel modules on Debian and Ubuntu"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:411
+msgid ""
+"On Debian and Ubuntu, the DRBD kernel module comes from one of two packages:"
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:412
+#, no-wrap
+msgid "`drbd-dkms`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:415
+msgid ""
+"Builds the module on the node during the package installation.  DKMS can "
+"build the module for a kernel only if the headers for that kernel are "
+"installed."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:416
+#, no-wrap
+msgid "`drbd-module-<kernel release>`"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:419
+msgid ""
+"Has a module for exactly one kernel release.  A kernel without a matching "
+"`drbd-module` package cannot load DRBD."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:423
+msgid ""
+"The `preflight` and `pkg-check` subcommands report which kind each node "
+"uses.  They also report the kernel that the node boots next, and whether a "
+"module for that kernel exists.  Before you reboot a node that uses `drbd-"
+"module` packages, verify that a package exists for the kernel that the node "
+"boots next."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:425
+#, no-wrap
+msgid "Failure conditions and exit codes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:430
+msgid ""
+"A run that stops at a failure condition prints `HALT: <node>: <reason>` and "
+"exits with code 3.  The command places each stop before the step that would "
+"cause damage.  The message describes the state of the node and the next "
+"action."
+msgstr ""
+
+#. type: Table
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:438
+#, no-wrap
+msgid ""
+"|Exit code |Meaning\n"
+"|0 |The run completed.\n"
+"|1 |An error occurred, for example a credential or connection problem.\n"
+"|3 |The run stopped at a failure condition.\n"
+"|4 |You declined a confirmation.\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:441
+msgid "After you resolve the cause, continue with the `resume` subcommand."
+msgstr ""
+
+#. type: Title ===
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:443
+#, no-wrap
+msgid "Orchestrator-specific requirements"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:447
+msgid ""
+"The command detects the orchestrator on the control host.  To skip "
+"detection, add the `--orchestrator <name>` option, where `<name>` is "
+"`cloudstack`, `openstack`, `proxmox`, `opennebula`, or `xcpng`."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:449
+#, no-wrap
+msgid "Apache CloudStack"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:453
+msgid ""
+"The command uses the CloudStack API directly, with signed requests.  The "
+"CloudMonkey (`cmk`) client is optional."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:454
+#, no-wrap
+msgid "API key"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:459
+msgid ""
+"The API key must belong to a user with the root admin role.  The `listHosts` "
+"and `listSystemVms` commands and host maintenance require this role.  With a "
+"domain admin key, the API returns fewer guests than exist.  Create the keys "
+"in the user interface (*Accounts* > account > *Users* > user > *Generate "
+"keys*), or with `cmk register userkeys id=<user UUID>`."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:460
+#, no-wrap
+msgid "Key sources"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:464
+msgid "The command uses the first of these sources that has a key:"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:466
+msgid ""
+"The file that you specify with the `--cs-key-file` option, with `url`, "
+"`apikey`, and `secretkey` lines."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:467
+msgid ""
+"The environment variables `CLOUDSTACK_ENDPOINT`, `CLOUDSTACK_KEY`, and "
+"`CLOUDSTACK_SECRET`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:469
+msgid ""
+"The `cmk` configuration in `~/.cmk/config`.  With the `--cmk-sudo` option, "
+"the command reads `/root/.cmk/config` through `sudo`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:470
+msgid "The file `~/.cloudstack.ini`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:473
+msgid ""
+"The `--cs-url` option replaces the endpoint of the source that has the key.  "
+"The command does not send, log, print, or store the secret key."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:475
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:612
+#, no-wrap
+msgid "TLS"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:479
+msgid ""
+"By default, the command verifies the certificate of the management server "
+"against the system CA store.  For a self-signed certificate, specify its "
+"SHA-256 fingerprint with the `--cs-fingerprint` option, or its CA with the "
+"`--cs-ca` option.  The `--cs-insecure` option turns off verification."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:480
+#, no-wrap
+msgid "HTTP status 401"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:483
+msgid ""
+"CloudStack returns status 401 for an invalid API key and for an unsupported "
+"API command.  Check the key first, then the version of the management server."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:484
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:517
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:590
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:634
+#, no-wrap
+msgid "Maintenance"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:486
+msgid "The command uses the host maintenance mode of CloudStack."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:488
+#, no-wrap
+msgid "OpenStack"
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:490
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:571
+#, no-wrap
+msgid "Credentials"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:495
+msgid ""
+"The account must have the admin role.  The command queries all projects, the "
+"compute services, and the hypervisors.  With a project-scoped account, the "
+"queries return fewer instances than exist.  The command reads the "
+"credentials from the `OS_*` environment variables, from an `openrc` file "
+"that you specify with the `--os-openrc` option, or from a `clouds.yaml` "
+"entry that you specify with the `--os-cloud` option."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:496
+#, no-wrap
+msgid "Node names"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:502
+msgid ""
+"Each compute node has a service hostname and a hypervisor hostname.  The "
+"command uses the service hostname for the Nova API calls.  The hypervisor "
+"hostname is the LINSTOR node name.  The `--nodes` option takes the "
+"hypervisor hostname.  The `preflight` output lists both names."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:503
+#, no-wrap
+msgid "Volumes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:506
+msgid ""
+"The command maps instances to LINSTOR resources through the Cinder volumes "
+"of the LINBIT(R) Cinder driver.  The command supports resource names of the "
+"form `volume-<UUID>` and `CV_<UUID>`."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:507
+#, no-wrap
+msgid "Instances that do not move"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:512
+msgid ""
+"The drain does not move an instance without an attached volume, because the "
+"root disk of such an instance is a local file on the compute node.  It also "
+"does not move an instance that is not active, or an instance with a running "
+"Nova task.  The run stops before it moves any instance and lists these "
+"instances.  Move or stop them, then resume."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:513
+#, no-wrap
+msgid "Config drives"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:516
+msgid ""
+"The drain moves an instance with a config drive and lists it in the "
+"`migrate` confirmation.  If Nova does not accept the live migration, the run "
+"stops at that instance, before maintenance."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:519
+msgid "The command disables the `nova-compute` service of the node."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:520
+#, no-wrap
+msgid "API endpoints"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:524
+msgid ""
+"By default, the command uses the endpoints from the Keystone service "
+"catalog, with the interface from the credentials.  The `--os-interface` "
+"option selects `public`, `internal`, or `admin`.  The `--os-endpoint "
+"<service>=<URL>` option overrides the endpoint of one service."
+msgstr ""
+
+#. type: Title =====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:526
+#, no-wrap
+msgid "Platform9 Private Cloud Director"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:532
+msgid ""
+"Platform9 Private Cloud Director (PCD) runs the OpenStack control plane "
+"outside the cluster.  On each node, PCD forwards the API services to local "
+"ports: Keystone on 8158, Nova on 8774, Cinder on 8776, and Placement on "
+"8778.  The service catalog lists public URLs that a node might not be able "
+"to use.  When you run the command on a node, add the `--os-endpoints "
+"loopback` option:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:537
+#, no-wrap
+msgid ""
+"$ drbd-rolling-upgrade --os-openrc ~/openstackrc --os-endpoints loopback \\\n"
+"    preflight --target-version 9.3.4\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:542
+msgid ""
+"On PCD, the service hostname is a UUID, and the hypervisor hostname is the "
+"fully qualified domain name (FQDN) of the node.  The control host is one of "
+"the nodes.  Copy the `openrc` file to at least two nodes, and upgrade each "
+"node from another node."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:544
+#, no-wrap
+msgid "Proxmox VE"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:552
+msgid ""
+"The command uses the `pvesh`, `pvecm`, `qm`, and `pct` commands on the "
+"control host.  The cluster must be quorate.  The storage must be of type "
+"`drbd`, from the `linstor-proxmox` plugin.  The command reads the state of "
+"the HA manager.  If the cluster has no HA resources, maintenance mode has no "
+"effect.  The command reports this condition."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:555
+msgid ""
+"The control host is one of the nodes.  Upgrade the other nodes from it, then "
+"upgrade the control host from one of the upgraded nodes."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:562
+msgid ""
+"Proxmox VE cannot live-migrate a running container.  If a node runs a "
+"container, the drain stops before it moves anything, and lists the "
+"container.  Stop or move the container, then resume.  Alternatively, add the "
+"`--allow-restart-migration` option.  With this option, the drain stops the "
+"container, migrates it, and starts it again, and the `migrate` confirmation "
+"lists the container.  The `--yes all` option does not include the `--allow-"
+"restart-migration` option."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:564
+#, no-wrap
+msgid "OpenNebula"
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:566
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:601
+#, no-wrap
+msgid "Control host"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:570
+msgid ""
+"Run the command as `root` on the OpenNebula front end.  The command uses the "
+"XML-RPC API of the `oned` daemon, at `http://localhost:2633/RPC2` by "
+"default, with the credentials of the `oneadmin` user.  If the front end is "
+"also a host that you upgrade, upgrade it from another machine with the `--"
+"orchestrator opennebula`, `--one-endpoint http://<front end>:2633/RPC2`, and "
+"`--one-auth <file>` options."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:575
+msgid ""
+"The command reads the credentials from the file in the `--one-auth` option, "
+"the `$ONE_AUTH` environment variable, `~/.one/one_auth`, or `/var/lib/one/."
+"one/one_auth`.  The account must be in the `oneadmin` group.  For other "
+"accounts, the pool queries of OpenNebula return only the VMs that the "
+"account can access."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:576
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:622
+#, no-wrap
+msgid "Host names"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:579
+msgid ""
+"The command uses the `NAME` of each host from the `onehost list` command for "
+"LINSTOR, for SSH, and for the `--nodes` option.  The LINSTOR node name must "
+"be the same as the `NAME` of the host."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:580
+#, no-wrap
+msgid "Storage"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:582
+msgid ""
+"The command supports the LINSTOR add-on for OpenNebula (`TM_MAD = linstor`)."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:583
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:628
+#, no-wrap
+msgid "VMs that do not move"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:589
+msgid ""
+"The drain does not move a VM that is not in the `RUNNING` state, or a VM "
+"with a disk whose `TM_MAD` is not `linstor`.  It also does not move a VM on "
+"a non-KVM host, or a VM with PCI passthrough.  The run stops before it moves "
+"any VM and lists these VMs.  For a VM with a local disk, run a cold "
+"migration with `onevm migrate <vm> <host>` without `--live`, then resume.  A "
+"context CD does not prevent a live migration."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:594
+msgid ""
+"The command disables the host with `onehost disable` after the drain, and "
+"enables it with `onehost enable` after the upgrade.  Do not use the `onehost "
+"flush` command in place of the `drbd-rolling-upgrade` command.  The `onehost "
+"flush` command cold-migrates the VMs to destinations that the scheduler "
+"selects."
+msgstr ""
+
+#. type: Title ====
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:596
+#, no-wrap
+msgid "XCP-ng with XOSTOR"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:600
+msgid ""
+"Vates provides XOSTOR, a storage implementation for XCP-ng that uses the "
+"LINSTOR API.  LINBIT does not maintain XOSTOR."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:606
+msgid ""
+"Run the command in the dom0 of a pool member that is not the host that you "
+"upgrade.  Upgrade one host per run, with its own state file, and the pool "
+"master last.  Give the `root` user in that dom0 an SSH key that `root` in "
+"the other dom0s accepts.  In `linstor-client.conf`, list the management IP "
+"addresses of all hosts in `controllers`."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:607
+#, no-wrap
+msgid "XenAPI (XAPI) connection"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:611
+msgid ""
+"Specify the pool master with the `--xapi-url https://<pool master>/` option, "
+"the user with the `--xapi-user` option, and a file that contains the "
+"password with the `--xapi-password-file` option.  In a dom0, without the `--"
+"xapi-url` option, the command uses the local XAPI socket.  The account must "
+"be `root`, or have a role that includes `VM.pool_migrate`, `host.disable`, "
+"and `host.enable`."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:616
+msgid ""
+"XCP-ng hosts use self-signed certificates.  Specify the SHA-256 fingerprint "
+"of the pool master with the `--xapi-fingerprint` option.  To print the "
+"fingerprint, enter the following command on the pool master:"
+msgstr ""
+
+#. type: delimited block -
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:620
+#, no-wrap
+msgid "# openssl x509 -in /etc/xensource/xapi-ssl.pem -noout -fingerprint -sha256\n"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:624
+msgid ""
+"The command uses the hostname of the dom0 for LINSTOR, for SSH, and for the "
+"`--nodes` option."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:625
+#, no-wrap
+msgid "XOSTOR volumes"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:627
+msgid ""
+"The command reads the mapping from virtual disk images (VDIs) to LINSTOR "
+"resources from the LINSTOR key-value store that XOSTOR uses."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:633
+msgid ""
+"The drain does not move a VM that is not in the `Running` power state, or a "
+"VM with a disk on a storage repository (SR) other than XOSTOR.  It also does "
+"not move a VM with a CD from a local SR, or a VM with PCI, vGPU, or USB "
+"passthrough.  The run stops before it moves any VM and lists these VMs.  "
+"Move or stop these VMs, then resume."
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:638
+msgid ""
+"The command disables the host with `host.disable` and `auto_enable=false`.  "
+"The host stays disabled across a reboot of the dom0.  The command does not "
+"use `host.evacuate` or the maintenance mode of Xen Orchestra."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:639
+#, no-wrap
+msgid "Pool HA"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:642
+msgid ""
+"If pool HA is enabled, XAPI refuses a migration or a host disable that would "
+"break the failover plan.  If the drain stops with "
+"`HA_OPERATION_WOULD_BREAK_FAILOVER_PLAN`, lower the `ha-host-failures-to-"
+"tolerate` pool parameter for the duration of the run."
+msgstr ""
+
+#. type: Labeled list
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:643
+#, no-wrap
+msgid "Packages"
+msgstr ""
+
+#. type: Plain text
+#: UG9/en/linstor-drbd-rolling-upgrade.adoc:650
+msgid ""
+"The command uses the `yum` command in dom0.  The XOSTOR repositories and the "
+"LINBIT repositories both provide a package named `kmod-drbd`.  Without the "
+"`--target-version` option, the command considers only builds from the vendor "
+"of the installed package.  To switch the vendor, specify the version with "
+"the `--target-version` option, or add the `--allow-vendor-switch` option.  "
+"If both repositories are enabled, add the `--disable-repo <glob>` option to "
+"exclude one of them from the package transaction.  Before you enable the "
+"LINBIT repository, add `exclude=drbd-reactor* linstor-* linbit-sds-* python-"
+"linstor*` to `linbit.repo`.  Without this exclusion, the `yum update` "
+"command replaces the LINSTOR and DRBD Reactor packages that XOSTOR depends "
+"on."
+msgstr ""
