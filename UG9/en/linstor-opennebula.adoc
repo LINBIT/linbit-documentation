@@ -56,7 +56,6 @@ storage node, it will use a local copy of an image if that is available].
 
 It is recommended to use LINSTOR resource groups to configure resource deployment
 as you want it, refer to <<s-opennebula-resource-group>>.
-Previous auto-place and deployment nodes modes are deprecated.
 
 [[s-opennebula-configuration]]
 === Configuring the OpenNebula add-on
@@ -241,6 +240,8 @@ TM_MAD = linstor
 TYPE = IMAGE_DS
 DISK_TYPE = BLOCK
 LINSTOR_RESOURCE_GROUP = "OneRscGrp"
+LINSTOR_CONVERT_TO_RAW = "YES"
+DRIVER = "raw"
 COMPATIBLE_SYS_DS = 0
 BRIDGE_LIST = "alice bob charlie"  #node names
 EOI
@@ -249,6 +250,9 @@ onedatastore create ds.conf
 ----
 
 ==== Plugin attributes
+
+You set plugin attributes in the template of a datastore that uses the OpenNebula LINSTOR driver, for example, in the `ds.conf` file shown earlier.
+By setting plugin attributes, you configure how the driver connects to LINSTOR controllers and how the driver creates and stores the resources of the datastore.
 
 ===== LINSTOR_CONTROLLERS
 
@@ -262,9 +266,48 @@ process is not running locally on the front-End, e.g.:
 
 `LINSTOR_RESOURCE_GROUP` attribute is used to associate an OpenNebula datastore with a LINSTOR resource group.
 
-==== Deprecated attributes
+[[s-opennebula-convert-to-raw]]
+===== LINSTOR_CONVERT_TO_RAW
 
-The following attributes are deprecated and were removed in version 2.0.
+The `LINSTOR_CONVERT_TO_RAW` attribute applies only to image datastores (`TYPE = IMAGE_DS`).
+The attribute is not set by default.
+Versions of the driver that do not support the attribute ignore it.
+The recommended value for a new image datastore is `YES`, so that LINSTOR snapshots and OpenNebula interactive backups contain the blocks of the VM disk and not an image file:
+
+`LINSTOR_CONVERT_TO_RAW = "YES"`
+
+With this value, the driver converts every image that is copied into the datastore to the raw disk image format.
+An image is copied into the datastore when you create the image from a file or a URL, when you download a marketplace appliance into the datastore, and when you restore a backup.
+After the conversion, the DRBD device contains a bit-for-bit image of the VM disk.
+
+Without the attribute, the driver copies each image to the DRBD device in the original image format.
+If you create an image from a QCOW2 image file, for example, the DRBD device contains the QCOW2 image file.
+LINSTOR snapshots, changed block tracking (CBT), and OpenNebula interactive backups operate on the blocks of the DRBD device, independent of the QCOW2 format of the data in those blocks.
+A backup of such a disk therefore contains the QCOW2 image file and not a bit-for-bit image of the VM disk.
+
+The driver copies the image onto a temporary volume on the first diskful node of the new resource.
+The driver then uses the `qemu-img convert` command to convert the image from the temporary volume onto the DRBD device.
+The conversion has the following requirements and limitations:
+
+* The `qemu-img` command must be installed on the storage nodes.
+* The temporary volume is a LINSTOR resource without DRBD, named `OpenNebula-Staging-<image ID>`, in the storage pool of the image on that node.
+  The driver deletes the temporary volume after the conversion.
+* The storage pool must have free space for the temporary volume during the conversion.
+  The temporary volume has the size of the image plus 1% and 64 MiB.
+  In a thin storage pool, only the downloaded data uses space.
+* The driver rejects encrypted image files and image files that refer to other files, such as backing files or external data files.
+  If you must create images from such files, do not set the attribute.
+* An empty datablock must have the `raw` format, which is the default.
+  To enforce this format, add `DRIVER = "raw"` to the datastore template.
+* The driver does not convert the existing images of a datastore if you set the attribute later.
+* A clone of an image, and a disk that you save by using the `onevm disk-saveas` command, keep the format of their source.
+
+IMPORTANT: If an image file is larger than the temporary volume, the driver cannot copy the image into the datastore.
+A QCOW2 image with internal snapshots, for example, can be larger than the temporary volume.
+
+==== Removed attributes
+
+Versions of the OpenNebula LINSTOR driver earlier than 2.0.0 also support the following attributes.
 
 [[s-clone-mode]]
 ===== LINSTOR_CLONE_MODE
